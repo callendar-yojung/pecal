@@ -1,0 +1,1000 @@
+{
+  "metadata": {
+    "title": "Pecal - All-in-One Workspace for Teams",
+    "description": "Pecal is an all-in-one productivity platform that handles team collaboration, project management, and documentation in one place. Start free today.",
+    "ogDescription": "Team collaboration, project management, and documentation in one place. Maximize productivity with Pecal."
+  },
+  "nav": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "customers": "Customers",
+    "login": "Log in",
+    "logout": "Log out",
+    "getStarted": "Get started free",
+    "dashboard": "Dashboard"
+  },
+  "hero": {
+    "badge": "desktop app available now",
+    "title1": "One workspace.",
+    "title2": "Infinite possibilities.",
+    "description": "Team collaboration, project management, and documentation in one place. Maximize productivity with Pecal.",
+    "cta": "Get started free",
+    "demo": "View demo",
+    "download": "Download App",
+    "noCreditCard": "No credit card required · Free plan forever",
+    "preview": "Project dashboard preview"
+  },
+  "download": {
+    "title": "Download Desktop App",
+    "description": "Manage your work faster and more conveniently with the Pecal desktop app. Get an optimized native app experience.",
+    "login": "Log in",
+    "downloadButton": "Download",
+    "comingSoon": "Coming soon",
+    "error": "Failed to load release information",
+    "platforms": {
+      "windows": "Windows",
+      "windowsDesc": "Windows 10 or later",
+      "macosArm": "macOS (Apple Silicon)",
+      "macosArmDesc": "For M1, M2, M3 chip Macs",
+      "macosIntel": "macOS (Intel)",
+      "macosIntelDesc": "For Intel processor Macs",
+      "linux": "Linux",
+      "linuxDesc": "Ubuntu, Debian, etc."
+    },
+    "requirements": {
+      "title": "System Requirements",
+      "orLater": "or later"
+    }
+  },
+  "trustedBy": {
+    "title": "Trusted by over 10,000 teams"
+  },
+  "features": {
+    "title": "Everything your team needs",
+    "description": "From documentation to project management, all the features you need for team collaboration.",
+    "items": {
+      "docs": {
+        "title": "Smart Documentation",
+        "description": "Create and share ideas quickly with AI-powered documentation. Collaborate in real-time with your team members."
+      },
+      "project": {
+        "title": "Flexible Project Management",
+        "description": "Manage projects with various views like Kanban, Timeline, and Calendar. Customize workflows to fit your team."
+      },
+      "workspace": {
+        "title": "Unified Workspace",
+        "description": "Documents, databases, and projects all connected. Manage scattered information in one place and search quickly."
+      },
+      "ai": {
+        "title": "AI Assistant",
+        "description": "Automate repetitive tasks and discover insights. AI takes your team's productivity to the next level."
+      },
+      "security": {
+        "title": "Enterprise Security",
+        "description": "SOC 2 Type II certified, SSO, audit logs, and more enterprise-grade security. Your data is safely protected."
+      },
+      "integrations": {
+        "title": "Endless Integrations",
+        "description": "Connect with 200+ tools like Slack, GitHub, and Figma. Use Pecal while maintaining your existing workflow."
+      }
+    }
+  },
+  "stats": {
+    "users": "Users worldwide",
+    "teams": "Team workspaces",
+    "uptime": "Service uptime",
+    "satisfaction": "Customer satisfaction"
+  },
+  "pricing": {
+    "title": "Simple pricing",
+    "description": "Choose the plan that fits your team. Upgrade anytime.",
+    "popular": "Most popular",
+    "free": {
+      "name": "Free",
+      "price": "$0",
+      "period": "Free forever",
+      "description": "For individuals and small teams",
+      "cta": "Get started free",
+      "features": [
+        "Unlimited pages",
+        "Up to 5 guests",
+        "Basic page analytics",
+        "7-day page history",
+        "Slack, GitHub integration"
+      ]
+    },
+    "team": {
+      "name": "Team",
+      "price": "$8",
+      "period": "per user / month",
+      "description": "Collaboration features for growing teams",
+      "cta": "Start team plan",
+      "features": [
+        "Everything in Free",
+        "Unlimited team members",
+        "Unlimited guests",
+        "30-day page history",
+        "Advanced permissions",
+        "Team analytics dashboard"
+      ]
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "price": "Contact us",
+      "period": "Custom pricing",
+      "description": "Security and admin features for large organizations",
+      "cta": "Contact sales",
+      "features": [
+        "Everything in Team",
+        "SSO (SAML)",
+        "Advanced security",
+        "Audit logs",
+        "Dedicated success manager",
+        "SLA guarantee"
+      ]
+    }
+  },
+  "cta": {
+    "title": "Get started today",
+    "description": "The first step to better team collaboration. Transform how you work with Pecal.",
+    "getStarted": "Get started free",
+    "contact": "Contact sales"
+  },
+  "footer": {
+    "description": "All-in-one workspace for teams. Collaboration, docs, and projects unified.",
+    "product": "Product",
+    "resources": "Resources",
+    "company": "Company",
+    "legal": "Legal",
+    "features": "Features",
+    "pricing": "Pricing",
+    "customers": "Customers",
+    "roadmap": "Roadmap",
+    "helpCenter": "Help Center",
+    "guides": "Guides",
+    "apiDocs": "API Docs",
+    "blog": "Blog",
+    "about": "About",
+    "careers": "Careers",
+    "contact": "Contact",
+    "newsroom": "Newsroom",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "cookies": "Cookie Policy",
+    "copyright": "© {year} Pecal. All rights reserved.",
+    "company-name": "Company: yojung",
+    "address": "Address: 16-4 Takyeong-ro 15beon-gil, Buk-gu, Gwangju, Republic of Korea",
+    "owner": "CEO: Jang Hyunseong",
+    "tel": "Tel: 010-3106-7976",
+    "bizNum": "Business Registration No.: 150-63-00732",
+    "bizCheck": "Business info check",
+    "onlineSales": "Mail-order license: 2025-Gwangju Buk-gu-0857",
+    "privacy-name": "Privacy Officer: Jang Hyunseong",
+    "email": "Email: tlswlfk@gmail.com",
+    "allRightsReserved": "All rights reserved."
+  },
+  "privacyPolicy": {
+    "title": "Privacy Policy",
+    "lastUpdated": "Last Updated: February 6, 2026",
+    "intro": "yojung (the 'Company') values your privacy and complies with relevant laws including the Personal Information Protection Act. This Privacy Policy explains what personal information we collect, how we use it, how long we retain it, and how we dispose of it when you use our services.",
+    "backToHome": "Back to Home",
+
+    "section1": {
+      "title": "1. Personal Information We Collect",
+      "content": "We collect the following personal information to provide our services.",
+      "required": {
+        "title": "a. Required Information",
+        "items": [
+          "Email address",
+          "Nickname (username)",
+          "Social login information (Kakao account information)",
+          "Service usage records, IP address, cookies, access logs"
+        ]
+      },
+      "optional": {
+        "title": "b. Optional Information",
+        "items": [
+          "Profile image",
+          "Team information (team name, description)",
+          "Workspace information",
+          "Task and calendar information"
+        ]
+      }
+    },
+
+    "section2": {
+      "title": "2. Purpose of Collection and Use",
+      "content": "We use the collected personal information for the following purposes.",
+      "purposes": [
+        "Membership registration and management: Member identification, identity verification, registration confirmation",
+        "Service provision: Task management, team collaboration, project management features",
+        "Service improvement: New service development, personalized services, statistical analysis",
+        "Customer support: Inquiry handling, notice delivery, complaint resolution",
+        "Marketing and advertising: Event information and participation opportunities (only with consent)"
+      ]
+    },
+
+    "section3": {
+      "title": "3. Retention and Use Period",
+      "content": "In principle, we destroy personal information without delay after the purpose of collection and use has been achieved.",
+      "retention": [
+        "Member information: Until membership withdrawal (except when required by law)",
+        "Service usage records: 3 years (Protection of Communications Secrets Act)",
+        "Consumer complaint or dispute resolution records: 3 years (E-Commerce Act)",
+        "Payment and supply records: 5 years (E-Commerce Act)"
+      ]
+    },
+
+    "section4": {
+      "title": "4. Provision to Third Parties",
+      "content": "We do not provide personal information to third parties in principle. However, exceptions apply in the following cases.",
+      "exceptions": [
+        "When users have given prior consent",
+        "When required by law or requested by investigative agencies following legal procedures",
+        "When necessary for service provision (e.g., providing to payment gateway for payment processing)"
+      ]
+    },
+
+    "section5": {
+      "title": "5. Outsourcing of Personal Information Processing",
+      "content": "We outsource personal information processing tasks to external companies as follows to improve our services.",
+      "note": "When entering into outsourcing contracts, we stipulate and supervise necessary matters to ensure that contractors handle personal information safely in accordance with the Personal Information Protection Act and related laws."
+    },
+
+    "section6": {
+      "title": "6. Rights of Users and Legal Representatives",
+      "content": "Users may exercise the following rights at any time.",
+      "rights": [
+        "Request to view personal information",
+        "Request to correct personal information",
+        "Request to delete personal information",
+        "Request to stop processing personal information"
+      ],
+      "note": "Rights can be exercised through the settings page or customer support, and we will take action without delay."
+    },
+
+    "section7": {
+      "title": "7. Installation and Operation of Automatic Collection Devices",
+      "content": "We operate 'cookies' that periodically store and retrieve user information.",
+      "cookie": {
+        "what": "A cookie is a small amount of information that a website sends to a user's browser.",
+        "purpose": "Cookies are used for user convenience and to provide personalized services.",
+        "control": "Users have the choice to accept cookies and can set cookie options through web browser settings to allow, block, or warn about cookies."
+      }
+    },
+
+    "section8": {
+      "title": "8. Security Measures",
+      "content": "In accordance with Article 29 of the Personal Information Protection Act, we take the following technical and administrative measures to ensure security.",
+      "measures": [
+        "Personal information encryption: Passwords are encrypted for storage and management",
+        "Technical measures against hacking: Installation of firewalls, antivirus programs, etc.",
+        "Minimization and training of personal information handlers: Designation of personal information managers and regular training",
+        "Access control: Granting, changing, and revoking access rights to personal information processing systems"
+      ]
+    },
+
+    "section9": {
+      "title": "9. Privacy Officer",
+      "content": "We have designated a Privacy Officer who is responsible for overall personal information processing and handles complaints and remedies related to personal information processing.",
+      "contact": {
+        "title": "Privacy Officer",
+        "name": "Department: Pecal Operations Team",
+        "email": "Email: privacy@pecal.com",
+        "note": "For other reports or consultations regarding personal information infringement, please contact the following organizations.",
+        "agencies": [
+          "Privacy Infringement Report Center (privacy.kisa.or.kr / 118)",
+          "Personal Information Dispute Mediation Committee (www.kopico.go.kr / 1833-6972)",
+          "Supreme Prosecutors' Office Cyber Investigation Department (www.spo.go.kr / 1301)",
+          "National Police Agency Cyber Safety Bureau (cyberbureau.police.go.kr / 182)"
+        ]
+      }
+    },
+
+    "section10": {
+      "title": "10. Changes to Privacy Policy",
+      "content": "This Privacy Policy is effective from the date of implementation, and if there are additions, deletions, or corrections due to changes in laws and policies, we will announce them through notices at least 7 days before the changes take effect."
+    }
+  },
+  "login": {
+    "title": "Log in",
+    "description": "Sign in easily with your social account",
+    "kakao": "Continue with Kakao",
+    "google": "Continue with Google"
+  },
+  "home": {
+    "welcome": "Welcome!",
+    "greeting": "Hello, {nickname}",
+    "loginProvider": "Logged in via: {provider}",
+    "loading": "Loading..."
+  },
+  "dashboard": {
+    "welcome": "Hello, {name}!",
+    "overview": {
+      "subtitle": "Check your work status for today"
+    },
+    "workspace": {
+      "personal": "Personal",
+      "teams": "Teams",
+      "workspaces": "Workspaces",
+      "createWorkspace": "Create Workspace",
+      "members": "members",
+      "createTeam": "Create Team",
+      "useFreeTeamPlan": "Use Free Team Plan",
+      "usePaidTeamPlan": "Use Paid Team Plan",
+      "enterWorkspaceName": "Enter name",
+      "creating": "Creating...",
+      "createWorkSpaceError": "Failed to create workspace",
+    "personalWorkspace": "Personal Workspace",
+    "teamWorkspace": "Team Workspace",
+    "teamWorkspaces": "Team Workspaces",
+    "memberRole": "Member",
+      "noTeams": "No teams yet",
+      "createNewTeam": "Create New Team",
+      "createTeamDescription": "Create a team workspace to collaborate with others",
+      "teamName": "Team Name",
+      "teamNamePlaceholder": "e.g., Marketing Team",
+      "teamDescription": "Description",
+      "teamDescriptionPlaceholder": "What's this team about?",
+      "cancel": "Cancel",
+      "create": "Create Team",
+      "createTeamError": "Failed to create team",
+      "delete": "Delete",
+      "deleting": "Deleting...",
+      "deleteConfirmTitle": "Delete Workspace",
+      "deleteConfirmMessage": "Are you sure you want to delete this workspace? This action cannot be undone.",
+      "permissionDenied": "You do not have permission.",
+      "noWorkspaces": "No workspaces",
+      "workspaceCount": "workspaces"
+    },
+    "nav": {
+      "overview": "Overview",
+      "tasks": "Tasks",
+    "calendar": "Calendar",
+    "memo": "Memo",
+    "files": "Files",
+      "teamAdmin": "Team Admin",
+      "teams": "Teams",
+      "settings": "Settings",
+      "logout": "Log out"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "loading": "Loading notifications...",
+      "loadError": "Failed to load notifications.",
+      "empty": "No new notifications",
+      "retry": "Retry",
+      "markRead": "Mark read",
+      "delete": "Delete",
+      "clearAll": "Clear all",
+      "notification": "Notification",
+      "accept": "Accept",
+      "decline": "Decline",
+      "accepted": "Accepted",
+      "declined": "Declined"
+    },
+    "userMenu": {
+      "language": "Language",
+      "help": "Get Help",
+      "upgrade": "Upgrade Plan",
+      "download": "Download Desktop App",
+      "learnMore": "Learn More"
+    },
+    "teamSettings": {
+      "title": "Team Management",
+      "subtitle": "Manage subscriptions and members per team.",
+      "myRole": "My role",
+      "teams": "My Teams",
+      "loading": "Loading...",
+      "noTeams": "No teams found.",
+      "selectTeam": "Select a team to manage.",
+      "adminOnly": "Only team administrators can access this page.",
+      "managePlan": "Manage Subscription",
+      "deleteTeam": "Delete Team",
+      "confirmDelete": "Are you sure you want to delete this team?",
+      "currentPlan": "Current Plan",
+      "planLoading": "Loading plan...",
+      "membersTitle": "Members",
+      "membersDesc": "Add members by nickname or email.",
+      "memberPlaceholder": "Enter nickname or email",
+      "searching": "Searching...",
+      "memberRoleSelect": "Select role",
+      "addMember": "Add Member",
+      "selectedMember": "Selected",
+      "remove": "Remove",
+      "members": "members",
+      "memberRole": "Member",
+      "ownerRole": "Owner",
+      "noMembers": "No members yet.",
+      "memberCount": "{current} / {max} members used",
+      "maxMembers": "Max {count} members",
+      "inviteSent": "Invitation sent.",
+      "errorAddMember": "Failed to add member.",
+      "errorRemoveMember": "Failed to remove member.",
+      "errorDeleteTeam": "Failed to delete team.",
+      "rolesTitle": "Roles",
+      "rolesDesc": "Create roles for your team.",
+      "roleNamePlaceholder": "e.g., Designer",
+      "addRole": "Add Role",
+      "noRoles": "No roles added yet.",
+      "roleMembers": "{count} members",
+      "confirmDeleteRole": "Delete this role?",
+      "errorAddRole": "Failed to add role.",
+      "errorDeleteRole": "Failed to delete role.",
+      "permissionsTitle": "Permissions",
+      "permissionsDesc": "Select permissions to map to a role.",
+      "roleSelect": "Select role",
+      "selectRole": "Select a role first.",
+      "savePermissions": "Save Permissions",
+      "permCreate": "Create tasks",
+      "permEditOwn": "Edit own tasks",
+      "permEditAll": "Edit all tasks",
+      "permDeleteOwn": "Delete own tasks",
+      "permDeleteAll": "Delete all tasks",
+      "permWorkspaceCreate": "Create workspaces",
+      "permWorkspaceEdit": "Edit workspaces",
+      "permWorkspaceDelete": "Delete workspaces",
+      "availablePermissions": "Available Permissions",
+      "assignedPermissions": "Assigned Permissions",
+      "noAvailablePermissions": "No available permissions.",
+      "noAssignedPermissions": "No permissions assigned yet.",
+      "addPermissionArrow": ">",
+      "removePermissionArrow": "<",
+      "errorSavePermissions": "Failed to save permissions.",
+      "errorUpdateMemberRole": "Failed to update member role."
+    },
+    "stats": {
+      "totalTasks": "Today Tasks",
+      "completedTasks": "Completed Tasks",
+      "teams": "Teams",
+      "upcomingEvents": "Upcoming Events"
+    },
+    "tasks": {
+      "title": "My Tasks",
+      "addTask": "Add Task",
+      "today": "Today",
+      "totalTasks": "Total",
+      "loading": "Loading...",
+      "viewList": "List",
+    "viewTimeline": "Timeline",
+    "selectWorkspace": "Select a workspace.",
+    "errorCreate": "Failed to create task.",
+    "errorUpdate": "Failed to update task.",
+    "errorDelete": "Failed to delete task.",
+    "status": {
+        "pending": "Pending",
+        "in_progress": "In Progress",
+        "completed": "Completed"
+      },
+      "filter": {
+        "all": "All",
+        "search": "Search tasks...",
+        "sortByDate": "By Date",
+        "sortByPriority": "By Priority",
+        "sortByStatus": "By Status",
+        "sortByTitle": "By Title",
+        "dateRange": "Date Range",
+        "reset": "Reset",
+        "tasksCount": "{count} tasks",
+        "noTasks": "No tasks found",
+        "perPage": "{count} per page",
+        "urgent": "Urgent"
+      },
+      "modal": {
+        "title": "Add New Task",
+        "editTitle": "Edit Task",
+        "taskTitle": "Title",
+        "taskTitlePlaceholder": "Enter task title",
+        "startTime": "Start Time",
+        "endTime": "End Time",
+        "content": "Content",
+        "tags": "Tags",
+        "attachments": "Attachments",
+        "loading": "Loading...",
+        "noAttachments": "No attachments",
+        "statusChange": "Change status",
+        "contentPlaceholder": "Enter task content",
+        "cancel": "Cancel",
+        "save": "Save",
+      "create": "Add Workspace",
+        "delete": "Delete",
+        "close": "Close",
+        "edit": "Edit",
+        "export": "Export",
+        "noContent": "No content",
+        "requiredField": "This field is required",
+        "endTimeBeforeStart": "End time must be after start time",
+        "createdBy": "Created by",
+        "updatedBy": "Updated by"
+      },
+      "exportPage": {
+        "title": "Export Task",
+        "description": "Choose a visibility option and generate a share link.",
+        "visibilityLabel": "Visibility",
+        "visibilityPublic": "Public (no login required)",
+        "visibilityRestricted": "Authorized users only",
+        "visibilityPublicShort": "Public",
+        "visibilityRestrictedShort": "Restricted",
+        "createLink": "Generate link",
+        "creating": "Generating...",
+        "linkLabel": "Share link",
+        "copy": "Copy",
+        "copied": "Copied",
+        "linkHint": "This link will open the export-only view.",
+        "expiresLabel": "Expires at",
+        "expiresHint": "Leave empty for no expiration.",
+        "exportListTitle": "Export links",
+        "noExports": "No export links yet.",
+        "exportItemTitle": "Export #{id}",
+        "createdAt": "Created at",
+        "revoked": "Link revoked",
+        "expired": "Expired",
+        "shareLink": "Link",
+        "save": "Save",
+        "revoke": "Revoke link",
+        "accessTitle": "Manage access",
+        "selectExport": "Select export",
+        "accessPublicHint": "Public links do not require access management.",
+        "addMemberLabel": "Add access",
+        "memberPlaceholder": "Enter nickname or email",
+        "searching": "Searching...",
+        "selectedMember": "Selected user",
+        "addMember": "Add member",
+        "allowedMembers": "Allowed members",
+        "noAllowedMembers": "No members added yet.",
+        "loadError": "Failed to load the task.",
+        "createError": "Failed to generate an export link.",
+        "loading": "Loading..."
+      },
+      "exportView": {
+        "title": "Export View",
+        "subtitle": "This is an export-only page.",
+        "loading": "Loading...",
+        "unauthorized": "You need permission to view this export.",
+        "expired": "This export link has expired or been revoked.",
+        "notFound": "Export link not found.",
+        "unknownError": "Unable to load the export."
+      }
+    },
+    "teams": {
+      "title": "My Teams",
+        "createTeam": "Create Team",
+        "useFreeTeamPlan": "Use Free Team Plan",
+        "usePaidTeamPlan": "Use Paid Team Plan",
+      "members": "members",
+      "tasks": "tasks"
+    },
+    "calendar": {
+      "title": "Calendar",
+      "upcoming": "Upcoming Events",
+      "tasksCount": "tasks",
+      "today": "Today",
+      "selectDate": "Select a date",
+      "noTasksOnDate": "No tasks on this date",
+      "selectDateFromCalendar": "Select a date from the calendar",
+      "add": "Add",
+      "more": "+{count} more",
+      "weekDays": {
+        "sun": "Sun",
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat"
+      }
+    },
+    "memo": {
+      "title": "Memo",
+      "personalMemo": "Personal memo",
+      "teamMemo": "Team personal memo",
+      "loading": "Loading...",
+      "loadError": "Failed to load memos.",
+      "retry": "Retry",
+      "noMemos": "No memos yet.",
+      "saved": "Saved",
+      "saving": "Saving...",
+      "newMemo": "New",
+      "searchPlaceholder": "Search title",
+      "sortLatest": "Latest",
+      "sortOldest": "Oldest",
+      "sortFavorite": "Favorites first",
+      "favorites": "Favorites",
+      "prev": "Prev",
+      "next": "Next",
+      "delete": "Delete",
+      "titlePlaceholder": "Enter title",
+      "saveTitle": "Save title",
+      "untitled": "Untitled",
+      "noWorkspace": "Select a workspace."
+    },
+    "files": {
+      "title": "Files & Photos",
+      "description": "Manage all files and photos uploaded to your workspace",
+      "all": "All",
+      "images": "Photos",
+      "documents": "Documents",
+      "others": "Others",
+      "noFiles": "No files yet",
+      "noFilesDesc": "Files attached to tasks will appear here",
+      "delete": "Delete",
+      "download": "Download",
+      "noPreview": "Preview not available for this file",
+      "unknownType": "Unknown type",
+      "deleteConfirmTitle": "Delete File",
+      "deleteConfirmMessage": "Are you sure you want to delete '{fileName}'? This action cannot be undone.",
+      "cancel": "Cancel",
+      "deleting": "Deleting...",
+      "loadError": "Failed to load files",
+      "deleteError": "Failed to delete file",
+      "selectMode": "Select",
+      "cancelSelect": "Cancel",
+      "selectedCount": "{count} selected",
+      "selectAll": "Select All",
+      "deselectAll": "Deselect All",
+      "downloadSelected": "Download",
+      "deleteSelected": "Delete",
+      "bulkDeleteConfirmTitle": "Delete Multiple Files",
+      "bulkDeleteConfirmMessage": "Are you sure you want to delete {count} files? This action cannot be undone.",
+      "bulkDeletePartial": "{deleted} deleted, {failed} failed",
+      "pageInfo": "Page {current} / {total} ({items} items)"
+    },
+    "settings": {
+      "title": "Settings",
+      "subtitle": "Manage your account and application settings",
+      "nav": {
+        "general": "General",
+        "account": "Account",
+        "privacy": "Privacy",
+        "billing": "Billing",
+        "usage": "Usage",
+        "teamAdmin": "Team Admin"
+      },
+      "general": {
+        "title": "General Settings",
+        "description": "Manage basic settings like language, timezone, and theme",
+        "language": "Language",
+        "languageDesc": "Choose your display language",
+        "timezone": "Timezone",
+        "timezoneDesc": "Set your timezone",
+        "timezoneDetected": "Detected timezone",
+        "useCurrentTimezone": "Update to current location",
+        "timezoneAuto": "Auto timezone",
+        "timezoneAutoDesc": "Automatically use current location timezone",
+        "timezoneManual": "Manual selection",
+        "theme": "Theme",
+        "themeDesc": "Choose app theme",
+        "notifications": "Notifications",
+        "notificationsDesc": "Enable push notifications",
+        "save": "Save"
+      },
+      "account": {
+        "title": "Account",
+        "profile": "Profile Information",
+        "profileDesc": "Manage your account's basic information",
+        "profileImage": "Profile image",
+        "profileImageDesc": "Upload a profile image",
+        "uploadImage": "Upload image",
+        "uploading": "Uploading...",
+        "removeImage": "Remove image",
+        "checkNickname": "Check",
+        "checking": "Checking...",
+        "nicknameAvailable": "Nickname is available",
+        "nicknameTaken": "Nickname is already taken",
+        "name": "Name",
+        "email": "Email",
+        "emailDesc": "Email cannot be changed",
+        "save": "Save",
+        "password": "Change Password",
+        "passwordDesc": "Change your account password",
+        "currentPassword": "Current Password",
+        "newPassword": "New Password",
+        "confirmPassword": "Confirm Password",
+        "updatePassword": "Update Password",
+        "deleteAccount": "Delete Account",
+        "deleteAccountDesc": "Deleting your account will permanently remove all your data",
+        "deleteButton": "Delete Account"
+      },
+      "privacy": {
+        "title": "Privacy",
+        "dataSharing": "Data Sharing",
+        "dataSharingDesc": "Manage data collection and sharing settings",
+        "analytics": "Analytics",
+        "analyticsDesc": "Collect anonymous usage data to improve service",
+        "marketing": "Marketing",
+        "marketingDesc": "Receive product updates and marketing information",
+        "thirdParty": "Third-party Sharing",
+        "thirdPartyDesc": "Share data with integrated services",
+        "activityLog": "Activity Log",
+        "activityLogDesc": "View all account activity records",
+        "viewLog": "View Log",
+        "exportData": "Export Data",
+        "exportDataDesc": "Download all your data",
+        "exportButton": "Export Data"
+      },
+      "billing": {
+        "title": "Billing",
+        "currentPlan": "Current Plan",
+        "currentPlanDesc": "Manage your subscription plan and payment information",
+        "upgrade": "Upgrade",
+        "paymentMethod": "Payment Method",
+        "paymentMethodDesc": "Manage payment cards",
+        "noPaymentMethod": "No payment method registered",
+        "addPaymentMethod": "Add Payment Method",
+        "savedCard": "Saved Card",
+        "cardInfo": "Card Info",
+        "removeCard": "Remove Card",
+        "removeCardConfirm": "Remove the saved card? This card is used for automatic billing.",
+        "removeCardSuccess": "Card has been removed.",
+        "removeCardError": "Failed to remove card. Please try again.",
+        "removeCardBlocked": "You can’t remove the payment method while an active subscription exists.",
+        "nextPaymentDate": "Next billing date",
+        "nextPaymentDateValue": "{date}",
+        "history": "Payment History",
+        "historyDesc": "View past payment records",
+        "noHistory": "No payment history",
+        "historyLoading": "Loading payment history...",
+        "historyLoadError": "Failed to load payment history",
+        "paymentHistory": {
+          "date": "Date",
+          "plan": "Plan",
+          "amount": "Amount",
+          "status": "Status",
+          "tid": "Transaction ID",
+          "type": "Type",
+          "success": "Success",
+          "failed": "Failed",
+          "refunded": "Refunded",
+          "first": "First",
+          "recurring": "Recurring",
+          "retry": "Retry"
+        },
+        "personalSubscription": "Personal Subscription",
+        "personalSubscriptionDesc": "Plan for your personal workspace",
+        "teamSubscription": "Team Subscription",
+        "teamSubscriptionDesc": "Plans for your team workspace",
+        "teamSelectLabel": "Select team",
+        "teamGo": "View team plans",
+        "teamNoTeams": "You are not a member of any team.",
+        "teamLoading": "Loading teams...",
+        "status": "Status",
+        "freePlan": "Free basic plan",
+        "changePlan": "Change Plan",
+        "paymentSuccess": "Payment completed successfully!",
+        "planChangeScheduled": "Your plan change is scheduled and will apply on the next billing date.",
+        "plans": {
+          "personalTitle": "Personal Plans",
+          "personalSubtitle": "Plans for your personal workspace",
+          "personalSection": "Personal Subscription",
+          "personalDesc": "Plan for your personal workspace",
+          "teamSection": "Team Subscription",
+          "teamDesc": "Plan for your team workspace",
+          "teamComingSoon": "Team subscription is coming soon",
+          "teamSelectLabel": "Select team",
+          "teamGo": "View team plans",
+          "teamGuide": "Select a team to view team plans.",
+          "teamNoTeams": "You are not a member of any team.",
+          "basicPlan": "Basic Plan",
+          "currentPlan": "Current Plan",
+          "select": "Select",
+          "selected": "Selected",
+          "subscribed": "Subscribed",
+          "maxMembers": "Up to {count} team members",
+          "storage": "{size}GB storage",
+          "unlimitedWorkspaces": "Unlimited workspaces",
+          "unlimitedTasks": "Unlimited tasks",
+          "perMonth": "/ month",
+          "changeable": "All plans can be changed anytime",
+          "freeTrial": "7-day free trial included",
+          "back": "← Back",
+          "loadError": "Unable to load plans",
+          "retry": "Retry"
+        },
+        "cancel": {
+          "button": "Cancel Subscription",
+          "title": "Cancel your subscription?",
+          "message": "Canceling will switch you to the Basic (free) plan. Paid features will be unavailable after the current billing period ends.",
+          "confirm": "Confirm Cancellation",
+          "dismiss": "Go Back",
+          "success": "Subscription canceled. You have been switched to the Basic plan.",
+          "error": "Failed to cancel subscription. Please try again.",
+          "canceling": "Canceling..."
+        },
+        "checkout": {
+          "title": "Checkout",
+          "description": "Pay securely for your subscription",
+          "orderSummary": "Order Summary",
+          "subscriptionTarget": "Subscription Target",
+          "personal": "Personal",
+          "team": "Team",
+          "plan": "Plan",
+          "maxMembers": "Max Members",
+          "storage": "Storage",
+          "monthlyPayment": "Monthly Payment",
+          "termsAgree": "I agree to the Terms of Service and Privacy Policy",
+          "securePayment": "All payment information is encrypted and processed securely",
+          "back": "Back",
+          "nicepay": {
+            "title": "Card Payment",
+            "description": "Pay securely with credit/debit card",
+            "button": "Pay with Card",
+            "error": "An error occurred during payment processing",
+            "success": "Payment completed successfully!",
+            "loading": "Loading payment module...",
+            "sdkLoadError": "Failed to load payment module. Please refresh the page.",
+            "subscribing": "Processing payment...",
+            "subscribeButton": "Subscribe & Pay"
+          },
+          "paypal": {
+            "title": "PayPal",
+            "description": "Pay securely with your PayPal account.",
+            "notConfigured": "PayPal subscription is not configured for this plan. Please contact the administrator."
+          }
+        }
+      },
+      "usage": {
+        "title": "Usage",
+        "currentPlan": "Current Plan",
+        "storage": "Storage",
+        "storageDesc": "Check your storage usage",
+        "documents": "Documents",
+        "files": "Files",
+        "fileCount": "files",
+        "maxFileSize": "Max File Size",
+        "other": "Other",
+        "api": "API Calls",
+        "apiDesc": "Check this month's API usage",
+        "requests": "requests",
+        "teamMembers": "Team Members",
+        "teamMembersDesc": "Check team member status",
+        "members": "members",
+        "inviteMember": "Invite Member",
+        "inviteSent": "Invitation sent.",
+        "activity": "Activity Statistics",
+        "activityDesc": "Check this month's activity statistics",
+        "tasksCreated": "Tasks Created",
+        "tasksCompleted": "Tasks Completed",
+        "tasksTodo": "To Do",
+        "tasksInProgress": "In Progress",
+        "totalTasks": "Total Tasks",
+        "comments": "Comments",
+        "meetings": "Meetings",
+        "thisMonth": "this month",
+        "loadError": "Failed to load usage data"
+      }
+    }
+  },
+
+  "termsOfService": {
+    "title": "Terms of Service",
+    "lastUpdated": "Last Updated: February 12, 2026",
+    "backToHome": "Back to Home",
+    "intro": "These Terms of Service ('Terms') govern your use of the Pecal service ('Service') provided by yojung ('Company'), and establish the rights, obligations, and responsibilities between the Company and users.",
+
+    "section1": {
+      "title": "Article 1 (Purpose)",
+      "content": "These Terms aim to define the conditions and procedures for using the Pecal service provided by the Company, as well as the rights, obligations, and responsibilities between the Company and users."
+    },
+
+    "section2": {
+      "title": "Article 2 (Definitions)",
+      "items": [
+        "'Service' refers to the Pecal workspace platform and all related services provided by the Company.",
+        "'User' refers to a member who uses the Service in accordance with these Terms.",
+        "'Member' refers to a person who has provided personal information to the Company and entered into a service agreement.",
+        "'Workspace' refers to an independent work area within the Service where users manage tasks, files, projects, etc.",
+        "'Content' refers to all information such as text, images, and files created or uploaded by users within the Service."
+      ]
+    },
+
+    "section3": {
+      "title": "Article 3 (Effectiveness and Amendment of Terms)",
+      "items": [
+        "These Terms take effect when posted on the Service screen or otherwise notified to users.",
+        "The Company may amend these Terms within the scope not violating applicable laws, and will notify users at least 7 days before the effective date with the reason for amendment.",
+        "If a user does not agree to the amended Terms, they may stop using the Service and withdraw.",
+        "Continued use of the Service after the effective date of amended Terms shall be deemed as consent to the changes."
+      ]
+    },
+
+    "section4": {
+      "title": "Article 4 (Service Agreement)",
+      "items": [
+        "The service agreement is established when the user agrees to these Terms and completes the registration process prescribed by the Company.",
+        "The Company supports easy registration through social login (Kakao, Google, etc.).",
+        "The Company may refuse registration or terminate the agreement in the following cases: using another person's information, providing false information, or otherwise interfering with service operations."
+      ]
+    },
+
+    "section5": {
+      "title": "Article 5 (Service Content)",
+      "content": "The services provided by the Company include the following.",
+      "items": [
+        "Task management (create, edit, delete, status management)",
+        "Calendar-based schedule management",
+        "File upload and management",
+        "Team workspace and collaboration features",
+        "Personal and team storage management",
+        "Other services developed or provided through partnerships"
+      ]
+    },
+
+    "section6": {
+      "title": "Article 6 (Service Modification and Suspension)",
+      "items": [
+        "The Company may modify all or part of the Service for improvement purposes.",
+        "The Company may temporarily suspend the Service due to unavoidable circumstances such as natural disasters or system failures.",
+        "The Company will notify users in advance of any service modifications or suspensions. However, in urgent cases, notification may be provided afterward."
+      ]
+    },
+
+    "section7": {
+      "title": "Article 7 (User Obligations)",
+      "items": [
+        "Users must comply with applicable laws and these Terms when using the Service.",
+        "Users must not collect, store, or disclose other people's personal information.",
+        "Users must not engage in illegal activities using the Service.",
+        "Users must not interfere with the stable operation of the Service.",
+        "Users are responsible for managing their account information."
+      ]
+    },
+
+    "section8": {
+      "title": "Article 8 (Paid Services and Payment)",
+      "items": [
+        "The Company may provide paid services (plan subscriptions) in addition to free services.",
+        "Usage fees and payment methods for paid services are specified on the Service's information page.",
+        "Users must pay the applicable fees when using paid services.",
+        "Payment cancellation and refunds are subject to applicable laws and the Company's refund policy.",
+        "Upon subscription cancellation, the Service remains available until the current billing period expires, after which it converts to the free plan."
+      ]
+    },
+
+    "section9": {
+      "title": "Article 9 (Content Rights and Responsibilities)",
+      "items": [
+        "Copyright of content created by users within the Service belongs to the respective users.",
+        "The Company may use user content for purposes of service operation, improvement, and promotion.",
+        "Users must not upload content that infringes on the intellectual property rights of others.",
+        "The Company may delete content that violates applicable laws or infringes on the rights of others without prior notice."
+      ]
+    },
+
+    "section10": {
+      "title": "Article 10 (Privacy Protection)",
+      "content": "The Company collects, uses, and manages users' personal information in accordance with its Privacy Policy. Please refer to the Privacy Policy for details."
+    },
+
+    "section11": {
+      "title": "Article 11 (Disclaimer)",
+      "items": [
+        "The Company is not liable for inability to provide the Service due to force majeure such as natural disasters, wars, or service suspension by telecommunications carriers.",
+        "The Company is not liable for service disruptions caused by the user's own fault.",
+        "The Company is not liable for any expected profits or losses users fail to achieve through the Service.",
+        "The Company has no obligation to intervene in disputes between users or between users and third parties arising through the Service, and is not liable for any resulting damages."
+      ]
+    },
+
+    "section12": {
+      "title": "Article 12 (Termination of Agreement)",
+      "items": [
+        "Users may terminate the agreement (withdraw) at any time through the settings menu within the Service.",
+        "The Company may terminate the agreement after prior notice if a user violates these Terms. However, in urgent cases, notification may be provided afterward.",
+        "Upon termination, the user's personal information and content will be handled in accordance with the Privacy Policy."
+      ]
+    },
+
+    "section13": {
+      "title": "Article 13 (Dispute Resolution)",
+      "items": [
+        "In case of disputes between the Company and users regarding the use of the Service, both parties shall negotiate in good faith for an amicable resolution.",
+        "If negotiation fails, the laws of the Republic of Korea shall govern, and jurisdiction shall be determined in accordance with the Civil Procedure Act."
+      ]
+    },
+
+    "section14": {
+      "title": "Supplementary Provisions",
+      "content": "These Terms take effect from February 12, 2026."
+    }
+  }
+}
