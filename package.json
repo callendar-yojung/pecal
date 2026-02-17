@@ -1,0 +1,17 @@
+{
+  "name": "callendar-monorepo",
+  "private": true,
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev:web": "pnpm --filter ./apps/web dev",
+    "dev:desktop": "pnpm --filter ./apps/desktop tauri:dev",
+    "dev:desktop:web": "pnpm --filter ./apps/desktop dev",
+    "build:web": "pnpm --filter ./apps/web build",
+    "build:desktop": "pnpm --filter ./apps/desktop build",
+    "build:desktop:tauri": "pnpm --filter ./apps/desktop tauri:build",
+    "build": "pnpm run build:web",
+    "build:all": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck"
+  }
+}

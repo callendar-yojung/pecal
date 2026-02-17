@@ -1,0 +1,350 @@
+@import "tailwindcss";
+
+:root {
+  /* Light theme (default) */
+  --background: #ffffff;
+  --foreground: #18181b;
+
+  --card: #ffffff;
+  --card-foreground: #18181b;
+
+  --popover: #ffffff;
+  --popover-foreground: #18181b;
+
+  --primary: #18181b;
+  --primary-foreground: #fafafa;
+
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+
+  --accent: #fee500;
+  --accent-foreground: #18181b;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #fafafa;
+
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #a1a1aa;
+
+  --page-background: #ffffff;
+  --dashboard-background: #fafafa;
+  --sidebar-background: #ffffff;
+  --sidebar-foreground: #18181b;
+  --sidebar-border: #e4e4e7;
+
+  --subtle: #fafafa;
+  --subtle-foreground: #52525b;
+
+  --hover: #f4f4f5;
+  --active: #e4e4e7;
+
+  /* Status colors */
+  --status-todo: #fef3c7;
+  --status-todo-foreground: #92400e;
+  --status-progress: #dbeafe;
+  --status-progress-foreground: #1e40af;
+  --status-done: #dcfce7;
+  --status-done-foreground: #166534;
+}
+
+/* Light theme class */
+:root.light {
+  --background: #ffffff;
+  --foreground: #18181b;
+
+  --card: #ffffff;
+  --card-foreground: #18181b;
+
+  --popover: #ffffff;
+  --popover-foreground: #18181b;
+
+  --primary: #18181b;
+  --primary-foreground: #fafafa;
+
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+
+  --accent: #fee500;
+  --accent-foreground: #18181b;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #fafafa;
+
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #a1a1aa;
+
+  --page-background: #ffffff;
+  --dashboard-background: #fafafa;
+  --sidebar-background: #ffffff;
+  --sidebar-foreground: #18181b;
+  --sidebar-border: #e4e4e7;
+
+  --subtle: #fafafa;
+  --subtle-foreground: #52525b;
+
+  --hover: #f4f4f5;
+  --active: #e4e4e7;
+
+  /* Status colors */
+  --status-todo: #fef3c7;
+  --status-todo-foreground: #92400e;
+  --status-progress: #dbeafe;
+  --status-progress-foreground: #1e40af;
+  --status-done: #dcfce7;
+  --status-done-foreground: #166534;
+}
+
+/* Dark theme class - Lighter dark theme */
+:root.dark {
+  --background: #1f1f23;
+  --foreground: #fafafa;
+
+  --card: #27272a;
+  --card-foreground: #fafafa;
+
+  --popover: #27272a;
+  --popover-foreground: #fafafa;
+
+  --primary: #fafafa;
+  --primary-foreground: #18181b;
+
+  --secondary: #3f3f46;
+  --secondary-foreground: #fafafa;
+
+  --muted: #3f3f46;
+  --muted-foreground: #a1a1aa;
+
+  --accent: #fee500;
+  --accent-foreground: #18181b;
+
+  --destructive: #dc2626;
+  --destructive-foreground: #fafafa;
+
+  --border: #3f3f46;
+  --input: #3f3f46;
+  --ring: #52525b;
+
+  --page-background: #1f1f23;
+  --dashboard-background: #18181b;
+  --sidebar-background: #1f1f23;
+  --sidebar-foreground: #fafafa;
+  --sidebar-border: #3f3f46;
+
+  --subtle: #27272a;
+  --subtle-foreground: #a1a1aa;
+
+  --hover: #3f3f46;
+  --active: #52525b;
+
+  /* Status colors */
+  --status-todo: rgba(234, 179, 8, 0.2);
+  --status-todo-foreground: #fde047;
+  --status-progress: rgba(59, 130, 246, 0.2);
+  --status-progress-foreground: #93c5fd;
+  --status-done: rgba(34, 197, 94, 0.2);
+  --status-done-foreground: #86efac;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-page-background: var(--page-background);
+  --color-dashboard-background: var(--dashboard-background);
+  --color-sidebar-background: var(--sidebar-background);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-subtle: var(--subtle);
+  --color-subtle-foreground: var(--subtle-foreground);
+  --color-hover: var(--hover);
+  --color-active: var(--active);
+  --color-status-todo: var(--status-todo);
+  --color-status-todo-foreground: var(--status-todo-foreground);
+  --color-status-progress: var(--status-progress);
+  --color-status-progress-foreground: var(--status-progress-foreground);
+  --color-status-done: var(--status-done);
+  --color-status-done-foreground: var(--status-done-foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+@layer components {
+  .ui-card {
+    @apply rounded-xl border border-border bg-card text-card-foreground shadow-sm;
+  }
+
+  .ui-panel {
+    @apply rounded-xl border border-border bg-card;
+  }
+
+  .ui-button {
+    @apply inline-flex items-center justify-center rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted;
+  }
+
+  .ui-button-muted {
+    @apply inline-flex items-center justify-center rounded-lg bg-muted px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/80;
+  }
+
+  .ui-button-primary {
+    @apply inline-flex items-center justify-center rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90;
+  }
+
+  .ui-button-danger {
+    @apply inline-flex items-center justify-center rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700;
+  }
+}
+
+/* TipTap editor base styles */
+.ProseMirror {
+  outline: none;
+}
+
+.ProseMirror p {
+  margin: 0.35rem 0;
+}
+
+.ProseMirror h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0.6rem 0;
+}
+
+.ProseMirror h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0.55rem 0;
+}
+
+.ProseMirror h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 0.5rem 0;
+}
+
+.ProseMirror ul {
+  list-style: disc;
+  padding-left: 1.4rem;
+  margin: 0.5rem 0;
+}
+
+.ProseMirror ol {
+  list-style: decimal;
+  padding-left: 1.4rem;
+  margin: 0.5rem 0;
+}
+
+.ProseMirror li {
+  margin: 0.25rem 0;
+}
+
+.ProseMirror blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 0.75rem;
+  color: var(--muted-foreground);
+  margin: 0.6rem 0;
+}
+
+.ProseMirror pre {
+  background: var(--subtle);
+  color: var(--foreground);
+  padding: 0.75rem;
+  border-radius: 8px;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+}
+
+.ProseMirror code {
+  background: var(--subtle);
+  padding: 0.1rem 0.25rem;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+}
+
+/* Lowlight highlight.js classes */
+.ProseMirror pre code.hljs {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  color: inherit;
+}
+
+.ProseMirror .hljs-comment,
+.ProseMirror .hljs-quote {
+  color: #6b7280;
+  font-style: italic;
+}
+
+.ProseMirror .hljs-keyword,
+.ProseMirror .hljs-selector-tag,
+.ProseMirror .hljs-literal,
+.ProseMirror .hljs-name {
+  color: #7c3aed;
+}
+
+.ProseMirror .hljs-string,
+.ProseMirror .hljs-title,
+.ProseMirror .hljs-section,
+.ProseMirror .hljs-attr {
+  color: #2563eb;
+}
+
+.ProseMirror .hljs-number,
+.ProseMirror .hljs-symbol,
+.ProseMirror .hljs-bullet {
+  color: #ea580c;
+}
+
+.ProseMirror [data-text-align="center"] {
+  text-align: center;
+}
+
+.ProseMirror [data-text-align="right"] {
+  text-align: right;
+}
+
+.ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+}
+
+.ProseMirror li[data-type="taskItem"] {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.ProseMirror li[data-type="taskItem"] > label {
+  margin-top: 0.2rem;
+}

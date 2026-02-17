@@ -1,0 +1,1007 @@
+{
+  "metadata": {
+    "title": "Pecal - 팀을 위한 올인원 워크스페이스",
+    "description": "Pecal은 팀 협업, 프로젝트 관리, 문서 작성을 하나의 공간에서 해결하는 올인원 생산성 플랫폼입니다. 지금 무료로 시작하세요.",
+    "ogDescription": "팀 협업, 프로젝트 관리, 문서 작성을 하나의 공간에서. Pecal로 업무 효율을 극대화하세요."
+  },
+  "nav": {
+    "features": "기능",
+    "pricing": "요금제",
+    "customers": "고객 사례",
+    "login": "로그인",
+    "logout": "로그아웃",
+    "getStarted": "무료로 시작하기",
+    "dashboard": "대시보드"
+  },
+  "hero": {
+    "badge": "데스크탑앱 출시!",
+    "title1": "하나의 워크스페이스.",
+    "title2": "무한한 가능성.",
+    "description": "팀 협업, 프로젝트 관리, 문서 작성을 하나의 공간에서. Pecal로 업무 효율을 극대화하세요.",
+    "cta": "무료로 시작하기",
+    "demo": "데모 보기",
+    "download": "앱 다운로드",
+    "noCreditCard": "신용카드 필요 없음 · 무료 플랜 영구 제공",
+    "preview": "프로젝트 대시보드 미리보기"
+  },
+  "download": {
+    "title": "데스크톱 앱 다운로드",
+    "description": "Pecal 데스크톱 앱으로 더 빠르고 편리하게 업무를 관리하세요. 네이티브 앱으로 최적화된 경험을 제공합니다.",
+    "login": "로그인",
+    "downloadButton": "다운로드",
+    "comingSoon": "준비 중입니다",
+    "error": "릴리즈 정보를 불러오는데 실패했습니다",
+    "platforms": {
+      "windows": "Windows",
+      "windowsDesc": "Windows 10 이상",
+      "macosArm": "macOS (Apple Silicon)",
+      "macosArmDesc": "M1, M2, M3 칩 Mac용",
+      "macosIntel": "macOS (Intel)",
+      "macosIntelDesc": "Intel 프로세서 Mac용",
+      "linux": "Linux",
+      "linuxDesc": "Ubuntu, Debian 등"
+    },
+    "requirements": {
+      "title": "시스템 요구 사항",
+      "orLater": "이상"
+    }
+  },
+  "trustedBy": {
+    "title": "10,000개 이상의 팀이 Pecal을 신뢰합니다"
+  },
+  "features": {
+    "title": "팀에 필요한 모든 것",
+    "description": "문서부터 프로젝트 관리까지, 팀 협업에 필요한 모든 기능을 제공합니다.",
+    "items": {
+      "docs": {
+        "title": "스마트 문서 작성",
+        "description": "AI가 도와주는 문서 작성으로 아이디어를 빠르게 정리하고 공유하세요. 실시간 협업으로 팀원과 함께 작업할 수 있습니다."
+      },
+      "project": {
+        "title": "유연한 프로젝트 관리",
+        "description": "칸반, 타임라인, 캘린더 등 다양한 뷰로 프로젝트를 관리하세요. 팀에 맞는 워크플로우를 자유롭게 구성할 수 있습니다."
+      },
+      "workspace": {
+        "title": "통합 워크스페이스",
+        "description": "문서, 데이터베이스, 프로젝트가 하나로 연결됩니다. 흩어진 정보를 한 곳에서 관리하고 빠르게 검색하세요."
+      },
+      "ai": {
+        "title": "AI 어시스턴트",
+        "description": "반복 작업을 자동화하고, 인사이트를 발견하세요. AI가 팀의 생산성을 한 단계 높여줍니다."
+      },
+      "security": {
+        "title": "엔터프라이즈 보안",
+        "description": "SOC 2 Type II 인증, SSO, 감사 로그 등 기업 수준의 보안을 제공합니다. 데이터는 안전하게 보호됩니다."
+      },
+      "integrations": {
+        "title": "무한한 연동",
+        "description": "Slack, GitHub, Figma 등 200개 이상의 도구와 연동하세요. 기존 워크플로우를 유지하면서 Pecal를 사용할 수 있습니다."
+      }
+    }
+  },
+  "stats": {
+    "users": "전 세계 사용자",
+    "teams": "팀 워크스페이스",
+    "uptime": "서비스 가동률",
+    "satisfaction": "고객 만족도"
+  },
+  "pricing": {
+    "title": "심플한 요금제",
+    "description": "팀 규모에 맞는 플랜을 선택하세요. 언제든 업그레이드할 수 있습니다.",
+    "popular": "가장 인기",
+    "free": {
+      "name": "무료",
+      "price": "₩0",
+      "period": "영구 무료",
+      "description": "개인 사용자와 소규모 팀을 위한 플랜",
+      "cta": "무료로 시작하기",
+      "features": [
+        "무제한 페이지",
+        "5명까지 게스트 초대",
+        "기본 페이지 분석",
+        "7일간 페이지 히스토리",
+        "Slack, GitHub 연동"
+      ]
+    },
+    "team": {
+      "name": "팀",
+      "price": "₩8,000",
+      "period": "사용자당 / 월",
+      "description": "성장하는 팀을 위한 협업 기능",
+      "cta": "팀 플랜 시작하기",
+      "features": [
+        "무료 플랜의 모든 기능",
+        "무제한 팀원",
+        "무제한 게스트 초대",
+        "30일간 페이지 히스토리",
+        "고급 권한 관리",
+        "팀 분석 대시보드"
+      ]
+    },
+    "enterprise": {
+      "name": "엔터프라이즈",
+      "price": "문의",
+      "period": "맞춤 견적",
+      "description": "대규모 조직을 위한 보안과 관리 기능",
+      "cta": "영업팀 문의",
+      "features": [
+        "팀 플랜의 모든 기능",
+        "SSO (SAML)",
+        "고급 보안 설정",
+        "감사 로그",
+        "전담 고객 성공 매니저",
+        "SLA 보장"
+      ]
+    }
+  },
+  "cta": {
+    "title": "지금 바로 시작하세요",
+    "description": "더 나은 팀 협업을 위한 첫 걸음. Pecal와 함께 업무 방식을 혁신하세요.",
+    "getStarted": "무료로 시작하기",
+    "contact": "영업팀 문의"
+  },
+  "footer": {
+    "description": "팀을 위한 올인원 워크스페이스. 협업, 문서, 프로젝트를 하나로.",
+    "product": "제품",
+    "resources": "리소스",
+    "company": "회사",
+    "legal": "법적고지",
+    "features": "기능",
+    "pricing": "요금제",
+    "customers": "고객 사례",
+    "roadmap": "로드맵",
+    "helpCenter": "도움말 센터",
+    "guides": "가이드",
+    "apiDocs": "API 문서",
+    "blog": "블로그",
+    "about": "소개",
+    "careers": "채용",
+    "contact": "연락처",
+    "newsroom": "뉴스룸",
+    "terms": "이용약관",
+    "privacy": "개인정보처리방침",
+    "cookies": "쿠키 정책",
+    "copyright": "© {year} Pecal. All rights reserved.",
+    "company-name": "상호명: 요정",
+    "address": "주소: 광주광역시 북구 탁영로 15번길 16-4",
+    "owner": "대표: 장현성",
+    "tel": "전화: 010-3106-7976",
+    "bizNum": "사업자등록번호: 150-63-00732",
+    "bizCheck": "사업자 정보확인",
+    "onlineSales": "통신판매업신고: 2025-광주북구-0857",
+    "privacy-name": "개인정보관리책임자: 장현성",
+    "email": "이메일: tlswlfk@gmail.com",
+    "allRightsReserved": "All rights reserved."
+  },
+
+  "privacyPolicy": {
+    "title": "개인정보 처리방침",
+    "lastUpdated": "최종 수정일: 2026년 2월 6일",
+    "intro": "요정(이하 '회사')은 이용자의 개인정보를 중요하게 생각하며, 개인정보 보호법 등 관련 법령을 준수하고 있습니다. 본 개인정보 처리방침은 회사가 제공하는 서비스 이용 시 수집되는 개인정보의 항목, 수집 및 이용 목적, 보유 및 이용 기간, 파기 절차 및 방법 등에 관한 사항을 안내합니다.",
+    "backToHome": "홈으로 돌아가기",
+
+    "section1": {
+      "title": "1. 수집하는 개인정보의 항목",
+      "content": "회사는 서비스 제공을 위해 다음과 같은 개인정보를 수집합니다.",
+      "required": {
+        "title": "가. 필수 수집 항목",
+        "items": [
+          "이메일 주소",
+          "닉네임 (사용자명)",
+          "소셜 로그인 정보 (카카오, 구글 계정 정보)",
+          "서비스 이용 기록, IP 주소, 쿠키, 접속 로그"
+        ]
+      },
+      "optional": {
+        "title": "나. 선택 수집 항목",
+        "items": [
+          "프로필 이미지",
+          "팀 정보 (팀 이름, 설명)",
+          "워크스페이스 정보",
+          "태스크 및 캘린더 정보"
+        ]
+      }
+    },
+
+    "section2": {
+      "title": "2. 개인정보의 수집 및 이용 목적",
+      "content": "회사는 수집한 개인정보를 다음의 목적으로 활용합니다.",
+      "purposes": [
+        "회원 가입 및 관리: 회원 식별, 본인 확인, 가입 의사 확인",
+        "서비스 제공: 태스크 관리, 팀 협업, 프로젝트 관리 기능 제공",
+        "서비스 개선: 신규 서비스 개발, 맞춤형 서비스 제공, 통계 분석",
+        "고객 지원: 문의사항 처리, 공지사항 전달, 불만 처리",
+        "마케팅 및 광고: 이벤트 정보 및 참여 기회 제공 (동의 시에만)"
+      ]
+    },
+
+    "section3": {
+      "title": "3. 개인정보의 보유 및 이용 기간",
+      "content": "회사는 원칙적으로 개인정보 수집 및 이용 목적이 달성된 후에는 해당 정보를 지체 없이 파기합니다.",
+      "retention": [
+        "회원 정보: 회원 탈퇴 시까지 (단, 관계 법령에 따라 보존할 필요가 있는 경우 해당 기간 동안 보관)",
+        "서비스 이용 기록: 3년 (통신비밀보호법)",
+        "소비자 불만 또는 분쟁 처리 기록: 3년 (전자상거래법)",
+        "대금결제 및 재화 공급 기록: 5년 (전자상거래법)"
+      ]
+    },
+
+    "section4": {
+      "title": "4. 개인정보의 제3자 제공",
+      "content": "회사는 이용자의 개인정보를 원칙적으로 외부에 제공하지 않습니다. 다만, 다음의 경우에는 예외로 합니다.",
+      "exceptions": [
+        "이용자가 사전에 동의한 경우",
+        "법령의 규정에 의거하거나, 수사 목적으로 법령에 정해진 절차와 방법에 따라 수사기관의 요구가 있는 경우",
+        "서비스 제공을 위해 필요한 경우 (예: 결제 처리를 위한 PG사 제공)"
+      ]
+    },
+
+    "section5": {
+      "title": "5. 개인정보 처리 위탁",
+      "content": "회사는 서비스 향상을 위해 아래와 같이 개인정보 처리 업무를 외부 전문 업체에 위탁하여 운영하고 있습니다.",
+      "note": "위탁 계약 시 개인정보보호법 등 관련 법령에 따라 수탁자가 개인정보를 안전하게 처리하도록 필요한 사항을 규정하고 관리·감독하고 있습니다."
+    },
+
+    "section6": {
+      "title": "6. 이용자 및 법정대리인의 권리와 행사 방법",
+      "content": "이용자는 언제든지 다음의 권리를 행사할 수 있습니다.",
+      "rights": [
+        "개인정보 열람 요구",
+        "개인정보 정정 요구",
+        "개인정보 삭제 요구",
+        "개인정보 처리 정지 요구"
+      ],
+      "note": "권리 행사는 설정 페이지 또는 고객 지원을 통해 가능하며, 회사는 지체 없이 조치하겠습니다."
+    },
+
+    "section7": {
+      "title": "7. 개인정보 자동 수집 장치의 설치·운영 및 거부",
+      "content": "회사는 이용자의 정보를 수시로 저장하고 찾아내는 '쿠키(cookie)'를 운용합니다.",
+      "cookie": {
+        "what": "쿠키는 웹사이트가 이용자의 브라우저로 전송하는 소량의 정보입니다.",
+        "purpose": "쿠키는 이용자의 편의를 위해 사용되며, 맞춤형 서비스 제공에 활용됩니다.",
+        "control": "이용자는 쿠키 설치에 대한 선택권을 가지고 있으며, 웹 브라우저 옵션을 통해 쿠키 허용, 차단 또는 경고를 설정할 수 있습니다."
+      }
+    },
+
+    "section8": {
+      "title": "8. 개인정보의 안전성 확보 조치",
+      "content": "회사는 개인정보 보호법 제29조에 따라 다음과 같이 안전성 확보에 필요한 기술적·관리적 조치를 하고 있습니다.",
+      "measures": [
+        "개인정보 암호화: 비밀번호는 암호화되어 저장 및 관리",
+        "해킹 등에 대비한 기술적 대책: 방화벽, 백신 프로그램 등 설치",
+        "개인정보 취급 직원의 최소화 및 교육: 개인정보 담당자 지정 및 정기 교육",
+        "접근 권한 관리: 개인정보 처리 시스템에 대한 접근 권한 부여, 변경, 말소"
+      ]
+    },
+
+    "section9": {
+      "title": "9. 개인정보 보호책임자",
+      "content": "회사는 개인정보 처리에 관한 업무를 총괄해서 책임지고, 개인정보 처리와 관련한 정보주체의 불만 처리 및 피해구제를 위하여 아래와 같이 개인정보 보호책임자를 지정하고 있습니다.",
+      "contact": {
+        "title": "개인정보 보호책임자",
+        "name": "담당 부서: Pecal 운영팀",
+        "email": "이메일: privacy@pecal.com",
+        "note": "기타 개인정보침해에 대한 신고나 상담이 필요하신 경우에는 아래 기관에 문의하시기 바랍니다.",
+        "agencies": [
+          "개인정보침해신고센터 (privacy.kisa.or.kr / 국번없이 118)",
+          "개인정보 분쟁조정위원회 (www.kopico.go.kr / 1833-6972)",
+          "대검찰청 사이버수사과 (www.spo.go.kr / 국번없이 1301)",
+          "경찰청 사이버안전국 (cyberbureau.police.go.kr / 국번없이 182)"
+        ]
+      }
+    },
+
+    "section10": {
+      "title": "10. 개인정보 처리방침의 변경",
+      "content": "본 개인정보 처리방침은 시행일로부터 적용되며, 법령 및 방침에 따른 변경 내용의 추가, 삭제 및 정정이 있는 경우에는 변경사항의 시행 7일 전부터 공지사항을 통하여 고지할 것입니다."
+    }
+  },
+  "login": {
+    "title": "로그인",
+    "description": "소셜 계정으로 간편하게 로그인하세요",
+    "kakao": "카카오로 로그인",
+    "google": "구글로 로그인"
+  },
+  "home": {
+    "welcome": "환영합니다!",
+    "greeting": "{nickname}님",
+    "loginProvider": "로그인: {provider}",
+    "loading": "로딩 중..."
+  },
+  
+  "dashboard": {
+    "welcome": "안녕하세요, {name}님!",
+    "overview": {
+      "subtitle": "오늘의 업무 현황을 확인하세요"
+    },
+    "workspace": {
+      "personal": "개인",
+      "teams": "팀",
+      "workspaces": "워크스페이스",
+      "teamWorkspaces": "팀 워크스페이스",
+      "createWorkspace": "워크스페이스 만들기",
+      "members": "명",
+        "createTeam": "새 팀 만들기",
+        "useFreeTeamPlan": "무료 팀 플랜 사용",
+        "usePaidTeamPlan": "유료 팀 플랜 사용",
+      "enterWorkspaceName": "이름을 입력하세요",
+      "creating": "생성 중...",
+      "createWorkSpaceError": "워크스페이스 생성에 실패했습니다",
+      "personalWorkspace": "개인 워크스페이스",
+    "teamWorkspace": "팀 워크스페이스",
+    "memberRole": "멤버",
+      "noTeams": "아직 팀이 없습니다",
+      "createNewTeam": "새 팀 만들기",
+      "createTeamDescription": "팀 워크스페이스를 만들어 다른 사람들과 협업하세요",
+      "teamName": "팀 이름",
+      "teamNamePlaceholder": "예: 마케팅 팀",
+      "teamDescription": "설명",
+      "teamDescriptionPlaceholder": "이 팀은 무엇을 하나요?",
+      "cancel": "취소",
+      "create": "워크스페이스 등록",
+      "createTeamError": "팀 생성에 실패했습니다",
+      "delete": "삭제",
+      "deleting": "삭제 중...",
+      "deleteConfirmTitle": "워크스페이스 삭제",
+      "deleteConfirmMessage": "정말 이 워크스페이스를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+      "permissionDenied": "권한이 없습니다.",
+      "noWorkspaces": "워크스페이스 없음",
+      "workspaceCount": "워크스페이스"
+    },
+    "nav": {
+      "overview": "개요",
+      "tasks": "태스크",
+    "calendar": "캘린더",
+    "memo": "메모",
+    "files": "파일",
+      "teamAdmin": "팀 관리자",
+      "teams": "팀",
+      "settings": "설정",
+      "logout": "로그아웃"
+    },
+    "notifications": {
+      "title": "알림",
+      "loading": "알림을 불러오는 중...",
+      "loadError": "알림을 불러오지 못했습니다.",
+      "empty": "새 알림이 없습니다",
+      "retry": "다시 시도",
+      "markRead": "읽음",
+      "delete": "삭제",
+      "clearAll": "전체 삭제",
+      "notification": "알림",
+      "accept": "수락",
+      "decline": "거절",
+      "accepted": "수락됨",
+      "declined": "거절됨"
+    },
+    "userMenu": {
+      "language": "언어",
+      "help": "도움 받기",
+      "upgrade": "요금제 업그레이드",
+      "download": "데스크톱 앱 다운로드",
+      "learnMore": "자세히 알아보기"
+    },
+    "teamSettings": {
+      "title": "팀 관리",
+      "subtitle": "팀별 구독과 멤버를 관리할 수 있습니다.",
+      "myRole": "내 역할",
+      "teams": "내 팀",
+      "loading": "불러오는 중...",
+      "noTeams": "생성된 팀이 없습니다.",
+      "selectTeam": "관리할 팀을 선택해주세요.",
+      "adminOnly": "팀 관리자만 접근할 수 있습니다.",
+      "managePlan": "구독 관리",
+      "deleteTeam": "팀 삭제",
+      "confirmDelete": "정말 이 팀을 삭제하시겠습니까?",
+      "currentPlan": "현재 플랜",
+      "planLoading": "플랜 정보를 불러오는 중...",
+      "membersTitle": "팀 멤버",
+      "membersDesc": "닉네임 또는 이메일로 멤버를 추가할 수 있습니다.",
+      "memberPlaceholder": "닉네임 또는 이메일 입력",
+      "searching": "검색 중...",
+      "memberRoleSelect": "역할 선택",
+      "addMember": "멤버 추가",
+      "selectedMember": "선택됨",
+      "remove": "제거",
+      "members": "명",
+      "memberRole": "멤버",
+      "ownerRole": "소유자",
+      "noMembers": "아직 멤버가 없습니다.",
+      "memberCount": "{current} / {max}명 사용 중",
+      "maxMembers": "최대 {count}명",
+      "inviteSent": "초대가 전송되었습니다.",
+      "errorAddMember": "멤버 추가에 실패했습니다.",
+      "errorRemoveMember": "멤버 제거에 실패했습니다.",
+      "errorDeleteTeam": "팀 삭제에 실패했습니다.",
+      "rolesTitle": "역할 관리",
+      "rolesDesc": "팀에서 사용할 역할을 만들 수 있습니다.",
+      "roleNamePlaceholder": "예: 디자이너",
+      "addRole": "역할 추가",
+      "noRoles": "등록된 역할이 없습니다.",
+      "roleMembers": "{count}명",
+      "confirmDeleteRole": "이 역할을 삭제하시겠습니까?",
+      "errorAddRole": "역할 추가에 실패했습니다.",
+      "errorDeleteRole": "역할 삭제에 실패했습니다.",
+      "permissionsTitle": "권한 관리",
+      "permissionsDesc": "역할에 매핑할 권한을 선택하세요.",
+      "roleSelect": "역할 선택",
+      "selectRole": "먼저 역할을 선택해주세요.",
+      "savePermissions": "권한 저장",
+      "permCreate": "태스크 등록",
+      "permEditOwn": "내 태스크 수정",
+      "permEditAll": "전체 태스크 수정",
+      "permDeleteOwn": "내 태스크 삭제",
+      "permDeleteAll": "전체 태스크 삭제",
+      "permWorkspaceCreate": "워크스페이스 등록",
+      "permWorkspaceEdit": "워크스페이스 수정",
+      "permWorkspaceDelete": "워크스페이스 삭제",
+      "availablePermissions": "사용 가능 권한",
+      "assignedPermissions": "부여된 권한",
+      "noAvailablePermissions": "추가할 권한이 없습니다.",
+      "noAssignedPermissions": "아직 부여된 권한이 없습니다.",
+      "addPermissionArrow": ">",
+      "removePermissionArrow": "<",
+      "errorSavePermissions": "권한 저장에 실패했습니다.",
+      "errorUpdateMemberRole": "멤버 역할 변경에 실패했습니다."
+    },
+    "stats": {
+      "totalTasks": "오늘의 태스크",
+      "completedTasks": "완료한 태스크",
+      "teams": "참여 팀",
+      "upcomingEvents": "예정된 일정"
+    },
+    "tasks": {
+      "title": "내 태스크",
+      "addTask": "태스크 추가",
+      "today": "오늘",
+      "totalTasks": "전체",
+      "loading": "로딩중...",
+      "viewList": "목록",
+    "viewTimeline": "타임라인",
+    "selectWorkspace": "워크스페이스를 선택해주세요.",
+    "errorCreate": "태스크 생성에 실패했습니다.",
+    "errorUpdate": "태스크 수정에 실패했습니다.",
+    "errorDelete": "태스크 삭제에 실패했습니다.",
+    "status": {
+        "pending": "대기중",
+        "in_progress": "진행중",
+        "completed": "완료"
+      },
+      "filter": {
+        "all": "전체",
+        "search": "태스크 검색...",
+        "sortByDate": "날짜순",
+        "sortByPriority": "우선순위순",
+        "sortByStatus": "상태순",
+        "sortByTitle": "제목순",
+        "dateRange": "기간",
+        "reset": "초기화",
+        "tasksCount": "{count}개 태스크",
+        "noTasks": "태스크가 없습니다",
+        "perPage": "{count}개씩 보기",
+        "urgent": "긴급"
+      },
+      "modal": {
+        "title": "새 태스크 추가",
+        "editTitle": "태스크 수정",
+        "taskTitle": "제목",
+        "taskTitlePlaceholder": "태스크 제목을 입력하세요",
+        "startTime": "시작 시간",
+        "endTime": "마감 시간",
+        "content": "내용",
+        "tags": "태그",
+        "attachments": "첨부파일",
+        "loading": "불러오는 중...",
+        "noAttachments": "첨부된 파일이 없습니다",
+        "statusChange": "상태 변경",
+        "contentPlaceholder": "태스크 내용을 입력하세요",
+        "cancel": "취소",
+        "save": "저장",
+        "create": "생성",
+        "delete": "삭제",
+        "close": "닫기",
+        "edit": "수정",
+        "export": "내보내기",
+        "noContent": "내용이 없습니다",
+        "requiredField": "필수 항목입니다",
+        "endTimeBeforeStart": "마감 시간은 시작 시간 이후여야 합니다",
+        "createdBy": "등록자",
+        "updatedBy": "수정자"
+      },
+      "exportPage": {
+        "title": "태스크 내보내기",
+        "description": "공유 범위를 선택하고 링크를 생성하세요.",
+        "visibilityLabel": "공유 범위",
+        "visibilityPublic": "퍼블릭 (로그인 없이 접근)",
+        "visibilityRestricted": "권한 있는 사용자만",
+        "visibilityPublicShort": "퍼블릭",
+        "visibilityRestrictedShort": "권한",
+        "createLink": "링크 생성",
+        "creating": "생성 중...",
+        "linkLabel": "공유 링크",
+        "copy": "복사",
+        "copied": "복사됨",
+        "linkHint": "링크는 내보내기 페이지에서만 확인할 수 있습니다.",
+        "expiresLabel": "만료 시간",
+        "expiresHint": "선택하지 않으면 만료되지 않습니다.",
+        "exportListTitle": "내보내기 목록",
+        "noExports": "내보내기 링크가 없습니다.",
+        "exportItemTitle": "내보내기 #{id}",
+        "createdAt": "생성일",
+        "revoked": "링크 해제됨",
+        "expired": "만료됨",
+        "shareLink": "링크",
+        "save": "저장",
+        "revoke": "링크 해제",
+        "accessTitle": "권한 사용자 관리",
+        "selectExport": "관리할 내보내기 선택",
+        "accessPublicHint": "퍼블릭 링크는 권한 관리가 필요하지 않습니다.",
+        "addMemberLabel": "권한 추가",
+        "memberPlaceholder": "닉네임 또는 이메일 입력",
+        "searching": "검색 중...",
+        "selectedMember": "선택된 사용자",
+        "addMember": "권한 추가",
+        "allowedMembers": "허용된 사용자",
+        "noAllowedMembers": "아직 허용된 사용자가 없습니다.",
+        "loadError": "태스크를 불러올 수 없습니다.",
+        "createError": "내보내기 링크 생성에 실패했습니다.",
+        "loading": "불러오는 중..."
+      },
+      "exportView": {
+        "title": "내보내기 보기",
+        "subtitle": "이 페이지는 내보내기 전용 보기입니다.",
+        "loading": "불러오는 중...",
+        "unauthorized": "이 내보내기는 권한이 필요합니다.",
+        "expired": "내보내기 링크가 만료되었거나 해제되었습니다.",
+        "notFound": "내보내기 링크를 찾을 수 없습니다.",
+        "unknownError": "내보내기를 불러오지 못했습니다."
+      }
+    },
+    "teams": {
+      "title": "내 팀",
+      "createTeam": "팀 만들기",
+      "useFreeTeamPlan": "무료 팀 플랜 사용",
+      "usePaidTeamPlan": "유료 팀 플랜 사용",
+      "members": "명",
+      "tasks": "개 태스크"
+    },
+    "calendar": {
+      "title": "캘린더",
+      "upcoming": "다가오는 일정",
+      "tasksCount": "개 태스크",
+      "today": "오늘",
+      "selectDate": "날짜를 선택하세요",
+      "noTasksOnDate": "이 날짜에 태스크가 없습니다",
+      "selectDateFromCalendar": "캘린더에서 날짜를 선택하세요",
+      "add": "추가",
+      "more": "+{count}개 더보기",
+      "weekDays": {
+        "sun": "일",
+        "mon": "월",
+        "tue": "화",
+        "wed": "수",
+        "thu": "목",
+        "fri": "금",
+        "sat": "토"
+      }
+    },
+    "memo": {
+      "title": "메모",
+      "personalMemo": "개인 메모",
+      "teamMemo": "팀 개인 메모",
+      "loading": "불러오는 중...",
+      "loadError": "메모를 불러오지 못했습니다.",
+      "retry": "다시 시도",
+      "noMemos": "메모가 없습니다.",
+      "saved": "저장됨",
+      "saving": "저장 중...",
+      "newMemo": "새 메모",
+      "searchPlaceholder": "제목 검색",
+      "sortLatest": "최신순",
+      "sortOldest": "오래된 순",
+      "sortFavorite": "즐겨찾기 우선",
+      "favorites": "즐겨찾기",
+      "prev": "이전",
+      "next": "다음",
+      "delete": "삭제",
+      "titlePlaceholder": "제목 입력",
+      "saveTitle": "제목 저장",
+      "untitled": "제목 없음",
+      "noWorkspace": "워크스페이스를 선택해주세요."
+    },
+    "files": {
+      "title": "파일 및 사진",
+      "description": "워크스페이스에 업로드된 모든 파일과 사진을 관리합니다",
+      "all": "전체",
+      "images": "사진",
+      "documents": "문서",
+      "others": "기타",
+      "noFiles": "파일이 없습니다",
+      "noFilesDesc": "태스크에 파일을 첨부하면 여기에 표시됩니다",
+      "delete": "삭제",
+      "download": "다운로드",
+      "noPreview": "미리보기를 지원하지 않는 파일입니다",
+      "unknownType": "알 수 없는 형식",
+      "deleteConfirmTitle": "파일 삭제",
+      "deleteConfirmMessage": "'{fileName}' 파일을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+      "cancel": "취소",
+      "deleting": "삭제 중...",
+      "loadError": "파일을 불러오는데 실패했습니다",
+      "deleteError": "파일 삭제에 실패했습니다",
+      "selectMode": "선택",
+      "cancelSelect": "취소",
+      "selectedCount": "{count}개 선택됨",
+      "selectAll": "전체 선택",
+      "deselectAll": "선택 해제",
+      "downloadSelected": "다운로드",
+      "deleteSelected": "삭제",
+      "bulkDeleteConfirmTitle": "파일 일괄 삭제",
+      "bulkDeleteConfirmMessage": "{count}개의 파일을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+      "bulkDeletePartial": "{deleted}개 삭제됨, {failed}개 실패",
+      "pageInfo": "{current} / {total} 페이지 (총 {items}개)"
+    },
+    "settings": {
+      "title": "설정",
+      "subtitle": "계정 및 애플리케이션 설정을 관리하세요",
+      "nav": {
+        "general": "일반",
+        "account": "계정",
+        "privacy": "개인정보보호",
+        "billing": "결제",
+        "usage": "사용량",
+        "teamAdmin": "팀 관리자"
+      },
+      "general": {
+        "title": "일반 설정",
+        "description": "언어, 타임존, 테마 등 기본 설정을 관리합니다",
+        "language": "언어",
+        "languageDesc": "표시 언어를 선택하세요",
+        "timezone": "타임존",
+        "timezoneDesc": "시간대를 설정하세요",
+        "timezoneDetected": "현재 위치 기준",
+        "useCurrentTimezone": "현재 위치로 업데이트",
+        "timezoneAuto": "자동 타임존",
+        "timezoneAutoDesc": "현재 위치 기준으로 자동 설정합니다",
+        "timezoneManual": "수동 선택",
+        "theme": "테마",
+        "themeDesc": "앱 테마를 선택하세요",
+        "notifications": "알림",
+        "notificationsDesc": "푸시 알림을 활성화합니다",
+        "save": "저장"
+      },
+      "account": {
+        "title": "계정",
+        "profile": "프로필 정보",
+        "profileDesc": "계정의 기본 정보를 관리합니다",
+        "profileImage": "프로필 이미지",
+        "profileImageDesc": "프로필 이미지를 업로드하세요",
+        "uploadImage": "이미지 업로드",
+        "uploading": "업로드 중...",
+        "removeImage": "이미지 제거",
+        "checkNickname": "중복 확인",
+        "checking": "확인 중...",
+        "nicknameAvailable": "사용 가능한 닉네임입니다",
+        "nicknameTaken": "이미 사용 중인 닉네임입니다",
+        "name": "이름",
+        "email": "이메일",
+        "emailDesc": "이메일은 변경할 수 없습니다",
+        "save": "저장",
+        "password": "비밀번호 변경",
+        "passwordDesc": "계정의 비밀번호를 변경합니다",
+        "currentPassword": "현재 비밀번호",
+        "newPassword": "새 비밀번호",
+        "confirmPassword": "비밀번호 확인",
+        "updatePassword": "비밀번호 변경",
+        "deleteAccount": "계정 삭제",
+        "deleteAccountDesc": "계정을 삭제하면 모든 데이터가 영구적으로 삭제됩니다",
+        "deleteButton": "계정 삭제"
+      },
+      "privacy": {
+        "title": "개인정보보호",
+        "dataSharing": "데이터 공유",
+        "dataSharingDesc": "데이터 수집 및 공유 설정을 관리합니다",
+        "analytics": "분석 데이터",
+        "analyticsDesc": "서비스 개선을 위한 익명 사용 데이터 수집",
+        "marketing": "마케팅",
+        "marketingDesc": "제품 업데이트 및 마케팅 정보 수신",
+        "thirdParty": "서드파티 공유",
+        "thirdPartyDesc": "통합 서비스와 데이터 공유",
+        "activityLog": "활동 로그",
+        "activityLogDesc": "계정의 모든 활동 기록을 확인합니다",
+        "viewLog": "로그 보기",
+        "exportData": "데이터 내보내기",
+        "exportDataDesc": "모든 데이터를 다운로드합니다",
+        "exportButton": "데이터 내보내기"
+      },
+      "billing": {
+        "title": "결제",
+        "currentPlan": "현재 플랜",
+        "currentPlanDesc": "구독 중인 플랜과 결제 정보를 관리합니다",
+        "upgrade": "업그레이드",
+        "paymentMethod": "결제 수단",
+        "paymentMethodDesc": "결제에 사용할 카드를 관리합니다",
+        "noPaymentMethod": "등록된 결제 수단이 없습니다",
+        "addPaymentMethod": "결제 수단 추가",
+        "savedCard": "등록된 카드",
+        "cardInfo": "카드 정보",
+        "removeCard": "카드 삭제",
+        "removeCardConfirm": "등록된 카드를 삭제하시겠습니까? 자동결제에 사용되는 카드가 삭제됩니다.",
+        "removeCardSuccess": "카드가 삭제되었습니다.",
+        "removeCardError": "카드 삭제에 실패했습니다. 다시 시도해주세요.",
+        "removeCardBlocked": "활성 구독이 있어 결제수단을 삭제할 수 없습니다.",
+        "nextPaymentDate": "다음 결제일",
+        "nextPaymentDateValue": "{date}",
+        "history": "결제 내역",
+        "historyDesc": "과거 결제 내역을 확인합니다",
+        "noHistory": "결제 내역이 없습니다",
+        "historyLoading": "결제 내역을 불러오는 중...",
+        "historyLoadError": "결제 내역을 불러오지 못했습니다",
+        "paymentHistory": {
+          "date": "결제일",
+          "plan": "플랜",
+          "amount": "금액",
+          "status": "상태",
+          "tid": "거래 ID",
+          "type": "유형",
+          "success": "성공",
+          "failed": "실패",
+          "refunded": "환불",
+          "first": "최초결제",
+          "recurring": "자동결제",
+          "retry": "재시도"
+        },
+        "personalSubscription": "개인 구독 플랜",
+        "personalSubscriptionDesc": "개인 워크스페이스를 위한 플랜",
+        "teamSubscription": "팀 구독",
+        "teamSubscriptionDesc": "팀 워크스페이스를 위한 플랜",
+        "teamSelectLabel": "팀 선택",
+        "teamGo": "팀 플랜 보기",
+        "teamNoTeams": "가입된 팀이 없습니다.",
+        "teamLoading": "팀을 불러오는 중...",
+        "status": "상태",
+        "freePlan": "기본 무료 플랜",
+        "changePlan": "플랜 변경",
+        "paymentSuccess": "결제가 성공적으로 완료되었습니다!",
+        "planChangeScheduled": "플랜 변경이 예약되었습니다. 다음 결제일부터 적용됩니다.",
+        "plans": {
+          "personalTitle": "개인 구독",
+          "personalSubtitle": "개인 워크스페이스 전용 플랜",
+          "personalSection": "개인 구독",
+          "personalDesc": "나의 개인 워크스페이스를 위한 플랜",
+          "teamSection": "팀 구독",
+          "teamDesc": "팀 워크스페이스를 위한 플랜",
+          "teamComingSoon": "팀 구독 기능은 준비 중입니다",
+          "teamSelectLabel": "팀 선택",
+          "teamGo": "팀 플랜 보기",
+          "teamGuide": "팀을 선택하면 팀 플랜을 조회할 수 있습니다.",
+          "teamNoTeams": "가입된 팀이 없습니다.",
+          "basicPlan": "기본 플랜",
+          "currentPlan": "현재 플랜",
+          "select": "선택하기",
+          "selected": "선택됨",
+          "subscribed": "가입중",
+          "maxMembers": "최대 {count}명의 팀 멤버",
+          "storage": "{size}GB 저장소",
+          "unlimitedWorkspaces": "무제한 워크스페이스",
+          "unlimitedTasks": "무제한 태스크",
+          "perMonth": "/ 월",
+          "changeable": "모든 플랜은 언제든지 변경 가능합니다",
+          "freeTrial": "7일 무료 체험 기간이 제공됩니다",
+          "back": "← 뒤로",
+          "loadError": "플랜을 불러올 수 없습니다",
+          "retry": "다시 시도"
+        },
+        "cancel": {
+          "button": "구독 취소",
+          "title": "구독을 취소하시겠습니까?",
+          "message": "구독을 취소하면 Basic(무료) 플랜으로 전환됩니다. 현재 결제 기간이 끝나면 유료 기능을 사용할 수 없습니다.",
+          "confirm": "취소 확인",
+          "dismiss": "돌아가기",
+          "success": "구독이 취소되었습니다. Basic 플랜으로 전환되었습니다.",
+          "error": "구독 취소에 실패했습니다. 다시 시도해주세요.",
+          "canceling": "취소 처리 중..."
+        },
+        "checkout": {
+          "title": "결제하기",
+          "description": "안전하게 결제하실 수 있습니다",
+          "orderSummary": "주문 요약",
+          "subscriptionTarget": "구독 대상",
+          "personal": "개인",
+          "team": "팀",
+          "plan": "플랜",
+          "maxMembers": "최대 멤버",
+          "storage": "저장소",
+          "monthlyPayment": "월 결제액",
+          "termsAgree": "이용약관 및 개인정보 처리방침에 동의합니다",
+          "securePayment": "모든 결제 정보는 암호화되어 안전하게 처리됩니다",
+          "back": "뒤로",
+          "nicepay": {
+            "title": "카드 결제",
+            "description": "신용카드/체크카드로 안전하게 결제하세요",
+            "button": "카드로 결제하기",
+            "error": "결제 처리 중 오류가 발생했습니다",
+            "success": "결제가 완료되었습니다!",
+            "loading": "결제 모듈 로딩 중...",
+            "sdkLoadError": "결제 모듈을 불러오는데 실패했습니다. 페이지를 새로고침 해주세요.",
+            "subscribing": "결제 처리 중...",
+            "subscribeButton": "구독 결제하기"
+          },
+          "paypal": {
+            "title": "PayPal",
+            "description": "PayPal 계정으로 안전하게 구독 결제하실 수 있습니다.",
+            "notConfigured": "이 플랜은 아직 PayPal 구독이 설정되지 않았습니다. 관리자에게 문의하세요."
+          }
+        }
+      },
+      "usage": {
+        "title": "사용량",
+        "currentPlan": "현재 플랜",
+        "storage": "스토리지",
+        "storageDesc": "사용 중인 스토리지 용량을 확인합니다",
+        "documents": "문서",
+        "files": "파일",
+        "fileCount": "개",
+        "maxFileSize": "최대 파일 크기",
+        "other": "기타",
+        "api": "API 호출",
+        "apiDesc": "이번 달 API 사용량을 확인합니다",
+        "requests": "요청",
+        "teamMembers": "팀 멤버",
+        "teamMembersDesc": "팀 멤버 현황을 확인합니다",
+        "members": "명",
+        "inviteMember": "멤버 초대",
+        "inviteSent": "초대가 전송되었습니다.",
+        "activity": "활동 통계",
+        "activityDesc": "이번 달 활동 통계를 확인합니다",
+        "tasksCreated": "생성한 태스크",
+        "tasksCompleted": "완료한 태스크",
+        "tasksTodo": "할 일",
+        "tasksInProgress": "진행 중",
+        "totalTasks": "전체 태스크",
+        "comments": "댓글",
+        "meetings": "미팅",
+        "thisMonth": "이번 달",
+        "loadError": "사용량 데이터를 불러오는데 실패했습니다"
+      }
+
+
+    }
+
+  },
+
+  "termsOfService": {
+    "title": "이용약관",
+    "lastUpdated": "최종 수정일: 2026년 2월 12일",
+    "backToHome": "홈으로 돌아가기",
+    "intro": "본 이용약관(이하 '약관')은 요정(이하 '회사')이 제공하는 Pecal 서비스(이하 '서비스')의 이용과 관련하여 회사와 이용자 간의 권리, 의무 및 책임 사항, 기타 필요한 사항을 규정함을 목적으로 합니다.",
+
+    "section1": {
+      "title": "제1조 (목적)",
+      "content": "본 약관은 회사가 제공하는 Pecal 서비스의 이용 조건 및 절차, 회사와 이용자 간의 권리·의무·책임 사항, 기타 필요한 사항을 규정하는 것을 목적으로 합니다."
+    },
+
+    "section2": {
+      "title": "제2조 (용어의 정의)",
+      "items": [
+        "'서비스'란 회사가 제공하는 Pecal 워크스페이스 플랫폼 및 이에 부수하는 모든 서비스를 의미합니다.",
+        "'이용자'란 본 약관에 따라 서비스를 이용하는 회원을 의미합니다.",
+        "'회원'이란 회사에 개인정보를 제공하고 서비스 이용 계약을 체결한 자를 의미합니다.",
+        "'워크스페이스'란 이용자가 서비스 내에서 태스크, 파일, 프로젝트 등을 관리하는 독립된 작업 공간을 의미합니다.",
+        "'콘텐츠'란 이용자가 서비스 내에서 작성, 업로드한 텍스트, 이미지, 파일 등 모든 정보를 의미합니다."
+      ]
+    },
+
+    "section3": {
+      "title": "제3조 (약관의 효력 및 변경)",
+      "items": [
+        "본 약관은 서비스 화면에 게시하거나 기타의 방법으로 이용자에게 공지함으로써 효력이 발생합니다.",
+        "회사는 관련 법령을 위배하지 않는 범위에서 본 약관을 변경할 수 있으며, 변경 시 적용일자 및 변경 사유를 명시하여 7일 전에 공지합니다.",
+        "이용자가 변경된 약관에 동의하지 않을 경우, 서비스 이용을 중단하고 탈퇴할 수 있습니다.",
+        "변경된 약관 시행일 이후에도 서비스를 계속 이용하는 경우 약관 변경에 동의한 것으로 간주합니다."
+      ]
+    },
+
+    "section4": {
+      "title": "제4조 (서비스 이용 계약)",
+      "items": [
+        "이용 계약은 이용자가 약관에 동의하고, 회사가 정한 가입 절차를 완료한 시점에 성립합니다.",
+        "회사는 소셜 로그인(카카오, 구글 등)을 통한 간편 가입을 지원합니다.",
+        "회사는 다음 각 호에 해당하는 경우 가입을 거부하거나 사후에 이용 계약을 해지할 수 있습니다: 타인의 정보를 이용한 경우, 허위 정보를 기재한 경우, 기타 서비스 운영을 방해한 경우."
+      ]
+    },
+
+    "section5": {
+      "title": "제5조 (서비스의 내용)",
+      "content": "회사가 제공하는 서비스는 다음과 같습니다.",
+      "items": [
+        "태스크 관리 (생성, 수정, 삭제, 상태 관리)",
+        "캘린더 기반 일정 관리",
+        "파일 업로드 및 관리",
+        "팀 워크스페이스 및 협업 기능",
+        "개인 및 팀 저장소 관리",
+        "기타 회사가 추가 개발하거나 제휴를 통해 제공하는 서비스"
+      ]
+    },
+
+    "section6": {
+      "title": "제6조 (서비스의 변경 및 중단)",
+      "items": [
+        "회사는 서비스 개선을 위해 서비스의 전부 또는 일부를 변경할 수 있습니다.",
+        "회사는 천재지변, 시스템 장애 등 불가피한 사유가 있는 경우 서비스를 일시적으로 중단할 수 있습니다.",
+        "서비스 변경 또는 중단 시 회사는 이용자에게 사전에 공지합니다. 다만, 긴급한 경우 사후에 공지할 수 있습니다."
+      ]
+    },
+
+    "section7": {
+      "title": "제7조 (이용자의 의무)",
+      "items": [
+        "이용자는 서비스 이용 시 관련 법령 및 본 약관의 규정을 준수해야 합니다.",
+        "이용자는 타인의 개인정보를 수집, 저장, 공개하는 행위를 해서는 안 됩니다.",
+        "이용자는 서비스를 이용하여 불법적인 활동을 해서는 안 됩니다.",
+        "이용자는 서비스의 안정적 운영을 방해하는 행위를 해서는 안 됩니다.",
+        "이용자는 계정 정보의 관리에 대한 책임을 부담합니다."
+      ]
+    },
+
+    "section8": {
+      "title": "제8조 (유료 서비스 및 결제)",
+      "items": [
+        "회사는 무료 서비스 외에 유료 서비스(플랜 구독)를 제공할 수 있습니다.",
+        "유료 서비스의 이용 요금, 결제 방법 등은 서비스 내 안내 페이지에 명시합니다.",
+        "이용자가 유료 서비스를 이용하는 경우, 해당 요금을 결제해야 합니다.",
+        "결제 취소 및 환불은 관련 법령 및 회사의 환불 정책에 따릅니다.",
+        "구독 취소 시 현재 결제 기간이 만료될 때까지 서비스를 이용할 수 있으며, 이후 무료 플랜으로 전환됩니다."
+      ]
+    },
+
+    "section9": {
+      "title": "제9조 (콘텐츠의 권리 및 책임)",
+      "items": [
+        "이용자가 서비스 내에서 생성한 콘텐츠에 대한 저작권은 해당 이용자에게 있습니다.",
+        "회사는 서비스 운영, 개선, 홍보 등의 목적으로 이용자의 콘텐츠를 사용할 수 있습니다.",
+        "이용자는 타인의 지식재산권을 침해하는 콘텐츠를 업로드해서는 안 됩니다.",
+        "회사는 관련 법령에 위반되거나 타인의 권리를 침해하는 콘텐츠를 사전 통지 없이 삭제할 수 있습니다."
+      ]
+    },
+
+    "section10": {
+      "title": "제10조 (개인정보 보호)",
+      "content": "회사는 이용자의 개인정보를 개인정보 처리방침에 따라 수집, 이용, 관리합니다. 자세한 내용은 개인정보 처리방침을 참고하시기 바랍니다."
+    },
+
+    "section11": {
+      "title": "제11조 (면책 조항)",
+      "items": [
+        "회사는 천재지변, 전쟁, 기간통신사업자의 서비스 중지 등 불가항력적 사유로 인한 서비스 제공 불가에 대해 책임을 지지 않습니다.",
+        "회사는 이용자의 귀책사유로 인한 서비스 이용 장애에 대해 책임을 지지 않습니다.",
+        "회사는 이용자가 서비스를 이용하여 기대하는 수익을 얻지 못하거나 상실한 것에 대해 책임을 지지 않습니다.",
+        "회사는 이용자 상호 간 또는 이용자와 제3자 간에 서비스를 매개로 발생한 분쟁에 대해 개입할 의무가 없으며, 이로 인한 손해를 배상할 책임이 없습니다."
+      ]
+    },
+
+    "section12": {
+      "title": "제12조 (이용 계약의 해지)",
+      "items": [
+        "이용자는 언제든지 서비스 내 설정 메뉴를 통해 이용 계약을 해지(탈퇴)할 수 있습니다.",
+        "회사는 이용자가 본 약관을 위반한 경우, 사전 통지 후 이용 계약을 해지할 수 있습니다. 다만, 긴급한 경우 사후에 통지할 수 있습니다.",
+        "이용 계약 해지 시 이용자의 개인정보 및 콘텐츠는 개인정보 처리방침에 따라 처리됩니다."
+      ]
+    },
+
+    "section13": {
+      "title": "제13조 (분쟁 해결)",
+      "items": [
+        "서비스 이용과 관련하여 회사와 이용자 간에 분쟁이 발생한 경우, 양 당사자는 원만한 해결을 위해 성실히 협의합니다.",
+        "협의가 이루어지지 않을 경우, 대한민국 법률을 준거법으로 하며, 관할 법원은 민사소송법에 따라 정합니다."
+      ]
+    },
+
+    "section14": {
+      "title": "부칙",
+      "content": "본 약관은 2026년 2월 12일부터 시행합니다."
+    }
+  }
+
+
+}

@@ -1,0 +1,192 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-primary: #3b82f6;
+  --color-primary-dark: #2563eb;
+  --color-secondary: #6b7280;
+  --color-success: #22c55e;
+  --color-danger: #ef4444;
+  --color-warning: #f59e0b;
+}
+
+/* Light mode base styles */
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f3f4f6;
+  --bg-tertiary: #e5e7eb;
+  --text-primary: #1f2937;
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
+  --border-color: #d1d5db;
+}
+
+/* Dark mode styles */
+.dark {
+  --bg-primary: #1f2937;
+  --bg-secondary: #111827;
+  --bg-tertiary: #374151;
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-muted: #6b7280;
+  --border-color: #4b5563;
+}
+
+/* Pink mode styles */
+.pink {
+  --bg-primary: #ffe4ea;
+  --bg-secondary: #fff0f4;
+  --bg-tertiary: #ffd6df;
+  --text-primary: #4a1d2f;
+  --text-secondary: #7a2942;
+  --text-muted: #9b5063;
+  --border-color: #ffb6c1;
+}
+
+/* Pink theme utility overrides (for Tailwind classes) */
+.pink .bg-white { background-color: var(--bg-primary) !important; }
+.pink .bg-white\/80 { background-color: rgba(255, 228, 234, 0.8) !important; }
+.pink .bg-gray-800\/80 { background-color: rgba(255, 214, 223, 0.8) !important; }
+.pink .bg-gray-50 { background-color: var(--bg-secondary) !important; }
+.pink .bg-gray-100 { background-color: var(--bg-secondary) !important; }
+.pink .bg-gray-200 { background-color: var(--bg-tertiary) !important; }
+.pink .bg-gray-700 { background-color: #f5b8c7 !important; }
+.pink .bg-gray-800 { background-color: #f1a8bb !important; }
+.pink .bg-gray-900 { background-color: #e995ac !important; }
+
+.pink .text-gray-900 { color: var(--text-primary) !important; }
+.pink .text-gray-800 { color: var(--text-primary) !important; }
+.pink .text-gray-700 { color: var(--text-secondary) !important; }
+.pink .text-gray-600 { color: var(--text-secondary) !important; }
+.pink .text-gray-500 { color: var(--text-muted) !important; }
+.pink .text-gray-400 { color: var(--text-muted) !important; }
+
+.pink .border-gray-200 { border-color: var(--border-color) !important; }
+.pink .border-gray-300 { border-color: var(--border-color) !important; }
+.pink .border-gray-600 { border-color: #e88aa1 !important; }
+.pink .border-gray-700 { border-color: #d97790 !important; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* TipTap / ProseMirror */
+.ProseMirror {
+  outline: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.ProseMirror p {
+  margin: 0.25rem 0;
+}
+
+.ProseMirror ul,
+.ProseMirror ol {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+}
+
+.ProseMirror ul {
+  list-style: disc;
+}
+
+.ProseMirror ol {
+  list-style: decimal;
+}
+
+.ProseMirror blockquote {
+  margin: 0.5rem 0;
+  padding-left: 0.75rem;
+  border-left: 3px solid #93c5fd;
+  color: #4b5563;
+}
+
+.dark .ProseMirror blockquote {
+  border-left-color: #3b82f6;
+  color: #d1d5db;
+}
+
+.ProseMirror code {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.35rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.85em;
+}
+
+.ProseMirror pre {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  margin: 0.5rem 0;
+  overflow-x: auto;
+}
+
+.ProseMirror pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.ProseMirror a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.dark .ProseMirror a {
+  color: #60a5fa;
+}
+
+.ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding: 0;
+}
+
+.ProseMirror ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0.25rem 0;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label {
+  margin: 0;
+  padding-top: 0.2rem;
+  user-select: none;
+}
+
+.ProseMirror ul[data-type="taskList"] li > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ProseMirror ul[data-type="taskList"] li p {
+  margin: 0;
+}

@@ -1,0 +1,93 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "DesktopCalendar",
+  "version": "1.2.6",
+  "identifier": "com.deskcal.app",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Desktop Calendar",
+        "width": 780,
+        "height": 660,
+        "minWidth": 640,
+        "minHeight": 480,
+        "x": 100,
+        "y": 100,
+        "resizable": true,
+        "decorations": true,
+        "transparent": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": false,
+        "visible": true,
+        "devtools": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": false,
+    "windows": {
+      "signCommand": "powershell -ExecutionPolicy Bypass -File sign.ps1 %1",
+      "wix": {
+        "language": "ko-KR",
+        "upgradeCode": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      },
+      "nsis": {
+        "languages": [
+          "Korean",
+          "English"
+        ],
+        "displayLanguageSelector": true,
+        "installerHooks": "nsis-hooks.nsh"
+      }
+    },
+    "macOS": {
+      "entitlements": "Entitlements.plist",
+      "signingIdentity": "-",
+      "infoPlist": "Info.plist"
+    },
+    "linux": {
+      "deb": {
+        "depends": []
+      },
+      "appimage": {
+        "bundleMediaFramework": true
+      }
+    }
+  },
+  "plugins": {
+    "shell": {
+      "open": true
+    },
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "deskcal",
+          "deskcal-dev"
+        ]
+      }
+    },
+    "updater": {
+      "endpoints": [],
+      "pubkey": ""
+    }
+  }
+}

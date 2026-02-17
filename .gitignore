@@ -1,0 +1,7 @@
+node_modules
+.pnpm-store
+pnpm-lock.yaml
+.DS_Store
+.idea
+apps/*/node_modules
+packages/*/node_modules
