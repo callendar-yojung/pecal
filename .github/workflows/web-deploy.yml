@@ -91,34 +91,34 @@ jobs:
             set -euo pipefail
 
             APP_DIR="${DEPLOY_PATH:-/home/callendar/apps/api}"
-
-            if command -v sudo >/dev/null 2>&1; then
-              SUDO="sudo"
-            else
-              SUDO=""
-            fi
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 
             # Base folders (works even if server is blank)
-            $SUDO mkdir -p "$APP_DIR"
+            mkdir -p "$APP_DIR"
 
-            # Install Node.js if missing
+            # Install Node.js (user-space via nvm) if missing
             if ! command -v node >/dev/null 2>&1; then
-              $SUDO apt-get update
-              $SUDO apt-get install -y curl ca-certificates gnupg
-              curl -fsSL https://deb.nodesource.com/setup_20.x | $SUDO -E bash -
-              $SUDO apt-get install -y nodejs
+              if ! command -v curl >/dev/null 2>&1; then
+                echo "ERROR: curl is required on the server for bootstrap." >&2
+                exit 1
+              fi
+              curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+              . "$NVM_DIR/nvm.sh"
+              nvm install 20
+              nvm alias default 20
             fi
 
             # Install corepack/pnpm if missing
             if ! command -v corepack >/dev/null 2>&1; then
-              $SUDO npm install -g corepack
+              npm install -g corepack
             fi
             corepack enable || true
             corepack prepare pnpm@9.0.0 --activate || true
 
             # Install PM2 if missing
             if ! command -v pm2 >/dev/null 2>&1; then
-              $SUDO npm install -g pm2
+              npm install -g pm2
             fi
           EOF
 
@@ -149,6 +149,8 @@ jobs:
             set -euo pipefail
 
             APP_DIR="${DEPLOY_PATH:-/home/callendar/apps/api}"
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
             mkdir -p "$APP_DIR"
 
             cd "$APP_DIR"
@@ -190,6 +192,8 @@ jobs:
           ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no "${SSH_USER}@${SERVER_HOST}" "DEPLOY_PATH='${DEPLOY_PATH}' bash -s" << 'EOF'
             set -euo pipefail
             APP_DIR="${DEPLOY_PATH:-/home/callendar/apps/api}"
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 
             cd "$APP_DIR"
             corepack enable || true
