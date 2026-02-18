@@ -1,0 +1,205 @@
+name: Web Build & Deploy
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+concurrency:
+  group: web-deploy-main
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      # Deploy target
+      SERVER_HOST: ${{ secrets.SERVER_HOST }}
+      SSH_USER: callendar
+      DEPLOY_PATH: /home/callendar/apps/api
+
+      # NextAuth
+      AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+      NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+
+      # Kakao OAuth
+      AUTH_KAKAO_ID: ${{ secrets.AUTH_KAKAO_ID }}
+      AUTH_KAKAO_SECRET: ${{ secrets.AUTH_KAKAO_SECRET }}
+
+      # Google OAuth
+      AUTH_GOOGLE_ID: ${{ secrets.AUTH_GOOGLE_ID }}
+      AUTH_GOOGLE_SECRET: ${{ secrets.AUTH_GOOGLE_SECRET }}
+
+      # Desktop App Deep Link (Tauri)
+      APP_DEEPLINK_SCHEME: ${{ secrets.APP_DEEPLINK_SCHEME }}
+
+      # MySQL
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+
+      # AWS S3
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+      API_SECRET_KEY: ${{ secrets.API_SECRET_KEY }}
+
+      # PayPal
+      SENDBOX_CLIENT_ID: ${{ secrets.SENDBOX_CLIENT_ID }}
+      SENDBOX_CLIENT_SECRET: ${{ secrets.SENDBOX_CLIENT_SECRET }}
+      NEXT_PUBLIC_PAYPAL_CLIENT_ID: ${{ secrets.SENDBOX_CLIENT_ID }}
+
+      # NicePay
+      NICEPAY_CLIENT_ID: ${{ secrets.NICEPAY_CLIENT_ID }}
+      NICEPAY_SECRET_KEY: ${{ secrets.NICEPAY_SECRET_KEY }}
+      NEXT_PUBLIC_NICEPAY_CLIENT_KEY: ${{ secrets.NICEPAY_CLIENT_ID }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+
+      - name: Install & Build web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter ./apps/web i18n:check
+          pnpm --filter ./apps/web build
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/callendar.pem
+          chmod 600 ~/.ssh/callendar.pem
+
+      - name: Bootstrap remote server (empty Ubuntu supported)
+        run: |
+          ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no "${SSH_USER}@${SERVER_HOST}" "DEPLOY_PATH='${DEPLOY_PATH}' bash -s" << 'EOF'
+            set -euo pipefail
+
+            APP_DIR="${DEPLOY_PATH:-/home/callendar/apps/api}"
+
+            if command -v sudo >/dev/null 2>&1; then
+              SUDO="sudo"
+            else
+              SUDO=""
+            fi
+
+            # Base folders (works even if server is blank)
+            $SUDO mkdir -p "$APP_DIR"
+
+            # Install Node.js if missing
+            if ! command -v node >/dev/null 2>&1; then
+              $SUDO apt-get update
+              $SUDO apt-get install -y curl ca-certificates gnupg
+              curl -fsSL https://deb.nodesource.com/setup_20.x | $SUDO -E bash -
+              $SUDO apt-get install -y nodejs
+            fi
+
+            # Install corepack/pnpm if missing
+            if ! command -v corepack >/dev/null 2>&1; then
+              $SUDO npm install -g corepack
+            fi
+            corepack enable || true
+            corepack prepare pnpm@9.0.0 --activate || true
+
+            # Install PM2 if missing
+            if ! command -v pm2 >/dev/null 2>&1; then
+              $SUDO npm install -g pm2
+            fi
+          EOF
+
+      - name: Pack deploy bundle
+        run: |
+          tar \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='apps/desktop/src-tauri/target' \
+            --exclude='apps/desktop/node_modules' \
+            -czf web-deploy.tar.gz \
+            apps \
+            packages \
+            package.json \
+            pnpm-lock.yaml \
+            pnpm-workspace.yaml \
+            tsconfig.base.json
+
+      - name: Upload bundle to server
+        run: |
+          scp -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no \
+            web-deploy.tar.gz \
+            "${SSH_USER}@${SERVER_HOST}:/tmp/web-deploy.tar.gz"
+
+      - name: Extract files and write env
+        run: |
+          ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no "${SSH_USER}@${SERVER_HOST}" "DEPLOY_PATH='${DEPLOY_PATH}' bash -s" << 'EOF'
+            set -euo pipefail
+
+            APP_DIR="${DEPLOY_PATH:-/home/callendar/apps/api}"
+            mkdir -p "$APP_DIR"
+
+            cd "$APP_DIR"
+            rm -rf apps packages package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json
+            tar -xzf /tmp/web-deploy.tar.gz -C "$APP_DIR"
+            rm -f /tmp/web-deploy.tar.gz
+
+            mkdir -p "$APP_DIR/apps/web"
+            cat > "$APP_DIR/apps/web/.env.production" << 'ENVEOF'
+            AUTH_SECRET=${{ secrets.AUTH_SECRET }}
+            NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}
+            AUTH_KAKAO_ID=${{ secrets.AUTH_KAKAO_ID }}
+            AUTH_KAKAO_SECRET=${{ secrets.AUTH_KAKAO_SECRET }}
+            AUTH_GOOGLE_ID=${{ secrets.AUTH_GOOGLE_ID }}
+            AUTH_GOOGLE_SECRET=${{ secrets.AUTH_GOOGLE_SECRET }}
+            APP_DEEPLINK_SCHEME=${{ secrets.APP_DEEPLINK_SCHEME }}
+            DB_HOST=${{ secrets.DB_HOST }}
+            DB_PORT=${{ secrets.DB_PORT }}
+            DB_USER=${{ secrets.DB_USER }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            DB_NAME=${{ secrets.DB_NAME }}
+            AWS_REGION=${{ secrets.AWS_REGION }}
+            AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}
+            API_SECRET_KEY=${{ secrets.API_SECRET_KEY }}
+            SENDBOX_CLIENT_ID=${{ secrets.SENDBOX_CLIENT_ID }}
+            SENDBOX_CLIENT_SECRET=${{ secrets.SENDBOX_CLIENT_SECRET }}
+            NEXT_PUBLIC_PAYPAL_CLIENT_ID=${{ secrets.SENDBOX_CLIENT_ID }}
+            NICEPAY_CLIENT_ID=${{ secrets.NICEPAY_CLIENT_ID }}
+            NICEPAY_SECRET_KEY=${{ secrets.NICEPAY_SECRET_KEY }}
+            NEXT_PUBLIC_NICEPAY_CLIENT_KEY=${{ secrets.NICEPAY_CLIENT_ID }}
+            NODE_ENV=production
+            ENVEOF
+          EOF
+
+      - name: Install deps and restart PM2
+        run: |
+          ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no "${SSH_USER}@${SERVER_HOST}" "DEPLOY_PATH='${DEPLOY_PATH}' bash -s" << 'EOF'
+            set -euo pipefail
+            APP_DIR="${DEPLOY_PATH:-/home/callendar/apps/api}"
+
+            cd "$APP_DIR"
+            corepack enable || true
+            corepack prepare pnpm@9.0.0 --activate || true
+            pnpm install --frozen-lockfile
+
+            if pm2 describe pecal-web >/dev/null 2>&1; then
+              pm2 restart pecal-web --update-env
+            else
+              pm2 start "pnpm --filter ./apps/web start" --name pecal-web --cwd "$APP_DIR"
+            fi
+            pm2 save
+          EOF
