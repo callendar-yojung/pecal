@@ -93,6 +93,10 @@ jobs:
             APP_DIR="${DEPLOY_PATH:-/home/callendar/apps/api}"
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+            export NPM_GLOBAL_PREFIX="$HOME/.npm-global"
+            mkdir -p "$NPM_GLOBAL_PREFIX"
+            npm config set prefix "$NPM_GLOBAL_PREFIX"
+            export PATH="$NPM_GLOBAL_PREFIX/bin:$PATH"
 
             # Base folders (works even if server is blank)
             mkdir -p "$APP_DIR"
@@ -109,12 +113,10 @@ jobs:
               nvm alias default 20
             fi
 
-            # Install corepack/pnpm if missing
-            if ! command -v corepack >/dev/null 2>&1; then
-              npm install -g corepack
+            # Install pnpm in user-space if missing
+            if ! command -v pnpm >/dev/null 2>&1; then
+              npm install -g pnpm@9.0.0
             fi
-            corepack enable || true
-            corepack prepare pnpm@9.0.0 --activate || true
 
             # Install PM2 if missing
             if ! command -v pm2 >/dev/null 2>&1; then
@@ -151,6 +153,8 @@ jobs:
             APP_DIR="${DEPLOY_PATH:-/home/callendar/apps/api}"
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+            export NPM_GLOBAL_PREFIX="$HOME/.npm-global"
+            export PATH="$NPM_GLOBAL_PREFIX/bin:$PATH"
             mkdir -p "$APP_DIR"
 
             cd "$APP_DIR"
@@ -194,10 +198,15 @@ jobs:
             APP_DIR="${DEPLOY_PATH:-/home/callendar/apps/api}"
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+            export NPM_GLOBAL_PREFIX="$HOME/.npm-global"
+            mkdir -p "$NPM_GLOBAL_PREFIX"
+            npm config set prefix "$NPM_GLOBAL_PREFIX"
+            export PATH="$NPM_GLOBAL_PREFIX/bin:$PATH"
 
             cd "$APP_DIR"
-            corepack enable || true
-            corepack prepare pnpm@9.0.0 --activate || true
+            if ! command -v pnpm >/dev/null 2>&1; then
+              npm install -g pnpm@9.0.0
+            fi
             pnpm install --frozen-lockfile
 
             if pm2 describe pecal-web >/dev/null 2>&1; then
