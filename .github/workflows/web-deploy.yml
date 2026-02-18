@@ -136,7 +136,6 @@ jobs:
         run: |
           tar \
             --exclude='.git' \
-            --exclude='node_modules' \
             -czf - \
             .deploy-web \
           | ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no "${SSH_USER}@${SERVER_HOST}" "DEPLOY_PATH='${DEPLOY_PATH}' bash -lc 'set -euo pipefail; APP_DIR=\"\${DEPLOY_PATH:-/home/callendar/apps/api}\"; mkdir -p \"\$APP_DIR\"; cd \"\$APP_DIR\"; rm -rf apps .next node_modules; tar -xzf - -C \"\$APP_DIR\" --strip-components=1'"
@@ -188,17 +187,26 @@ jobs:
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 
-            cd "$APP_DIR"
+            if [ -f "$APP_DIR/server.js" ]; then
+              ENTRY="$APP_DIR/server.js"
+            elif [ -f "$APP_DIR/apps/web/server.js" ]; then
+              ENTRY="$APP_DIR/apps/web/server.js"
+            else
+              echo "ERROR: standalone server.js not found in deploy path" >&2
+              ls -la "$APP_DIR" || true
+              ls -la "$APP_DIR/apps/web" || true
+              exit 1
+            fi
 
             if pm2 describe pecal-web >/dev/null 2>&1; then
               pm2 delete pecal-web || true
             fi
 
             if command -v pm2 >/dev/null 2>&1; then
-              pm2 start "node server.js" --name pecal-web --cwd "$APP_DIR"
+              pm2 start "node $ENTRY" --name pecal-web --cwd "$APP_DIR"
               pm2 save || true
             else
               pkill -f "node .*apps/api/server.js" || true
-              nohup node "$APP_DIR/server.js" > "$APP_DIR/web.log" 2>&1 &
+              nohup node "$ENTRY" > "$APP_DIR/web.log" 2>&1 &
             fi
           EOF
