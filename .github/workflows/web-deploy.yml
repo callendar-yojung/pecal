@@ -124,26 +124,21 @@ jobs:
             fi
           EOF
 
-      - name: Pack deploy bundle
+      - name: Stream bundle and extract files
         run: |
           tar \
             --exclude='.git' \
             --exclude='node_modules' \
-            -czf web-deploy.tar.gz \
+            -czf - \
             apps/web \
             packages \
             package.json \
             pnpm-lock.yaml \
             pnpm-workspace.yaml \
-            tsconfig.base.json
+            tsconfig.base.json \
+          | ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no "${SSH_USER}@${SERVER_HOST}" "DEPLOY_PATH='${DEPLOY_PATH}' bash -lc 'set -euo pipefail; APP_DIR=\"\${DEPLOY_PATH:-/home/callendar/apps/api}\"; mkdir -p \"\$APP_DIR\"; cd \"\$APP_DIR\"; rm -rf apps packages node_modules package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json; tar -xzf - -C \"\$APP_DIR\"'"
 
-      - name: Upload bundle to server
-        run: |
-          scp -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no \
-            web-deploy.tar.gz \
-            "${SSH_USER}@${SERVER_HOST}:/tmp/web-deploy.tar.gz"
-
-      - name: Extract files and write env
+      - name: Write env file
         run: |
           ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no "${SSH_USER}@${SERVER_HOST}" "DEPLOY_PATH='${DEPLOY_PATH}' bash -s" << 'EOF'
             set -euo pipefail
@@ -154,11 +149,6 @@ jobs:
             export NPM_GLOBAL_PREFIX="$HOME/.npm-global"
             export PATH="$NPM_GLOBAL_PREFIX/bin:$PATH"
             mkdir -p "$APP_DIR"
-
-            cd "$APP_DIR"
-            rm -rf apps packages node_modules package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json
-            tar -xzf /tmp/web-deploy.tar.gz -C "$APP_DIR"
-            rm -f /tmp/web-deploy.tar.gz
 
             mkdir -p "$APP_DIR/apps/web"
             cat > "$APP_DIR/apps/web/.env.production" << 'ENVEOF'
