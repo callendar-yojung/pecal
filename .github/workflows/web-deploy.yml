@@ -79,6 +79,15 @@ jobs:
           pnpm --filter ./apps/web i18n:check
           pnpm --filter ./apps/web build
 
+      - name: Prepare standalone bundle
+        run: |
+          rm -rf .deploy-web
+          mkdir -p .deploy-web
+          cp -R apps/web/.next/standalone/. .deploy-web/
+          mkdir -p .deploy-web/apps/web/.next
+          cp -R apps/web/.next/static .deploy-web/apps/web/.next/static
+          cp -R apps/web/public .deploy-web/apps/web/public
+
       - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
@@ -93,10 +102,6 @@ jobs:
             APP_DIR="${DEPLOY_PATH:-/home/callendar/apps/api}"
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-            export NPM_GLOBAL_PREFIX="$HOME/.npm-global"
-            mkdir -p "$NPM_GLOBAL_PREFIX"
-            npm config set prefix "$NPM_GLOBAL_PREFIX"
-            export PATH="$NPM_GLOBAL_PREFIX/bin:$PATH"
 
             # Base folders (works even if server is blank)
             mkdir -p "$APP_DIR"
@@ -105,11 +110,8 @@ jobs:
             rm -rf \
               "$HOME/.npm/_cacache" \
               "$HOME/.npm/_logs" \
-              "$HOME/.cache/pnpm" \
-              "$HOME/.pnpm-store" \
-              "$APP_DIR/node_modules" \
-              "$APP_DIR/apps/web/node_modules" \
-              "$APP_DIR/apps/web/.next/cache" || true
+              "$APP_DIR/apps/web/.next/cache" \
+              "$APP_DIR/web.log" || true
             df -h || true
 
             # Install Node.js (user-space via nvm) if missing
@@ -124,14 +126,9 @@ jobs:
               nvm alias default 20
             fi
 
-            # Install pnpm in user-space if missing
-            if ! command -v pnpm >/dev/null 2>&1; then
-              npm install -g pnpm@9.0.0
-            fi
-
-            # Install PM2 if missing
+            # Install PM2 if missing (non-fatal on tiny servers)
             if ! command -v pm2 >/dev/null 2>&1; then
-              npm install -g pm2
+              npm install -g pm2 || true
             fi
           EOF
 
@@ -141,13 +138,8 @@ jobs:
             --exclude='.git' \
             --exclude='node_modules' \
             -czf - \
-            apps/web \
-            packages \
-            package.json \
-            pnpm-lock.yaml \
-            pnpm-workspace.yaml \
-            tsconfig.base.json \
-          | ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no "${SSH_USER}@${SERVER_HOST}" "DEPLOY_PATH='${DEPLOY_PATH}' bash -lc 'set -euo pipefail; APP_DIR=\"\${DEPLOY_PATH:-/home/callendar/apps/api}\"; mkdir -p \"\$APP_DIR\"; cd \"\$APP_DIR\"; rm -rf apps packages node_modules package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json; tar -xzf - -C \"\$APP_DIR\"'"
+            .deploy-web \
+          | ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no "${SSH_USER}@${SERVER_HOST}" "DEPLOY_PATH='${DEPLOY_PATH}' bash -lc 'set -euo pipefail; APP_DIR=\"\${DEPLOY_PATH:-/home/callendar/apps/api}\"; mkdir -p \"\$APP_DIR\"; cd \"\$APP_DIR\"; rm -rf apps .next node_modules; tar -xzf - -C \"\$APP_DIR\" --strip-components=1'"
 
       - name: Write env file
         run: |
@@ -157,8 +149,6 @@ jobs:
             APP_DIR="${DEPLOY_PATH:-/home/callendar/apps/api}"
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-            export NPM_GLOBAL_PREFIX="$HOME/.npm-global"
-            export PATH="$NPM_GLOBAL_PREFIX/bin:$PATH"
             mkdir -p "$APP_DIR"
 
             mkdir -p "$APP_DIR/apps/web"
@@ -190,29 +180,25 @@ jobs:
             ENVEOF
           EOF
 
-      - name: Install deps and restart PM2
+      - name: Start web server
         run: |
           ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no "${SSH_USER}@${SERVER_HOST}" "DEPLOY_PATH='${DEPLOY_PATH}' bash -s" << 'EOF'
             set -euo pipefail
             APP_DIR="${DEPLOY_PATH:-/home/callendar/apps/api}"
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-            export NPM_GLOBAL_PREFIX="$HOME/.npm-global"
-            mkdir -p "$NPM_GLOBAL_PREFIX"
-            npm config set prefix "$NPM_GLOBAL_PREFIX"
-            export PATH="$NPM_GLOBAL_PREFIX/bin:$PATH"
 
-            cd "$APP_DIR"
-            rm -rf node_modules apps/web/node_modules apps/web/.next/cache || true
-            if ! command -v pnpm >/dev/null 2>&1; then
-              npm install -g pnpm@9.0.0
-            fi
-            pnpm --filter ./apps/web... install --prod --frozen-lockfile
+            cd "$APP_DIR/apps/web"
 
             if pm2 describe pecal-web >/dev/null 2>&1; then
-              pm2 restart pecal-web --update-env
-            else
-              pm2 start "pnpm --filter ./apps/web start" --name pecal-web --cwd "$APP_DIR"
+              pm2 delete pecal-web || true
             fi
-            pm2 save
+
+            if command -v pm2 >/dev/null 2>&1; then
+              pm2 start "node server.js" --name pecal-web --cwd "$APP_DIR/apps/web"
+              pm2 save || true
+            else
+              pkill -f "node .*apps/web/server.js" || true
+              nohup node "$APP_DIR/apps/web/server.js" > "$APP_DIR/web.log" 2>&1 &
+            fi
           EOF
