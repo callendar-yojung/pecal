@@ -188,17 +188,17 @@ jobs:
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 
-            cd "$APP_DIR/apps/web"
+            cd "$APP_DIR"
 
             if pm2 describe pecal-web >/dev/null 2>&1; then
               pm2 delete pecal-web || true
             fi
 
             if command -v pm2 >/dev/null 2>&1; then
-              pm2 start "node server.js" --name pecal-web --cwd "$APP_DIR/apps/web"
+              pm2 start "node server.js" --name pecal-web --cwd "$APP_DIR"
               pm2 save || true
             else
-              pkill -f "node .*apps/web/server.js" || true
-              nohup node "$APP_DIR/apps/web/server.js" > "$APP_DIR/web.log" 2>&1 &
+              pkill -f "node .*apps/api/server.js" || true
+              nohup node "$APP_DIR/server.js" > "$APP_DIR/web.log" 2>&1 &
             fi
           EOF
