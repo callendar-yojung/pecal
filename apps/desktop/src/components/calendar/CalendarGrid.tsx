@@ -38,16 +38,28 @@ export function CalendarGrid() {
       ? ['일', '월', '화', '수', '목', '금', '토']
       : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-  const getEventsForDay = (day: Date): Task[] => {
-    return events
-      .filter((event) => {
-        const eventDate = parseApiDateTime(event.start_time)
-        return isSameDay(eventDate, day)
-      })
-      .sort((a, b) => {
-        return new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
-      })
-  }
+  const eventsByDate = useMemo(() => {
+    const map = new Map<string, Task[]>()
+    for (const event of events) {
+      const eventDate = parseApiDateTime(event.start_time)
+      const dateKey = format(eventDate, 'yyyy-MM-dd')
+      const existing = map.get(dateKey)
+      if (existing) {
+        existing.push(event)
+      } else {
+        map.set(dateKey, [event])
+      }
+    }
+    for (const [dateKey, list] of map.entries()) {
+      map.set(
+        dateKey,
+        list.sort((a, b) => {
+          return parseApiDateTime(a.start_time).getTime() - parseApiDateTime(b.start_time).getTime()
+        }),
+      )
+    }
+    return map
+  }, [events])
 
   const getReadableTextColor = (hexColor?: string) => {
     if (!hexColor || !hexColor.startsWith('#')) return '#1f2937'
@@ -83,7 +95,7 @@ export function CalendarGrid() {
 
       <div className="flex-1 grid grid-cols-7 grid-rows-6 gap-px bg-gray-200 dark:bg-gray-700">
         {days.map((day) => {
-          const dayEvents = getEventsForDay(day)
+          const dayEvents = eventsByDate.get(format(day, 'yyyy-MM-dd')) ?? []
           const isCurrentMonth = isSameMonth(day, selectedDate)
           const dayOfWeek = day.getDay()
 
