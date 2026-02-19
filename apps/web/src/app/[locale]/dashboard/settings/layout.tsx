@@ -21,7 +21,7 @@ export default function SettingsLayout({
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="dashboard-hero-card p-8">
         <h1 className="text-3xl font-bold text-foreground">
           {t("title")}
         </h1>
@@ -33,7 +33,7 @@ export default function SettingsLayout({
       <div className="flex flex-col gap-6 lg:flex-row">
         {/* 사이드바 */}
         <aside className="w-full lg:w-64">
-          <nav className="space-y-1 rounded-lg border border-border bg-card p-2">
+          <nav className="dashboard-glass-card space-y-1 p-2">
             {settingsNav.map((item) => {
               const isActive = pathname === item.href;
               const Icon = item.icon;

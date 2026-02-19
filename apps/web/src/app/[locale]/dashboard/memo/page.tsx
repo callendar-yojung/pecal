@@ -244,148 +244,150 @@ export default function MemoPage() {
   }
 
   return (
-    <div className="p-6">
-      <div className="mx-auto max-w-6xl space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold text-foreground">
-              {t("title")}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {ownerType === "team" ? t("teamMemo") : t("personalMemo")}
-            </p>
-          </div>
-          <span className="text-xs text-muted-foreground">
-            {isSaving ? t("saving") : t("saved")}
-          </span>
+    <div className="space-y-6">
+      <div className="dashboard-hero-card flex flex-wrap items-center justify-between gap-3 p-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">
+            {t("title")}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {ownerType === "team" ? t("teamMemo") : t("personalMemo")}
+          </p>
         </div>
+        <span className="text-xs text-muted-foreground">
+          {isSaving ? t("saving") : t("saved")}
+        </span>
+      </div>
 
+      <div className="dashboard-glass-card p-4 md:p-6">
         <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
-          <div className="ui-card p-4">
-            <div className="flex items-center gap-2">
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={t("searchPlaceholder")}
-                className="flex-1 rounded border border-border bg-background px-2 py-1 text-sm"
-              />
-              <button
-                type="button"
-                onClick={handleCreateMemo}
-                className="ui-button px-2 py-1 text-sm"
-              >
-                {t("newMemo")}
-              </button>
-            </div>
+          <div>
+            <div className="ui-card p-4">
+              <div className="flex items-center gap-2">
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder={t("searchPlaceholder")}
+                  className="flex-1 rounded border border-border bg-background px-2 py-1 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={handleCreateMemo}
+                  className="ui-button px-2 py-1 text-sm"
+                >
+                  {t("newMemo")}
+                </button>
+              </div>
 
-            <div className="mt-3 flex items-center gap-2">
-              <select
-                value={sort}
-                onChange={(event) => setSort(event.target.value as MemoSort)}
-                className="flex-1 rounded border border-border bg-background px-2 py-1 text-sm"
-              >
-                <option value="latest">{t("sortLatest")}</option>
-                <option value="oldest">{t("sortOldest")}</option>
-                <option value="favorite">{t("sortFavorite")}</option>
-              </select>
-              <button
-                type="button"
-                onClick={() => setFavoriteOnly((prev) => !prev)}
-                className={`rounded border border-border px-2 py-1 text-sm ${
-                  favoriteOnly ? "bg-primary text-primary-foreground" : "bg-background"
-                }`}
-              >
-                {t("favorites")}
-              </button>
-            </div>
+              <div className="mt-3 flex items-center gap-2">
+                <select
+                  value={sort}
+                  onChange={(event) => setSort(event.target.value as MemoSort)}
+                  className="flex-1 rounded border border-border bg-background px-2 py-1 text-sm"
+                >
+                  <option value="latest">{t("sortLatest")}</option>
+                  <option value="oldest">{t("sortOldest")}</option>
+                  <option value="favorite">{t("sortFavorite")}</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setFavoriteOnly((prev) => !prev)}
+                  className={`rounded border border-border px-2 py-1 text-sm ${
+                    favoriteOnly ? "bg-primary text-primary-foreground" : "bg-background"
+                  }`}
+                >
+                  {t("favorites")}
+                </button>
+              </div>
 
-            <div className="mt-4 space-y-2">
-              {isListLoading ? (
-                <p className="text-sm text-muted-foreground">{t("loading")}</p>
-              ) : listError ? (
-                <div className="rounded border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
-                  {listError}
-                  <button
-                    type="button"
-                    onClick={() => loadList()}
-                    className="ml-2 text-xs text-foreground underline"
-                  >
-                    {t("retry")}
-                  </button>
-                </div>
-              ) : memos.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t("noMemos")}</p>
-              ) : (
-                memos.map((memo) => (
-                  <div
-                    key={memo.memo_id}
-                    className={`rounded border px-3 py-2 text-sm ${
-                      selectedMemoId === memo.memo_id
-                        ? "border-primary bg-primary/10"
-                        : "border-border hover:bg-muted/40"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedMemoId(memo.memo_id)}
-                        className="min-w-0 flex-1 text-left"
-                      >
-                        <div className="truncate font-medium">
-                          {memo.title || t("untitled")}
-                        </div>
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          {new Date(memo.updated_at).toLocaleDateString()}
-                        </div>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleToggleFavorite(
-                            memo.memo_id,
-                            memo.is_favorite !== 1
-                          )
-                        }
-                        className="text-xs text-muted-foreground hover:text-foreground"
-                        aria-label={t("favorites")}
-                      >
-                        {memo.is_favorite ? "★" : "☆"}
-                      </button>
-                    </div>
-                    <div className="mt-2 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteMemo(memo.memo_id)}
-                        className="text-xs text-destructive"
-                      >
-                        {t("delete")}
-                      </button>
-                    </div>
+              <div className="mt-4 space-y-2">
+                {isListLoading ? (
+                  <p className="text-sm text-muted-foreground">{t("loading")}</p>
+                ) : listError ? (
+                  <div className="rounded border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+                    {listError}
+                    <button
+                      type="button"
+                      onClick={() => loadList()}
+                      className="ml-2 text-xs text-foreground underline"
+                    >
+                      {t("retry")}
+                    </button>
                   </div>
-                ))
-              )}
-            </div>
+                ) : memos.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t("noMemos")}</p>
+                ) : (
+                  memos.map((memo) => (
+                    <div
+                      key={memo.memo_id}
+                      className={`rounded border px-3 py-2 text-sm ${
+                        selectedMemoId === memo.memo_id
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:bg-muted/40"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedMemoId(memo.memo_id)}
+                          className="min-w-0 flex-1 text-left"
+                        >
+                          <div className="truncate font-medium">
+                            {memo.title || t("untitled")}
+                          </div>
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            {new Date(memo.updated_at).toLocaleDateString()}
+                          </div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleToggleFavorite(
+                              memo.memo_id,
+                              memo.is_favorite !== 1
+                            )
+                          }
+                          className="text-xs text-muted-foreground hover:text-foreground"
+                          aria-label={t("favorites")}
+                        >
+                          {memo.is_favorite ? "★" : "☆"}
+                        </button>
+                      </div>
+                      <div className="mt-2 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteMemo(memo.memo_id)}
+                          className="text-xs text-destructive"
+                        >
+                          {t("delete")}
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
 
-            <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-              <button
-                type="button"
-                disabled={page <= 1}
-                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                className="ui-button px-2 py-1 text-xs disabled:opacity-40"
-              >
-                {t("prev")}
-              </button>
-              <span>
-                {page} / {totalPages}
-              </span>
-              <button
-                type="button"
-                disabled={page >= totalPages}
-                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-                className="ui-button px-2 py-1 text-xs disabled:opacity-40"
-              >
-                {t("next")}
-              </button>
+              <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                  className="ui-button px-2 py-1 text-xs disabled:opacity-40"
+                >
+                  {t("prev")}
+                </button>
+                <span>
+                  {page} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                  className="ui-button px-2 py-1 text-xs disabled:opacity-40"
+                >
+                  {t("next")}
+                </button>
+              </div>
             </div>
           </div>
 

@@ -79,10 +79,7 @@ export default function UsagePage() {
         {/* Loading skeleton */}
         <div className="animate-pulse space-y-6">
           {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="rounded-lg border border-border bg-card p-6"
-            >
+            <div key={i} className="dashboard-glass-card p-6">
               <div className="h-6 w-32 rounded bg-muted" />
               <div className="mt-2 h-4 w-48 rounded bg-muted" />
               <div className="mt-6 h-2 w-full rounded bg-muted" />
@@ -114,7 +111,7 @@ export default function UsagePage() {
   return (
     <div className="space-y-6">
       {/* 플랜 정보 */}
-      <div className="rounded-lg border border-border bg-card p-6">
+      <div className="dashboard-glass-card p-6">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-card-foreground">
@@ -131,7 +128,7 @@ export default function UsagePage() {
       </div>
 
       {/* 스토리지 */}
-      <div className="rounded-lg border border-border bg-card p-6">
+      <div className="dashboard-glass-card p-6">
         <h2 className="text-lg font-semibold text-card-foreground">
           {t("storage")}
         </h2>
@@ -173,7 +170,7 @@ export default function UsagePage() {
 
       {/* 팀 멤버 (팀 워크스페이스인 경우에만 표시) */}
       {usageData.workspace.type === "team" && (
-        <div className="rounded-lg border border-border bg-card p-6">
+        <div className="dashboard-glass-card p-6">
           <h2 className="text-lg font-semibold text-card-foreground">
             {t("teamMembers")}
           </h2>
@@ -217,7 +214,7 @@ export default function UsagePage() {
       )}
 
       {/* 태스크 통계 */}
-      <div className="rounded-lg border border-border bg-card p-6">
+      <div className="dashboard-glass-card p-6">
         <h2 className="text-lg font-semibold text-card-foreground">
           {t("activity")}
         </h2>

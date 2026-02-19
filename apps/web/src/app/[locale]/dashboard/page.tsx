@@ -2,48 +2,37 @@
 
 import { useTranslations } from "next-intl";
 import { useSession } from "next-auth/react";
-import {
-  StatsCard,
-  TaskList,
-  MiniCalendar,
-} from "@/components/dashboard";
+import { DashboardShell, MiniCalendar, TaskList } from "@/components/dashboard";
 
 export default function DashboardPage() {
-  const t = useTranslations("dashboard");
-  const { data: session } = useSession();
+    const t = useTranslations("dashboard");
+    const { data: session } = useSession();
 
-
-  return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">
-          {t("welcome", { name: session?.user?.nickname || "User" })}
-        </h1>
-        <p className="mt-1 text-muted-foreground">{t("overview.subtitle")}</p>
-      </div>
-
-      {/*<div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">*/}
-      {/*  {stats.map((stat) => (*/}
-      {/*    <StatsCard*/}
-      {/*      key={stat.key}*/}
-      {/*      title={t(`stats.${stat.key}`)}*/}
-      {/*      value={stat.value}*/}
-      {/*      change={stat.change}*/}
-      {/*      changeType={stat.changeType}*/}
-      {/*      icon={stat.icon}*/}
-      {/*    />*/}
-      {/*  ))}*/}
-      {/*</div>*/}
-
-      <div className="grid gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-8">
-          <TaskList />
-
-        </div>
-        <div>
-          <MiniCalendar />
-        </div>
-      </div>
-    </div>
-  );
+    return (
+        <DashboardShell
+            title={t("welcome", { name: session?.user?.nickname || "User" })}
+            subtitle={t("overview.subtitle")}
+            main={
+                <div className="dashboard-glass-card group p-8 transition hover:shadow-[0_16px_70px_rgba(15,23,42,0.08)]">
+                    <div className="mb-6 flex items-center justify-between">
+                        <div>
+                            <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Tasks</div>
+                            <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">Today & upcoming</div>
+                        </div>
+                        <div className="h-8 w-20 rounded-full bg-neutral-100 ring-1 ring-black/5 dark:bg-neutral-800/80 dark:ring-white/10" />
+                    </div>
+                    <TaskList />
+                </div>
+            }
+            side={
+                <div className="dashboard-glass-card p-8">
+                    <div className="mb-6">
+                        <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Calendar</div>
+                        <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">Quick glance</div>
+                    </div>
+                    <MiniCalendar />
+                </div>
+            }
+        />
+    );
 }

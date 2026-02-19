@@ -524,8 +524,8 @@ export default function TeamSettingsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="mx-auto max-w-6xl space-y-6">
+    <div className="space-y-6">
+      <div className="dashboard-hero-card p-8">
         <div>
           <h1 className="text-3xl font-bold text-foreground">
             {t("title")}
@@ -539,9 +539,10 @@ export default function TeamSettingsPage() {
             </p>
           )}
         </div>
+      </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
-          <div className="rounded-lg border border-border bg-card p-4">
+          <div className="dashboard-glass-card p-4">
             <h2 className="mb-3 text-lg font-semibold text-foreground">
               {t("teams")}
             </h2>
@@ -576,12 +577,12 @@ export default function TeamSettingsPage() {
 
           <div className="lg:col-span-2 space-y-6">
             {!selectedTeam ? (
-              <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
+              <div className="dashboard-glass-card p-6 text-sm text-muted-foreground">
                 {t("selectTeam")}
               </div>
             ) : (
               <>
-                <div className="rounded-lg border border-border bg-card p-6">
+                <div className="dashboard-glass-card p-6">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <h2 className="text-xl font-semibold text-foreground">
@@ -628,11 +629,11 @@ export default function TeamSettingsPage() {
                 </div>
 
                 {!isAdmin ? (
-                  <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
+                  <div className="dashboard-glass-card p-6 text-sm text-muted-foreground">
                     {t("adminOnly")}
                   </div>
                 ) : (
-                  <div className="rounded-lg border border-border bg-card p-6">
+                  <div className="dashboard-glass-card p-6">
                     <h3 className="text-lg font-semibold text-foreground">
                       {t("membersTitle")}
                     </h3>
@@ -860,7 +861,7 @@ export default function TeamSettingsPage() {
 
                 {isAdmin && (
                   <div className="space-y-6">
-                    <div className="rounded-lg border border-border bg-card p-6">
+                    <div className="dashboard-glass-card p-6">
                       <h3 className="text-lg font-semibold text-foreground">
                         {t("rolesTitle")}
                       </h3>
@@ -925,7 +926,7 @@ export default function TeamSettingsPage() {
                       </div>
                     </div>
 
-                    <div className="rounded-lg border border-border bg-card p-6">
+                    <div className="dashboard-glass-card p-6">
                       <h3 className="text-lg font-semibold text-foreground">
                         {t("permissionsTitle")}
                       </h3>
@@ -1076,6 +1077,5 @@ export default function TeamSettingsPage() {
           </div>
         </div>
       </div>
-    </div>
   );
 }

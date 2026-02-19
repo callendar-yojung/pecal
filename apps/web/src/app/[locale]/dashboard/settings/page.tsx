@@ -112,7 +112,7 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="dashboard-glass-card border-0 bg-transparent shadow-none">
         <CardHeader>
           <CardTitle>{t("general.title")}</CardTitle>
           <CardDescription>{t("general.description")}</CardDescription>

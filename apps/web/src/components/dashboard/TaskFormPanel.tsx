@@ -111,10 +111,19 @@ export default function TaskFormPanel({
     return { date, time: time.slice(0, 5) };
   };
 
+  const getTodayLocalDate = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   const setDateTime = (field: "start_time" | "end_time", date: string, time: string) => {
     const current = splitDateTime(formData[field]);
-    const nextDate = date || current.date || new Date().toISOString().slice(0, 10);
-    const nextTime = time || current.time || "09:00";
+    const nextDate = date || current.date || getTodayLocalDate();
+    const defaultTime = field === "end_time" ? "09:30" : "09:00";
+    const nextTime = time || current.time || defaultTime;
     handleChange(field, `${nextDate}T${nextTime}`);
   };
 
@@ -367,7 +376,15 @@ export default function TaskFormPanel({
       });
       setCurrentMode("edit");
     } else {
-      setFormData({ title: "", start_time: "", end_time: "", content: "", color: "#3B82F6", tag_ids: [] });
+      const today = getTodayLocalDate();
+      setFormData({
+        title: "",
+        start_time: `${today}T09:00`,
+        end_time: `${today}T09:30`,
+        content: "",
+        color: "#3B82F6",
+        tag_ids: [],
+      });
       setCurrentMode("create");
     }
     setTagError(null);

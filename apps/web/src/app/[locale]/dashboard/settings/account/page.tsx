@@ -150,7 +150,7 @@ export default function AccountPage() {
   return (
     <div className="space-y-6">
       {/* 프로필 정보 */}
-      <div className="rounded-lg border border-border bg-card p-6">
+      <div className="dashboard-glass-card p-6">
         <h2 className="text-lg font-semibold text-card-foreground">
           {t("profile")}
         </h2>

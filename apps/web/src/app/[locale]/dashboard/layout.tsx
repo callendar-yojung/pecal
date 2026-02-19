@@ -6,6 +6,7 @@ import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 
 const DEFAULT_SIDEBAR_WIDTH = 256;
 const MOBILE_BREAKPOINT = 1024;
+const SIDEBAR_GUTTER = 0;
 
 export default function DashboardLayout({
   children,
@@ -51,7 +52,7 @@ export default function DashboardLayout({
 
   return (
     <WorkspaceProvider>
-      <div className="min-h-screen bg-dashboard-background">
+      <div className="dashboard-canvas min-h-screen">
         <Sidebar
           isMobile={isMobile}
           mobileOpen={mobileOpen}
@@ -84,16 +85,18 @@ export default function DashboardLayout({
         )}
         <main
           style={{
-            paddingLeft: isMobile ? "0px" : `${sidebarWidth}px`,
+            paddingLeft: isMobile ? "0px" : `${sidebarWidth + SIDEBAR_GUTTER}px`,
           }}
           className="transition-[padding-left] duration-0"
         >
           {!isMobile && (
-            <div className="sticky top-0 z-20 flex justify-end border-b border-border bg-background/80 px-8 py-3 backdrop-blur">
+            <div className="sticky top-0 z-20 flex justify-end border-b border-border bg-background/80 px-6 py-3 backdrop-blur">
               <NotificationsBell />
             </div>
           )}
-          <div className={isMobile ? "p-4" : "p-8"}>{children}</div>
+          <div className={isMobile ? "p-4" : "p-6"}>
+            <div className="mx-auto max-w-6xl">{children}</div>
+          </div>
         </main>
       </div>
     </WorkspaceProvider>

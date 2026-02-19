@@ -186,10 +186,10 @@ function CheckoutContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="mx-auto max-w-4xl">
+    <div className="space-y-6">
+      <div className="mx-auto max-w-4xl space-y-6">
         {/* 헤더 */}
-        <div className="mb-8">
+        <div className="dashboard-hero-card p-8">
           <button
             onClick={() => router.back()}
             className="mb-4 text-sm text-muted-foreground hover:text-foreground"
@@ -216,7 +216,7 @@ function CheckoutContent() {
         <div className="grid gap-6 lg:grid-cols-3">
           {/* 주문 요약 */}
           <div className="lg:col-span-1">
-            <div className="rounded-lg border border-border bg-card p-6">
+            <div className="dashboard-glass-card p-6">
               <h2 className="text-lg font-semibold text-card-foreground">
                 {t("checkout.orderSummary")}
               </h2>
@@ -283,7 +283,7 @@ function CheckoutContent() {
           {/* 결제 수단 */}
           <div className="lg:col-span-2">
             <div className="space-y-6">
-              <div className="rounded-lg border border-border bg-card p-6">
+              <div className="dashboard-glass-card p-6">
                 {isKorean ? (
                   <>
                     {/* NicePay 카드 결제 */}
@@ -455,7 +455,7 @@ function CheckoutContent() {
               </div>
 
               {/* 약관 동의 */}
-              <div className="rounded-lg border border-border bg-card p-6">
+              <div className="dashboard-glass-card p-6">
                 <div className="flex items-start">
                   <input
                     type="checkbox"

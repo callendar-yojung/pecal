@@ -72,7 +72,7 @@ export default function TaskDetailPage() {
 
   if (!currentWorkspace) {
     return (
-      <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+      <div className="dashboard-glass-card p-6 text-sm text-muted-foreground">
         {t("selectWorkspace") || "워크스페이스를 선택해주세요."}
       </div>
     );
@@ -80,21 +80,23 @@ export default function TaskDetailPage() {
 
   if (loading || !task) {
     return (
-      <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+      <div className="dashboard-glass-card p-6 text-sm text-muted-foreground">
         {t("loading")}
       </div>
     );
   }
 
   return (
-    <TaskViewPanel
-      task={task}
-      workspaceType={currentWorkspace.type}
-      ownerId={currentWorkspace.owner_id}
-      onEdit={() => router.push(`/dashboard/tasks/${taskId}/edit`)}
-      onExport={() => router.push(`/dashboard/tasks/${taskId}/export`)}
-      onDelete={handleDelete}
-      onStatusChange={handleStatusChange}
-    />
+    <div className="dashboard-glass-card p-3 md:p-5">
+      <TaskViewPanel
+        task={task}
+        workspaceType={currentWorkspace.type}
+        ownerId={currentWorkspace.owner_id}
+        onEdit={() => router.push(`/dashboard/tasks/${taskId}/edit`)}
+        onExport={() => router.push(`/dashboard/tasks/${taskId}/export`)}
+        onDelete={handleDelete}
+        onStatusChange={handleStatusChange}
+      />
+    </div>
   );
 }
