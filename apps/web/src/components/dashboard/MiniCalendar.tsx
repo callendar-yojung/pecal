@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import Button from "@/components/ui/button";
@@ -26,6 +26,8 @@ export default function MiniCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [tasksByDate, setTasksByDate] = useState<CalendarDateTask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const pickerRef = useRef<HTMLDivElement | null>(null);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -42,8 +44,6 @@ export default function MiniCalendar() {
         );
         if (response.ok) {
           const data = await response.json();
-          console.log('[MiniCalendar] Received data:', data);
-          console.log('[MiniCalendar] tasksByDate:', data.tasksByDate);
           setTasksByDate(data.tasksByDate || []);
         } else {
         }
@@ -70,11 +70,16 @@ export default function MiniCalendar() {
     days.push(i);
   }
 
+  const tasksByDateMap = useMemo(() => {
+    const map = new Map<string, TaskWithTitle[]>();
+    tasksByDate.forEach((entry) => map.set(entry.date, entry.tasks || []));
+    return map;
+  }, [tasksByDate]);
+
   const getTasksForDay = (day: number | null) => {
     if (!day) return [];
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    const dateTask = tasksByDate.find((t) => t.date === dateStr);
-    return dateTask?.tasks || [];
+    return tasksByDateMap.get(dateStr) || [];
   };
 
   const isToday = (day: number | null) => {
@@ -94,6 +99,39 @@ export default function MiniCalendar() {
   const handleNextMonth = () => {
     setCurrentDate(new Date(year, month + 1, 1));
   };
+
+  const monthLabels = useMemo(
+    () =>
+      Array.from({ length: 12 }, (_, idx) =>
+        new Date(2000, idx, 1).toLocaleDateString(
+          locale === "ko" ? "ko-KR" : "en-US",
+          { month: "long" }
+        )
+      ),
+    [locale]
+  );
+
+  const yearOptions = useMemo(
+    () => Array.from({ length: 31 }, (_, idx) => year - 15 + idx),
+    [year]
+  );
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!pickerRef.current) return;
+      if (!pickerRef.current.contains(event.target as Node)) {
+        setIsPickerOpen(false);
+      }
+    };
+
+    if (isPickerOpen) {
+      document.addEventListener("mousedown", handleOutsideClick);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, [isPickerOpen]);
 
   // 요일 다국어 지원
   const weekDays = locale === "ko"
@@ -127,9 +165,81 @@ export default function MiniCalendar() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </Button>
-          <span className="text-sm font-medium text-foreground">
-            {currentDate.toLocaleDateString(locale === "ko" ? "ko-KR" : "en-US", { year: "numeric", month: "long" })}
-          </span>
+          <div className="relative" ref={pickerRef}>
+            <button
+              type="button"
+              onClick={() => setIsPickerOpen((prev) => !prev)}
+              className="rounded-full border border-border bg-muted/40 px-3 py-1 text-sm font-medium text-foreground transition hover:bg-muted"
+              aria-label="Change year and month"
+            >
+              {currentDate.toLocaleDateString(locale === "ko" ? "ko-KR" : "en-US", { year: "numeric", month: "long" })}
+            </button>
+
+            {isPickerOpen && (
+              <div className="absolute left-0 top-10 z-30 w-64 rounded-xl border border-border bg-card p-3 shadow-xl">
+                <div className="mb-3 flex items-start justify-between gap-2">
+                  <div className="text-xs font-semibold tracking-wide text-muted-foreground">
+                    {locale === "ko" ? "연/월 선택" : "Pick Year / Month"}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsPickerOpen(false)}
+                    className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                  >
+                    {locale === "ko" ? "닫기" : "Close"}
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <div className="mb-1 text-[11px] font-semibold text-muted-foreground">
+                      {locale === "ko" ? "연도" : "Year"}
+                    </div>
+                    <div className="grid max-h-28 grid-cols-4 gap-1 overflow-y-auto pr-1">
+                      {yearOptions.map((y) => (
+                        <button
+                          key={y}
+                          type="button"
+                          onClick={() => setCurrentDate(new Date(y, month, 1))}
+                          className={`rounded-md px-1.5 py-1 text-xs transition ${
+                            y === year
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted/40 text-foreground hover:bg-muted"
+                          }`}
+                        >
+                          {y}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-1 text-[11px] font-semibold text-muted-foreground">
+                      {locale === "ko" ? "월" : "Month"}
+                    </div>
+                    <div className="grid grid-cols-3 gap-1">
+                      {monthLabels.map((label, idx) => (
+                        <button
+                          key={label}
+                          type="button"
+                          onClick={() => {
+                            setCurrentDate(new Date(year, idx, 1));
+                            setIsPickerOpen(false);
+                          }}
+                          className={`rounded-md px-2 py-1 text-xs transition ${
+                            idx === month
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted/40 text-foreground hover:bg-muted"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
           <Button size="sm" onClick={handleNextMonth} aria-label="Next month">
             <svg className="h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

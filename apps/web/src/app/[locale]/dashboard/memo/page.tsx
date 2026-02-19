@@ -259,9 +259,9 @@ export default function MemoPage() {
         </span>
       </div>
 
-      <div className="dashboard-glass-card p-4 md:p-6">
+      <div className="dashboard-glass-card overflow-x-hidden p-4 md:p-6">
         <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
-          <div>
+          <div className="min-w-0">
             <div className="ui-card p-4">
               <div className="flex items-center gap-2">
                 <input
@@ -423,15 +423,8 @@ export default function MemoPage() {
                     onChange={(event) => setTitle(event.target.value)}
                     onBlur={handleTitleSave}
                     placeholder={t("titlePlaceholder")}
-                    className="flex-1 rounded border border-border bg-background px-3 py-2 text-sm"
+                    className="min-w-0 flex-1 rounded border border-border bg-background px-3 py-2 text-sm"
                   />
-                  <button
-                    type="button"
-                    onClick={handleTitleSave}
-                    className="ui-button px-3 py-2 text-sm"
-                  >
-                    {t("saveTitle")}
-                  </button>
                 </div>
                 <RichTextEditor
                   initialContent={content}
