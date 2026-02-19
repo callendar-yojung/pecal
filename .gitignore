@@ -4,3 +4,6 @@ node_modules
 .idea
 apps/*/node_modules
 packages/*/node_modules
+.env
+.env.local
+apps/desktop/src-tauri/keys/

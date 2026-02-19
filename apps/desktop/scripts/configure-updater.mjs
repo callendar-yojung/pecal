@@ -17,7 +17,44 @@ if (!pubkeyArg) {
 }
 
 const apiBaseUrl = apiBaseUrlArg.replace(/\/+$/, '');
-const pubkey = pubkeyArg.trim();
+const pickKeyLine = (value) => {
+  const lines = value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const keyLine = lines.find((line) => !line.startsWith('untrusted comment:')) || '';
+  if (!keyLine || /\s/.test(keyLine)) {
+    throw new Error('Invalid updater pubkey key line.');
+  }
+  return keyLine;
+};
+
+const normalizePubkey = (input) => {
+  const trimmed = input.trim();
+
+  // Already in expected format: base64-encoded minisign pubkey text
+  try {
+    const decoded = Buffer.from(trimmed, 'base64').toString('utf8').trim();
+    if (decoded.includes('untrusted comment:')) {
+      return trimmed;
+    }
+  } catch {
+    // no-op
+  }
+
+  if (trimmed.includes('untrusted comment:')) {
+    const raw = trimmed.replace(/\\n/g, '\n').trim();
+    if (!pickKeyLine(raw)) {
+      throw new Error('Invalid updater pubkey key line.');
+    }
+    return Buffer.from(raw, 'utf8').toString('base64');
+  }
+
+  throw new Error(
+    'Invalid updater pubkey format. Use base64-encoded .pub content or full minisign text (with comment line).',
+  );
+};
+const pubkey = normalizePubkey(pubkeyArg);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -33,4 +70,3 @@ config.plugins.updater.pubkey = pubkey;
 
 writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
 console.log('✅ updater endpoint/pubkey configured');
-
