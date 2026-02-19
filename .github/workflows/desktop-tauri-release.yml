@@ -16,9 +16,6 @@ jobs:
           - os: windows-latest
             platform: windows
             arch: x86_64
-          - os: ubuntu-22.04
-            platform: linux
-            arch: x86_64
 
     steps:
       - name: Checkout repo
@@ -61,6 +58,7 @@ jobs:
       - name: Setup Azure Signing (Windows)
         if: matrix.platform == 'windows'
         shell: pwsh
+        working-directory: apps/desktop
         run: |
           az login --service-principal -u "${{ secrets.AZURE_CLIENT_ID }}" -p "${{ secrets.AZURE_CLIENT_SECRET }}" --tenant "${{ secrets.AZURE_TENANT_ID }}"
 
@@ -116,7 +114,8 @@ jobs:
           node scripts/configure-updater.mjs "$API_BASE_URL" "$TAURI_UPDATER_PUBKEY"
 
       - name: Build Tauri app
-        run: pnpm --filter ./apps/desktop tauri:build:ci
+        working-directory: apps/desktop
+        run: pnpm tauri:build:ci
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
@@ -248,36 +247,3 @@ jobs:
           path: |
             ${{ steps.artifacts.outputs.ARTIFACT_PATH }}
             ${{ steps.artifacts.outputs.SIG_PATH }}
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Get version
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
-      - name: List artifacts
-        run: find artifacts -type f
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            artifacts/**/*.msi
-            artifacts/**/*.exe
-            artifacts/**/*.deb
-            artifacts/**/*.AppImage
-            artifacts/**/*.sig
-          tag_name: v${{ steps.version.outputs.VERSION }}
-          name: Release v${{ steps.version.outputs.VERSION }}
-          generate_release_notes: true
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

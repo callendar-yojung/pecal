@@ -3,6 +3,14 @@ name: Web Build & Deploy
 on:
   push:
     branches: ["main"]
+    paths:
+      - "apps/web/**"
+      - "packages/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "tsconfig.base.json"
+      - ".github/workflows/web-deploy.yml"
   workflow_dispatch:
 
 concurrency:
