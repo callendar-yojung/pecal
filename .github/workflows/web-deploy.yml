@@ -62,22 +62,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9.0.0
-
       - name: Install & Build web
         run: |
           pnpm install --frozen-lockfile
           pnpm --filter ./apps/web i18n:check
           pnpm --filter ./apps/web build
+
+      - name: Prepare standalone bundle
+        run: |
+          rm -rf .deploy-web
+          mkdir -p .deploy-web
+          cp -R apps/web/.next/standalone/. .deploy-web/
+          mkdir -p .deploy-web/apps/web/.next
+          cp -R apps/web/.next/static .deploy-web/apps/web/.next/static
+          cp -R apps/web/public .deploy-web/apps/web/public
 
       - name: Setup SSH key
         run: |
@@ -91,70 +100,55 @@ jobs:
             set -euo pipefail
 
             APP_DIR="${DEPLOY_PATH:-/home/callendar/apps/api}"
-
-            if command -v sudo >/dev/null 2>&1; then
-              SUDO="sudo"
-            else
-              SUDO=""
-            fi
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 
             # Base folders (works even if server is blank)
-            $SUDO mkdir -p "$APP_DIR"
+            mkdir -p "$APP_DIR"
 
-            # Install Node.js if missing
+            # Free disk space before any install (avoid ENOSPC)
+            rm -rf \
+              "$HOME/.npm/_cacache" \
+              "$HOME/.npm/_logs" \
+              "$APP_DIR/apps/web/.next/cache" \
+              "$APP_DIR/web.log" || true
+            df -h || true
+
+            # Install Node.js (user-space via nvm) if missing
             if ! command -v node >/dev/null 2>&1; then
-              $SUDO apt-get update
-              $SUDO apt-get install -y curl ca-certificates gnupg
-              curl -fsSL https://deb.nodesource.com/setup_20.x | $SUDO -E bash -
-              $SUDO apt-get install -y nodejs
+              if ! command -v curl >/dev/null 2>&1; then
+                echo "ERROR: curl is required on the server for bootstrap." >&2
+                exit 1
+              fi
+              curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+              . "$NVM_DIR/nvm.sh"
+              nvm install 20
+              nvm alias default 20
             fi
 
-            # Install corepack/pnpm if missing
-            if ! command -v corepack >/dev/null 2>&1; then
-              $SUDO npm install -g corepack
-            fi
-            corepack enable || true
-            corepack prepare pnpm@9.0.0 --activate || true
-
-            # Install PM2 if missing
+            # Install PM2 if missing (non-fatal on tiny servers)
             if ! command -v pm2 >/dev/null 2>&1; then
-              $SUDO npm install -g pm2
+              npm install -g pm2 || true
             fi
           EOF
 
-      - name: Pack deploy bundle
+      - name: Stream bundle and extract files
         run: |
           tar \
             --exclude='.git' \
-            --exclude='node_modules' \
-            --exclude='apps/desktop/src-tauri/target' \
-            --exclude='apps/desktop/node_modules' \
-            -czf web-deploy.tar.gz \
-            apps \
-            packages \
-            package.json \
-            pnpm-lock.yaml \
-            pnpm-workspace.yaml \
-            tsconfig.base.json
+            -czf - \
+            .deploy-web \
+          | ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no "${SSH_USER}@${SERVER_HOST}" "DEPLOY_PATH='${DEPLOY_PATH}' bash -lc 'set -euo pipefail; APP_DIR=\"\${DEPLOY_PATH:-/home/callendar/apps/api}\"; mkdir -p \"\$APP_DIR\"; cd \"\$APP_DIR\"; rm -rf apps .next node_modules; tar -xzf - -C \"\$APP_DIR\" --strip-components=1'"
 
-      - name: Upload bundle to server
-        run: |
-          scp -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no \
-            web-deploy.tar.gz \
-            "${SSH_USER}@${SERVER_HOST}:/tmp/web-deploy.tar.gz"
-
-      - name: Extract files and write env
+      - name: Write env file
         run: |
           ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no "${SSH_USER}@${SERVER_HOST}" "DEPLOY_PATH='${DEPLOY_PATH}' bash -s" << 'EOF'
             set -euo pipefail
 
             APP_DIR="${DEPLOY_PATH:-/home/callendar/apps/api}"
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
             mkdir -p "$APP_DIR"
-
-            cd "$APP_DIR"
-            rm -rf apps packages package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json
-            tar -xzf /tmp/web-deploy.tar.gz -C "$APP_DIR"
-            rm -f /tmp/web-deploy.tar.gz
 
             mkdir -p "$APP_DIR/apps/web"
             cat > "$APP_DIR/apps/web/.env.production" << 'ENVEOF'
@@ -185,21 +179,34 @@ jobs:
             ENVEOF
           EOF
 
-      - name: Install deps and restart PM2
+      - name: Start web server
         run: |
           ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no "${SSH_USER}@${SERVER_HOST}" "DEPLOY_PATH='${DEPLOY_PATH}' bash -s" << 'EOF'
             set -euo pipefail
             APP_DIR="${DEPLOY_PATH:-/home/callendar/apps/api}"
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 
-            cd "$APP_DIR"
-            corepack enable || true
-            corepack prepare pnpm@9.0.0 --activate || true
-            pnpm install --frozen-lockfile
+            if [ -f "$APP_DIR/server.js" ]; then
+              ENTRY="$APP_DIR/server.js"
+            elif [ -f "$APP_DIR/apps/web/server.js" ]; then
+              ENTRY="$APP_DIR/apps/web/server.js"
+            else
+              echo "ERROR: standalone server.js not found in deploy path" >&2
+              ls -la "$APP_DIR" || true
+              ls -la "$APP_DIR/apps/web" || true
+              exit 1
+            fi
 
             if pm2 describe pecal-web >/dev/null 2>&1; then
-              pm2 restart pecal-web --update-env
-            else
-              pm2 start "pnpm --filter ./apps/web start" --name pecal-web --cwd "$APP_DIR"
+              pm2 delete pecal-web || true
             fi
-            pm2 save
+
+            if command -v pm2 >/dev/null 2>&1; then
+              pm2 start "node $ENTRY" --name pecal-web --cwd "$APP_DIR"
+              pm2 save || true
+            else
+              pkill -f "node .*apps/api/server.js" || true
+              nohup node "$ENTRY" > "$APP_DIR/web.log" 2>&1 &
+            fi
           EOF
