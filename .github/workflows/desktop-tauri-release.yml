@@ -99,11 +99,12 @@ jobs:
 
       - name: Update version in tauri.conf.json
         shell: bash
+        working-directory: apps/desktop
         run: |
           VERSION=${{ steps.version.outputs.VERSION }}
           echo "Updating version to $VERSION"
-          node apps/desktop/scripts/update-version.mjs "$VERSION"
-          grep '"version"' apps/desktop/src-tauri/tauri.conf.json | head -1
+          node scripts/update-version.mjs "$VERSION"
+          grep '"version"' src-tauri/tauri.conf.json | head -1
 
       - name: Build Tauri app
         run: pnpm --filter ./apps/desktop tauri:build:ci
