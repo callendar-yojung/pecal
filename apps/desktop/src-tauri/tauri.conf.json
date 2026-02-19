@@ -86,8 +86,10 @@
       }
     },
     "updater": {
-      "endpoints": [],
-      "pubkey": ""
+      "endpoints": [
+        "https://trabien.com/api/releases/tauri?target={{target}}&arch={{arch}}&current_version={{current_version}}"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDEwMTIzNjE3MTlBNEZEMTcKUldRWC9hUVpGellTRUFqRFZoS2lOYkhNZmo3bVRCM0pzTmU0cHZxUUVlaXRqRHNHYnJrVW52UDQK"
     }
   }
 }

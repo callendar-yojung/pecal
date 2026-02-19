@@ -8,7 +8,6 @@ import {
   endOfWeek,
   eachDayOfInterval,
   isSameMonth,
-  isSameDay,
   isToday,
 } from 'date-fns'
 import { useCalendarStore, useViewStore } from '../../stores'

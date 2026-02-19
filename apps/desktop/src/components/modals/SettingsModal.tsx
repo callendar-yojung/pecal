@@ -82,7 +82,7 @@ export function SettingsModal() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={closeModal} />
-      <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg mx-4 flex overflow-hidden" style={{ height: '380px' }}>
+      <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl mx-4 flex overflow-hidden" style={{ height: '460px' }}>
         {/* 왼쪽 사이드바 */}
         <div className="w-44 shrink-0 bg-gray-50 dark:bg-gray-900/60 border-r border-gray-200 dark:border-gray-700 flex flex-col">
           <div className="px-4 py-4">
@@ -95,7 +95,7 @@ export function SettingsModal() {
               <button
                 key={item.key}
                 onClick={() => setTab(item.key)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors ${
+                className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors whitespace-nowrap ${
                   tab === item.key
                     ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium'
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -243,7 +243,7 @@ function ProfileTab() {
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-start gap-2 flex-wrap">
             <input
               ref={inputRef}
               value={nickname}
@@ -253,12 +253,12 @@ function ProfileTab() {
               }}
               onKeyDown={handleNicknameKeyDown}
               disabled={isSaving}
-              className="flex-1 px-2 py-1 text-sm border border-blue-400 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+              className="min-w-0 flex-1 px-2 py-1 text-sm border border-blue-400 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
             />
             <button
               onClick={handleCheckNickname}
               disabled={isChecking || !nickname.trim()}
-              className="px-2 py-1 text-xs rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
+              className="shrink-0 whitespace-nowrap px-2 py-1 text-xs rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
             >
               {isChecking ? '...' : t('settings.checkNickname')}
             </button>
@@ -277,8 +277,8 @@ function ProfileTab() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <label className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+      <div className="flex items-center gap-2 flex-wrap">
+        <label className="whitespace-nowrap px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
           {isUploading ? t('settings.uploadingImage') : t('settings.uploadImage')}
           <input
             type="file"
@@ -295,7 +295,7 @@ function ProfileTab() {
           <button
             onClick={handleRemoveProfileImage}
             disabled={isRemovingImage}
-            className="px-3 py-1.5 text-xs font-medium rounded-lg border border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-50"
+            className="whitespace-nowrap px-3 py-1.5 text-xs font-medium rounded-lg border border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-50"
           >
             {isRemovingImage ? '...' : t('settings.removeImage')}
           </button>
@@ -339,7 +339,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between py-1.5">
       <span className="text-xs text-gray-400 dark:text-gray-500">{label}</span>
-      <span className="text-xs text-gray-600 dark:text-gray-300">{value}</span>
+      <span className="max-w-[65%] break-words text-right text-xs text-gray-600 dark:text-gray-300">{value}</span>
     </div>
   )
 }
@@ -523,11 +523,12 @@ function SettingRow({
 // ── Plan & Usage 탭 ─────────────────────────────────────────────
 
 function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B'
+  const normalized = Number(bytes)
+  if (!Number.isFinite(normalized) || normalized <= 0) return '0 B'
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+  const i = Math.floor(Math.log(normalized) / Math.log(k))
+  return parseFloat((normalized / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
 }
 
 function getBarColor(ratio: number): string {
