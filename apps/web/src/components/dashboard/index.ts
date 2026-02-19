@@ -9,3 +9,4 @@ export { default as TaskFormPanel } from "./TaskFormPanel";
 export { default as TaskViewPanel } from "./TaskViewPanel";
 export { default as TasksPanel } from "./TasksPanel";
 export { default as CalendarPanel } from "./CalendarPanel";
+export { default as DashboardShell } from "./DashboardShell";

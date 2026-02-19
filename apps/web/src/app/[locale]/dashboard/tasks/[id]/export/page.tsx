@@ -279,7 +279,7 @@ export default function TaskExportPage() {
 
   if (!currentWorkspace) {
     return (
-      <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+      <div className="dashboard-glass-card p-6 text-sm text-muted-foreground">
         {tTasks("selectWorkspace") || "워크스페이스를 선택해주세요."}
       </div>
     );
@@ -287,7 +287,7 @@ export default function TaskExportPage() {
 
   if (loading || !task) {
     return (
-      <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+      <div className="dashboard-glass-card p-6 text-sm text-muted-foreground">
         {t("loading")}
       </div>
     );
@@ -295,7 +295,7 @@ export default function TaskExportPage() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-border bg-card p-6">
+      <div className="dashboard-hero-card p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-xl font-semibold text-foreground">{t("title")}</h1>
@@ -379,7 +379,7 @@ export default function TaskExportPage() {
         )}
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-6">
+      <div className="dashboard-glass-card p-6">
         <h2 className="text-lg font-semibold text-foreground">{t("exportListTitle")}</h2>
         {exportsLoading ? (
           <p className="mt-3 text-sm text-muted-foreground">{t("loading")}</p>
@@ -491,7 +491,7 @@ export default function TaskExportPage() {
         )}
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-6">
+      <div className="dashboard-glass-card p-6">
         <h2 className="text-lg font-semibold text-foreground">{t("accessTitle")}</h2>
         {exportsList.length === 0 ? (
           <p className="mt-3 text-sm text-muted-foreground">{t("noExports")}</p>
@@ -638,14 +638,16 @@ export default function TaskExportPage() {
         )}
       </div>
 
-      <TaskViewPanel
-        task={task}
-        showActions={false}
-        workspaceType={currentWorkspace.type}
-        ownerId={currentWorkspace.owner_id}
-        showTags
-        showAttachments
-      />
+      <div className="dashboard-glass-card p-3 md:p-5">
+        <TaskViewPanel
+          task={task}
+          showActions={false}
+          workspaceType={currentWorkspace.type}
+          ownerId={currentWorkspace.owner_id}
+          showTags
+          showAttachments
+        />
+      </div>
     </div>
   );
 }

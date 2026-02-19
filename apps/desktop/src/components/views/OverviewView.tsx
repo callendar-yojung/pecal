@@ -71,16 +71,16 @@ export function OverviewView() {
 
   if (!selectedWorkspaceId) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="flex flex-1 items-center justify-center bg-transparent">
         <p className="text-gray-500 dark:text-gray-400">{t('workspace.select')}</p>
       </div>
     )
   }
 
   return (
-    <div className="flex-1 bg-gray-50 dark:bg-gray-900 p-6 overflow-y-auto">
+    <div className="flex-1 overflow-y-auto bg-transparent p-6">
       <div className="max-w-5xl mx-auto space-y-6">
-        <div>
+        <div className="app-hero-card p-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             {t('overview.welcome', { name: user?.nickname || 'User' })}
           </h1>
@@ -94,7 +94,7 @@ export function OverviewView() {
           <StatCard label={t('status.done')} value={doneCount} />
         </div>
 
-        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+        <div className="app-glass-card p-4">
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
             {t('overview.recentTasks')}
           </h2>
@@ -128,7 +128,7 @@ export function OverviewView() {
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3">
+    <div className="app-glass-card px-4 py-3">
       <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
       <p className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-1">{value}</p>
     </div>

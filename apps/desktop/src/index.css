@@ -75,6 +75,35 @@ body {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+.app-canvas {
+  background-image:
+    radial-gradient(1100px circle at 18% 0%, rgba(59, 130, 246, 0.12), transparent 55%),
+    radial-gradient(900px circle at 88% 10%, rgba(16, 185, 129, 0.1), transparent 45%);
+}
+
+.app-hero-card {
+  border-radius: 1.5rem;
+  backdrop-filter: blur(14px);
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 18px 60px rgba(15, 23, 42, 0.08);
+}
+
+.app-glass-card {
+  border-radius: 1.5rem;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 12px 50px rgba(15, 23, 42, 0.08);
+}
+
+.dark .app-hero-card,
+.dark .app-glass-card {
+  background: rgba(17, 24, 39, 0.7);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 50px rgba(2, 6, 23, 0.35);
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

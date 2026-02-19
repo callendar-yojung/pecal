@@ -43,21 +43,23 @@ export default function TaskCreatePage() {
 
   if (!currentWorkspace) {
     return (
-      <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+      <div className="dashboard-glass-card p-6 text-sm text-muted-foreground">
         {t("selectWorkspace") || "워크스페이스를 선택해주세요."}
       </div>
     );
   }
 
   return (
-    <TaskFormPanel
-      isOpen
-      mode="create"
-      variant="page"
-      onClose={() => router.push("/dashboard/tasks")}
-      onSave={handleSave}
-      workspaceType={currentWorkspace.type}
-      ownerId={currentWorkspace.owner_id}
-    />
+    <div className="dashboard-glass-card p-3 md:p-5">
+      <TaskFormPanel
+        isOpen
+        mode="create"
+        variant="page"
+        onClose={() => router.push("/dashboard/tasks")}
+        onSave={handleSave}
+        workspaceType={currentWorkspace.type}
+        ownerId={currentWorkspace.owner_id}
+      />
+    </div>
   );
 }

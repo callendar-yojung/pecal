@@ -220,7 +220,7 @@ export default function Sidebar({
 			<aside
 				ref={sidebarRef}
 				style={{ width: isMobile ? "80vw" : `${sidebarWidth}px` }}
-				className={`fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-sidebar-border bg-sidebar-background transition-transform overscroll-contain touch-pan-y ${
+				className={`fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-sidebar-border bg-sidebar-background/80 backdrop-blur-xl shadow-[0_12px_40px_rgba(15,23,42,0.08)] transition-transform overscroll-contain touch-pan-y dark:bg-neutral-900/75 dark:shadow-[0_12px_40px_rgba(2,6,23,0.35)] ${
 					isMobile
 						? mobileOpen
 							? "translate-x-0"
@@ -229,7 +229,7 @@ export default function Sidebar({
 				}`}
 			>
 				{/* Workspace Switcher - Fixed at top */}
-				<div className="flex-shrink-0 p-4">
+				<div className="flex-shrink-0 border-b border-sidebar-border p-4">
 					<div className="flex items-center justify-between">
 						<WorkspaceSwitcher />
 						{isMobile && (
@@ -249,9 +249,11 @@ export default function Sidebar({
 					{/* Workspace List - Resizable */}
 					<div
 						style={{ height: `${workspaceHeight}px` }}
-						className="flex-shrink-0 overflow-y-auto px-4 overscroll-contain touch-pan-y"
+						className="flex-shrink-0 overflow-y-auto px-3 overscroll-contain touch-pan-y"
 					>
-						<WorkspaceList />
+						<div className="rounded-2xl border border-black/5 bg-white/60 p-2 dark:border-white/10 dark:bg-neutral-900/50">
+							<WorkspaceList />
+						</div>
 					</div>
 
 					{/* Drag Divider */}
@@ -277,21 +279,25 @@ export default function Sidebar({
 					</div>
 
 					{/* Navigation - Takes remaining space */}
-					<nav className="flex-1 space-y-1 overflow-y-auto p-4 overscroll-contain touch-pan-y">
+					<nav className="mx-3 mb-3 flex-1 space-y-1 overflow-y-auto rounded-2xl border border-black/5 bg-white/60 p-3 overscroll-contain touch-pan-y dark:border-white/10 dark:bg-neutral-900/50">
 						{navItems.map((item) => {
 							const isActive =
 								pathname === item.href ||
 								(item.href !== "/dashboard" && pathname.startsWith(item.href));
 							const Icon = item.icon;
+							const navBase =
+								"flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors";
+							const navActive =
+								"bg-white/80 text-foreground ring-1 ring-black/5 shadow-sm dark:bg-neutral-800/75 dark:ring-white/10";
+							const navIdle =
+								"text-muted-foreground hover:bg-white/65 hover:text-foreground dark:hover:bg-neutral-800/55";
 
 							return (
 								<Link
 									key={item.key}
 									href={item.href}
-									className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-										isActive
-											? "bg-active text-foreground"
-											: "text-muted-foreground hover:bg-hover hover:text-foreground"
+									className={`${navBase} ${
+										isActive ? navActive : navIdle
 									}`}
 								>
 									<Icon className="h-4 w-4" />

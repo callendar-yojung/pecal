@@ -333,7 +333,7 @@ export default function BillingPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-12">
+      <div className="dashboard-glass-card flex items-center justify-center p-12">
         <div className="text-muted-foreground">Loading...</div>
       </div>
     );
@@ -341,6 +341,11 @@ export default function BillingPage() {
 
   return (
     <div className="space-y-6">
+      <div className="dashboard-hero-card p-8">
+        <h1 className="text-3xl font-bold text-foreground">{t("title")}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{t("description")}</p>
+      </div>
+
       {/* NicePay 결제 성공 배너 */}
       {showPaymentSuccess && (
         <div className="flex items-center justify-between rounded-lg border border-green-300 bg-green-50 p-4 dark:border-green-800 dark:bg-green-950">
@@ -465,7 +470,7 @@ export default function BillingPage() {
       )}
 
       {/* 개인 구독 */}
-      <div className="rounded-lg border border-border bg-card p-6">
+      <div className="dashboard-glass-card p-6">
         <div className="mb-2 flex items-center gap-2">
           <div className="rounded-full bg-blue-100 p-1.5 dark:bg-blue-900">
             <svg
@@ -573,7 +578,7 @@ export default function BillingPage() {
       </div>
 
       {/* 팀 구독 */}
-      <div className="rounded-lg border border-border bg-card p-6">
+      <div className="dashboard-glass-card p-6">
         <div className="mb-2 flex items-center gap-2">
           <div className="rounded-full bg-purple-100 p-1.5 dark:bg-purple-900">
             <svg
@@ -639,7 +644,7 @@ export default function BillingPage() {
       </div>
 
       {/* 결제 수단 */}
-      <div className="rounded-lg border border-border bg-card p-6">
+      <div className="dashboard-glass-card p-6">
         <h2 className="text-lg font-semibold text-card-foreground">
           {t("paymentMethod")}
         </h2>
@@ -721,7 +726,7 @@ export default function BillingPage() {
       </div>
 
       {/* 결제 내역 */}
-      <div className="rounded-lg border border-border bg-card p-6">
+      <div className="dashboard-glass-card p-6">
         <h2 className="text-lg font-semibold text-card-foreground">
           {t("history")}
         </h2>

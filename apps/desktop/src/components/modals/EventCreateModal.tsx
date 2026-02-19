@@ -66,8 +66,8 @@ export function EventCreateModal() {
     if (createDate && openedModal === 'CREATE') {
       setStartHour(9)
       setStartMinute(0)
-      setEndHour(10)
-      setEndMinute(0)
+      setEndHour(9)
+      setEndMinute(30)
       setTitle('')
       setContentDoc(EMPTY_RICH_CONTENT)
       setStatus('todo')

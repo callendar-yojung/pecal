@@ -186,7 +186,7 @@ export function WorkspaceList() {
                   setIsAdding(true)
                 }
               }}
-              className="p-1 rounded-lg text-gray-500 hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-white/65 dark:hover:bg-gray-700/55 transition-colors"
               title={t('workspace.create')}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -197,7 +197,7 @@ export function WorkspaceList() {
 
         {/* 워크스페이스 생성 입력 */}
         {isAdding && (
-            <div className="px-2 pb-2 border-b border-gray-200 dark:border-gray-700">
+            <div className="px-2 pb-2 border-b border-gray-200/70 dark:border-gray-700/70">
               <div className="flex gap-2">
                 <input
                     ref={inputRef}
@@ -207,12 +207,12 @@ export function WorkspaceList() {
                     onKeyDown={handleKeyDown}
                     placeholder={t('workspace.enterName') || '워크스페이스 이름'}
                     disabled={isCreating}
-                    className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                    className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-800/70 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50"
                 />
                 <button
                     onClick={createWorkspace}
                     disabled={!name.trim() || isCreating}
-                    className="px-3 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="px-3 py-2 text-sm font-medium text-white bg-gray-700 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {isCreating ? '...' : '✓'}
                 </button>
@@ -240,10 +240,10 @@ export function WorkspaceList() {
               {workspaces.map((ws) => (
                   <div
                       key={ws.workspace_id}
-                      className={`group relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                      className={`group relative flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm transition-colors ${
                           selectedWorkspaceId === ws.workspace_id
-                              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                              ? 'bg-white/80 dark:bg-gray-800/70 text-gray-900 dark:text-gray-100 ring-1 ring-black/5 dark:ring-white/10 shadow-sm'
+                              : 'text-gray-700 dark:text-gray-300 hover:bg-white/65 dark:hover:bg-gray-800/45'
                       }`}
                   >
                     {editingId === ws.workspace_id ? (

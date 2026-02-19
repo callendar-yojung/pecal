@@ -9,10 +9,10 @@ export function FileMenu() {
   return (
     <button
       onClick={() => setView(isActive ? 'calendar' : 'files')}
-      className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-sm transition-colors ${
+      className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-sm transition-colors ${
         isActive
-          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium'
-          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+          ? 'bg-white/75 dark:bg-gray-800/70 text-gray-900 dark:text-gray-100 ring-1 ring-black/5 dark:ring-white/10 shadow-sm font-medium'
+          : 'text-gray-600 dark:text-gray-400 hover:bg-white/65 dark:hover:bg-gray-800/45 hover:text-gray-900 dark:hover:text-gray-200'
       }`}
     >
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

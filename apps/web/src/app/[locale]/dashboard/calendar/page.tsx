@@ -20,7 +20,7 @@ export default async function CalendarPage() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="dashboard-hero-card p-8">
         <h1 className="text-3xl font-bold text-foreground">
           {t("title")}
         </h1>
@@ -29,7 +29,9 @@ export default async function CalendarPage() {
         </p>
       </div>
 
-      <CalendarPanel />
+      <div className="dashboard-glass-card p-4 md:p-6">
+        <CalendarPanel />
+      </div>
     </div>
   );
 }

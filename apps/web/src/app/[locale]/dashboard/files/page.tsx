@@ -269,7 +269,7 @@ export default function FilesPage() {
 
   if (workspaceLoading || loading) {
     return (
-      <div className="p-6">
+      <div className="mx-auto max-w-6xl p-6">
         <div className="animate-pulse space-y-6">
           <div className="h-8 w-48 rounded bg-muted" />
           <div className="flex gap-2">
@@ -289,7 +289,7 @@ export default function FilesPage() {
 
   if (error) {
     return (
-      <div className="p-6">
+      <div className="mx-auto max-w-6xl p-6">
         <div className="rounded-lg border border-destructive bg-destructive/10 p-6 text-destructive">
           {error}
         </div>
@@ -302,9 +302,9 @@ export default function FilesPage() {
   const pagination = filesData?.pagination || { page: 1, totalPages: 1, total: 0, hasNext: false, hasPrev: false };
 
   return (
-    <div className="flex h-full flex-col p-6">
+    <div className="flex h-full flex-col space-y-6">
       {/* Header */}
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="dashboard-hero-card flex flex-col gap-3 p-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t("description")}</p>
@@ -317,6 +317,8 @@ export default function FilesPage() {
           {isSelectMode ? t("cancelSelect") : t("selectMode")}
         </button>
       </div>
+
+      <div className="dashboard-glass-card p-4 md:p-6">
 
       {/* Selection Actions Bar */}
       {isSelectMode && (
@@ -664,6 +666,7 @@ export default function FilesPage() {
           </div>
         </div>
       )}
+      </div>
 
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
