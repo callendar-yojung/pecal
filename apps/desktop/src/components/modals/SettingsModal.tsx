@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { invoke } from '@tauri-apps/api/core'
 import { useModalStore, useAuthStore, useThemeStore, useWorkspaceStore } from '../../stores'
-import { authApi, fileApi, usageApi, subscriptionApi } from '../../api'
+import { authApi, fileApi, usageApi, subscriptionApi, releaseApi } from '../../api'
 import { SettingsBillingTab } from './SettingsBillingTab'
 import type {
   UsageData,
@@ -351,6 +351,9 @@ function SystemTab() {
   const { theme, setTheme } = useThemeStore()
   const [autostart, setAutostart] = useState(false)
   const [preferences, setPreferences] = useState<UserPreferences | null>(null)
+  const [latestVersion, setLatestVersion] = useState('')
+  const [whatsNew, setWhatsNew] = useState<string[]>([])
+  const [isLoadingWhatsNew, setIsLoadingWhatsNew] = useState(false)
 
   useEffect(() => {
     invoke<boolean>('get_autostart')
@@ -360,6 +363,20 @@ function SystemTab() {
     invoke<UserPreferences>('get_user_preferences')
       .then(setPreferences)
       .catch(console.error)
+
+    setIsLoadingWhatsNew(true)
+    releaseApi
+      .getLatestNotes('windows')
+      .then(({ version, notes }) => {
+        setLatestVersion(version)
+        setWhatsNew(notes)
+      })
+      .catch((error) => {
+        console.error('Failed to load release notes:', error)
+        setLatestVersion('')
+        setWhatsNew([])
+      })
+      .finally(() => setIsLoadingWhatsNew(false))
   }, [])
 
   const toggleAutostart = async () => {
@@ -392,7 +409,7 @@ function SystemTab() {
   }
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-3">
       <SettingRow
         icon={
           theme === 'light' ? (
@@ -495,6 +512,35 @@ function SystemTab() {
           </button>
         }
       />
+
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+            {t('settings.whatsNew.title')}
+          </p>
+          {latestVersion ? (
+            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+              v{latestVersion}
+            </span>
+          ) : null}
+        </div>
+
+        {isLoadingWhatsNew ? (
+          <p className="text-xs text-gray-500 dark:text-gray-400">{t('common.loading')}</p>
+        ) : whatsNew.length > 0 ? (
+          <ul className="space-y-1">
+            {whatsNew.slice(0, 6).map((note, index) => (
+              <li key={`${note}-${index}`} className="text-xs text-gray-600 dark:text-gray-300">
+                • {note}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {t('settings.whatsNew.empty')}
+          </p>
+        )}
+      </div>
 
     </div>
   )
