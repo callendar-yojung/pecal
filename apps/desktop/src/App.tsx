@@ -1,7 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { listen } from '@tauri-apps/api/event'
 import { ask } from '@tauri-apps/plugin-dialog'
+import { check } from '@tauri-apps/plugin-updater'
+import { exit, relaunch } from '@tauri-apps/plugin-process'
 import { invoke } from '@tauri-apps/api/core'
 import { Sidebar } from './components/sidebar'
 import { Calendar } from './components/calendar'
@@ -64,6 +66,11 @@ function MainContent() {
 function AppContent() {
   const { t } = useTranslation()
   useWorkspaces()
+  const hasCheckedUpdateRef = useRef(false)
+  const [requiredUpdateVersion, setRequiredUpdateVersion] = useState<string | null>(null)
+  const [updateError, setUpdateError] = useState<string | null>(null)
+  const [isUpdating, setIsUpdating] = useState(false)
+  const [updateProgress, setUpdateProgress] = useState<number | null>(null)
 
   useEffect(() => {
     if (!isTauriApp()) return
@@ -123,6 +130,108 @@ function AppContent() {
       if (unlisten) unlisten()
     }
   }, [t])
+
+  useEffect(() => {
+    if (!isTauriApp()) return
+    if (hasCheckedUpdateRef.current) return
+    hasCheckedUpdateRef.current = true
+
+    const runRequiredUpdate = async () => {
+      try {
+        const update = await check()
+        if (!update) return
+
+        setRequiredUpdateVersion(update.version)
+        setUpdateError(null)
+        setIsUpdating(true)
+        setUpdateProgress(0)
+
+        let downloadedBytes = 0
+        let totalBytes = 0
+
+        await update.downloadAndInstall((event) => {
+          if (event.event === 'Started') {
+            totalBytes = event.data.contentLength ?? 0
+            setUpdateProgress(0)
+          } else if (event.event === 'Progress') {
+            downloadedBytes += event.data.chunkLength
+            if (totalBytes > 0) {
+              setUpdateProgress(Math.min(100, Math.round((downloadedBytes / totalBytes) * 100)))
+            }
+          } else if (event.event === 'Finished') {
+            setUpdateProgress(100)
+          }
+        })
+
+        await relaunch()
+      } catch (error) {
+        console.error('Required update failed:', error)
+        setUpdateError(error instanceof Error ? error.message : String(error))
+        setIsUpdating(false)
+      }
+    }
+
+    runRequiredUpdate()
+  }, [])
+
+  if (requiredUpdateVersion) {
+    return (
+      <div className="app-canvas flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 p-6">
+        <div className="w-full max-w-md rounded-2xl border border-black/5 bg-white/90 p-6 shadow-xl dark:border-white/10 dark:bg-gray-900/80">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            {t('update.requiredTitle')}
+          </h2>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+            {t('update.requiredDescription', { version: requiredUpdateVersion })}
+          </p>
+
+          {isUpdating && (
+            <div className="mt-4 space-y-2">
+              <p className="text-sm text-blue-600 dark:text-blue-300">
+                {t('update.downloading')}
+              </p>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                <div
+                  className="h-full bg-blue-500 transition-all"
+                  style={{ width: `${updateProgress ?? 0}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{updateProgress ?? 0}%</p>
+            </div>
+          )}
+
+          {updateError && (
+            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">
+              {t('update.failed')}: {updateError}
+            </div>
+          )}
+
+          <div className="mt-5 flex items-center justify-end gap-2">
+            {updateError && (
+              <button
+                onClick={() => {
+                  hasCheckedUpdateRef.current = false
+                  setRequiredUpdateVersion(null)
+                  setUpdateError(null)
+                  setIsUpdating(false)
+                  setUpdateProgress(null)
+                }}
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+              >
+                {t('update.retry')}
+              </button>
+            )}
+            <button
+              onClick={() => exit(1)}
+              className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-red-700"
+            >
+              {t('update.quit')}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="app-canvas flex h-screen flex-col overflow-hidden rounded-lg bg-gray-50 dark:bg-gray-900">

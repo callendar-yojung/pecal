@@ -43,7 +43,7 @@
     ],
     "active": true,
     "targets": "all",
-    "createUpdaterArtifacts": false,
+    "createUpdaterArtifacts": true,
     "windows": {
       "signCommand": "powershell -ExecutionPolicy Bypass -File sign.ps1 %1",
       "wix": {
