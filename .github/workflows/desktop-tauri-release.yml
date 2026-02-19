@@ -55,41 +55,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Setup Azure Signing (Windows)
-        if: matrix.platform == 'windows'
-        shell: pwsh
-        working-directory: apps/desktop
-        run: |
-          az login --service-principal -u "${{ secrets.AZURE_CLIENT_ID }}" -p "${{ secrets.AZURE_CLIENT_SECRET }}" --tenant "${{ secrets.AZURE_TENANT_ID }}"
-
-          New-Item -ItemType Directory -Force -Path signing-tools | Out-Null
-          Invoke-WebRequest -Uri "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe" -OutFile "signing-tools\nuget.exe"
-          & "signing-tools\nuget.exe" install Microsoft.ArtifactSigning.Client -OutputDirectory signing-tools -ExcludeVersion
-
-          @{
-            Endpoint = "https://krc.codesigning.azure.net"
-            CodeSigningAccountName = "callendsigning"
-            CertificateProfileName = "DesktopCalendarProfile"
-            ExcludeCredentials = @(
-              "ManagedIdentityCredential"
-              "WorkloadIdentityCredential"
-              "SharedTokenCacheCredential"
-              "VisualStudioCredential"
-              "VisualStudioCodeCredential"
-              "AzurePowerShellCredential"
-              "AzureDeveloperCliCredential"
-              "InteractiveBrowserCredential"
-              "EnvironmentCredential"
-            )
-          } | ConvertTo-Json | Set-Content "signing-tools\metadata.json"
-
-          if (Test-Path "signing-tools\Microsoft.ArtifactSigning.Client\bin\x64\Azure.CodeSigning.Dlib.dll") {
-            Write-Host "Signing dlib installed successfully"
-          } else {
-            Write-Error "Signing dlib not found"
-            exit 1
-          }
-
       - name: Get version from tag
         id: version
         shell: bash
@@ -112,6 +77,12 @@ jobs:
           TAURI_UPDATER_PUBKEY: ${{ secrets.TAURI_UPDATER_PUBKEY }}
         run: |
           node scripts/configure-updater.mjs "$API_BASE_URL" "$TAURI_UPDATER_PUBKEY"
+
+      - name: Disable custom signCommand in CI
+        shell: bash
+        working-directory: apps/desktop
+        run: |
+          node -e "const fs=require('fs');const p='src-tauri/tauri.conf.json';const c=JSON.parse(fs.readFileSync(p,'utf8'));if(c.bundle?.windows?.signCommand){delete c.bundle.windows.signCommand;}fs.writeFileSync(p,JSON.stringify(c,null,2)+'\n');"
 
       - name: Build Tauri app
         working-directory: apps/desktop
