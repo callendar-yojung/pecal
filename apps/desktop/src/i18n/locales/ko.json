@@ -128,6 +128,8 @@
   "settings.plan.trialing": "체험판",
   "settings.plan.noPlan": "구독 없음",
   "settings.plan.expiresAt": "만료일",
+  "settings.whatsNew.title": "이 버전의 새로운 기능",
+  "settings.whatsNew.empty": "표시할 릴리즈 노트가 없습니다.",
   "billing.loadError": "결제 정보를 불러오지 못했습니다.",
   "billing.personal": "개인",
   "billing.team": "팀",

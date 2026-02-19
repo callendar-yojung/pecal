@@ -127,6 +127,8 @@
   "settings.plan.trialing": "Trial",
   "settings.plan.noPlan": "No subscription",
   "settings.plan.expiresAt": "Expires",
+  "settings.whatsNew.title": "What's New in This Version",
+  "settings.whatsNew.empty": "No release notes available.",
   "billing.loadError": "Failed to load billing data.",
   "billing.personal": "Personal",
   "billing.team": "Team",
