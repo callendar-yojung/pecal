@@ -19,7 +19,6 @@ export default function DashboardPage() {
                             <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Tasks</div>
                             <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">Today & upcoming</div>
                         </div>
-                        <div className="h-8 w-20 rounded-full bg-neutral-100 ring-1 ring-black/5 dark:bg-neutral-800/80 dark:ring-white/10" />
                     </div>
                     <TaskList />
                 </div>

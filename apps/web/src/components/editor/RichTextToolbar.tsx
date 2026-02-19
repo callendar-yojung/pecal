@@ -71,7 +71,7 @@ export default function RichTextToolbar({ editor }: RichTextToolbarProps) {
 
   return (
       <div className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex flex-nowrap items-center gap-1 overflow-x-auto p-1.5 no-scrollbar">
+        <div className="flex flex-wrap items-center gap-1 p-1.5">
 
           {/* Undo / Redo */}
           <div className="flex items-center">
@@ -285,16 +285,6 @@ export default function RichTextToolbar({ editor }: RichTextToolbarProps) {
             </ToolbarButton>
           </div>
         </div>
-
-        <style jsx global>{`
-        .no-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-        .no-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
       </div>
   );
 }

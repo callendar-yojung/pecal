@@ -76,7 +76,7 @@ export default function RichTextToolbar({ editor }: RichTextToolbarProps) {
 
   return (
     <div className="sticky top-0 z-10 border-b border-gray-200 bg-white/95 backdrop-blur dark:border-gray-700 dark:bg-gray-900/95">
-      <div className="flex flex-nowrap items-center gap-1 overflow-x-auto p-1.5">
+      <div className="flex flex-wrap items-center gap-1 p-1.5">
         <div className="flex items-center">
           <ToolbarButton onClick={() => editor.chain().focus().undo().run()} label="Undo">
             <Undo className="h-4 w-4" />
