@@ -17,5 +17,8 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "tailwindcss": "^4"
+  },
+  "dependencies": {
+    "pnpm": "^10.30.1"
   }
 }

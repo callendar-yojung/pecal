@@ -13,11 +13,18 @@ import { getErrorMessage } from '../../utils/error'
 export function Calendar() {
   const { t } = useTranslation()
   const { selectedWorkspaceId } = useWorkspaceStore()
-  const { setEvents, setLoading, setError, clearEvents, error } = useCalendarStore()
+  const { setEvents, setLoading, setError, clearEvents, setSelectedDate, error } = useCalendarStore()
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
   const toggleDrawer = useCallback(() => setIsDrawerOpen((prev) => !prev), [])
   const closeDrawer = useCallback(() => setIsDrawerOpen(false), [])
+  const openDrawerForDate = useCallback(
+    (date: Date) => {
+      setSelectedDate(date)
+      setIsDrawerOpen(true)
+    },
+    [setSelectedDate],
+  )
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -80,7 +87,7 @@ export function Calendar() {
         </div>
       )}
       <CalendarHeader onToggleDrawer={toggleDrawer} />
-      <CalendarGrid />
+      <CalendarGrid onOpenMore={openDrawerForDate} />
       <TaskDrawer isOpen={isDrawerOpen} onClose={closeDrawer} />
     </div>
   )

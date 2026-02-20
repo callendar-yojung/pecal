@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "DesktopCalendar",
+  "productName": "Pecal",
   "version": "1.2.15",
   "identifier": "com.deskcal.app",
   "build": {
@@ -13,16 +13,16 @@
     "windows": [
       {
         "label": "main",
-        "title": "Desktop Calendar",
+        "title": "Pecal",
         "width": 780,
         "height": 660,
-        "minWidth": 640,
-        "minHeight": 480,
+        "minWidth": 760,
+        "minHeight": 600,
         "x": 100,
         "y": 100,
         "resizable": true,
-        "decorations": true,
-        "transparent": false,
+        "decorations": false,
+        "transparent": true,
         "alwaysOnTop": true,
         "skipTaskbar": false,
         "visible": true,
@@ -42,7 +42,9 @@
       "icons/icon.ico"
     ],
     "active": true,
-    "targets": ["msi"],
+    "targets": [
+      "msi"
+    ],
     "createUpdaterArtifacts": false,
     "windows": {
       "wix": {

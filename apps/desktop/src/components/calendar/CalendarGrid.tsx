@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   format,
@@ -14,10 +14,21 @@ import { useCalendarStore, useViewStore } from '../../stores'
 import type { Task } from '../../types'
 import { parseApiDateTime } from '../../utils/datetime'
 
-export function CalendarGrid() {
+interface CalendarGridProps {
+  onOpenMore?: (date: Date) => void
+}
+
+export function CalendarGrid({ onOpenMore }: CalendarGridProps) {
+  const MAX_VISIBLE_TASKS_PER_DAY = 5
+  const MIN_VISIBLE_TASKS_PER_DAY = 1
+  const EVENT_ROW_HEIGHT = 24
+  const DAY_HEADER_HEIGHT = 36
+  const DAY_CELL_PADDING = 16
   const { i18n } = useTranslation()
   const { selectedDate, events } = useCalendarStore()
   const { openTaskCreate, openTaskDetail } = useViewStore()
+  const gridRef = useRef<HTMLDivElement>(null)
+  const [visibleTaskLimit, setVisibleTaskLimit] = useState(MAX_VISIBLE_TASKS_PER_DAY)
 
   const days = useMemo(() => {
     const monthStart = startOfMonth(selectedDate)
@@ -73,6 +84,42 @@ export function CalendarGrid() {
     return luminance > 0.6 ? '#1f2937' : '#ffffff'
   }
 
+  useEffect(() => {
+    const element = gridRef.current
+    if (!element) return
+
+    const updateVisibleTaskLimit = () => {
+      const gridHeight = element.clientHeight
+      const gridWidth = element.clientWidth
+      if (gridHeight <= 0 || gridWidth <= 0) return
+
+      const cellHeight = gridHeight / 6
+      const cellWidth = gridWidth / 7
+      const availableHeight = cellHeight - DAY_HEADER_HEIGHT - DAY_CELL_PADDING
+      const heightBasedLimit = Math.floor(availableHeight / EVENT_ROW_HEIGHT)
+      const widthBasedCap =
+        cellWidth < 90 ? 2 :
+        cellWidth < 110 ? 3 :
+        cellWidth < 130 ? 4 : 5
+      const dynamicLimit = Math.min(heightBasedLimit, widthBasedCap)
+      const next = Math.max(
+        MIN_VISIBLE_TASKS_PER_DAY,
+        Math.min(MAX_VISIBLE_TASKS_PER_DAY, dynamicLimit),
+      )
+
+      setVisibleTaskLimit((prev) => (prev === next ? prev : next))
+    }
+
+    updateVisibleTaskLimit()
+
+    const observer = new ResizeObserver(() => {
+      updateVisibleTaskLimit()
+    })
+    observer.observe(element)
+
+    return () => observer.disconnect()
+  }, [])
+
   return (
     <div className="flex-1 flex flex-col">
       <div className="grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-700">
@@ -92,9 +139,11 @@ export function CalendarGrid() {
         ))}
       </div>
 
-      <div className="flex-1 grid grid-cols-7 grid-rows-6 gap-px bg-gray-200 dark:bg-gray-700">
+      <div ref={gridRef} className="flex-1 grid grid-cols-7 grid-rows-6 gap-px bg-gray-200 dark:bg-gray-700">
         {days.map((day) => {
           const dayEvents = eventsByDate.get(format(day, 'yyyy-MM-dd')) ?? []
+          const visibleEvents = dayEvents.slice(0, visibleTaskLimit)
+          const hiddenCount = Math.max(0, dayEvents.length - visibleTaskLimit)
           const isCurrentMonth = isSameMonth(day, selectedDate)
           const dayOfWeek = day.getDay()
 
@@ -102,7 +151,7 @@ export function CalendarGrid() {
             <div
               key={day.toISOString()}
               onClick={() => isCurrentMonth && openTaskCreate(day)}
-              className={`group min-h-[100px] p-2 transition-colors ${
+              className={`group min-h-[100px] p-2 transition-colors flex flex-col overflow-hidden ${
                 isCurrentMonth
                   ? 'bg-white dark:bg-gray-900 hover:bg-blue-50 dark:hover:bg-blue-950/30 cursor-pointer'
                   : 'bg-white dark:bg-gray-900 opacity-40'
@@ -131,8 +180,8 @@ export function CalendarGrid() {
                 )}
               </div>
 
-              <div className="space-y-1 overflow-y-auto max-h-[60px]">
-                {dayEvents.map((event) => (
+              <div className="space-y-1 overflow-y-auto flex-1 min-h-0">
+                {visibleEvents.map((event) => (
                   <button
                     key={event.id}
                     onClick={(e) => {
@@ -148,6 +197,17 @@ export function CalendarGrid() {
                     {event.title}
                   </button>
                 ))}
+                {hiddenCount > 0 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onOpenMore?.(day)
+                    }}
+                    className="px-1 text-[11px] font-medium text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 text-left"
+                  >
+                    +{hiddenCount} more
+                  </button>
+                )}
               </div>
             </div>
           )

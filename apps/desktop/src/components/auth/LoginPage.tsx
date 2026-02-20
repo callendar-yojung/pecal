@@ -1,84 +1,85 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { listen } from '@tauri-apps/api/event'
-import { open } from '@tauri-apps/plugin-shell'
-import { fetch } from '@tauri-apps/plugin-http'
 import { getCurrentWindow } from '@tauri-apps/api/window'
+import { fetch } from '@tauri-apps/plugin-http'
+import { open } from '@tauri-apps/plugin-shell'
 import { useAuthStore, useThemeStore } from '../../stores'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
-const DEFAULT_DEEPLINK_SCHEME = import.meta.env.DEV ? 'deskcal-dev://auth/callback' : 'deskcal://auth/callback'
+const DEFAULT_DEEPLINK_SCHEME = import.meta.env.DEV
+  ? 'deskcal-dev://auth/callback'
+  : 'deskcal://auth/callback'
 const APP_DEEPLINK_SCHEME = import.meta.env.VITE_APP_DEEPLINK_SCHEME || DEFAULT_DEEPLINK_SCHEME
+
+type OAuthProvider = 'kakao' | 'google'
+
+function getMergedParams(url: URL): URLSearchParams {
+  const merged = new URLSearchParams(url.search)
+
+  if (url.hash.startsWith('#')) {
+    const hashParams = new URLSearchParams(url.hash.slice(1))
+    hashParams.forEach((value, key) => {
+      if (!merged.has(key)) {
+        merged.set(key, value)
+      }
+    })
+  }
+
+  return merged
+}
 
 export function LoginPage() {
   const { t } = useTranslation()
   const { setAuth } = useAuthStore()
   const { theme, toggleTheme } = useThemeStore()
-  const [isLoading, setIsLoading] = useState<'kakao' | 'google' | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [pendingProvider, setPendingProvider] = useState<'kakao' | 'google' | null>(null)
   const appWindow = getCurrentWindow()
 
-  // Deep link 리스너 설정
+  const [isLoading, setIsLoading] = useState<OAuthProvider | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  const pendingProviderRef = useRef<OAuthProvider | null>(null)
+
   useEffect(() => {
-    console.log('🔗 Deep link 리스너 등록 중...')
     let unlistenFn: (() => void) | null = null
 
-    // 비동기로 리스너 등록
-    listen<string>('deep-link://new-url', (event) => {
-      console.log('═══════════════════════════════════════════════════')
-      console.log('📥 Deep link 수신:', event.payload)
-      console.log('═══════════════════════════════════════════════════')
-
+    listen<string>('deep-link://new-url', async (event) => {
       try {
         const url = new URL(event.payload)
-
-        // deskcal://auth/callback 체크
         if (url.hostname !== 'auth' || url.pathname !== '/callback') {
-          console.log('❌ 잘못된 deep link 경로:', url.hostname, url.pathname)
           return
         }
 
-        // 백엔드에서 보낸 파라미터 추출
-        const accessToken = url.searchParams.get('accessToken')
-        const refreshToken = url.searchParams.get('refreshToken')
-        const memberId = url.searchParams.get('memberId')
-        const nickname = url.searchParams.get('nickname')
-        const email = url.searchParams.get('email')
-        const providerParam = url.searchParams.get('provider')
-        const errorParam = url.searchParams.get('error')
+        const params = getMergedParams(url)
+        const accessToken = params.get('accessToken')
+        const refreshToken = params.get('refreshToken')
+        const memberId = params.get('memberId')
+        const nickname = params.get('nickname')
+        const email = params.get('email')
+        const providerParam = params.get('provider') as OAuthProvider | null
+        const errorParam = params.get('error')
 
-        // 에러 처리
         if (errorParam) {
-          console.error('❌ 로그인 에러:', errorParam)
           setError(`Login failed: ${errorParam}`)
+          setStatusMessage(null)
           setIsLoading(null)
+          pendingProviderRef.current = null
           return
         }
 
-        const resolvedProvider =
-          (providerParam as 'kakao' | 'google') || pendingProvider || 'kakao'
+        const resolvedProvider = providerParam || pendingProviderRef.current || 'kakao'
 
-        // 필수 파라미터 체크
         if (!accessToken || !refreshToken || !memberId) {
-          console.error('❌ 필수 파라미터 누락:', {
-            accessToken: !!accessToken,
-            refreshToken: !!refreshToken,
-            memberId: !!memberId,
-          })
           setError('Invalid login response: missing required parameters')
+          setStatusMessage(null)
           setIsLoading(null)
+          pendingProviderRef.current = null
           return
         }
 
-        console.log('✅ 로그인 성공:', {
-          memberId,
-          nickname,
-          email: email || 'N/A',
-          provider: resolvedProvider,
-        })
+        setStatusMessage(t('auth.loginSuccess', '로그인 성공! 앱으로 이동 중...'))
+        sessionStorage.setItem('pecal_login_success', '1')
 
-        // Member 객체 생성 및 인증 설정
         setAuth(
           {
             memberId: Number(memberId),
@@ -87,56 +88,47 @@ export function LoginPage() {
             provider: resolvedProvider,
           },
           accessToken,
-          refreshToken
+          refreshToken,
         )
 
         setError(null)
         setIsLoading(null)
-        setPendingProvider(null)
+        pendingProviderRef.current = null
+
+        await appWindow.show().catch(() => {})
+        await appWindow.setFocus().catch(() => {})
       } catch (err) {
-        console.error('❌ Deep link 파싱 에러:', err)
+        console.error('Failed to process deep link callback:', err)
         setError('Failed to process login callback')
+        setStatusMessage(null)
         setIsLoading(null)
-        setPendingProvider(null)
+        pendingProviderRef.current = null
       }
-    }).then((fn) => {
-      unlistenFn = fn
-      console.log('✅ Deep link 리스너 등록 완료')
-    }).catch((err) => {
-      console.error('❌ Deep link 리스너 등록 실패:', err)
     })
+      .then((fn) => {
+        unlistenFn = fn
+      })
+      .catch((err) => {
+        console.error('Failed to register deep link listener:', err)
+      })
 
     return () => {
-      if (unlistenFn) {
-        unlistenFn()
-        console.log('🔗 Deep link 리스너 해제')
-      }
+      if (unlistenFn) unlistenFn()
     }
-  }, [setAuth, pendingProvider])
+  }, [appWindow, setAuth, t])
 
-  const handleCloseApp = async () => {
-    try {
-      await appWindow.close()
-    } catch (err) {
-      console.error('Failed to close app:', err)
-    }
-  }
-
-  const handleOAuthLogin = async (provider: 'kakao' | 'google') => {
-    console.log(`🚀 ${provider} 로그인 시작`)
+  const handleOAuthLogin = async (provider: OAuthProvider) => {
     setIsLoading(provider)
     setError(null)
-    setPendingProvider(provider)
+    setStatusMessage(
+      t('auth.waitingForBrowser', 'Browser opened. Complete login and return to the app...'),
+    )
+    pendingProviderRef.current = provider
 
     try {
-      // 백엔드에서 OAuth URL 가져오기
-      console.log('📡 백엔드에서 OAuth URL 요청 중...')
-
       const callbackUrl = APP_DEEPLINK_SCHEME
-      console.log('🔗 Callback URL:', callbackUrl)
-
       const response = await fetch(
-        `${API_BASE_URL}/api/auth/${provider}/start?callback=${encodeURIComponent(callbackUrl)}`
+        `${API_BASE_URL}/api/auth/${provider}/start?callback=${encodeURIComponent(callbackUrl)}`,
       )
 
       if (!response.ok) {
@@ -145,34 +137,36 @@ export function LoginPage() {
       }
 
       const { authUrl } = await response.json()
+      if (!authUrl) throw new Error('No authUrl in response')
 
-      if (!authUrl) {
-        throw new Error('No authUrl in response')
-      }
-
-      // 로그인 페이지 열기
-      console.log('🌐 로그인 페이지 열기:', authUrl)
       try {
         await open(authUrl)
-        console.log('✅ 브라우저 오픈 완료. 로그인 대기 중...')
-      } catch (openError) {
-        console.error('❌ open() 실패:', openError)
-        console.log('🔄 window.open으로 fallback 시도...')
+      } catch (openErr) {
+        console.error('Failed to open auth URL via shell plugin:', openErr)
         window.open(authUrl, '_blank')
       }
     } catch (err) {
-      console.error('❌ 로그인 실패:', err)
       const errorMessage = err instanceof Error ? err.message : String(err)
       setError(`${t('auth.loginFailed')} (${errorMessage})`)
+      setStatusMessage(null)
       setIsLoading(null)
-      setPendingProvider(null)
+      pendingProviderRef.current = null
     }
   }
 
   const handleCancelLogin = () => {
     setIsLoading(null)
     setError(null)
-    setPendingProvider(null)
+    setStatusMessage(null)
+    pendingProviderRef.current = null
+  }
+
+  const handleCloseApp = async () => {
+    try {
+      await appWindow.close()
+    } catch (err) {
+      console.error('Failed to close app:', err)
+    }
   }
 
   return (
@@ -188,15 +182,10 @@ export function LoginPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          {/* Logo & Title */}
+
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <svg
-                className="w-10 h-10 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -205,36 +194,22 @@ export function LoginPage() {
                 />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Pecal
-            </h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-2">
-              {t('auth.loginDescription')}
-            </p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Pecal</h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-2">{t('auth.loginDescription')}</p>
           </div>
 
-          {/* Error Message */}
           {error && (
             <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-              <p className="text-sm text-red-600 dark:text-red-400 text-center">
-                {error}
-              </p>
+              <p className="text-sm text-red-600 dark:text-red-400 text-center">{error}</p>
             </div>
           )}
 
-          {/* Loading state info */}
-          {isLoading && (
+          {statusMessage && (
             <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <p className="text-sm text-blue-600 dark:text-blue-400 text-center">
-                {t(
-                  'auth.waitingForBrowser',
-                  'Browser opened. Complete login and return to the app...'
-                )}
-              </p>
+              <p className="text-sm text-blue-600 dark:text-blue-400 text-center">{statusMessage}</p>
             </div>
           )}
 
-          {/* Kakao Login Button */}
           <button
             onClick={() => handleOAuthLogin('kakao')}
             disabled={!!isLoading}
@@ -252,7 +227,6 @@ export function LoginPage() {
             )}
           </button>
 
-          {/* Google Login Button */}
           <button
             onClick={() => handleOAuthLogin('google')}
             disabled={!!isLoading}
@@ -282,14 +256,12 @@ export function LoginPage() {
             </button>
           )}
 
-          {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-200 dark:border-gray-700" />
             </div>
           </div>
 
-          {/* Theme Toggle */}
           <div className="flex items-center justify-center">
             <button
               onClick={toggleTheme}
@@ -297,12 +269,7 @@ export function LoginPage() {
             >
               {theme === 'light' ? (
                 <>
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -314,12 +281,7 @@ export function LoginPage() {
                 </>
               ) : theme === 'dark' ? (
                 <>
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -331,12 +293,7 @@ export function LoginPage() {
                 </>
               ) : (
                 <>
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"

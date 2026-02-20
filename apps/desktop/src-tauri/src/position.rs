@@ -7,8 +7,8 @@ use std::path::PathBuf;
 use tauri::Manager;
 
 const STATE_FILE: &str = "window_state.json";
-const MIN_WIDTH: f64 = 640.0;
-const MIN_HEIGHT: f64 = 480.0;
+const MIN_WIDTH: f64 = 760.0;
+const MIN_HEIGHT: f64 = 600.0;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WindowState {
