@@ -167,6 +167,10 @@ export function EventEditModal() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!title.trim() || isSubmitting) return
+    if (endDatetime.getTime() <= startDatetime.getTime()) {
+      alert(t('event.invalidTimeRange'))
+      return
+    }
 
     setIsSubmitting(true)
 

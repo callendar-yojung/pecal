@@ -52,6 +52,7 @@
   "event.detail": "일정 상세",
   "event.editEvent": "일정 수정",
   "event.createError": "일정 생성에 실패했습니다",
+  "event.invalidTimeRange": "종료 시간은 시작 시간보다 늦어야 합니다.",
   "status.todo": "할 일",
   "status.inProgress": "진행 중",
   "status.done": "완료",

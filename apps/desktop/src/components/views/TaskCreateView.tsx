@@ -78,6 +78,10 @@ export function TaskCreateView() {
       } as const
       const startDatetime = buildDatetime(baseDate, startHour, startMinute)
       const endDatetime = buildDatetime(baseDate, endHour, endMinute)
+      if (endDatetime.getTime() <= startDatetime.getTime()) {
+        alert(t('event.invalidTimeRange'))
+        return
+      }
       const serializedContent = serializeRichContent(contentDoc)
 
       const response = await taskApi.createTask({

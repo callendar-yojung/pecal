@@ -3,6 +3,8 @@ param(
     [string]$FilePath
 )
 
+$ErrorActionPreference = "Stop"
+
 # Add Azure CLI to PATH for AzureCliCredential
 $env:PATH = "C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin;" + $env:PATH
 
