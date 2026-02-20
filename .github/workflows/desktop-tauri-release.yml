@@ -115,7 +115,7 @@ jobs:
 
       - name: Build Tauri app
         working-directory: apps/desktop
-        shell: bash
+        shell: cmd
         run: pnpm tauri:build:ci
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
