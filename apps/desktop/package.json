@@ -42,7 +42,6 @@
     "@tauri-apps/plugin-http": "^2.5.7",
     "@tauri-apps/plugin-process": "^2.3.1",
     "@tauri-apps/plugin-shell": "^2.3.4",
-    "@tauri-apps/plugin-updater": "^2.10.0",
     "@vitejs/plugin-react": "^5.1.2",
     "date-fns": "^4.1.0",
     "i18next": "^25.8.0",
