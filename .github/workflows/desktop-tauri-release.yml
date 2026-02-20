@@ -8,14 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            platform: windows
-            arch: x86_64
+    runs-on: windows-latest
 
     steps:
       - name: Checkout repo
@@ -40,24 +33,11 @@ jobs:
         with:
           workspaces: './apps/desktop/src-tauri -> target'
 
-      - name: Install system dependencies (Ubuntu)
-        if: matrix.platform == 'linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
-            librsvg2-dev \
-            patchelf \
-            libssl-dev \
-            jq
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Setup Azure Signing (Windows)
-        if: matrix.platform == 'windows'
-        shell: powershell
+      - name: Setup Azure Signing
+        shell: pwsh
         working-directory: apps/desktop
         run: |
           az login --service-principal -u "${{ secrets.AZURE_CLIENT_ID }}" -p "${{ secrets.AZURE_CLIENT_SECRET }}" --tenant "${{ secrets.AZURE_TENANT_ID }}"
@@ -92,17 +72,19 @@ jobs:
 
       - name: Get version from tag
         id: version
-        shell: bash
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        shell: pwsh
+        run: |
+          $version = "${env:GITHUB_REF}" -replace '^refs/tags/v', ''
+          "VERSION=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Update version in tauri.conf.json
-        shell: bash
+        shell: pwsh
         working-directory: apps/desktop
         run: |
-          VERSION=${{ steps.version.outputs.VERSION }}
-          echo "Updating version to $VERSION"
-          node scripts/update-version.mjs "$VERSION"
-          grep '"version"' src-tauri/tauri.conf.json | head -1
+          $version = "${{ steps.version.outputs.VERSION }}"
+          Write-Host "Updating version to $version"
+          node scripts/update-version.mjs "$version"
+          Select-String -Path src-tauri/tauri.conf.json -Pattern '"version"' | Select-Object -First 1
 
       - name: Build Tauri app
         working-directory: apps/desktop
@@ -114,51 +96,48 @@ jobs:
 
       - name: Find and prepare artifacts
         id: artifacts
-        shell: bash
+        shell: pwsh
         run: |
-          VERSION=${{ steps.version.outputs.VERSION }}
-          PLATFORM=${{ matrix.platform }}
+          $bundleDir = "apps/desktop/src-tauri/target/release/bundle"
+          Write-Host "=== Debug: Searching for artifacts ==="
+          if (Test-Path $bundleDir) {
+            Get-ChildItem -Path $bundleDir -Recurse -File | ForEach-Object { $_.FullName }
+          } else {
+            Write-Host "No bundle directory found"
+          }
 
-          echo "=== Debug: Searching for artifacts ==="
-          find apps/desktop/src-tauri/target/release/bundle -type f 2>/dev/null || echo "No bundle directory found"
+          $artifact = Get-ChildItem -Path $bundleDir -Recurse -Filter *.msi -File | Select-Object -First 1
+          $sigFile = Get-ChildItem -Path $bundleDir -Recurse -Filter *.msi.sig -File | Select-Object -First 1
 
-          ARTIFACT=$(find apps/desktop/src-tauri/target/release/bundle -name "*.msi" -type f 2>/dev/null | head -1 || true)
-          SIG_FILE=$(find apps/desktop/src-tauri/target/release/bundle -name "*.msi.sig" -type f 2>/dev/null | head -1 || true)
+          Write-Host "=== Found artifact: $($artifact.FullName) ==="
+          Write-Host "=== Found signature: $($sigFile.FullName) ==="
 
-          echo "=== Found artifact: $ARTIFACT ==="
-          echo "=== Found signature: $SIG_FILE ==="
-
-          if [[ -z "$ARTIFACT" || ! -f "$ARTIFACT" ]]; then
-            echo "Error: No artifact found for platform $PLATFORM"
-            find apps/desktop/src-tauri/target/release/bundle -type f 2>/dev/null || echo "No files found"
+          if (-not $artifact) {
+            Write-Error "No MSI artifact found."
             exit 1
-          fi
+          }
 
-          ARTIFACT_NAME=$(basename "$ARTIFACT")
-          cp "$ARTIFACT" "$GITHUB_WORKSPACE/$ARTIFACT_NAME"
+          $artifactName = $artifact.Name
+          $artifactPath = Join-Path $env:GITHUB_WORKSPACE $artifactName
+          Copy-Item $artifact.FullName $artifactPath -Force
 
-          echo "ARTIFACT_NAME=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
-          echo "ARTIFACT_PATH=$GITHUB_WORKSPACE/$ARTIFACT_NAME" >> $GITHUB_OUTPUT
+          "ARTIFACT_NAME=$artifactName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "ARTIFACT_PATH=$artifactPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
-          if [[ -n "$SIG_FILE" && -f "$SIG_FILE" ]]; then
-            SIG_NAME=$(basename "$SIG_FILE")
-            cp "$SIG_FILE" "$GITHUB_WORKSPACE/$SIG_NAME"
-            echo "SIG_NAME=$SIG_NAME" >> $GITHUB_OUTPUT
-            echo "SIG_PATH=$GITHUB_WORKSPACE/$SIG_NAME" >> $GITHUB_OUTPUT
-            SIGNATURE=$(cat "$SIG_FILE")
-            echo "SIGNATURE=$SIGNATURE" >> $GITHUB_OUTPUT
-          fi
+          if ($sigFile) {
+            $sigName = $sigFile.Name
+            $sigPath = Join-Path $env:GITHUB_WORKSPACE $sigName
+            Copy-Item $sigFile.FullName $sigPath -Force
+            "SIG_NAME=$sigName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "SIG_PATH=$sigPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            $signature = Get-Content $sigFile.FullName -Raw
+            "SIGNATURE=$signature" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          }
 
-          if [[ "$PLATFORM" == "windows" ]]; then
-            FILE_SIZE=$(powershell -command "(Get-Item '$GITHUB_WORKSPACE/$ARTIFACT_NAME').Length")
-            CHECKSUM=$(powershell -command "(Get-FileHash '$GITHUB_WORKSPACE/$ARTIFACT_NAME' -Algorithm SHA256).Hash.ToLower()")
-          else
-            FILE_SIZE=$(stat -c%s "$GITHUB_WORKSPACE/$ARTIFACT_NAME")
-            CHECKSUM=$(shasum -a 256 "$GITHUB_WORKSPACE/$ARTIFACT_NAME" | cut -d ' ' -f 1)
-          fi
-
-          echo "FILE_SIZE=$FILE_SIZE" >> $GITHUB_OUTPUT
-          echo "CHECKSUM=$CHECKSUM" >> $GITHUB_OUTPUT
+          $fileSize = (Get-Item $artifactPath).Length
+          $checksum = (Get-FileHash $artifactPath -Algorithm SHA256).Hash.ToLower()
+          "FILE_SIZE=$fileSize" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "CHECKSUM=$checksum" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -169,58 +148,54 @@ jobs:
 
       - name: Upload to S3
         id: s3_upload
-        shell: bash
+        shell: pwsh
         run: |
-          VERSION=${{ steps.version.outputs.VERSION }}
-          PLATFORM=${{ matrix.platform }}
-          ARTIFACT_NAME="${{ steps.artifacts.outputs.ARTIFACT_NAME }}"
-          ARTIFACT_PATH="${{ steps.artifacts.outputs.ARTIFACT_PATH }}"
+          $version = "${{ steps.version.outputs.VERSION }}"
+          $platform = "windows"
+          $artifactName = "${{ steps.artifacts.outputs.ARTIFACT_NAME }}"
+          $artifactPath = "${{ steps.artifacts.outputs.ARTIFACT_PATH }}"
 
-          S3_PATH="s3://${{ secrets.AWS_S3_BUCKET }}/releases/v${VERSION}/${PLATFORM}/${ARTIFACT_NAME}"
-          aws s3 cp "$ARTIFACT_PATH" "$S3_PATH"
+          $s3Path = "s3://${{ secrets.AWS_S3_BUCKET }}/releases/v$version/$platform/$artifactName"
+          aws s3 cp "$artifactPath" "$s3Path"
 
-          S3_URL="https://${{ secrets.AWS_S3_BUCKET }}.s3.${{ secrets.AWS_REGION }}.amazonaws.com/releases/v${VERSION}/${PLATFORM}/${ARTIFACT_NAME}"
-          echo "S3_URL=$S3_URL" >> $GITHUB_OUTPUT
+          $s3Url = "https://${{ secrets.AWS_S3_BUCKET }}.s3.${{ secrets.AWS_REGION }}.amazonaws.com/releases/v$version/$platform/$artifactName"
+          "S3_URL=$s3Url" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
-          SIG_NAME="${{ steps.artifacts.outputs.SIG_NAME }}"
-          SIG_PATH="${{ steps.artifacts.outputs.SIG_PATH }}"
-          if [[ -n "$SIG_NAME" && -f "$SIG_PATH" ]]; then
-            aws s3 cp "$SIG_PATH" "s3://${{ secrets.AWS_S3_BUCKET }}/releases/v${VERSION}/${PLATFORM}/${SIG_NAME}"
-          fi
+          $sigName = "${{ steps.artifacts.outputs.SIG_NAME }}"
+          $sigPath = "${{ steps.artifacts.outputs.SIG_PATH }}"
+          if ($sigName -and (Test-Path $sigPath)) {
+            aws s3 cp "$sigPath" "s3://${{ secrets.AWS_S3_BUCKET }}/releases/v$version/$platform/$sigName"
+          }
 
       - name: Save release info to database
-        shell: bash
+        shell: pwsh
         continue-on-error: true
         run: |
-          VERSION=${{ steps.version.outputs.VERSION }}
-          PLATFORM=${{ matrix.platform }}
-          ARTIFACT_NAME="${{ steps.artifacts.outputs.ARTIFACT_NAME }}"
-          FILE_SIZE=${{ steps.artifacts.outputs.FILE_SIZE }}
-          CHECKSUM=${{ steps.artifacts.outputs.CHECKSUM }}
-          S3_URL="${{ steps.s3_upload.outputs.S3_URL }}"
-          SIGNATURE="${{ steps.artifacts.outputs.SIGNATURE }}"
-          RELEASE_NOTES=$(echo "${{ github.event.head_commit.message }}" | head -1 | sed 's/"/\\"/g' | tr -d '\n\r')
+          $payload = @{
+            version = "${{ steps.version.outputs.VERSION }}"
+            platform = "windows"
+            fileName = "${{ steps.artifacts.outputs.ARTIFACT_NAME }}"
+            downloadUrl = "${{ steps.s3_upload.outputs.S3_URL }}"
+            fileSize = [int64]"${{ steps.artifacts.outputs.FILE_SIZE }}"
+            checksum = "${{ steps.artifacts.outputs.CHECKSUM }}"
+            signature = "${{ steps.artifacts.outputs.SIGNATURE }}"
+            releaseNotes = "${{ github.event.head_commit.message }}"
+            isPrerelease = $false
+          } | ConvertTo-Json -Compress
 
-          curl -X POST "${{ secrets.API_BASE_URL }}/api/releases" \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.API_SECRET_KEY }}" \
-            --fail \
-            -d "{\
-              \"version\": \"${VERSION}\",\
-              \"platform\": \"${PLATFORM}\",\
-              \"fileName\": \"${ARTIFACT_NAME}\",\
-              \"downloadUrl\": \"${S3_URL}\",\
-              \"fileSize\": ${FILE_SIZE},\
-              \"checksum\": \"${CHECKSUM}\",\
-              \"signature\": \"${SIGNATURE}\",\
-              \"releaseNotes\": \"${RELEASE_NOTES}\",\
-              \"isPrerelease\": false\
-            }"
+          Invoke-RestMethod `
+            -Method Post `
+            -Uri "${{ secrets.API_BASE_URL }}/api/releases" `
+            -Headers @{
+              "Content-Type" = "application/json"
+              "Authorization" = "Bearer ${{ secrets.API_SECRET_KEY }}"
+            } `
+            -Body $payload
 
       - name: Upload artifact for release
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.platform }}-build
+          name: windows-build
           path: |
             ${{ steps.artifacts.outputs.ARTIFACT_PATH }}
             ${{ steps.artifacts.outputs.SIG_PATH }}
