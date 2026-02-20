@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
 
     // redirect_uri는 반드시 구글에 등록된 URL을 사용해야 함
     const redirectUri = process.env.NODE_ENV === 'production'
-      ? "https://trabien.com/api/auth/google/callback"
+      ? "https://pecal.site/api/auth/google/callback"
       : "http://localhost:3000/api/auth/google/callback";
 
     // 1. 구글 액세스 토큰 받기

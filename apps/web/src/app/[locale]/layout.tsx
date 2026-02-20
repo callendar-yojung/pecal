@@ -37,7 +37,7 @@ export async function generateMetadata({
   const messages = (await import(`../../../messages/${locale}.json`)).default;
   const t = messages.metadata;
 
-  const baseUrl = "https://trabien.com";
+  const baseUrl = "https://pecal.site";
 
   return {
     metadataBase: new URL(baseUrl),

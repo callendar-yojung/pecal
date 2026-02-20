@@ -43,7 +43,7 @@ export function TaskExportView() {
   const [error, setError] = useState<string | null>(null)
 
   const locale = i18n.language === 'ko' ? 'ko' : 'en'
-  const baseUrl = (import.meta.env.VITE_API_BASE_URL || 'https://trabien.com').replace(/\/$/, '')
+  const baseUrl = (import.meta.env.VITE_API_BASE_URL || 'https://pecal.site').replace(/\/$/, '')
 
   const buildShareUrl = (token: string) => `${baseUrl}/${locale}/export/tasks/${token}`
 
