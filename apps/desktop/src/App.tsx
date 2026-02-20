@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { listen } from '@tauri-apps/api/event'
 import { ask } from '@tauri-apps/plugin-dialog'
@@ -147,6 +147,7 @@ function AppContent() {
 function App() {
   const { theme } = useThemeStore()
   const { isAuthenticated, isLoading } = useAuthStore()
+  const [showLoginSuccess, setShowLoginSuccess] = useState(false)
 
   useEffect(() => {
     document.documentElement.classList.remove('dark', 'pink')
@@ -157,6 +158,22 @@ function App() {
       document.documentElement.classList.add('pink')
     }
   }, [theme])
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+
+    const flag = sessionStorage.getItem('pecal_login_success')
+    if (flag !== '1') return
+
+    sessionStorage.removeItem('pecal_login_success')
+    setShowLoginSuccess(true)
+
+    const id = window.setTimeout(() => {
+      setShowLoginSuccess(false)
+    }, 2200)
+
+    return () => window.clearTimeout(id)
+  }, [isAuthenticated])
 
   // Show loading spinner while checking auth (but not during OAuth callback)
   const urlParams = new URLSearchParams(window.location.search)
@@ -175,7 +192,16 @@ function App() {
     return <LoginPage />
   }
 
-  return <AppContent />
+  return (
+    <>
+      <AppContent />
+      {showLoginSuccess && (
+        <div className="fixed top-4 right-4 z-[100] rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 shadow-lg dark:border-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+          로그인 성공!
+        </div>
+      )}
+    </>
+  )
 }
 
 export default App

@@ -25,7 +25,7 @@ pub fn enable_autostart() {
         }
     };
 
-    let app_name = "DesktopCalendar";
+    let app_name = "Pecal";
     let exe_str = exe.to_string_lossy().to_string();
 
     match run_key.set_value(app_name, &exe_str) {
@@ -44,7 +44,7 @@ pub fn disable_autostart() {
         r"Software\Microsoft\Windows\CurrentVersion\Run",
         KEY_WRITE,
     ) {
-        let _ = run_key.delete_value("DesktopCalendar");
+        let _ = run_key.delete_value("Pecal");
         log::info!("autostart: removed");
     }
 }
@@ -70,7 +70,7 @@ pub fn register_deep_link_scheme() {
     // 1. deskcal 프로토콜 키 생성
     match hkcu.create_subkey(r"Software\Classes\deskcal") {
         Ok((key, _)) => {
-            let _ = key.set_value("", &"URL:Desktop Calendar Protocol".to_string());
+            let _ = key.set_value("", &"URL:Pecal Protocol".to_string());
             let _ = key.set_value("URL Protocol", &String::new());
             log::info!("deep-link: created protocol key");
         }
@@ -110,7 +110,7 @@ pub fn is_autostart_enabled() -> bool {
         r"Software\Microsoft\Windows\CurrentVersion\Run",
         KEY_READ,
     ) {
-        return run_key.get_value::<String, _>("DesktopCalendar").is_ok();
+        return run_key.get_value::<String, _>("Pecal").is_ok();
     }
     false
 }

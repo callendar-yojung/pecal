@@ -2,9 +2,13 @@
 
 import { signIn } from "next-auth/react";
 import { useTranslations } from "next-intl";
+import { useParams } from "next/navigation";
 
 export default function LoginPage() {
   const t = useTranslations("login");
+  const params = useParams<{ locale: string }>();
+  const locale = params?.locale || "en";
+  const successCallbackUrl = `/${locale}/login/success`;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted">
@@ -21,7 +25,7 @@ export default function LoginPage() {
         <div className="space-y-4">
           <button
             type="button"
-            onClick={() => signIn("kakao", { callbackUrl: "/" })}
+            onClick={() => signIn("kakao", { callbackUrl: successCallbackUrl })}
             className="flex w-full items-center justify-center gap-3 rounded-xl bg-[#FEE500] px-4 py-3 font-medium text-[#191919] transition-all duration-200 hover:bg-[#FDD800] hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
           >
             <svg
@@ -43,7 +47,7 @@ export default function LoginPage() {
 
           <button
             type="button"
-            onClick={() => signIn("google", { callbackUrl: "/" })}
+            onClick={() => signIn("google", { callbackUrl: successCallbackUrl })}
             className="flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-background px-4 py-3 font-medium text-foreground transition-all duration-200 hover:bg-muted hover:scale-[1.02] hover:shadow-lg hover:border-foreground/20 active:scale-[0.98]"
           >
             <svg
