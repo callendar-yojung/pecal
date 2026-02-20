@@ -45,7 +45,7 @@ interface PaymentRecord {
   created_at: string
 }
 
-const BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://trabien.com').replace(/\/$/, '')
+const BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://pecal.site').replace(/\/$/, '')
 
 export function SettingsBillingTab() {
   const { t } = useTranslation()

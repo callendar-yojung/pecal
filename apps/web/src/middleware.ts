@@ -17,7 +17,7 @@ export default function middleware(request: NextRequest) {
   if (pathname.startsWith("/api")) {
     // 환경별 Origin 설정
     const origin = process.env.NODE_ENV === "production"
-        ? "https://trabien.com"
+        ? "https://pecal.site"
         : "http://localhost:1420";
 
     // OPTIONS 요청 처리 (preflight)

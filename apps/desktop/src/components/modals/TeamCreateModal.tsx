@@ -64,7 +64,7 @@ export function TeamCreateModal() {
       if (!confirmed) return
 
       const ownerId = createdTeamId
-      const billingUrl = `https://trabien.com/dashboard/settings/billing/plans/team?owner_id=${ownerId}`
+      const billingUrl = `https://pecal.site/dashboard/settings/billing/plans/team?owner_id=${ownerId}`
       try {
         await open(billingUrl)
       } catch (openError) {

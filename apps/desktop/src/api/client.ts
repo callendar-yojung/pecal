@@ -1,6 +1,6 @@
 import { fetch } from '@tauri-apps/plugin-http'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://trabien.com'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://pecal.site'
 
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'

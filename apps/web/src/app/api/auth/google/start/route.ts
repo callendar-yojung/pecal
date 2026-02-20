@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
  *
  * Flow:
  * 1. 데스크톱 앱이 callback URL을 전달 (예: deskcal://auth/callback)
- * 2. redirect_uri는 항상 https://trabien.com/api/auth/google/callback (구글에 등록된 URL)
+ * 2. redirect_uri는 항상 https://pecal.site/api/auth/google/callback (구글에 등록된 URL)
  * 3. callback URL은 state 파라미터에 저장되어 OAuth 흐름을 통해 전달됨
  * 4. 구글 인증 후, 백엔드가 state에서 callback URL을 추출하여 토큰과 함께 리다이렉트
  */
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     // redirect_uri는 항상 구글에 등록된 HTTPS URL을 사용
     // 구글은 커스텀 스킴(deskcal://)을 웹 앱에서는 허용하지 않음
     const redirectUri = process.env.NODE_ENV === 'production'
-      ? "https://trabien.com/api/auth/google/callback"
+      ? "https://pecal.site/api/auth/google/callback"
       : "http://localhost:3000/api/auth/google/callback";
 
     // state 파라미터에 앱의 callback URL을 저장
