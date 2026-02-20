@@ -45,7 +45,7 @@
     "targets": "all",
     "createUpdaterArtifacts": true,
     "windows": {
-      "signCommand": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoProfile -ExecutionPolicy Bypass -File src-tauri/sign.ps1 %1",
+      "signCommand": "cmd /C src-tauri\\sign.cmd \"%1\"",
       "wix": {
         "language": "ko-KR",
         "upgradeCode": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
