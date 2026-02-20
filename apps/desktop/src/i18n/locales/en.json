@@ -52,6 +52,7 @@
   "event.detail": "Event Details",
   "event.editEvent": "Edit Event",
   "event.createError": "Failed to create event",
+  "event.invalidTimeRange": "End time must be later than start time.",
   "status.todo": "To Do",
   "status.inProgress": "In Progress",
   "status.done": "Done",

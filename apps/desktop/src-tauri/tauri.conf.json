@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "DesktopCalendar",
-  "version": "1.2.7",
+  "version": "1.2.15",
   "identifier": "com.deskcal.app",
   "build": {
     "frontendDist": "../dist",
@@ -45,7 +45,7 @@
     "targets": "all",
     "createUpdaterArtifacts": true,
     "windows": {
-      "signCommand": "pwsh -NoProfile -ExecutionPolicy Bypass -File src-tauri/sign.ps1 %1",
+      "signCommand": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoProfile -ExecutionPolicy Bypass -File src-tauri/sign.ps1 %1",
       "wix": {
         "language": "ko-KR",
         "upgradeCode": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
