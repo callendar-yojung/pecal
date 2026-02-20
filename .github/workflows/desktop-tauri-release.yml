@@ -122,23 +122,8 @@ jobs:
           echo "=== Debug: Searching for artifacts ==="
           find apps/desktop/src-tauri/target/release/bundle -type f 2>/dev/null || echo "No bundle directory found"
 
-          if [[ "$PLATFORM" == "windows" ]]; then
-            ARTIFACT=$(find apps/desktop/src-tauri/target/release/bundle -name "*.msi" -type f 2>/dev/null | head -1 || true)
-            if [[ -z "$ARTIFACT" ]]; then
-              ARTIFACT=$(find apps/desktop/src-tauri/target/release/bundle -name "*-setup.exe" -type f 2>/dev/null | head -1 || true)
-            fi
-            SIG_FILE=$(find apps/desktop/src-tauri/target/release/bundle -name "*.msi.sig" -type f 2>/dev/null | head -1 || true)
-            if [[ -z "$SIG_FILE" ]]; then
-              SIG_FILE=$(find apps/desktop/src-tauri/target/release/bundle -name "*-setup.exe.sig" -type f 2>/dev/null | head -1 || true)
-            fi
-          else
-            ARTIFACT=$(find apps/desktop/src-tauri/target/release/bundle -name "*.AppImage" -type f 2>/dev/null | head -1 || true)
-            SIG_FILE=$(find apps/desktop/src-tauri/target/release/bundle -name "*.AppImage.sig" -type f 2>/dev/null | head -1 || true)
-            if [[ -z "$ARTIFACT" ]]; then
-              ARTIFACT=$(find apps/desktop/src-tauri/target/release/bundle -name "*.deb" -type f 2>/dev/null | head -1 || true)
-              SIG_FILE=$(find apps/desktop/src-tauri/target/release/bundle -name "*.deb.sig" -type f 2>/dev/null | head -1 || true)
-            fi
-          fi
+          ARTIFACT=$(find apps/desktop/src-tauri/target/release/bundle -name "*.msi" -type f 2>/dev/null | head -1 || true)
+          SIG_FILE=$(find apps/desktop/src-tauri/target/release/bundle -name "*.msi.sig" -type f 2>/dev/null | head -1 || true)
 
           echo "=== Found artifact: $ARTIFACT ==="
           echo "=== Found signature: $SIG_FILE ==="
