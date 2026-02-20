@@ -45,17 +45,6 @@
     "targets": ["msi"],
     "createUpdaterArtifacts": false,
     "windows": {
-      "signCommand": {
-        "cmd": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
-        "args": [
-          "-NoProfile",
-          "-ExecutionPolicy",
-          "Bypass",
-          "-File",
-          "src-tauri/sign.ps1",
-          "%1"
-        ]
-      },
       "wix": {
         "language": "ko-KR",
         "upgradeCode": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
