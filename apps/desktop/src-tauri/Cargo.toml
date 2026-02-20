@@ -28,7 +28,6 @@ tauri-plugin-shell = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-http = { version = "2.5.7", features = ["multipart"] }
 tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
-tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 urlencoding = "2.1"
 

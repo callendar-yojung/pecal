@@ -104,15 +104,6 @@ jobs:
           node scripts/update-version.mjs "$VERSION"
           grep '"version"' src-tauri/tauri.conf.json | head -1
 
-      - name: Configure updater endpoint
-        shell: bash
-        working-directory: apps/desktop
-        env:
-          API_BASE_URL: ${{ secrets.API_BASE_URL }}
-          TAURI_UPDATER_PUBKEY: ${{ secrets.TAURI_UPDATER_PUBKEY }}
-        run: |
-          node scripts/configure-updater.mjs "$API_BASE_URL" "$TAURI_UPDATER_PUBKEY"
-
       - name: Build Tauri app
         working-directory: apps/desktop
         shell: pwsh
