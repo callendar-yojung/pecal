@@ -35,9 +35,6 @@ importers:
       '@tauri-apps/plugin-shell':
         specifier: ^2.3.4
         version: 2.3.5
-      '@tauri-apps/plugin-updater':
-        specifier: ^2.10.0
-        version: 2.10.0
       '@tiptap/core':
         specifier: ^2.11.9
         version: 2.27.2(@tiptap/pm@2.27.2)
