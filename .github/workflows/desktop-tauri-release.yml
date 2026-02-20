@@ -114,9 +114,7 @@ jobs:
           node scripts/configure-updater.mjs "$API_BASE_URL" "$TAURI_UPDATER_PUBKEY"
 
       - name: Build Tauri app
-        working-directory: apps/desktop
-        shell: powershell
-        run: pnpm tauri:build:ci
+        run: pnpm --filter desktop... run tauri:build:ci
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
