@@ -113,19 +113,9 @@ jobs:
         run: |
           node scripts/configure-updater.mjs "$API_BASE_URL" "$TAURI_UPDATER_PUBKEY"
 
-      - name: Configure windows sign command
-        if: matrix.platform == 'windows'
-        shell: bash
-        working-directory: apps/desktop
-        env:
-          GITHUB_WORKSPACE: ${{ github.workspace }}
-        run: |
-          node scripts/configure-sign-command.mjs "$GITHUB_WORKSPACE"
-          grep '"signCommand"' src-tauri/tauri.conf.json | head -1
-
       - name: Build Tauri app
         working-directory: apps/desktop
-        shell: cmd
+        shell: pwsh
         run: pnpm tauri:build:ci
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
