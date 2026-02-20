@@ -42,7 +42,7 @@
       "icons/icon.ico"
     ],
     "active": true,
-    "targets": "all",
+    "targets": ["msi"],
     "createUpdaterArtifacts": false,
     "windows": {
       "wix": {
