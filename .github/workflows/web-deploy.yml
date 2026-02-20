@@ -17,9 +17,9 @@ jobs:
 
     env:
       # Deploy target
-      SERVER_HOST: ${{ secrets.SERVER_HOST }}
-      SSH_USER: callendar
-      DEPLOY_PATH: /home/callendar/apps/api
+      SERVER_HOST: ${{ secrets.HOME_SERVER_HOST }}
+      SSH_USER: tlswlfk
+      DEPLOY_PATH: /home/tlswlfk/apps/api
 
       # NextAuth
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
@@ -93,15 +93,15 @@ jobs:
       - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/callendar.pem
-          chmod 600 ~/.ssh/callendar.pem
+          echo "${{ secrets.HOME_SERVER_PRIVATE_KEY }}" > ~/.ssh/home_server.pem
+          chmod 600 ~/.ssh/home_server.pem
 
       - name: Bootstrap remote server (empty Ubuntu supported)
         run: |
-          ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no "${SSH_USER}@${SERVER_HOST}" "DEPLOY_PATH='${DEPLOY_PATH}' bash -s" << 'EOF'
+          ssh -i ~/.ssh/home_server.pem -o StrictHostKeyChecking=no "${SSH_USER}@${SERVER_HOST}" "DEPLOY_PATH='${DEPLOY_PATH}' bash -s" << 'EOF'
             set -euo pipefail
 
-            APP_DIR="${DEPLOY_PATH:-/home/callendar/apps/api}"
+            APP_DIR="${DEPLOY_PATH:-/home/tlswlfk/apps/api}"
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 
@@ -116,12 +116,30 @@ jobs:
               "$APP_DIR/web.log" || true
             df -h || true
 
-            # Install Node.js (user-space via nvm) if missing
-            if ! command -v node >/dev/null 2>&1; then
-              if ! command -v curl >/dev/null 2>&1; then
-                echo "ERROR: curl is required on the server for bootstrap." >&2
+            # Ensure curl exists (install if possible)
+            if ! command -v curl >/dev/null 2>&1; then
+              SUDO=""
+              if command -v sudo >/dev/null 2>&1; then
+                SUDO="sudo"
+              fi
+
+              if command -v apt-get >/dev/null 2>&1; then
+                $SUDO apt-get update
+                $SUDO apt-get install -y curl
+              elif command -v dnf >/dev/null 2>&1; then
+                $SUDO dnf install -y curl
+              elif command -v yum >/dev/null 2>&1; then
+                $SUDO yum install -y curl
+              elif command -v apk >/dev/null 2>&1; then
+                $SUDO apk add --no-cache curl
+              else
+                echo "ERROR: curl is missing and no supported package manager was found." >&2
                 exit 1
               fi
+            fi
+
+            # Install Node.js (user-space via nvm) if missing
+            if ! command -v node >/dev/null 2>&1; then
               curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
               . "$NVM_DIR/nvm.sh"
               nvm install 20
@@ -140,14 +158,14 @@ jobs:
             --exclude='.git' \
             -czf - \
             .deploy-web \
-          | ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no "${SSH_USER}@${SERVER_HOST}" "DEPLOY_PATH='${DEPLOY_PATH}' bash -lc 'set -euo pipefail; APP_DIR=\"\${DEPLOY_PATH:-/home/callendar/apps/api}\"; mkdir -p \"\$APP_DIR\"; cd \"\$APP_DIR\"; rm -rf apps .next node_modules; tar -xzf - -C \"\$APP_DIR\" --strip-components=1'"
+          | ssh -i ~/.ssh/home_server.pem -o StrictHostKeyChecking=no "${SSH_USER}@${SERVER_HOST}" "DEPLOY_PATH='${DEPLOY_PATH}' bash -lc 'set -euo pipefail; APP_DIR=\"\${DEPLOY_PATH:-/home/tlswlfk/apps/api}\"; mkdir -p \"\$APP_DIR\"; cd \"\$APP_DIR\"; rm -rf apps .next node_modules; tar -xzf - -C \"\$APP_DIR\" --strip-components=1'"
 
       - name: Write env file
         run: |
-          ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no "${SSH_USER}@${SERVER_HOST}" "DEPLOY_PATH='${DEPLOY_PATH}' bash -s" << 'EOF'
+          ssh -i ~/.ssh/home_server.pem -o StrictHostKeyChecking=no "${SSH_USER}@${SERVER_HOST}" "DEPLOY_PATH='${DEPLOY_PATH}' bash -s" << 'EOF'
             set -euo pipefail
 
-            APP_DIR="${DEPLOY_PATH:-/home/callendar/apps/api}"
+            APP_DIR="${DEPLOY_PATH:-/home/tlswlfk/apps/api}"
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
             mkdir -p "$APP_DIR"
@@ -156,8 +174,8 @@ jobs:
             cat > "$APP_DIR/apps/web/.env.production" << 'ENVEOF'
             AUTH_SECRET=${{ secrets.AUTH_SECRET }}
             NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}
-            AUTH_KAKAO_ID=${{ secrets.AUTH_KAKAO_ID }}
-            AUTH_KAKAO_SECRET=${{ secrets.AUTH_KAKAO_SECRET }}
+            AUTH_KAKAO_ID=${{ secrets.KAKAO_CLIENT_ID }}
+            AUTH_KAKAO_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }}
             AUTH_GOOGLE_ID=${{ secrets.AUTH_GOOGLE_ID }}
             AUTH_GOOGLE_SECRET=${{ secrets.AUTH_GOOGLE_SECRET }}
             APP_DEEPLINK_SCHEME=${{ secrets.APP_DEEPLINK_SCHEME }}
@@ -183,9 +201,9 @@ jobs:
 
       - name: Start web server
         run: |
-          ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no "${SSH_USER}@${SERVER_HOST}" "DEPLOY_PATH='${DEPLOY_PATH}' bash -s" << 'EOF'
+          ssh -i ~/.ssh/home_server.pem -o StrictHostKeyChecking=no "${SSH_USER}@${SERVER_HOST}" "DEPLOY_PATH='${DEPLOY_PATH}' bash -s" << 'EOF'
             set -euo pipefail
-            APP_DIR="${DEPLOY_PATH:-/home/callendar/apps/api}"
+            APP_DIR="${DEPLOY_PATH:-/home/tlswlfk/apps/api}"
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 
@@ -205,7 +223,7 @@ jobs:
             fi
 
             if command -v pm2 >/dev/null 2>&1; then
-              pm2 start "node $ENTRY" --name pecal-web --cwd "$APP_DIR"
+              pm2 start "$ENTRY" --name pecal-web --cwd "$APP_DIR" -i max --exec-mode cluster
               pm2 save || true
             else
               pkill -f "node .*apps/api/server.js" || true
