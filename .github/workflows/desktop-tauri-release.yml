@@ -85,16 +85,11 @@ jobs:
           Write-Host "Updating version to $version"
           node scripts/update-version.mjs "$version"
           Select-String -Path src-tauri/tauri.conf.json -Pattern '"version"' | Select-Object -First 1
-          Select-String -Path src-tauri/tauri.conf.json -Pattern '"signCommand"' | Select-Object -First 1
 
       - name: Verify signing files
         shell: pwsh
         working-directory: apps/desktop
         run: |
-          if (-not (Test-Path "src-tauri/sign.ps1")) {
-            Write-Error "missing src-tauri/sign.ps1"
-            exit 1
-          }
           if (-not (Test-Path "signing-tools/metadata.json")) {
             Write-Error "missing signing-tools/metadata.json"
             exit 1
@@ -112,6 +107,38 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: Sign MSI artifact
+        shell: pwsh
+        working-directory: apps/desktop
+        run: |
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue |
+            Sort-Object { [version]($_.Directory.Parent.Name) } -Descending |
+            Select-Object -First 1 -ExpandProperty FullName
+
+          if (-not $signtool) {
+            Write-Error "signtool.exe not found"
+            exit 1
+          }
+
+          $dlib = Resolve-Path "signing-tools/Microsoft.ArtifactSigning.Client/bin/x64/Azure.CodeSigning.Dlib.dll"
+          $metadata = Resolve-Path "signing-tools/metadata.json"
+          $msi = Get-ChildItem -Path "src-tauri/target/release/bundle" -Recurse -Filter *.msi -File | Select-Object -First 1
+
+          if (-not $msi) {
+            Write-Error "MSI artifact not found for signing"
+            exit 1
+          }
+
+          Write-Host "Signing MSI: $($msi.FullName)"
+          & $signtool sign /v /fd SHA256 /tr "http://timestamp.acs.microsoft.com" /td SHA256 /dlib $dlib /dmdf $metadata $msi.FullName
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "MSI signing failed with exit code $LASTEXITCODE"
+            exit $LASTEXITCODE
+          }
+
+          Write-Host "MSI signing completed"
 
       - name: Find and prepare artifacts
         id: artifacts
