@@ -224,7 +224,7 @@ jobs:
             fi
 
             if command -v pm2 >/dev/null 2>&1; then
-              pm2 start "$ENTRY" --name pecal-web --cwd "$APP_DIR" -i max --exec-mode cluster
+              pm2 start "$ENTRY" --name pecal-web --cwd "$APP_DIR" -i max
               pm2 save || true
             else
               pkill -f "node .*apps/api/server.js" || true
