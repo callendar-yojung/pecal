@@ -45,6 +45,7 @@
     "targets": ["msi"],
     "createUpdaterArtifacts": false,
     "windows": {
+      "signCommand": "pwsh -NoProfile -ExecutionPolicy Bypass -File src-tauri/sign.ps1 %1",
       "wix": {
         "language": "ko-KR",
         "upgradeCode": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
