@@ -1,4 +1,5 @@
 import { fetch } from '@tauri-apps/plugin-http'
+import { ApiError, isRetryableStatus, mapStatusToApiCode, toApiError } from '@repo/api-client'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://pecal.site'
 
@@ -96,7 +97,14 @@ class ApiClient {
           console.error('❌ Failed to parse error response:', responseText)
         }
 
-        throw new Error(errorMessage)
+        throw new ApiError({
+          message: errorMessage,
+          status: response.status,
+          code: mapStatusToApiCode(response.status),
+          retryable: isRetryableStatus(response.status),
+          source: 'desktop',
+          details: responseText,
+        })
       }
 
       // 성공 응답 파싱
@@ -106,23 +114,17 @@ class ApiClient {
         return data
       } catch (parseError) {
         console.error('❌ Failed to parse success response:', responseText)
-        throw new Error('Invalid JSON response')
+        throw new ApiError({
+          message: 'Invalid JSON response',
+          status: response.status,
+          code: 'REQUEST_FAILED',
+          retryable: false,
+          source: 'desktop',
+          details: responseText,
+        })
       }
     } catch (error) {
-      const normalizedError =
-        error instanceof Error
-          ? error
-          : new Error(
-              typeof error === 'string'
-                ? error
-                : (() => {
-                    try {
-                      return JSON.stringify(error)
-                    } catch {
-                      return 'Unknown error'
-                    }
-                  })()
-            )
+      const normalizedError = toApiError(error, 'desktop')
 
       console.error('❌ API Request Failed:', {
         url,
@@ -216,27 +218,21 @@ class ApiClient {
         } catch {
           // ignore parse error
         }
-        throw new Error(errorMessage)
+        throw new ApiError({
+          message: errorMessage,
+          status: response.status,
+          code: mapStatusToApiCode(response.status),
+          retryable: isRetryableStatus(response.status),
+          source: 'desktop',
+          details: responseText,
+        })
       }
 
       const data = JSON.parse(responseText)
       console.log('✅ API Upload Success:', data)
       return data
     } catch (error) {
-      const normalizedError =
-        error instanceof Error
-          ? error
-          : new Error(
-              typeof error === 'string'
-                ? error
-                : (() => {
-                    try {
-                      return JSON.stringify(error)
-                    } catch {
-                      return 'Unknown error'
-                    }
-                  })()
-            )
+      const normalizedError = toApiError(error, 'desktop')
 
       console.error('❌ API Upload Failed:', {
         url,

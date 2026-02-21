@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isRetryableStatus, mapStatusToApiCode } from "@repo/api-client";
 
 export type ApiErrorResponse = {
   success: false;
@@ -23,8 +24,17 @@ export function jsonError(
   code?: string,
   extra: Record<string, unknown> = {}
 ) {
+  const resolvedCode = code ?? mapStatusToApiCode(status);
   return NextResponse.json(
-    { success: false, error: message, ...(code ? { code } : {}), ...extra },
+    {
+      success: false,
+      error: message,
+      code: resolvedCode,
+      status,
+      retryable: isRetryableStatus(status),
+      source: "web",
+      ...extra,
+    },
     { status }
   );
 }
