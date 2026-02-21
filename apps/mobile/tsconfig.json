@@ -1,0 +1,28 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@repo/types": [
+        "../../packages/types/src/index.ts"
+      ],
+      "@repo/api-client": [
+        "../../packages/api-client/src/index.ts"
+      ],
+      "@repo/utils": [
+        "../../packages/utils/src/index.ts"
+      ],
+      "@repo/ui": [
+        "../../packages/ui/src/index.ts"
+      ],
+      "@repo/feature-upload": [
+        "../../packages/feature-upload/src/index.ts"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ]
+}

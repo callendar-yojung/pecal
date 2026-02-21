@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Pecal Mobile",
+    "slug": "pecal-mobile",
+    "version": "1.0.0",
+    "scheme": "myapp",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.pecal.mobile"
+    },
+    "plugins": []
+  }
+}
