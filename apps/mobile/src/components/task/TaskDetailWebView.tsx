@@ -36,10 +36,10 @@ export function TaskDetailWebView({ task, minHeight = 260 }: Props) {
   const remoteUris = useMemo(() => {
     const base = getApiBaseUrl().replace(/\/+$/, '');
     return [
-      `${base}/${locale}/mobile/tasks/detail?mobile_theme=${webTheme}`,
-      `${base}/mobile/tasks/detail?mobile_theme=${webTheme}`,
+      `${base}/${locale}/mobile/tasks/detail`,
+      `${base}/mobile/tasks/detail`,
     ];
-  }, [locale, webTheme]);
+  }, [locale]);
   const remoteUri = remoteUris[Math.min(remoteUriIndex, remoteUris.length - 1)];
 
   const postTask = useCallback(() => {

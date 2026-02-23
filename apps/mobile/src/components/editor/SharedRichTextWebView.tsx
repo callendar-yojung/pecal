@@ -504,10 +504,10 @@ export function SharedRichTextWebView({
   const remoteEditorUris = useMemo(() => {
     const base = getApiBaseUrl().replace(/\/+$/, '');
     return [
-      `${base}/${locale}/mobile/editor?mobile_theme=${webTheme}`,
-      `${base}/mobile/editor?mobile_theme=${webTheme}`,
+      `${base}/${locale}/mobile/editor`,
+      `${base}/mobile/editor`,
     ];
-  }, [locale, webTheme]);
+  }, [locale]);
   const remoteEditorUri = remoteEditorUris[Math.min(remoteUriIndex, remoteEditorUris.length - 1)];
   const handleRemoteFailure = useCallback(() => {
     if (fallbackLocalEditor) return;
