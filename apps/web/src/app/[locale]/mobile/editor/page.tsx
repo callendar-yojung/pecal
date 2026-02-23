@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import RichTextEditor from "@/components/editor/RichTextEditor";
 
 type BridgeInbound =
@@ -12,6 +13,7 @@ type BridgeInbound =
         text?: string;
         readOnly?: boolean;
         placeholder?: string;
+        theme?: "light" | "dark";
       };
     }
   | Record<string, unknown>;
@@ -48,6 +50,13 @@ function parseContent(json?: string, text?: string) {
       },
     ],
   };
+}
+
+function applyTheme(theme: "light" | "dark") {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  root.classList.remove("light", "dark");
+  root.classList.add(theme);
 }
 
 function plainTextFromNode(node: any): string {
@@ -91,6 +100,7 @@ function plainTextFromNode(node: any): string {
 }
 
 export default function MobileEditorPage() {
+  const searchParams = useSearchParams();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [content, setContent] = useState<Record<string, any>>({
     type: "doc",
@@ -99,6 +109,7 @@ export default function MobileEditorPage() {
   const [contentKey, setContentKey] = useState(0);
   const [readOnly, setReadOnly] = useState(false);
   const [placeholder, setPlaceholder] = useState("내용을 입력하세요.");
+  const [theme, setTheme] = useState<"light" | "dark">("light");
 
   const handleInbound = useCallback((raw: unknown) => {
     try {
@@ -107,11 +118,14 @@ export default function MobileEditorPage() {
       if ((parsed as any).type !== "set-content") return;
 
       const payload = (parsed as any).payload as
-        | { json?: string; text?: string; readOnly?: boolean; placeholder?: string }
+        | { json?: string; text?: string; readOnly?: boolean; placeholder?: string; theme?: "light" | "dark" }
         | undefined;
       if (!payload) return;
       setReadOnly(!!payload.readOnly);
       setPlaceholder(payload.placeholder?.trim() || "내용을 입력하세요.");
+      if (payload.theme === "dark" || payload.theme === "light") {
+        setTheme(payload.theme);
+      }
       setContent(parseContent(payload.json, payload.text));
       setContentKey((prev) => prev + 1);
     } catch (error) {
@@ -122,6 +136,17 @@ export default function MobileEditorPage() {
       });
     }
   }, []);
+
+  useEffect(() => {
+    const queryTheme = searchParams.get("mobile_theme");
+    if (queryTheme === "dark" || queryTheme === "light") {
+      setTheme(queryTheme);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
 
   useEffect(() => {
     const onWindowMessage = (event: MessageEvent) => handleInbound(event.data);

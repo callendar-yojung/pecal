@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 type Inbound = {
   channel?: string;
@@ -8,6 +9,7 @@ type Inbound = {
   payload?: {
     value?: string;
     label?: string;
+    theme?: "light" | "dark";
   };
 };
 
@@ -40,10 +42,19 @@ function toIso(date: string, time: string) {
   return parsed.toISOString();
 }
 
+function applyTheme(theme: "light" | "dark") {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  root.classList.remove("light", "dark");
+  root.classList.add(theme);
+}
+
 export default function MobileDateTimePage() {
+  const searchParams = useSearchParams();
   const [label, setLabel] = useState("날짜/시간");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("09:00");
+  const [theme, setTheme] = useState<"light" | "dark">("light");
 
   const timeOptions = useMemo(
     () =>
@@ -61,6 +72,9 @@ export default function MobileDateTimePage() {
         const parsed = JSON.parse(String(event.data)) as Inbound;
         if (parsed.channel !== "pecal-datetime" || parsed.type !== "set-value") return;
         if (parsed.payload?.label) setLabel(parsed.payload.label);
+        if (parsed.payload?.theme === "dark" || parsed.payload?.theme === "light") {
+          setTheme(parsed.payload.theme);
+        }
         const split = splitDateTime(parsed.payload?.value || "");
         setDate(split.date);
         setTime(split.time);
@@ -81,6 +95,17 @@ export default function MobileDateTimePage() {
       document.removeEventListener("message", onMessage as unknown as EventListener);
     };
   }, []);
+
+  useEffect(() => {
+    const queryTheme = searchParams.get("mobile_theme");
+    if (queryTheme === "dark" || queryTheme === "light") {
+      setTheme(queryTheme);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
 
   useEffect(() => {
     const value = toIso(date, time);

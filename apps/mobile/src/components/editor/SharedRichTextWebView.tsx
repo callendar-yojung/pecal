@@ -487,6 +487,7 @@ export function SharedRichTextWebView({
   onChange,
 }: Props) {
   const { mode } = useThemeMode();
+  const webTheme = mode === 'black' ? 'dark' : 'light';
   const { locale } = useI18n();
   const ref = useRef<WebView>(null);
   const readyRef = useRef(false);
@@ -502,8 +503,11 @@ export function SharedRichTextWebView({
   );
   const remoteEditorUris = useMemo(() => {
     const base = getApiBaseUrl().replace(/\/+$/, '');
-    return [`${base}/${locale}/mobile/editor`, `${base}/mobile/editor`];
-  }, [locale]);
+    return [
+      `${base}/${locale}/mobile/editor?mobile_theme=${webTheme}`,
+      `${base}/mobile/editor?mobile_theme=${webTheme}`,
+    ];
+  }, [locale, webTheme]);
   const remoteEditorUri = remoteEditorUris[Math.min(remoteUriIndex, remoteEditorUris.length - 1)];
   const handleRemoteFailure = useCallback(() => {
     if (fallbackLocalEditor) return;
@@ -529,6 +533,7 @@ export function SharedRichTextWebView({
             text,
             readOnly,
             placeholder,
+            theme: webTheme,
           },
         })
       );
@@ -537,7 +542,7 @@ export function SharedRichTextWebView({
     ref.current?.injectJavaScript(
       `window.__setContentFromReact && window.__setContentFromReact(${JSON.stringify(json)}, ${JSON.stringify(text)}); true;`
     );
-  }, [fallbackLocalEditor, placeholder, readOnly]);
+  }, [fallbackLocalEditor, placeholder, readOnly, webTheme]);
 
   useEffect(() => {
     if (!readyRef.current) return;
