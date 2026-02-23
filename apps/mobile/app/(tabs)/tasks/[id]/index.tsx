@@ -4,8 +4,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useMobileApp } from '../../../../src/contexts/MobileAppContext';
 import { useThemeMode } from '../../../../src/contexts/ThemeContext';
 import { createStyles } from '../../../../src/styles/createStyles';
-import { formatDateTime } from '../../../../src/lib/date';
-import { SharedRichTextWebView } from '../../../../src/components/editor/SharedRichTextWebView';
+import { TaskDetailWebView } from '../../../../src/components/task/TaskDetailWebView';
 
 export default function TaskDetailPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -29,31 +28,14 @@ export default function TaskDetailPage() {
 
   return (
     <ScrollView style={s.content} contentContainerStyle={s.contentContainer}>
-      <View style={[s.panel, { borderRadius: 16, gap: 10 }]}>
+      <View style={[s.panel, { borderRadius: 16, gap: 12 }]}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-          <Text style={[s.sectionTitle, { fontSize: 22, flex: 1 }]}>{task.title}</Text>
+          <Text style={s.formTitle}>일정 상세</Text>
           <Pressable style={s.headerActionButton} onPress={() => router.replace(`/tasks/${taskId}/edit`)}>
             <Text style={s.headerActionText}>수정</Text>
           </Pressable>
         </View>
-        <Text style={s.itemMeta}>{formatDateTime(task.start_time)} - {formatDateTime(task.end_time)}</Text>
-        <Text style={s.itemMeta}>상태: {task.status ?? 'TODO'}</Text>
-        <Text style={s.itemMeta}>종일: {task.is_all_day ? '예' : '아니오'}</Text>
-        <Text style={s.itemMeta}>알림: {task.reminder_minutes ?? 0}분 전</Text>
-        <Text style={s.itemMeta}>반복: {task.rrule ?? '-'}</Text>
-        <Text style={s.itemMeta}>색상: {task.color ?? '#3B82F6'}</Text>
-      </View>
-
-      <View style={[s.panel, { borderRadius: 16, gap: 10 }]}>
-        <Text style={s.formTitle}>일정 상세</Text>
-        <SharedRichTextWebView
-          valueJson={task.content ?? ''}
-          valueText=""
-          placeholder="태스크 상세 내용을 입력하세요."
-          readOnly
-          minHeight={220}
-          onChange={() => {}}
-        />
+        <TaskDetailWebView task={task} minHeight={320} />
       </View>
 
       <View style={s.row}>
