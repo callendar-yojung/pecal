@@ -88,6 +88,7 @@ function buildHtml(input: { valueLocal: string; dark: boolean }) {
 
 export function DateTimePickerField({ label, value, onChange }: Props) {
   const { colors, mode } = useThemeMode();
+  const webTheme = mode === 'black' ? 'dark' : 'light';
   const { locale } = useI18n();
   const s = createStyles(colors);
   const ref = useRef<WebView>(null);
@@ -99,8 +100,11 @@ export function DateTimePickerField({ label, value, onChange }: Props) {
   const html = useMemo(() => buildHtml({ valueLocal, dark: mode === 'black' }), [valueLocal, mode]);
   const remoteUris = useMemo(() => {
     const base = getApiBaseUrl().replace(/\/+$/, '');
-    return [`${base}/${locale}/mobile/datetime`, `${base}/mobile/datetime`];
-  }, [locale]);
+    return [
+      `${base}/${locale}/mobile/datetime?mobile_theme=${webTheme}`,
+      `${base}/mobile/datetime?mobile_theme=${webTheme}`,
+    ];
+  }, [locale, webTheme]);
   const remoteUri = remoteUris[Math.min(remoteUriIndex, remoteUris.length - 1)];
   const handleRemoteFailure = useCallback(() => {
     if (fallbackLocal) return;
@@ -124,10 +128,11 @@ export function DateTimePickerField({ label, value, onChange }: Props) {
         payload: {
           value: valueLocal,
           label,
+          theme: webTheme,
         },
       })
     );
-  }, [fallbackLocal, label, valueLocal]);
+  }, [fallbackLocal, label, valueLocal, webTheme]);
 
   useEffect(() => {
     postSetValue();

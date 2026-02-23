@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import TaskViewPanel, { type TaskViewData } from "@/components/dashboard/TaskViewPanel";
 
 type BridgeInbound =
@@ -8,11 +9,12 @@ type BridgeInbound =
       channel?: string;
       type?: "set-task";
       payload?: {
-        task?: Partial<TaskViewData> & {
+        task?: (Partial<TaskViewData> & {
           is_all_day?: boolean;
           reminder_minutes?: number | null;
           rrule?: string | null;
-        };
+          theme?: "light" | "dark";
+        });
       };
     }
   | Record<string, unknown>;
@@ -29,9 +31,18 @@ function postToNative(message: BridgeOutbound) {
   }
 }
 
+function applyTheme(theme: "light" | "dark") {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  root.classList.remove("light", "dark");
+  root.classList.add(theme);
+}
+
 export default function MobileTaskDetailPage() {
+  const searchParams = useSearchParams();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [task, setTask] = useState<TaskViewData | null>(null);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
 
   const handleInbound = useCallback((raw: unknown) => {
     try {
@@ -39,8 +50,20 @@ export default function MobileTaskDetailPage() {
       if (!parsed || (parsed as any).channel !== "pecal-task-detail") return;
       if ((parsed as any).type !== "set-task") return;
 
-      const payload = (parsed as any).payload as { task?: Partial<TaskViewData> } | undefined;
+      const payload = (parsed as any).payload as
+        | {
+            task?: Partial<TaskViewData> & {
+              is_all_day?: boolean;
+              reminder_minutes?: number | null;
+              rrule?: string | null;
+              theme?: "light" | "dark";
+            };
+          }
+        | undefined;
       if (!payload?.task) return;
+      if (payload.task.theme === "dark" || payload.task.theme === "light") {
+        setTheme(payload.task.theme);
+      }
       setTask({
         id: payload.task.id,
         title: String(payload.task.title ?? ""),
@@ -59,6 +82,17 @@ export default function MobileTaskDetailPage() {
       });
     }
   }, []);
+
+  useEffect(() => {
+    const queryTheme = searchParams.get("mobile_theme");
+    if (queryTheme === "dark" || queryTheme === "light") {
+      setTheme(queryTheme);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
 
   useEffect(() => {
     const onWindowMessage = (event: MessageEvent) => handleInbound(event.data);
@@ -104,4 +138,3 @@ export default function MobileTaskDetailPage() {
     </div>
   );
 }
-

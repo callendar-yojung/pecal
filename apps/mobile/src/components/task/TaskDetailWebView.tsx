@@ -28,14 +28,18 @@ export function TaskDetailWebView({ task, minHeight = 260 }: Props) {
   const readyRef = useRef(false);
   const { locale } = useI18n();
   const { mode } = useThemeMode();
+  const webTheme = mode === 'black' ? 'dark' : 'light';
   const [webHeight, setWebHeight] = useState(minHeight);
   const [remoteUriIndex, setRemoteUriIndex] = useState(0);
   const [fallbackLocal, setFallbackLocal] = useState(false);
 
   const remoteUris = useMemo(() => {
     const base = getApiBaseUrl().replace(/\/+$/, '');
-    return [`${base}/${locale}/mobile/tasks/detail`, `${base}/mobile/tasks/detail`];
-  }, [locale]);
+    return [
+      `${base}/${locale}/mobile/tasks/detail?mobile_theme=${webTheme}`,
+      `${base}/mobile/tasks/detail?mobile_theme=${webTheme}`,
+    ];
+  }, [locale, webTheme]);
   const remoteUri = remoteUris[Math.min(remoteUriIndex, remoteUris.length - 1)];
 
   const postTask = useCallback(() => {
@@ -57,11 +61,12 @@ export function TaskDetailWebView({ task, minHeight = 260 }: Props) {
             is_all_day: !!task.is_all_day,
             reminder_minutes: task.reminder_minutes ?? null,
             rrule: task.rrule ?? null,
+            theme: webTheme,
           },
         },
       })
     );
-  }, [fallbackLocal, task]);
+  }, [fallbackLocal, task, webTheme]);
 
   const handleRemoteFailure = useCallback(() => {
     if (fallbackLocal) return;
@@ -139,4 +144,3 @@ export function TaskDetailWebView({ task, minHeight = 260 }: Props) {
     </View>
   );
 }
-
