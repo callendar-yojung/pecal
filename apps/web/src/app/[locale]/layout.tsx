@@ -1,23 +1,12 @@
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
-import { Geist, Geist_Mono } from "next/font/google";
 import { routing } from "@/i18n/routing";
 import type { Locale } from "@/i18n/config";
 import type { Metadata } from "next";
 import SessionProvider from "@/components/SessionProvider";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import "../globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 type Props = {
   children: React.ReactNode;
@@ -147,9 +136,7 @@ export default async function LocaleLayout({ children, params }: Props) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className="antialiased">
         <SessionProvider>
           <ThemeProvider>
             <NextIntlClientProvider messages={messages}>

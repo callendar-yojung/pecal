@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
 
 type Inbound = {
   channel?: string;
@@ -50,7 +49,6 @@ function applyTheme(theme: "light" | "dark") {
 }
 
 export default function MobileDateTimePage() {
-  const searchParams = useSearchParams();
   const [label, setLabel] = useState("날짜/시간");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("09:00");
@@ -97,11 +95,9 @@ export default function MobileDateTimePage() {
   }, []);
 
   useEffect(() => {
-    const queryTheme = searchParams.get("mobile_theme");
-    if (queryTheme === "dark" || queryTheme === "light") {
-      setTheme(queryTheme);
-    }
-  }, [searchParams]);
+    const queryTheme = new URLSearchParams(window.location.search).get("mobile_theme");
+    if (queryTheme === "dark" || queryTheme === "light") setTheme(queryTheme);
+  }, []);
 
   useEffect(() => {
     applyTheme(theme);
