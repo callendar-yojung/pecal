@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import TaskViewPanel, { type TaskViewData } from "@/components/dashboard/TaskViewPanel";
 
 type BridgeInbound =
@@ -39,7 +38,6 @@ function applyTheme(theme: "light" | "dark") {
 }
 
 export default function MobileTaskDetailPage() {
-  const searchParams = useSearchParams();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [task, setTask] = useState<TaskViewData | null>(null);
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -84,11 +82,9 @@ export default function MobileTaskDetailPage() {
   }, []);
 
   useEffect(() => {
-    const queryTheme = searchParams.get("mobile_theme");
-    if (queryTheme === "dark" || queryTheme === "light") {
-      setTheme(queryTheme);
-    }
-  }, [searchParams]);
+    const queryTheme = new URLSearchParams(window.location.search).get("mobile_theme");
+    if (queryTheme === "dark" || queryTheme === "light") setTheme(queryTheme);
+  }, []);
 
   useEffect(() => {
     applyTheme(theme);

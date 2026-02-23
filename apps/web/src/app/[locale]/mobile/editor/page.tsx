@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import RichTextEditor from "@/components/editor/RichTextEditor";
 
 type BridgeInbound =
@@ -100,7 +99,6 @@ function plainTextFromNode(node: any): string {
 }
 
 export default function MobileEditorPage() {
-  const searchParams = useSearchParams();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [content, setContent] = useState<Record<string, any>>({
     type: "doc",
@@ -138,11 +136,9 @@ export default function MobileEditorPage() {
   }, []);
 
   useEffect(() => {
-    const queryTheme = searchParams.get("mobile_theme");
-    if (queryTheme === "dark" || queryTheme === "light") {
-      setTheme(queryTheme);
-    }
-  }, [searchParams]);
+    const queryTheme = new URLSearchParams(window.location.search).get("mobile_theme");
+    if (queryTheme === "dark" || queryTheme === "light") setTheme(queryTheme);
+  }, []);
 
   useEffect(() => {
     applyTheme(theme);
