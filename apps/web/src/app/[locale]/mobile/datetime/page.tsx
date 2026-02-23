@@ -46,13 +46,69 @@ function applyTheme(theme: "light" | "dark") {
   const root = document.documentElement;
   root.classList.remove("light", "dark");
   root.classList.add(theme);
+
+  const palette =
+    theme === "dark"
+      ? {
+          "--background": "#07090E",
+          "--foreground": "#F8FAFF",
+          "--card": "#10131B",
+          "--card-foreground": "#F8FAFF",
+          "--popover": "#10131B",
+          "--popover-foreground": "#F8FAFF",
+          "--primary": "#7B88FF",
+          "--primary-foreground": "#07090E",
+          "--secondary": "#171C28",
+          "--secondary-foreground": "#F8FAFF",
+          "--muted": "#171C28",
+          "--muted-foreground": "#8D98AF",
+          "--border": "#202637",
+          "--input": "#202637",
+          "--ring": "#4C5A78",
+          "--page-background": "#07090E",
+          "--dashboard-background": "#07090E",
+          "--sidebar-background": "#0D111A",
+          "--sidebar-foreground": "#F8FAFF",
+          "--sidebar-border": "#202637",
+          "--subtle": "#171C28",
+          "--subtle-foreground": "#8D98AF",
+          "--hover": "#1B2434",
+          "--active": "#273247",
+        }
+      : {
+          "--background": "#F2F4FB",
+          "--foreground": "#0F172A",
+          "--card": "#FFFFFF",
+          "--card-foreground": "#0F172A",
+          "--popover": "#FFFFFF",
+          "--popover-foreground": "#0F172A",
+          "--primary": "#5B6CFF",
+          "--primary-foreground": "#FFFFFF",
+          "--secondary": "#ECEFF7",
+          "--secondary-foreground": "#0F172A",
+          "--muted": "#ECEFF7",
+          "--muted-foreground": "#7C8599",
+          "--border": "#E5EAF5",
+          "--input": "#E5EAF5",
+          "--ring": "#AAB4CB",
+          "--page-background": "#F2F4FB",
+          "--dashboard-background": "#F2F4FB",
+          "--sidebar-background": "#FFFFFF",
+          "--sidebar-foreground": "#0F172A",
+          "--sidebar-border": "#E5EAF5",
+          "--subtle": "#ECEFF7",
+          "--subtle-foreground": "#7C8599",
+          "--hover": "#E8ECF8",
+          "--active": "#DCE3F5",
+        };
+  Object.entries(palette).forEach(([key, value]) => root.style.setProperty(key, value));
 }
 
 export default function MobileDateTimePage() {
   const [label, setLabel] = useState("날짜/시간");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("09:00");
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [theme, setTheme] = useState<"light" | "dark" | null>(null);
 
   const timeOptions = useMemo(
     () =>
@@ -95,12 +151,25 @@ export default function MobileDateTimePage() {
   }, []);
 
   useEffect(() => {
-    const queryTheme = new URLSearchParams(window.location.search).get("mobile_theme");
-    if (queryTheme === "dark" || queryTheme === "light") setTheme(queryTheme);
+    const rootTheme = document.documentElement.classList.contains("dark") ? "dark" : "light";
+    setTheme(rootTheme);
   }, []);
 
   useEffect(() => {
+    if (!theme) return;
     applyTheme(theme);
+  }, [theme]);
+
+  useEffect(() => {
+    if (!theme) return;
+    const root = document.documentElement;
+    const observer = new MutationObserver(() => {
+      if (!root.classList.contains(theme)) {
+        applyTheme(theme);
+      }
+    });
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
   }, [theme]);
 
   useEffect(() => {
@@ -112,6 +181,8 @@ export default function MobileDateTimePage() {
       payload: { value },
     });
   }, [date, time]);
+
+  if (!theme) return <div className="min-h-screen bg-transparent p-2" />;
 
   return (
     <div className="min-h-screen bg-transparent p-2">

@@ -493,6 +493,7 @@ export function SharedRichTextWebView({
   const readyRef = useRef(false);
   const lastSentFromEditorRef = useRef('');
   const lastSentTextRef = useRef('');
+  const lastAppliedThemeRef = useRef<'light' | 'dark'>(webTheme);
   const [webHeight, setWebHeight] = useState(minHeight);
   const [remoteUriIndex, setRemoteUriIndex] = useState(0);
   const [fallbackLocalEditor, setFallbackLocalEditor] = useState(false);
@@ -546,9 +547,11 @@ export function SharedRichTextWebView({
 
   useEffect(() => {
     if (!readyRef.current) return;
-    if (valueJson === lastSentFromEditorRef.current && valueText === lastSentTextRef.current) return;
+    const themeChanged = lastAppliedThemeRef.current !== webTheme;
+    if (!themeChanged && valueJson === lastSentFromEditorRef.current && valueText === lastSentTextRef.current) return;
     postSetContent(valueJson || '{}', valueText || '');
-  }, [valueJson, valueText, postSetContent]);
+    lastAppliedThemeRef.current = webTheme;
+  }, [valueJson, valueText, webTheme, postSetContent]);
 
   return (
     <View style={{ minHeight, borderRadius: 12, overflow: 'hidden' }}>
@@ -588,6 +591,7 @@ export function SharedRichTextWebView({
             if (message.type === 'ready') {
               readyRef.current = true;
               postSetContent(valueJson || '{}', valueText || '');
+              lastAppliedThemeRef.current = webTheme;
               return;
             }
             if (message.type === 'update') {
