@@ -101,10 +101,10 @@ export function DateTimePickerField({ label, value, onChange }: Props) {
   const remoteUris = useMemo(() => {
     const base = getApiBaseUrl().replace(/\/+$/, '');
     return [
-      `${base}/${locale}/mobile/datetime?mobile_theme=${webTheme}`,
-      `${base}/mobile/datetime?mobile_theme=${webTheme}`,
+      `${base}/${locale}/mobile/datetime`,
+      `${base}/mobile/datetime`,
     ];
-  }, [locale, webTheme]);
+  }, [locale]);
   const remoteUri = remoteUris[Math.min(remoteUriIndex, remoteUris.length - 1)];
   const handleRemoteFailure = useCallback(() => {
     if (fallbackLocal) return;
