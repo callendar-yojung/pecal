@@ -49,7 +49,11 @@ function getAllowedCallbacks(): Set<string> {
   }
 
   // Backward compatibility defaults
-  for (const value of ["deskcal://auth/callback", "deskcal-dev://auth/callback"]) {
+  for (const value of [
+    "deskcal://auth/callback",
+    "deskcal-dev://auth/callback",
+    "myapp://auth/callback",
+  ]) {
     const normalized = normalizeCallbackUrl(value);
     if (normalized) allowlist.add(normalized);
   }

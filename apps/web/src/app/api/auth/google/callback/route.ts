@@ -6,6 +6,7 @@ import {
   getOAuthStateCookieOptions,
   verifyOAuthState,
 } from "@/lib/oauth-state";
+import { getOAuthRedirectUri } from "@/lib/oauth-redirect-uri";
 
 interface GoogleTokenResponse {
   access_token: string;
@@ -88,9 +89,7 @@ export async function GET(request: NextRequest) {
     });
 
     // redirect_uri는 반드시 구글에 등록된 URL을 사용해야 함
-    const redirectUri = process.env.NODE_ENV === 'production'
-      ? "https://pecal.site/api/auth/google/callback"
-      : "http://localhost:3000/api/auth/google/callback";
+    const redirectUri = getOAuthRedirectUri(request, "google");
 
     // 1. 구글 액세스 토큰 받기
     const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {

@@ -29,6 +29,8 @@ jobs:
       # NextAuth
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
       NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+      AUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+      AUTH_TRUST_HOST: "true"
 
       # Kakao OAuth
       AUTH_KAKAO_ID: ${{ secrets.KAKAO_CLIENT_ID }}
@@ -179,6 +181,8 @@ jobs:
             cat > "$APP_DIR/apps/web/.env.production" << 'ENVEOF'
             AUTH_SECRET=${{ secrets.AUTH_SECRET }}
             NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}
+            AUTH_URL=${{ secrets.NEXTAUTH_URL }}
+            AUTH_TRUST_HOST=true
             AUTH_KAKAO_ID=${{ secrets.KAKAO_CLIENT_ID }}
             AUTH_KAKAO_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }}
             AUTH_GOOGLE_ID=${{ secrets.AUTH_GOOGLE_ID }}
