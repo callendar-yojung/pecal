@@ -634,16 +634,19 @@ export function useDashboardData(session: AuthSession | null) {
 
   const updateTask = async (taskId: number, input: TaskMutationInput) => {
     if (!session || !selectedWorkspace) return;
-    await apiFetch(`/api/tasks/${taskId}`, session, {
+    await apiFetch('/api/tasks', session, {
       method: 'PATCH',
-      body: JSON.stringify(input),
+      body: JSON.stringify({
+        task_id: taskId,
+        ...input,
+      }),
     });
     await refreshCurrentWorkspace();
   };
 
   const deleteTask = async (taskId: number) => {
     if (!session || !selectedWorkspace) return;
-    await apiFetch(`/api/tasks/${taskId}`, session, {
+    await apiFetch(`/api/tasks?task_id=${taskId}`, session, {
       method: 'DELETE',
     });
     await refreshCurrentWorkspace();

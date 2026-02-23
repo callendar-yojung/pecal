@@ -38,38 +38,6 @@ export default function TaskDetailPage() {
     fetchTask();
   }, [currentWorkspace?.workspace_id, taskId]);
 
-  const handleDelete = async (id: number) => {
-    const response = await fetch(`/api/tasks?task_id=${id}`, {
-      method: "DELETE",
-    });
-    if (response.ok) {
-      router.push("/dashboard/tasks");
-    } else {
-      const err = await response.json();
-      alert(err.error || t("errorDelete") || "Failed to delete task");
-    }
-  };
-
-  const handleStatusChange = async (status: TaskViewData["status"]) => {
-    if (!task) return;
-    setTask((prev) => (prev ? { ...prev, status } : prev));
-
-    const response = await fetch("/api/tasks", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        task_id: taskId,
-        status,
-      }),
-    });
-
-    if (!response.ok) {
-      const err = await response.json();
-      alert(err.error || t("errorUpdate") || "Failed to update task");
-      setTask((prev) => (prev ? { ...prev, status: task.status } : prev));
-    }
-  };
-
   if (!currentWorkspace) {
     return (
       <div className="dashboard-glass-card premium-noise p-6 text-sm text-muted-foreground">
@@ -94,8 +62,6 @@ export default function TaskDetailPage() {
         ownerId={currentWorkspace.owner_id}
         onEdit={() => router.push(`/dashboard/tasks/${taskId}/edit`)}
         onExport={() => router.push(`/dashboard/tasks/${taskId}/export`)}
-        onDelete={handleDelete}
-        onStatusChange={handleStatusChange}
       />
     </div>
   );
