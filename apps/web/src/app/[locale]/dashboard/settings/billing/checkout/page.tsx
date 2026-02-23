@@ -189,25 +189,29 @@ function CheckoutContent() {
     <div className="space-y-6">
       <div className="mx-auto max-w-4xl space-y-6">
         {/* 헤더 */}
-        <div className="dashboard-hero-card p-8">
-          <button
-            onClick={() => router.back()}
-            className="mb-4 text-sm text-muted-foreground hover:text-foreground"
-          >
-            &larr; {t("checkout.back")}
-          </button>
-          <h1 className="text-3xl font-bold text-foreground">
-            {t("checkout.title")}
-          </h1>
-          <p className="mt-2 text-muted-foreground">
-            {t("checkout.description")}
-          </p>
+        <div className="dashboard-hero-shell">
+          <div className="dashboard-hero-orb dashboard-hero-orb-right" />
+          <div className="dashboard-hero-orb dashboard-hero-orb-left" />
+          <div className="relative z-10">
+            <button
+              onClick={() => router.back()}
+              className="mb-4 text-sm text-muted-foreground hover:text-foreground"
+            >
+              &larr; {t("checkout.back")}
+            </button>
+            <h1 className="text-3xl font-bold text-foreground lg:text-4xl">
+              {t("checkout.title")}
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              {t("checkout.description")}
+            </p>
+          </div>
         </div>
 
         {/* NicePay 결제 실패 메시지 */}
         {nicepayStatus === "failed" && nicepayMessage && (
-          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-sm text-red-800 dark:text-red-200">
+          <div className="dashboard-glass-card mb-6 rounded-2xl border border-destructive/25 bg-destructive/10 p-4">
+            <p className="text-sm text-destructive">
               {nicepayMessage}
             </p>
           </div>
@@ -216,7 +220,7 @@ function CheckoutContent() {
         <div className="grid gap-6 lg:grid-cols-3">
           {/* 주문 요약 */}
           <div className="lg:col-span-1">
-            <div className="dashboard-glass-card p-6">
+            <div className="dashboard-glass-card premium-noise p-6">
               <h2 className="text-lg font-semibold text-card-foreground">
                 {t("checkout.orderSummary")}
               </h2>
@@ -227,11 +231,11 @@ function CheckoutContent() {
                   </span>
                   <div className="flex items-center gap-2">
                     {ownerType === "personal" ? (
-                      <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 px-2 py-1 rounded-full">
+                      <span className="rounded-full bg-status-progress px-2 py-1 text-xs text-status-progress-foreground">
                         {t("checkout.personal")}
                       </span>
                     ) : (
-                      <span className="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 px-2 py-1 rounded-full">
+                      <span className="rounded-full bg-primary/15 px-2 py-1 text-xs text-primary">
                         {t("checkout.team")}
                       </span>
                     )}
@@ -283,7 +287,7 @@ function CheckoutContent() {
           {/* 결제 수단 */}
           <div className="lg:col-span-2">
             <div className="space-y-6">
-              <div className="dashboard-glass-card p-6">
+              <div className="dashboard-glass-card premium-noise p-6">
                 {isKorean ? (
                   <>
                     {/* NicePay 카드 결제 */}
@@ -298,13 +302,13 @@ function CheckoutContent() {
                     </p>
 
                     {isDowngrade && currentPlan && (
-                      <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+                      <div className="mb-4 rounded-2xl border border-status-progress-foreground/20 bg-status-progress p-3 text-sm text-status-progress-foreground">
                         다음 결제일부터 {plan.name} 플랜으로 변경됩니다.
                       </div>
                     )}
 
                     {hasSavedCard && !isDowngrade && (
-                      <div className="mb-4 rounded-lg border border-border bg-background p-3 text-sm text-foreground">
+                      <div className="mb-4 rounded-2xl border border-border/70 bg-background/90 p-3 text-sm text-foreground">
                         <label className="flex items-center gap-2">
                           <input
                             type="checkbox"
@@ -317,7 +321,7 @@ function CheckoutContent() {
                     )}
 
                     {submitError && (
-                      <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                      <div className="mb-4 rounded-2xl border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive">
                         {submitError}
                       </div>
                     )}
@@ -343,7 +347,7 @@ function CheckoutContent() {
                               onChange={(e) => setCardNo(e.target.value)}
                               inputMode="numeric"
                               placeholder="0000 0000 0000 0000"
-                              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                              className="w-full rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
                             />
                           </div>
 
@@ -357,7 +361,7 @@ function CheckoutContent() {
                                 onChange={(e) => setExpMonth(e.target.value)}
                                 inputMode="numeric"
                                 placeholder="MM"
-                                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                                className="w-full rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
                               />
                             </div>
                             <div>
@@ -369,7 +373,7 @@ function CheckoutContent() {
                                 onChange={(e) => setExpYear(e.target.value)}
                                 inputMode="numeric"
                                 placeholder="YY"
-                                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                                className="w-full rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
                               />
                             </div>
                           </div>
@@ -383,7 +387,7 @@ function CheckoutContent() {
                               onChange={(e) => setIdNo(e.target.value)}
                               inputMode="numeric"
                               placeholder="예: 900101 또는 1234567890"
-                              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                              className="w-full rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
                             />
                           </div>
 
@@ -398,7 +402,7 @@ function CheckoutContent() {
                               placeholder="**"
                               type="password"
                               maxLength={2}
-                              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                              className="w-full rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
                             />
                           </div>
                         </div>
@@ -410,7 +414,7 @@ function CheckoutContent() {
                         type="button"
                         onClick={handleNicePayKeyIn}
                         disabled={submitting}
-                        className="w-full rounded-lg bg-blue-600 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="ui-button-primary w-full px-6 py-3 text-base font-semibold disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {submitting
                           ? t("checkout.nicepay.subscribing")
@@ -435,8 +439,8 @@ function CheckoutContent() {
                     </p>
 
                     {!plan.paypal_plan_id && (
-                      <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                      <div className="mb-4 rounded-2xl border border-status-todo-foreground/20 bg-status-todo p-4">
+                        <p className="text-sm text-status-todo-foreground">
                           {t("checkout.paypal.notConfigured")}
                         </p>
                       </div>
@@ -455,13 +459,13 @@ function CheckoutContent() {
               </div>
 
               {/* 약관 동의 */}
-              <div className="dashboard-glass-card p-6">
+              <div className="dashboard-glass-card premium-noise p-6">
                 <div className="flex items-start">
                   <input
                     type="checkbox"
                     id="terms"
                     required
-                    className="mt-1 h-4 w-4 rounded border-border text-blue-600 focus:ring-blue-500"
+                    className="mt-1 h-4 w-4 rounded border-border text-primary focus:ring-ring"
                   />
                   <label
                     htmlFor="terms"

@@ -150,7 +150,7 @@ export default function AccountPage() {
   return (
     <div className="space-y-6">
       {/* 프로필 정보 */}
-      <div className="dashboard-glass-card p-6">
+      <div className="dashboard-glass-card premium-noise p-6">
         <h2 className="text-lg font-semibold text-card-foreground">
           {t("profile")}
         </h2>
@@ -181,7 +181,7 @@ export default function AccountPage() {
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <label className="cursor-pointer rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground hover:bg-muted">
+                <label className="ui-button cursor-pointer px-3 py-2 text-sm">
                   {uploading ? t("uploading") : t("uploadImage")}
                   <input
                     type="file"
@@ -198,7 +198,7 @@ export default function AccountPage() {
                   <button
                     type="button"
                     onClick={handleProfileImageRemove}
-                    className="rounded-lg border border-destructive px-3 py-2 text-sm text-destructive hover:bg-destructive/10"
+                    className="rounded-xl border border-destructive px-3 py-2 text-sm text-destructive hover:bg-destructive/10"
                   >
                     {t("removeImage")}
                   </button>
@@ -215,19 +215,19 @@ export default function AccountPage() {
                 type="text"
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
-                className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                className="flex-1 rounded-xl border border-input/80 bg-background/90 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
               <button
                 type="button"
                 onClick={handleCheckNickname}
                 disabled={checking || !nickname.trim()}
-                className="rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50"
+                className="ui-button px-3 py-2 text-sm disabled:opacity-50"
               >
                 {checking ? t("checking") : t("checkNickname")}
               </button>
             </div>
             {checkResult === "ok" && (
-              <p className="mt-1 text-xs text-green-600">{t("nicknameAvailable")}</p>
+              <p className="mt-1 text-xs text-status-done-foreground">{t("nicknameAvailable")}</p>
             )}
             {checkResult === "taken" && (
               <p className="mt-1 text-xs text-destructive">{t("nicknameTaken")}</p>
@@ -241,7 +241,7 @@ export default function AccountPage() {
               type="email"
               defaultValue={session?.user?.email || ""}
               disabled
-              className="mt-1 w-full rounded-lg border border-input bg-muted px-3 py-2 text-sm text-muted-foreground"
+              className="mt-1 w-full rounded-xl border border-input/80 bg-muted px-3 py-2 text-sm text-muted-foreground"
             />
             <p className="mt-1 text-xs text-muted-foreground">{t("emailDesc")}</p>
           </div>
@@ -250,12 +250,12 @@ export default function AccountPage() {
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+              className="ui-button-primary px-4 py-2 text-sm disabled:opacity-50"
             >
               {saving ? "..." : t("save")}
             </button>
             {saved && (
-              <span className="text-sm text-green-600 dark:text-green-400">
+              <span className="text-sm text-status-done-foreground">
                 Saved!
               </span>
             )}
@@ -264,7 +264,7 @@ export default function AccountPage() {
       </div>
 
       {/* 계정 삭제 */}
-      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6">
+      <div className="dashboard-glass-card p-6">
         <h2 className="text-lg font-semibold text-destructive">
           {t("deleteAccount")}
         </h2>
@@ -273,7 +273,7 @@ export default function AccountPage() {
         </p>
         <button
           type="button"
-          className="mt-4 rounded-lg border border-destructive bg-background px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
+          className="mt-4 rounded-xl border border-destructive bg-background px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
         >
           {t("deleteButton")}
         </button>

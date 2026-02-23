@@ -129,7 +129,7 @@ export default function NotificationsBell() {
           />
         </svg>
         {count > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-semibold text-white">
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-destructive-foreground">
             {count}
           </span>
         )}
@@ -181,7 +181,7 @@ export default function NotificationsBell() {
                             <button
                               type="button"
                               onClick={() => handleRespond(Number(n.source_id), "accept")}
-                              className="rounded-md bg-blue-600 px-2 py-1 text-xs text-white"
+                              className="rounded-md bg-primary px-2 py-1 text-xs text-primary-foreground"
                             >
                               {t("accept")}
                             </button>

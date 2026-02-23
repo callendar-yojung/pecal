@@ -1,4 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  createOAuthState,
+  getOAuthStateCookieName,
+  getOAuthStateCookieOptions,
+  isAllowedOAuthCallback,
+} from "@/lib/oauth-state";
 
 /**
  * GET /api/auth/kakao/start?callback=desktop-calendar://auth/callback
@@ -23,7 +29,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 데스크톱 앱의 callback URL (예: deskcal://auth/callback)
     const searchParams = request.nextUrl.searchParams;
     const appCallback = searchParams.get("callback");
 
@@ -34,15 +39,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    if (!isAllowedOAuthCallback(appCallback)) {
+      return NextResponse.json(
+        { error: "Invalid callback URL" },
+        { status: 400 }
+      );
+    }
+
     // redirect_uri는 항상 카카오에 등록된 HTTPS URL을 사용
     // 카카오는 커스텀 스킴(deskcal://)을 허용하지 않음
     const redirectUri = process.env.NODE_ENV === 'production'
         ? "https://pecal.site/api/auth/kakao/callback"
         : "http://localhost:3000/api/auth/kakao/callback";
 
-    // state 파라미터에 앱의 callback URL을 저장
-    // OAuth 흐름이 완료된 후 이 URL로 토큰을 전달함
-    const state = appCallback;
+    const { state, nonce } = await createOAuthState("kakao", appCallback);
 
     // 카카오 인증 URL 생성
     const params = new URLSearchParams({
@@ -54,11 +64,17 @@ export async function GET(request: NextRequest) {
 
     const authUrl = `${KAKAO_AUTH_URL}?${params.toString()}`;
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       authUrl,
       redirectUri,
-      state: appCallback,
+      state,
     });
+    response.cookies.set(
+      getOAuthStateCookieName("kakao"),
+      nonce,
+      getOAuthStateCookieOptions("kakao")
+    );
+    return response;
   } catch (error) {
     console.error("Kakao start error:", error);
     return NextResponse.json(

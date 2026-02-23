@@ -87,15 +87,15 @@ export default function DashboardLayout({
           style={{
             paddingLeft: isMobile ? "0px" : `${sidebarWidth + SIDEBAR_GUTTER}px`,
           }}
-          className="transition-[padding-left] duration-0"
+          className="dashboard-content transition-[padding-left] duration-0"
         >
           {!isMobile && (
-            <div className="sticky top-0 z-20 flex justify-end border-b border-border bg-background/80 px-6 py-3 backdrop-blur">
+            <div className="sticky top-0 z-20 flex justify-end border-b border-border/70 bg-background/75 px-6 py-3 backdrop-blur-xl">
               <NotificationsBell />
             </div>
           )}
           <div className={isMobile ? "p-4" : "p-6"}>
-            <div className="mx-auto max-w-6xl">{children}</div>
+            <div className="mx-auto max-w-7xl">{children}</div>
           </div>
         </main>
       </div>

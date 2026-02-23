@@ -6,20 +6,11 @@ import { getTaskAccentColor, getTaskStatusColor } from '../lib/task-colors';
 import { useThemeMode } from '../contexts/ThemeContext';
 import { useI18n } from '../contexts/I18nContext';
 import { createStyles } from '../styles/createStyles';
-import { SharedRichTextWebView } from '../components/editor/SharedRichTextWebView';
 
 type Props = {
-  taskTitle: string;
-  taskContentJson: string;
-  taskStart: string;
-  taskEnd: string;
   tasks: TaskItem[];
   tags: TagItem[];
-  onTaskTitleChange: (v: string) => void;
-  onTaskContentChange: (json: string) => void;
-  onTaskStartChange: (v: string) => void;
-  onTaskEndChange: (v: string) => void;
-  onCreateTask: () => void;
+  onOpenCreateTask?: () => void;
   onOpenTask?: (taskId: number) => void;
 };
 
@@ -30,17 +21,9 @@ function statusLabel(status: string | undefined, t: (key: string) => string) {
 }
 
 export function TasksScreen({
-  taskTitle,
-  taskContentJson,
-  taskStart,
-  taskEnd,
   tasks,
   tags,
-  onTaskTitleChange,
-  onTaskContentChange,
-  onTaskStartChange,
-  onTaskEndChange,
-  onCreateTask,
+  onOpenCreateTask,
   onOpenTask,
 }: Props) {
   const { colors } = useThemeMode();
@@ -72,9 +55,14 @@ export function TasksScreen({
 
   return (
     <View style={s.section}>
-      <View style={{ gap: 3 }}>
-        <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: '600' }}>{t('tasksHeaderSub')}</Text>
-        <Text style={[s.sectionTitle, { fontSize: 24 }]}>{t('commonTasks')}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+        <View style={{ gap: 3 }}>
+          <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: '600' }}>{t('tasksHeaderSub')}</Text>
+          <Text style={[s.sectionTitle, { fontSize: 24 }]}>{t('commonTasks')}</Text>
+        </View>
+        <Pressable style={[s.primaryButton, { borderRadius: 12, paddingHorizontal: 14, paddingVertical: 9 }]} onPress={onOpenCreateTask}>
+          <Text style={s.primaryButtonText}>+ {t('commonCreate')}</Text>
+        </Pressable>
       </View>
 
       <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -86,25 +74,6 @@ export function TasksScreen({
           <Text style={s.gridLabel}>{t('tasksTodo')}</Text>
           <Text style={[s.gridValue, { fontSize: 30 }]}>{todoCount}</Text>
         </View>
-      </View>
-
-      <View style={[s.panel, { borderRadius: 18, gap: 10 }]}> 
-        <Text style={[s.formTitle, { fontSize: 16 }]}>{t('tasksCreateTitle')}</Text>
-        <TextInput value={taskTitle} onChangeText={onTaskTitleChange} placeholder={t('tasksTitlePlaceholder')} style={s.input} placeholderTextColor={colors.textMuted} />
-        <SharedRichTextWebView
-          valueJson={taskContentJson}
-          valueText=""
-          placeholder="태스크 상세 내용을 입력하세요."
-          minHeight={180}
-          onChange={(json) => onTaskContentChange(json)}
-        />
-        <View style={s.row}>
-          <TextInput value={taskStart} onChangeText={onTaskStartChange} placeholder={t('tasksStartPlaceholder')} style={[s.input, { flex: 1 }]} placeholderTextColor={colors.textMuted} />
-          <TextInput value={taskEnd} onChangeText={onTaskEndChange} placeholder={t('tasksEndPlaceholder')} style={[s.input, { flex: 1 }]} placeholderTextColor={colors.textMuted} />
-        </View>
-        <Pressable style={[s.primaryButton, { borderRadius: 12 }]} onPress={onCreateTask}>
-          <Text style={s.primaryButtonText}>{t('commonSave')}</Text>
-        </Pressable>
       </View>
 
       <View style={[s.panel, { borderRadius: 16, gap: 8 }]}>

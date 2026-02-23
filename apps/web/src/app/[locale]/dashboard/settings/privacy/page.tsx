@@ -12,7 +12,7 @@ export default function PrivacyPage() {
   return (
     <div className="space-y-6">
       {/* 데이터 공유 설정 */}
-      <div className="rounded-lg border border-border bg-card p-6">
+      <div className="dashboard-glass-card premium-noise p-6">
         <h2 className="text-lg font-semibold text-card-foreground">
           {t("dataSharing")}
         </h2>
@@ -93,14 +93,14 @@ export default function PrivacyPage() {
       </div>
 
       {/* 데이터 내보내기 */}
-      <div className="rounded-lg border border-border bg-card p-6">
+      <div className="dashboard-glass-card premium-noise p-6">
         <h2 className="text-lg font-semibold text-card-foreground">
           {t("exportData")}
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">{t("exportDataDesc")}</p>
         <button
           type="button"
-          className="mt-4 rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-hover"
+          className="ui-button mt-4 px-4 py-2 text-sm"
         >
           {t("exportButton")}
         </button>

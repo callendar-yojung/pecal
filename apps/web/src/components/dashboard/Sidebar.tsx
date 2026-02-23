@@ -220,7 +220,7 @@ export default function Sidebar({
 			<aside
 				ref={sidebarRef}
 				style={{ width: isMobile ? "80vw" : `${sidebarWidth}px` }}
-				className={`fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-sidebar-border bg-sidebar-background/80 backdrop-blur-xl shadow-[0_12px_40px_rgba(15,23,42,0.08)] transition-transform overscroll-contain touch-pan-y dark:bg-neutral-900/75 dark:shadow-[0_12px_40px_rgba(2,6,23,0.35)] ${
+				className={`fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-sidebar-border bg-sidebar-background/80 backdrop-blur-xl shadow-[0_12px_40px_rgba(15,23,42,0.08)] transition-transform overscroll-contain touch-pan-y ${
 					isMobile
 						? mobileOpen
 							? "translate-x-0"
@@ -251,7 +251,7 @@ export default function Sidebar({
 						style={{ height: `${workspaceHeight}px` }}
 						className="flex-shrink-0 overflow-y-auto px-3 overscroll-contain touch-pan-y"
 					>
-						<div className="rounded-2xl border border-black/5 bg-white/60 p-2 dark:border-white/10 dark:bg-neutral-900/50">
+						<div className="rounded-2xl border border-sidebar-border bg-sidebar-background/70 p-2">
 							<WorkspaceList />
 						</div>
 					</div>
@@ -279,7 +279,7 @@ export default function Sidebar({
 					</div>
 
 					{/* Navigation - Takes remaining space */}
-					<nav className="mx-3 mb-3 flex-1 space-y-1 overflow-y-auto rounded-2xl border border-black/5 bg-white/60 p-3 overscroll-contain touch-pan-y dark:border-white/10 dark:bg-neutral-900/50">
+					<nav className="mx-3 mb-3 flex-1 space-y-1 overflow-y-auto rounded-2xl border border-sidebar-border bg-sidebar-background/70 p-3 overscroll-contain touch-pan-y">
 						{navItems.map((item) => {
 							const isActive =
 								pathname === item.href ||
@@ -288,9 +288,9 @@ export default function Sidebar({
 							const navBase =
 								"flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors";
 							const navActive =
-								"bg-white/80 text-foreground ring-1 ring-black/5 shadow-sm dark:bg-neutral-800/75 dark:ring-white/10";
+								"bg-background/90 text-foreground ring-1 ring-border shadow-sm";
 							const navIdle =
-								"text-muted-foreground hover:bg-white/65 hover:text-foreground dark:hover:bg-neutral-800/55";
+								"text-muted-foreground hover:bg-background/75 hover:text-foreground";
 
 							return (
 								<Link

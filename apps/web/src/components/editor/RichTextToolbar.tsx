@@ -46,15 +46,17 @@ export default function RichTextToolbar({ editor }: RichTextToolbarProps) {
                            isActive = false,
                            children,
                            label,
+                           preventMouseDown = true,
                          }: {
     onClick: () => void;
     isActive?: boolean;
     children: React.ReactNode;
     label?: string;
+    preventMouseDown?: boolean;
   }) => (
       <button
           type="button"
-          onMouseDown={preventBlur}
+          onMouseDown={preventMouseDown ? preventBlur : undefined}
           onClick={onClick}
           className={`flex h-8 w-8 items-center justify-center rounded-md transition-all ${
               isActive
@@ -68,6 +70,14 @@ export default function RichTextToolbar({ editor }: RichTextToolbarProps) {
   );
 
   const Separator = () => <div className="mx-1 h-6 w-[1px] bg-border" />;
+
+  const normalizeLink = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+    if (/^(https?:\/\/|mailto:|tel:)/i.test(trimmed)) return trimmed;
+    if (trimmed.startsWith("//")) return `https:${trimmed}`;
+    return `https://${trimmed}`;
+  };
 
   return (
       <div className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -195,9 +205,36 @@ export default function RichTextToolbar({ editor }: RichTextToolbarProps) {
               <ListOrdered className="h-4 w-4" />
             </ToolbarButton>
             <ToolbarButton
-                onClick={() => editor.chain().focus().toggleTaskList().run()}
+                onClick={() => {
+                  if (editor.isActive("taskList")) {
+                    const didSplit = editor.chain().focus().splitListItem("taskItem").run();
+                    if (!didSplit) {
+                      editor.chain().focus().insertContent("<p></p>").run();
+                    }
+                    return;
+                  }
+
+                  const didToggle = editor.chain().focus().toggleTaskList().run();
+                  if (!didToggle) {
+                    editor
+                      .chain()
+                      .focus()
+                      .insertContent({
+                        type: "taskList",
+                        content: [
+                          {
+                            type: "taskItem",
+                            attrs: { checked: false },
+                            content: [{ type: "paragraph" }],
+                          },
+                        ],
+                      })
+                      .run();
+                  }
+                }}
                 isActive={editor.isActive("taskList")}
                 label="Task List"
+                preventMouseDown={false}
             >
               <CheckSquare className="h-4 w-4" />
             </ToolbarButton>
@@ -264,13 +301,32 @@ export default function RichTextToolbar({ editor }: RichTextToolbarProps) {
             <ToolbarButton
                 onClick={() => {
                   const previousUrl = editor.getAttributes("link").href;
-                  const url = window.prompt("URL", previousUrl || "");
-                  if (url === null) return;
-                  if (url === "") {
-                    editor.chain().focus().unsetLink().run();
+                  const rawUrl = window.prompt("URL", previousUrl || "https://");
+                  if (rawUrl === null) return;
+                  if (rawUrl.trim() === "") {
+                    editor.chain().focus().extendMarkRange("link").unsetLink().run();
                     return;
                   }
-                  editor.chain().focus().setLink({ href: url }).run();
+                  const href = normalizeLink(rawUrl);
+                  const { from, to, empty } = editor.state.selection;
+                  const selectedText = empty ? "" : editor.state.doc.textBetween(from, to, " ");
+                  const text = window.prompt("링크 텍스트(이름)", selectedText || href);
+                  if (text === null) return;
+                  const label = text.trim() || href;
+
+                  if (!empty) {
+                    editor.chain().focus().deleteSelection().run();
+                  }
+
+                  editor
+                    .chain()
+                    .focus()
+                    .insertContent({
+                      type: "text",
+                      text: label,
+                      marks: [{ type: "link", attrs: { href, target: "_blank", rel: "noopener noreferrer nofollow" } }],
+                    })
+                    .run();
                 }}
                 isActive={editor.isActive("link")}
                 label="Add Link"

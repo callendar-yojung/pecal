@@ -37,6 +37,21 @@ type TaskMutationInput = {
   rrule?: string | null;
 };
 
+type TaskCreateInput = {
+  title: string;
+  start_time: string;
+  end_time: string;
+  content?: string | null;
+  status?: TaskStatus;
+  color?: string;
+  tag_ids?: number[];
+  description?: string | null;
+  assignee_id?: number | null;
+  is_all_day?: boolean;
+  reminder_minutes?: number | null;
+  rrule?: string | null;
+};
+
 type MemoMeta = {
   pinned?: boolean;
   tags?: string[];
@@ -546,25 +561,30 @@ export function useDashboardData(session: AuthSession | null) {
     }
   };
 
-  const createTask = async () => {
-    if (!session || !selectedWorkspace) return;
-    if (!taskTitle.trim()) {
+  const createTaskWithInput = async (input: TaskCreateInput): Promise<boolean> => {
+    if (!session || !selectedWorkspace) return false;
+    if (!input.title.trim()) {
       setError('일정 제목을 입력하세요.');
-      return;
+      return false;
     }
-    if (new Date(taskRange.start) >= new Date(taskRange.end)) {
+    if (new Date(input.start_time) >= new Date(input.end_time)) {
       setError('종료 시간이 시작 시간보다 늦어야 합니다.');
-      return;
+      return false;
     }
     const payload = {
-      title: taskTitle.trim(),
-      start_time: taskRange.start,
-      end_time: taskRange.end,
-      content: taskContentJson || null,
+      title: input.title.trim(),
+      start_time: input.start_time,
+      end_time: input.end_time,
+      content: input.content ?? null,
       workspace_id: selectedWorkspace.workspace_id,
-      color: '#3B82F6',
-      tag_ids: [] as number[],
-      status: 'TODO' as TaskStatus,
+      color: input.color ?? '#3B82F6',
+      tag_ids: input.tag_ids ?? ([] as number[]),
+      status: input.status ?? ('TODO' as TaskStatus),
+      description: input.description ?? null,
+      assignee_id: input.assignee_id ?? null,
+      is_all_day: input.is_all_day ?? false,
+      reminder_minutes: input.reminder_minutes ?? null,
+      rrule: input.rrule ?? null,
     };
 
     try {
@@ -573,10 +593,8 @@ export function useDashboardData(session: AuthSession | null) {
         body: JSON.stringify(payload),
       });
       invalidateApiCache(`tasks:${selectedWorkspace.workspace_id}`);
-      setTaskTitle('');
-      setTaskContentJson('');
-      setTaskRange(defaultTaskRangeByDate(new Date(taskRange.start)));
       await loadDashboard(selectedWorkspace);
+      return true;
     } catch (error) {
       const apiError = error instanceof ApiError ? error : null;
       if (apiError?.code === 'NETWORK_ERROR') {
@@ -586,11 +604,26 @@ export function useDashboardData(session: AuthSession | null) {
         });
         setOfflineQueueCount(await getOfflineQueueCount());
         setError('오프라인 상태입니다. 일정을 임시 저장했고 연결 복구 시 자동 전송됩니다.');
-        setTaskTitle('');
-        return;
+        return true;
       }
       throw error;
     }
+  };
+
+  const createTask = async () => {
+    const created = await createTaskWithInput({
+      title: taskTitle,
+      start_time: taskRange.start,
+      end_time: taskRange.end,
+      content: taskContentJson || null,
+      status: 'TODO',
+      color: '#3B82F6',
+      tag_ids: [],
+    });
+    if (!created) return;
+    setTaskTitle('');
+    setTaskContentJson('');
+    setTaskRange(defaultTaskRangeByDate(new Date(taskRange.start)));
   };
 
   const refreshCurrentWorkspace = async () => {
@@ -1064,6 +1097,7 @@ export function useDashboardData(session: AuthSession | null) {
     loadWorkspaces,
     loadDashboard,
     flushPendingQueue,
+    createTaskWithInput,
     createTask,
     createMemo,
     updateMemo,

@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { ActivityIndicator, Pressable, SafeAreaView, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../hooks/useAuth';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useI18n } from '../contexts/I18nContext';
@@ -159,17 +160,8 @@ export function MobileApp() {
 
         {data.selectedWorkspace && data.tab === 'tasks' ? (
           <TasksScreen
-            taskTitle={data.taskTitle}
-            taskContentJson={data.taskContentJson}
-            taskStart={data.taskRange.start}
-            taskEnd={data.taskRange.end}
             tasks={data.tasks}
             tags={data.tags}
-            onTaskTitleChange={data.setTaskTitle}
-            onTaskContentChange={data.setTaskContentJson}
-            onTaskStartChange={(v) => data.setTaskRange({ ...data.taskRange, start: v })}
-            onTaskEndChange={(v) => data.setTaskRange({ ...data.taskRange, end: v })}
-            onCreateTask={data.createTask}
           />
         ) : null}
 

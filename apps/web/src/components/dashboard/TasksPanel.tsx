@@ -213,9 +213,9 @@ export default function TasksPanel() {
   };
 
   const priorityStyles = {
-    low: "border-muted-foreground",
-    medium: "border-primary",
-    high: "border-destructive",
+    low: "bg-muted-foreground/35",
+    medium: "bg-primary/60",
+    high: "bg-destructive/70",
   };
 
   const statusLabels = {
@@ -291,10 +291,10 @@ export default function TasksPanel() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
           <button
               onClick={() => handleFilterStatusChange("all")}
-              className={`ui-card p-4 text-left transition-colors ${
+                  className={`ui-card p-4 text-left transition-colors ${
                   filterStatus === "all"
-                      ? "border-primary bg-primary/10"
-                      : "border-border bg-card hover:bg-hover"
+                      ? "border-primary bg-primary/10 shadow-[0_10px_24px_rgba(59,130,246,0.16)]"
+                      : "border-border/70 bg-card/90 hover:bg-hover"
               }`}
           >
             <p className="text-sm text-muted-foreground">{t("filter.all")}</p>
@@ -302,10 +302,10 @@ export default function TasksPanel() {
           </button>
           <button
               onClick={() => handleFilterStatusChange("TODO")}
-              className={`ui-card p-4 text-left transition-colors ${
+                  className={`ui-card p-4 text-left transition-colors ${
                   filterStatus === "TODO"
-                      ? "border-status-todo-foreground bg-status-todo"
-                      : "border-border bg-card hover:bg-hover"
+                      ? "border-status-todo-foreground bg-status-todo shadow-[0_10px_24px_rgba(245,158,11,0.16)]"
+                      : "border-border/70 bg-card/90 hover:bg-hover"
               }`}
           >
             <p className="text-sm text-muted-foreground">{statusLabels.TODO}</p>
@@ -313,10 +313,10 @@ export default function TasksPanel() {
           </button>
           <button
               onClick={() => handleFilterStatusChange("IN_PROGRESS")}
-              className={`ui-card p-4 text-left transition-colors ${
+                  className={`ui-card p-4 text-left transition-colors ${
                   filterStatus === "IN_PROGRESS"
-                      ? "border-status-progress-foreground bg-status-progress"
-                      : "border-border bg-card hover:bg-hover"
+                      ? "border-status-progress-foreground bg-status-progress shadow-[0_10px_24px_rgba(59,130,246,0.16)]"
+                      : "border-border/70 bg-card/90 hover:bg-hover"
               }`}
           >
             <p className="text-sm text-muted-foreground">{statusLabels.IN_PROGRESS}</p>
@@ -324,10 +324,10 @@ export default function TasksPanel() {
           </button>
           <button
               onClick={() => handleFilterStatusChange("DONE")}
-              className={`ui-card p-4 text-left transition-colors ${
+                  className={`ui-card p-4 text-left transition-colors ${
                   filterStatus === "DONE"
-                      ? "border-status-done-foreground bg-status-done"
-                      : "border-border bg-card hover:bg-hover"
+                      ? "border-status-done-foreground bg-status-done shadow-[0_10px_24px_rgba(34,197,94,0.16)]"
+                      : "border-border/70 bg-card/90 hover:bg-hover"
               }`}
           >
             <p className="text-sm text-muted-foreground">{statusLabels.DONE}</p>
@@ -344,12 +344,12 @@ export default function TasksPanel() {
                   placeholder={t("filter.search")}
                   value={searchInput}
                   onChange={(e) => handleSearchInputChange(e.target.value)}
-                  className="rounded-lg border border-input bg-background px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="rounded-xl border border-input/80 bg-background/90 px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
               <select
                   value={sortBy}
                   onChange={(e) => handleSortChange(e.target.value as SortBy)}
-                  className="rounded-lg border border-input bg-background px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="rounded-xl border border-input/80 bg-background/90 px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="date">{t("filter.sortByDate")}</option>
                 <option value="priority">{t("filter.sortByPriority")}</option>
@@ -374,14 +374,14 @@ export default function TasksPanel() {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="rounded-lg border border-input bg-muted px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="rounded-xl border border-input/80 bg-muted/60 px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
               <span className="text-muted-foreground">~</span>
               <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="rounded-lg border border-input bg-muted px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="rounded-xl border border-input/80 bg-muted/60 px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
             {(startDate || endDate) && (
@@ -403,7 +403,7 @@ export default function TasksPanel() {
         {/* 태스크 목록 */}
         <div className="space-y-3">
           {filteredTasks.length === 0 ? (
-              <Card className="p-12 text-center">
+              <Card className="rounded-2xl border-border/70 bg-card/90 p-12 text-center shadow-[0_14px_30px_rgba(15,23,42,0.06)]">
                 <p className="text-muted-foreground">{t("filter.noTasks")}</p>
               </Card>
           ) : (
@@ -413,8 +413,9 @@ export default function TasksPanel() {
                   <Card
                       key={task.id}
                       onClick={() => handleTaskClick(task)}
-                      className={`border-l-4 p-4 transition-shadow hover:shadow-md cursor-pointer ${priorityStyles[taskPriority]}`}
+                      className="group relative cursor-pointer overflow-hidden rounded-2xl border border-border/70 bg-card/90 p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-[0_12px_30px_rgba(15,23,42,0.12)]"
                   >
+                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${priorityStyles[taskPriority]}`} />
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -435,7 +436,7 @@ export default function TasksPanel() {
                                   return (
                                       <span
                                           key={tag.tag_id}
-                                          className="rounded-full px-2 py-0.5 text-xs font-medium"
+                                          className="rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-black/5 dark:ring-white/10"
                                           style={{ backgroundColor: tag.color ?? undefined, color: textColor }}
                                       >
                               {tag.name.toLowerCase() === "high" ? t("filter.urgent") : tag.name}
@@ -446,7 +447,7 @@ export default function TasksPanel() {
                           ) : null}
                         </div>
                         {task.content && (
-                            <p className="mt-1 text-sm text-card-foreground">
+                            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
                               {getContentText(task.content)}
                             </p>
                         )}
@@ -455,8 +456,6 @@ export default function TasksPanel() {
                       <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <span className="font-medium">{task.title}</span>
-                      <span className="mx-1">•</span>
                       {formatDateTime(task.start_time)} - {formatDateTime(task.end_time)}
                     </span>
                         </div>
@@ -482,7 +481,7 @@ export default function TasksPanel() {
 
         {/* 하단: 페이지 크기 + 페이지네이션 */}
         {total > 0 && (
-          <Card className="px-6 py-3 flex items-center justify-between">
+          <Card className="flex items-center justify-between rounded-2xl border-border/70 bg-card/90 px-6 py-3 shadow-[0_12px_28px_rgba(15,23,42,0.08)]">
             <div className="flex items-center gap-3">
               <div className="text-xs text-muted-foreground">
                 {t("filter.tasksCount", { count: total })}
@@ -490,7 +489,7 @@ export default function TasksPanel() {
               <select
                 value={limit}
                 onChange={(e) => handleLimitChange(Number(e.target.value))}
-                className="rounded border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                className="rounded-lg border border-border/70 bg-background/90 px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
               >
                 <option value={10}>{t("filter.perPage", { count: 10 })}</option>
                 <option value={20}>{t("filter.perPage", { count: 20 })}</option>

@@ -12,6 +12,8 @@
     "android": {
       "package": "com.pecal.mobile"
     },
-    "plugins": []
+    "plugins": [
+      "expo-router"
+    ]
   }
 }

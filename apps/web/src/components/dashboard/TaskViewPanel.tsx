@@ -121,9 +121,9 @@ export default function TaskViewPanel({
   };
 
   const statusColors: Record<NonNullable<TaskViewData["status"]>, string> = {
-    TODO: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-    IN_PROGRESS: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
-    DONE: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+    TODO: "bg-status-todo text-status-todo-foreground",
+    IN_PROGRESS: "bg-status-progress text-status-progress-foreground",
+    DONE: "bg-status-done text-status-done-foreground",
   };
 
   const statusOptions: Array<NonNullable<TaskViewData["status"]>> = ["TODO", "IN_PROGRESS", "DONE"];
@@ -284,7 +284,7 @@ export default function TaskViewPanel({
                     href={att.file_path}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm text-foreground hover:text-blue-600 truncate flex-1"
+                    className="flex flex-1 items-center gap-2 truncate text-sm text-foreground hover:text-primary"
                   >
                     <span className="truncate">{att.original_name}</span>
                     <span className="text-xs text-muted-foreground flex-shrink-0">
@@ -310,7 +310,7 @@ export default function TaskViewPanel({
               <button
                 type="button"
                 onClick={() => onDelete(task.id!)}
-                className="rounded-lg px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors inline-flex items-center gap-2"
+                className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
               >
                 <Trash2 className="h-4 w-4" />
                 {t("delete")}
@@ -331,7 +331,7 @@ export default function TaskViewPanel({
               <button
                 type="button"
                 onClick={onEdit}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 inline-flex items-center gap-2"
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 <PencilLine className="h-4 w-4" />
                 {t("edit")}

@@ -98,7 +98,7 @@ export default function NicePayButton({
         type="button"
         onClick={handlePayment}
         disabled={!sdkLoaded || loading}
-        className="w-full rounded-lg bg-blue-600 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full rounded-lg bg-primary px-6 py-3 text-base font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {loading
           ? t("subscribing")

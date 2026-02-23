@@ -343,3 +343,33 @@ CREATE TABLE billing_keys (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_member_status (member_id, status)
   );
+
+-- 17. PayPal 웹훅 이벤트 중복 처리 테이블
+CREATE TABLE IF NOT EXISTS paypal_webhook_events (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  provider VARCHAR(20) NOT NULL,
+  event_id VARCHAR(128) NOT NULL,
+  event_type VARCHAR(120) NOT NULL,
+  status ENUM('PROCESSING', 'COMPLETED') NOT NULL DEFAULT 'PROCESSING',
+  payload_json LONGTEXT NULL,
+  received_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  processed_at DATETIME NULL,
+  attempt_count INT NOT NULL DEFAULT 1,
+  UNIQUE KEY uq_paypal_webhook_event (provider, event_id),
+  INDEX idx_paypal_webhook_status (provider, status, received_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 18. 관리자 로그인 시도 제한 테이블
+CREATE TABLE IF NOT EXISTS admin_login_attempts (
+  attempt_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(50) NOT NULL,
+  ip_address VARCHAR(64) NOT NULL,
+  fail_count INT NOT NULL DEFAULT 0,
+  first_failed_at DATETIME NULL,
+  last_failed_at DATETIME NULL,
+  locked_until DATETIME NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_admin_login_attempt (username, ip_address),
+  INDEX idx_admin_login_locked_until (locked_until),
+  INDEX idx_admin_login_last_failed_at (last_failed_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

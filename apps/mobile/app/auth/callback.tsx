@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import { ActivityIndicator, SafeAreaView, Text } from 'react-native';
+import { ActivityIndicator, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMobileApp } from '../../src/contexts/MobileAppContext';
 import { useThemeMode } from '../../src/contexts/ThemeContext';
 import { createStyles } from '../../src/styles/createStyles';

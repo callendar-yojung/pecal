@@ -244,22 +244,26 @@ export default function MemoPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="dashboard-hero-card flex flex-wrap items-center justify-between gap-3 p-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">
-            {t("title")}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {ownerType === "team" ? t("teamMemo") : t("personalMemo")}
-          </p>
+    <div className="space-y-8">
+      <div className="dashboard-hero-shell">
+        <div className="dashboard-hero-orb dashboard-hero-orb-right" />
+        <div className="dashboard-hero-orb dashboard-hero-orb-left" />
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground lg:text-4xl">
+              {t("title")}
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {ownerType === "team" ? t("teamMemo") : t("personalMemo")}
+            </p>
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {isSaving ? t("saving") : t("saved")}
+          </span>
         </div>
-        <span className="text-xs text-muted-foreground">
-          {isSaving ? t("saving") : t("saved")}
-        </span>
       </div>
 
-      <div className="dashboard-glass-card overflow-x-hidden p-4 md:p-6">
+      <div className="dashboard-glass-card premium-noise overflow-x-hidden p-4 md:p-6">
         <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
           <div className="min-w-0">
             <div className="ui-card p-4">
@@ -268,12 +272,12 @@ export default function MemoPage() {
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder={t("searchPlaceholder")}
-                  className="flex-1 rounded border border-border bg-background px-2 py-1 text-sm"
+                  className="flex-1 rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
                 />
                 <button
                   type="button"
                   onClick={handleCreateMemo}
-                  className="ui-button px-2 py-1 text-sm"
+                  className="ui-button px-3 py-2 text-sm"
                 >
                   {t("newMemo")}
                 </button>
@@ -283,7 +287,7 @@ export default function MemoPage() {
                 <select
                   value={sort}
                   onChange={(event) => setSort(event.target.value as MemoSort)}
-                  className="flex-1 rounded border border-border bg-background px-2 py-1 text-sm"
+                  className="flex-1 rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
                 >
                   <option value="latest">{t("sortLatest")}</option>
                   <option value="oldest">{t("sortOldest")}</option>
@@ -292,7 +296,7 @@ export default function MemoPage() {
                 <button
                   type="button"
                   onClick={() => setFavoriteOnly((prev) => !prev)}
-                  className={`rounded border border-border px-2 py-1 text-sm ${
+                  className={`rounded-xl border border-border/70 px-3 py-2 text-sm ${
                     favoriteOnly ? "bg-primary text-primary-foreground" : "bg-background"
                   }`}
                 >
@@ -320,10 +324,10 @@ export default function MemoPage() {
                   memos.map((memo) => (
                     <div
                       key={memo.memo_id}
-                      className={`rounded border px-3 py-2 text-sm ${
+                      className={`rounded-xl border px-3 py-2 text-sm transition-colors ${
                         selectedMemoId === memo.memo_id
-                          ? "border-primary bg-primary/10"
-                          : "border-border hover:bg-muted/40"
+                          ? "border-primary bg-primary/10 shadow-[0_8px_20px_rgba(59,130,246,0.18)]"
+                          : "border-border/70 hover:bg-muted/40"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -423,7 +427,7 @@ export default function MemoPage() {
                     onChange={(event) => setTitle(event.target.value)}
                     onBlur={handleTitleSave}
                     placeholder={t("titlePlaceholder")}
-                    className="min-w-0 flex-1 rounded border border-border bg-background px-3 py-2 text-sm"
+                    className="min-w-0 flex-1 rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
                   />
                 </div>
                 <RichTextEditor

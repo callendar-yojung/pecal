@@ -101,7 +101,7 @@ export default function WorkspaceSwitcher() {
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="flex w-full items-center justify-between gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-3 text-left transition-all hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 sm:py-2.5"
+          className="flex w-full items-center justify-between gap-2 rounded-xl border border-border bg-popover px-3 py-3 text-left transition-all hover:border-border/80 hover:bg-hover/40 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/40 sm:py-2.5"
         >
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div
@@ -118,12 +118,12 @@ export default function WorkspaceSwitcher() {
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <p className="truncate text-sm font-semibold text-popover-foreground">
                 {currentWorkspace?.type === "personal"
                   ? personalLabel
                   : currentWorkspace?.name}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-xs text-muted-foreground">
                 {currentWorkspace?.type === "personal"
                   ? t("personalWorkspace") || "개인 워크스페이스"
                   : currentTeam
@@ -133,17 +133,17 @@ export default function WorkspaceSwitcher() {
             </div>
           </div>
           <ChevronDown
-            className={`h-5 w-5 text-gray-400 transition-transform flex-shrink-0 ${isOpen ? "rotate-180" : ""}`}
+            className={`h-5 w-5 text-muted-foreground transition-transform flex-shrink-0 ${isOpen ? "rotate-180" : ""}`}
           />
         </button>
 
         {/* 드롭다운 */}
         {isOpen && (
-          <div className="absolute left-0 top-full z-50 mt-2 w-full min-w-[240px] max-h-[70vh] max-w-[90vw] overflow-y-auto overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl overscroll-contain touch-pan-y">
+          <div className="absolute left-0 top-full z-50 mt-2 w-full min-w-[240px] max-h-[70vh] max-w-[90vw] overflow-y-auto overflow-hidden rounded-xl border border-border bg-popover shadow-xl overscroll-contain touch-pan-y">
             {/* 개인 워크스페이스 섹션 */}
             <div className="p-2">
               <div className="flex items-center justify-between px-3 py-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {t("personal")}
                 </span>
               </div>
@@ -155,36 +155,36 @@ export default function WorkspaceSwitcher() {
                   className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-all sm:py-2.5 ${
                     currentWorkspace?.workspace_id ===
                     primaryPersonalWorkspace.workspace_id
-                      ? "bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-500/20"
-                      : "hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                      ? "bg-primary/10 ring-1 ring-primary/20"
+                      : "hover:bg-hover"
                   }`}
                 >
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 shadow-sm">
                     <UserCircle2 className="h-4 w-4 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <p className="truncate text-sm font-medium text-popover-foreground">
                       {personalLabel}
                     </p>
                   </div>
                   {currentWorkspace?.workspace_id ===
                     primaryPersonalWorkspace.workspace_id && (
-                    <Check className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                    <Check className="h-5 w-5 text-primary flex-shrink-0" />
                   )}
                 </button>
               ) : (
-                <p className="px-3 py-2 text-xs text-gray-400">
+                <p className="px-3 py-2 text-xs text-muted-foreground">
                   {t("noWorkspaces") || "워크스페이스 없음"}
                 </p>
               )}
             </div>
 
-            <div className="border-t border-gray-200 dark:border-gray-700" />
+            <div className="border-t border-border" />
 
             {/* 팀 섹션 */}
             <div className="p-2">
               <div className="flex items-center justify-between px-3 py-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {t("teams")}
                 </span>
               </div>
@@ -205,39 +205,39 @@ export default function WorkspaceSwitcher() {
                       className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-all sm:py-2.5 ${
                         currentWorkspace?.type === "team" &&
                         currentWorkspace?.owner_id === team.id
-                          ? "bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-500/20"
-                          : "hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                          ? "bg-primary/10 ring-1 ring-primary/20"
+                          : "hover:bg-hover"
                       }`}
                     >
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 shadow-sm">
                         <UsersRound className="h-4 w-4 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        <p className="truncate text-sm font-semibold text-popover-foreground">
                           {team.name}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                        <p className="text-xs text-muted-foreground">
                           {team.role_name || t("memberRole")} · {team.memberCount} {t("members")}
                         </p>
                       </div>
                       {currentWorkspace?.type === "team" &&
                         currentWorkspace?.owner_id === team.id && (
-                          <Check className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                          <Check className="h-5 w-5 text-primary flex-shrink-0" />
                         )}
                     </button>
                   ))}
                 </div>
               ) : (
                 <div className="px-3 py-6 text-center">
-                  <UsersRound className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
-                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  <UsersRound className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                  <p className="mt-2 text-xs text-muted-foreground">
                     {t("noTeams") || "No teams yet"}
                   </p>
                 </div>
               )}
             </div>
 
-            <div className="border-t border-gray-200 dark:border-gray-700" />
+            <div className="border-t border-border" />
 
             {/* 새 팀 생성 버튼 */}
             <div className="p-2">
@@ -247,9 +247,9 @@ export default function WorkspaceSwitcher() {
                   setIsOpen(false);
                   setShowCreateModal(true);
                 }}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-blue-600 dark:text-blue-400 transition-all hover:bg-blue-50 dark:hover:bg-blue-900/20 sm:py-2.5"
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-primary transition-all hover:bg-primary/10 sm:py-2.5"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-dashed border-blue-300 dark:border-blue-600">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-dashed border-primary/50">
                   <Plus className="h-4 w-4" />
                 </div>
                 <span className="text-sm font-semibold">
@@ -264,12 +264,12 @@ export default function WorkspaceSwitcher() {
       {/* 팀 생성 모달 */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl">
-            <div className="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-popover shadow-2xl">
+            <div className="border-b border-border px-6 py-4">
+              <h3 className="text-lg font-semibold text-popover-foreground">
                 {t("createNewTeam") || "Create New Team"}
               </h3>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              <p className="mt-1 text-sm text-muted-foreground">
                 {t("createTeamDescription") ||
                   "Create a team workspace to collaborate with others"}
               </p>
@@ -279,10 +279,10 @@ export default function WorkspaceSwitcher() {
               <div>
                 <label
                   htmlFor="teamName"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
                 >
                   {t("teamName") || "Team Name"}{" "}
-                  <span className="text-red-500">*</span>
+                  <span className="text-destructive">*</span>
                 </label>
                 <input
                   id="teamName"
@@ -292,7 +292,7 @@ export default function WorkspaceSwitcher() {
                   placeholder={
                     t("teamNamePlaceholder") || "e.g., Marketing Team"
                   }
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   required
                   disabled={isCreatingTeam}
                   autoFocus
@@ -302,10 +302,10 @@ export default function WorkspaceSwitcher() {
               <div>
                 <label
                   htmlFor="teamDescription"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
                 >
                   {t("teamDescription") || "Description"}{" "}
-                  <span className="text-gray-400 text-xs">(Optional)</span>
+                  <span className="text-xs text-muted-foreground">(Optional)</span>
                 </label>
                 <textarea
                   id="teamDescription"
@@ -316,7 +316,7 @@ export default function WorkspaceSwitcher() {
                     "What's this team about?"
                   }
                   rows={3}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none"
+                  className="w-full resize-none rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   disabled={isCreatingTeam}
                 />
               </div>
@@ -330,7 +330,7 @@ export default function WorkspaceSwitcher() {
                     setNewTeamDescription("");
                   }}
                   disabled={isCreatingTeam}
-                  className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex-1 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {t("cancel") || "Cancel"}
                 </button>
@@ -368,7 +368,7 @@ export default function WorkspaceSwitcher() {
                       setIsCreatingTeam(false);
                     }
                   }}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {t("useFreeTeamPlan") || "Use Free Team Plan"}
                 </button>
@@ -415,7 +415,7 @@ export default function WorkspaceSwitcher() {
                       setIsCreatingTeam(false);
                     }
                   }}
-                  className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                  className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isCreatingTeam ? (
                     <span className="flex items-center justify-center gap-2">
