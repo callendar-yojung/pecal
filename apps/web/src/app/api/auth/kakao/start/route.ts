@@ -5,6 +5,7 @@ import {
   getOAuthStateCookieOptions,
   isAllowedOAuthCallback,
 } from "@/lib/oauth-state";
+import { getOAuthRedirectUri } from "@/lib/oauth-redirect-uri";
 
 /**
  * GET /api/auth/kakao/start?callback=desktop-calendar://auth/callback
@@ -48,9 +49,7 @@ export async function GET(request: NextRequest) {
 
     // redirect_uri는 항상 카카오에 등록된 HTTPS URL을 사용
     // 카카오는 커스텀 스킴(deskcal://)을 허용하지 않음
-    const redirectUri = process.env.NODE_ENV === 'production'
-        ? "https://pecal.site/api/auth/kakao/callback"
-        : "http://localhost:3000/api/auth/kakao/callback";
+    const redirectUri = getOAuthRedirectUri(request, "kakao");
 
     const { state, nonce } = await createOAuthState("kakao", appCallback);
 

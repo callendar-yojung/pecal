@@ -5,6 +5,7 @@ import {
   getOAuthStateCookieOptions,
   isAllowedOAuthCallback,
 } from "@/lib/oauth-state";
+import { getOAuthRedirectUri } from "@/lib/oauth-redirect-uri";
 
 /**
  * GET /api/auth/google/start?callback=deskcal://auth/callback
@@ -48,9 +49,7 @@ export async function GET(request: NextRequest) {
 
     // redirect_uri는 항상 구글에 등록된 HTTPS URL을 사용
     // 구글은 커스텀 스킴(deskcal://)을 웹 앱에서는 허용하지 않음
-    const redirectUri = process.env.NODE_ENV === 'production'
-      ? "https://pecal.site/api/auth/google/callback"
-      : "http://localhost:3000/api/auth/google/callback";
+    const redirectUri = getOAuthRedirectUri(request, "google");
 
     const { state, nonce } = await createOAuthState("google", appCallback);
 
