@@ -112,7 +112,7 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="dashboard-glass-card border-0 bg-transparent shadow-none">
+      <Card className="dashboard-glass-card">
         <CardHeader>
           <CardTitle>{t("general.title")}</CardTitle>
           <CardDescription>{t("general.description")}</CardDescription>
@@ -170,7 +170,7 @@ export default function SettingsPage() {
                   type="button"
                   onClick={handleAutoTimezoneToggle}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
-                    autoTimezone ? "bg-blue-600" : "bg-muted"
+                    autoTimezone ? "bg-primary" : "bg-muted"
                   }`}
                 >
                 <span
@@ -249,7 +249,7 @@ export default function SettingsPage() {
               type="button"
               onClick={handleNotificationsToggle}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
-                notifications ? "bg-blue-600" : "bg-muted"
+                notifications ? "bg-primary" : "bg-muted"
               }`}
             >
               <span

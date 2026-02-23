@@ -280,19 +280,19 @@ export default function BillingPage() {
     switch (status) {
       case "SUCCESS":
         return (
-          <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">
+          <span className="inline-flex items-center rounded-full bg-status-done px-2 py-0.5 text-xs font-medium text-status-done-foreground">
             {t("paymentHistory.success")}
           </span>
         );
       case "FAILED":
         return (
-          <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">
+          <span className="inline-flex items-center rounded-full bg-destructive/15 px-2 py-0.5 text-xs font-medium text-destructive">
             {t("paymentHistory.failed")}
           </span>
         );
       case "REFUNDED":
         return (
-          <span className="inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+          <span className="inline-flex items-center rounded-full bg-status-todo px-2 py-0.5 text-xs font-medium text-status-todo-foreground">
             {t("paymentHistory.refunded")}
           </span>
         );
@@ -305,19 +305,19 @@ export default function BillingPage() {
     switch (type) {
       case "FIRST":
         return (
-          <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+          <span className="inline-flex items-center rounded-full bg-status-progress px-2 py-0.5 text-xs font-medium text-status-progress-foreground">
             {t("paymentHistory.first")}
           </span>
         );
       case "RECURRING":
         return (
-          <span className="inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+          <span className="inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">
             {t("paymentHistory.recurring")}
           </span>
         );
       case "RETRY":
         return (
-          <span className="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+          <span className="inline-flex items-center rounded-full bg-status-todo px-2 py-0.5 text-xs font-medium text-status-todo-foreground">
             {t("paymentHistory.retry")}
           </span>
         );
@@ -340,18 +340,22 @@ export default function BillingPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="dashboard-hero-card p-8">
-        <h1 className="text-3xl font-bold text-foreground">{t("title")}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{t("description")}</p>
+    <div className="space-y-8">
+      <div className="dashboard-hero-shell">
+        <div className="dashboard-hero-orb dashboard-hero-orb-right" />
+        <div className="dashboard-hero-orb dashboard-hero-orb-left" />
+        <div className="relative z-10">
+          <h1 className="text-3xl font-bold text-foreground lg:text-4xl">{t("title")}</h1>
+          <p className="mt-2 text-sm text-muted-foreground">{t("description")}</p>
+        </div>
       </div>
 
       {/* NicePay 결제 성공 배너 */}
       {showPaymentSuccess && (
-        <div className="flex items-center justify-between rounded-lg border border-green-300 bg-green-50 p-4 dark:border-green-800 dark:bg-green-950">
+        <div className="dashboard-glass-card flex items-center justify-between rounded-2xl border border-status-done-foreground/20 bg-status-done p-4">
           <div className="flex items-center gap-2">
             <svg
-              className="h-5 w-5 text-green-600"
+              className="h-5 w-5 text-status-done-foreground"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -363,13 +367,13 @@ export default function BillingPage() {
                 d="M5 13l4 4L19 7"
               />
             </svg>
-            <p className="font-medium text-green-800 dark:text-green-200">
+            <p className="font-medium text-status-done-foreground">
               {t("paymentSuccess")}
             </p>
           </div>
           <button
             onClick={() => setShowPaymentSuccess(false)}
-            className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200"
+            className="text-status-done-foreground/80 hover:text-status-done-foreground"
           >
             <svg
               className="h-5 w-5"
@@ -390,10 +394,10 @@ export default function BillingPage() {
 
       {/* 플랜 변경 예약 배너 */}
       {showPlanChangeScheduled && (
-        <div className="flex items-center justify-between rounded-lg border border-blue-300 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
+        <div className="dashboard-glass-card flex items-center justify-between rounded-2xl border border-status-progress-foreground/20 bg-status-progress p-4">
           <div className="flex items-center gap-2">
             <svg
-              className="h-5 w-5 text-blue-600"
+              className="h-5 w-5 text-status-progress-foreground"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -405,13 +409,13 @@ export default function BillingPage() {
                 d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <p className="font-medium text-blue-800 dark:text-blue-200">
+            <p className="font-medium text-status-progress-foreground">
               {t("planChangeScheduled")}
             </p>
           </div>
           <button
             onClick={() => setShowPlanChangeScheduled(false)}
-            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
+            className="text-status-progress-foreground/80 hover:text-status-progress-foreground"
           >
             <svg
               className="h-5 w-5"
@@ -433,17 +437,17 @@ export default function BillingPage() {
       {/* 구독 취소 메시지 */}
       {cancelMessage && (
         <div
-          className={`flex items-center justify-between rounded-lg border p-4 ${
+          className={`dashboard-glass-card flex items-center justify-between rounded-2xl border p-4 ${
             cancelMessage.type === "success"
-              ? "border-green-300 bg-green-50 dark:border-green-800 dark:bg-green-950"
-              : "border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950"
+              ? "border-status-done-foreground/20 bg-status-done"
+              : "border-destructive/25 bg-destructive/10"
           }`}
         >
           <p
             className={`text-sm font-medium ${
               cancelMessage.type === "success"
-                ? "text-green-800 dark:text-green-200"
-                : "text-red-800 dark:text-red-200"
+                ? "text-status-done-foreground"
+                : "text-destructive"
             }`}
           >
             {cancelMessage.text}
@@ -470,11 +474,11 @@ export default function BillingPage() {
       )}
 
       {/* 개인 구독 */}
-      <div className="dashboard-glass-card p-6">
+      <div className="dashboard-glass-card premium-noise p-6">
         <div className="mb-2 flex items-center gap-2">
-          <div className="rounded-full bg-blue-100 p-1.5 dark:bg-blue-900">
+          <div className="rounded-full bg-status-progress p-1.5">
             <svg
-              className="h-4 w-4 text-blue-600 dark:text-blue-400"
+              className="h-4 w-4 text-status-progress-foreground"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -495,28 +499,28 @@ export default function BillingPage() {
           {t("personalSubscriptionDesc")}
         </p>
 
-        <div className="mt-6 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
+        <div className="mt-6 flex items-center justify-between rounded-2xl border border-status-progress-foreground/20 bg-status-progress p-4">
           <div>
-            <p className="font-semibold text-blue-900 dark:text-blue-100">
+            <p className="font-semibold text-status-progress-foreground">
               {personalSubscription?.plan_name || "Basic"}
             </p>
-            <p className="text-sm text-blue-700 dark:text-blue-300">
+            <p className="text-sm text-status-progress-foreground/85">
               {"\u20A9"}
               {personalSubscription?.plan_price?.toLocaleString() || 0} / month
             </p>
             {isPaidSubscription && (
-              <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
+              <p className="mt-1 text-xs text-status-progress-foreground/80">
                 {t("status")}: {personalSubscription.status}
               </p>
             )}
             {isPaidSubscription && personalSubscription.next_payment_date && (
-              <p className="mt-0.5 text-xs text-blue-600 dark:text-blue-400">
+              <p className="mt-0.5 text-xs text-status-progress-foreground/80">
                 {t("nextPaymentDate")}:{" "}
                 {formatDate(personalSubscription.next_payment_date)}
               </p>
             )}
             {!isPaidSubscription && (
-              <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
+              <p className="mt-1 text-xs text-status-progress-foreground/80">
                 {t("freePlan")}
               </p>
             )}
@@ -526,7 +530,7 @@ export default function BillingPage() {
               <button
                 type="button"
                 onClick={() => setShowCancelConfirm(true)}
-                className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950"
+                className="ui-button-danger px-4 py-2 text-sm"
               >
                 {t("cancel.button")}
               </button>
@@ -539,7 +543,7 @@ export default function BillingPage() {
                   `/dashboard/settings/billing/plans/personal?owner_id=${memberId}`
                 );
               }}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+              className="ui-button-primary px-4 py-2 text-sm"
             >
               {isPaidSubscription ? t("changePlan") : t("upgrade")}
             </button>
@@ -548,11 +552,11 @@ export default function BillingPage() {
 
         {/* 구독 취소 확인 다이얼로그 */}
         {showCancelConfirm && (
-          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
-            <h3 className="font-semibold text-red-900 dark:text-red-100">
+          <div className="mt-4 rounded-2xl border border-destructive/25 bg-destructive/10 p-4">
+            <h3 className="font-semibold text-destructive">
               {t("cancel.title")}
             </h3>
-            <p className="mt-1 text-sm text-red-700 dark:text-red-300">
+            <p className="mt-1 text-sm text-destructive/85">
               {t("cancel.message")}
             </p>
             <div className="mt-3 flex gap-2">
@@ -560,7 +564,7 @@ export default function BillingPage() {
                 type="button"
                 onClick={handleCancelSubscription}
                 disabled={canceling}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                className="ui-button-danger px-4 py-2 text-sm disabled:opacity-50"
               >
                 {canceling ? t("cancel.canceling") : t("cancel.confirm")}
               </button>
@@ -568,7 +572,7 @@ export default function BillingPage() {
                 type="button"
                 onClick={() => setShowCancelConfirm(false)}
                 disabled={canceling}
-                className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-card-foreground transition-colors hover:bg-accent disabled:opacity-50"
+                className="ui-button px-4 py-2 text-sm disabled:opacity-50"
               >
                 {t("cancel.dismiss")}
               </button>
@@ -578,11 +582,11 @@ export default function BillingPage() {
       </div>
 
       {/* 팀 구독 */}
-      <div className="dashboard-glass-card p-6">
+      <div className="dashboard-glass-card premium-noise p-6">
         <div className="mb-2 flex items-center gap-2">
-          <div className="rounded-full bg-purple-100 p-1.5 dark:bg-purple-900">
+          <div className="rounded-full bg-primary/15 p-1.5">
             <svg
-              className="h-4 w-4 text-purple-600 dark:text-purple-400"
+              className="h-4 w-4 text-primary"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -608,7 +612,7 @@ export default function BillingPage() {
             {t("teamLoading")}
           </div>
         ) : teams.length === 0 ? (
-          <div className="mt-4 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+          <div className="mt-4 rounded-2xl border border-dashed border-border p-4 text-sm text-muted-foreground">
             {t("teamNoTeams")}
           </div>
         ) : (
@@ -619,7 +623,7 @@ export default function BillingPage() {
             <select
               value={selectedTeamId ?? ""}
               onChange={(e) => setSelectedTeamId(Number(e.target.value))}
-              className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              className="rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
             >
               {teams.map((team) => (
                 <option key={team.id} value={team.id}>
@@ -635,7 +639,7 @@ export default function BillingPage() {
                   `/dashboard/settings/billing/plans/team?owner_id=${selectedTeamId}`
                 );
               }}
-              className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              className="ui-button px-3 py-2 text-sm"
             >
               {t("teamGo")}
             </button>
@@ -644,7 +648,7 @@ export default function BillingPage() {
       </div>
 
       {/* 결제 수단 */}
-      <div className="dashboard-glass-card p-6">
+      <div className="dashboard-glass-card premium-noise p-6">
         <h2 className="text-lg font-semibold text-card-foreground">
           {t("paymentMethod")}
         </h2>
@@ -654,11 +658,11 @@ export default function BillingPage() {
 
         {savedCard ? (
           <div className="mt-6">
-            <div className="flex items-center justify-between rounded-lg border border-border bg-background p-4">
+            <div className="flex items-center justify-between rounded-2xl border border-border/70 bg-background/90 p-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-status-progress">
                   <svg
-                    className="h-5 w-5 text-blue-600 dark:text-blue-400"
+                    className="h-5 w-5 text-status-progress-foreground"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -683,7 +687,7 @@ export default function BillingPage() {
               <button
                 type="button"
                 onClick={() => setShowRemoveCardConfirm(true)}
-                className="rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950"
+                className="ui-button-danger px-3 py-1.5 text-sm"
               >
                 {t("removeCard")}
               </button>
@@ -691,8 +695,8 @@ export default function BillingPage() {
 
             {/* 카드 삭제 확인 */}
             {showRemoveCardConfirm && (
-              <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
-                <p className="text-sm text-red-700 dark:text-red-300">
+              <div className="mt-3 rounded-2xl border border-destructive/25 bg-destructive/10 p-4">
+                <p className="text-sm text-destructive/85">
                   {t("removeCardConfirm")}
                 </p>
                 <div className="mt-3 flex gap-2">
@@ -700,7 +704,7 @@ export default function BillingPage() {
                     type="button"
                     onClick={handleRemoveCard}
                     disabled={removingCard}
-                    className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                    className="ui-button-danger px-4 py-2 text-sm disabled:opacity-50"
                   >
                     {removingCard ? t("cancel.canceling") : t("removeCard")}
                   </button>
@@ -708,7 +712,7 @@ export default function BillingPage() {
                     type="button"
                     onClick={() => setShowRemoveCardConfirm(false)}
                     disabled={removingCard}
-                    className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-card-foreground transition-colors hover:bg-accent disabled:opacity-50"
+                    className="ui-button px-4 py-2 text-sm disabled:opacity-50"
                   >
                     {t("cancel.dismiss")}
                   </button>
@@ -717,7 +721,7 @@ export default function BillingPage() {
             )}
           </div>
         ) : (
-          <div className="mt-6 rounded-lg border-2 border-dashed border-border p-8 text-center">
+          <div className="mt-6 rounded-2xl border-2 border-dashed border-border p-8 text-center">
             <p className="text-sm text-muted-foreground">
               {t("noPaymentMethod")}
             </p>
@@ -726,7 +730,7 @@ export default function BillingPage() {
       </div>
 
       {/* 결제 내역 */}
-      <div className="dashboard-glass-card p-6">
+      <div className="dashboard-glass-card premium-noise p-6">
         <h2 className="text-lg font-semibold text-card-foreground">
           {t("history")}
         </h2>
@@ -735,13 +739,13 @@ export default function BillingPage() {
         </p>
 
         {paymentsLoading ? (
-          <div className="mt-6 flex items-center justify-center rounded-lg border-2 border-dashed border-border p-8">
+          <div className="mt-6 flex items-center justify-center rounded-2xl border-2 border-dashed border-border p-8">
             <p className="text-sm text-muted-foreground">
               {t("historyLoading")}
             </p>
           </div>
         ) : payments.length === 0 ? (
-          <div className="mt-6 rounded-lg border-2 border-dashed border-border p-8 text-center">
+          <div className="mt-6 rounded-2xl border-2 border-dashed border-border p-8 text-center">
             <p className="text-sm text-muted-foreground">{t("noHistory")}</p>
           </div>
         ) : (

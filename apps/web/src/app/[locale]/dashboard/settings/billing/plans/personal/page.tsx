@@ -5,7 +5,7 @@ export default function PersonalPlansPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex items-center justify-center p-12">
+        <div className="dashboard-glass-card flex items-center justify-center p-12">
           <div className="text-muted-foreground">Loading...</div>
         </div>
       }

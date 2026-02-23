@@ -2,11 +2,29 @@ import { fetch } from '@tauri-apps/plugin-http'
 import { ApiError, isRetryableStatus, mapStatusToApiCode, toApiError } from '@repo/api-client'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://pecal.site'
+const IS_DEV = import.meta.env.DEV
 
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
   body?: unknown
   headers?: Record<string, string>
+}
+
+function sanitizeHeaders(headers: Record<string, string>) {
+  const sanitized = { ...headers }
+  if (sanitized.Authorization) {
+    sanitized.Authorization = 'Bearer [REDACTED]'
+  }
+  return sanitized
+}
+
+function logDebug(message: string, payload?: unknown) {
+  if (!IS_DEV) return
+  if (payload === undefined) {
+    console.log(message)
+    return
+  }
+  console.log(message, payload)
 }
 
 class ApiClient {
@@ -44,11 +62,11 @@ class ApiClient {
 
     const url = `${this.baseUrl}${endpoint}`
 
-    console.log('🚀 API Request:', {
+    logDebug('🚀 API Request:', {
       method,
       url,
-      headers: requestHeaders,
-      body: body ? JSON.stringify(body, null, 2) : undefined,
+      headers: sanitizeHeaders(requestHeaders),
+      hasBody: body !== undefined,
     })
 
     try {
@@ -58,7 +76,7 @@ class ApiClient {
         body: body ? JSON.stringify(body) : undefined,
       })
 
-      console.log('📥 API Response Status:', {
+      logDebug('📥 API Response Status:', {
         url,
         status: response.status,
         statusText: response.statusText,
@@ -67,7 +85,6 @@ class ApiClient {
 
       // 응답 본문 읽기 (에러가 있든 없든)
       const responseText = await response.text()
-      console.log('📄 API Response Body:', responseText)
 
       if (!response.ok) {
         if (
@@ -91,10 +108,10 @@ class ApiClient {
 
         try {
           const errorData = JSON.parse(responseText)
-          console.error('❌ API Error Data:', errorData)
+          logDebug('❌ API Error Data:', errorData)
           errorMessage = errorData.error || errorData.message || errorMessage
-        } catch (parseError) {
-          console.error('❌ Failed to parse error response:', responseText)
+        } catch {
+          logDebug('❌ Failed to parse error response')
         }
 
         throw new ApiError({
@@ -110,10 +127,10 @@ class ApiClient {
       // 성공 응답 파싱
       try {
         const data = JSON.parse(responseText)
-        console.log('✅ API Success Data:', data)
+        logDebug('✅ API Success Data')
         return data
-      } catch (parseError) {
-        console.error('❌ Failed to parse success response:', responseText)
+      } catch {
+        logDebug('❌ Failed to parse success response')
         throw new ApiError({
           message: 'Invalid JSON response',
           status: response.status,
@@ -165,7 +182,13 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${this.accessToken}`
     }
 
-    console.log('🚀 API Upload:', { url, fileName: file.name, fileSize: file.size, fields })
+    logDebug('🚀 API Upload:', {
+      url,
+      fileName: file.name,
+      fileSize: file.size,
+      fields,
+      hasAuthHeader: Boolean(headers.Authorization),
+    })
 
     // File을 메모리로 읽어 Blob으로 변환 (Tauri IPC 호환)
     const arrayBuffer = await file.arrayBuffer()
@@ -184,14 +207,13 @@ class ApiClient {
         body: formData,
       })
 
-      console.log('📥 API Upload Response Status:', {
+      logDebug('📥 API Upload Response Status:', {
         url,
         status: response.status,
         ok: response.ok,
       })
 
       const responseText = await response.text()
-      console.log('📄 API Upload Response Body:', responseText)
 
       if (!response.ok) {
         if (
@@ -229,7 +251,7 @@ class ApiClient {
       }
 
       const data = JSON.parse(responseText)
-      console.log('✅ API Upload Success:', data)
+      logDebug('✅ API Upload Success')
       return data
     } catch (error) {
       const normalizedError = toApiError(error, 'desktop')

@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
+import { getRequiredEnv } from "@/lib/required-env";
 
 export interface TokenPayload extends JWTPayload {
   memberId: number;
@@ -8,9 +9,7 @@ export interface TokenPayload extends JWTPayload {
   type: "access" | "refresh";
 }
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.AUTH_SECRET || "fallback-secret-key-change-in-production"
-);
+const JWT_SECRET = new TextEncoder().encode(getRequiredEnv("AUTH_SECRET"));
 
 const ACCESS_TOKEN_EXPIRY = "1h";
 const REFRESH_TOKEN_EXPIRY = "7d";

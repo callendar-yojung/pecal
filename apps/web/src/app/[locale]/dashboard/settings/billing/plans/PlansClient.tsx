@@ -175,7 +175,7 @@ export default function PlansClient({ mode = "combined" }: { mode?: "personal" |
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-12">
+      <div className="dashboard-glass-card flex items-center justify-center p-12">
         <div className="text-muted-foreground">Loading...</div>
       </div>
     );
@@ -183,12 +183,12 @@ export default function PlansClient({ mode = "combined" }: { mode?: "personal" |
 
   if (plans.length === 0) {
     return (
-      <div className="flex items-center justify-center p-12">
+      <div className="dashboard-glass-card flex items-center justify-center p-12">
         <div className="text-center">
           <p className="text-muted-foreground">{t("loadError")}</p>
           <button
             onClick={fetchData}
-            className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
+            className="ui-button-primary mt-4 px-4 py-2 text-sm"
           >
             {t("retry")}
           </button>
@@ -198,9 +198,9 @@ export default function PlansClient({ mode = "combined" }: { mode?: "personal" |
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen p-6">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8 text-center">
+        <div className="dashboard-hero-card premium-noise mb-8 p-8 text-center">
           <button
             onClick={() => router.back()}
             className="mb-4 text-sm text-muted-foreground hover:text-foreground"
@@ -232,8 +232,8 @@ export default function PlansClient({ mode = "combined" }: { mode?: "personal" |
               return (
                 <div
                   key={plan.id}
-                  className={`rounded-2xl border p-6 shadow-sm transition-all hover:shadow-md ${
-                    isCurrent ? "border-primary bg-primary/5" : "border-border"
+                  className={`dashboard-glass-card p-6 transition-all ${
+                    isCurrent ? "border-primary bg-primary/5" : "border-border/70"
                   }`}
                 >
                   <div className="mb-4">
@@ -256,12 +256,12 @@ export default function PlansClient({ mode = "combined" }: { mode?: "personal" |
                   <button
                     onClick={() => handleSelectPlan(plan)}
                     disabled={isCurrent || plan.price === 0}
-                    className={`w-full rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                    className={`w-full rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
                       isCurrent
                         ? "bg-primary text-white"
                         : plan.price === 0
                         ? "bg-muted text-muted-foreground"
-                        : "bg-blue-600 text-white hover:bg-blue-700"
+                        : "bg-primary text-primary-foreground shadow-[0_10px_24px_rgba(59,130,246,0.34)] hover:bg-primary/90"
                     }`}
                   >
                     {isCurrent
@@ -289,7 +289,7 @@ export default function PlansClient({ mode = "combined" }: { mode?: "personal" |
           </div>
 
           {teams.length === 0 ? (
-            <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+            <div className="dashboard-glass-card rounded-2xl p-6 text-sm text-muted-foreground">
               {t("teamNoTeams")}
             </div>
           ) : (
@@ -300,7 +300,7 @@ export default function PlansClient({ mode = "combined" }: { mode?: "personal" |
               <select
                 value={selectedTeamId ?? ""}
                 onChange={(e) => setSelectedTeamId(Number(e.target.value))}
-                className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                className="rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
               >
                 {teams.map((team) => (
                   <option key={team.id} value={team.id}>
@@ -316,7 +316,7 @@ export default function PlansClient({ mode = "combined" }: { mode?: "personal" |
                     `/dashboard/settings/billing/plans?owner_type=team&owner_id=${selectedTeamId}`
                   );
                 }}
-                className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                className="ui-button px-3 py-2 text-sm"
               >
                 {t("teamGo")}
               </button>
@@ -332,8 +332,8 @@ export default function PlansClient({ mode = "combined" }: { mode?: "personal" |
                 return (
                   <div
                     key={plan.id}
-                    className={`rounded-2xl border p-6 shadow-sm transition-all hover:shadow-md ${
-                      isCurrent ? "border-primary bg-primary/5" : "border-border"
+                    className={`dashboard-glass-card p-6 transition-all ${
+                      isCurrent ? "border-primary bg-primary/5" : "border-border/70"
                     }`}
                   >
                     <div className="mb-4">
@@ -356,12 +356,12 @@ export default function PlansClient({ mode = "combined" }: { mode?: "personal" |
                     <button
                       onClick={() => handleSelectPlan(plan)}
                       disabled={isCurrent || plan.price === 0}
-                      className={`w-full rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                      className={`w-full rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
                         isCurrent
                           ? "bg-primary text-white"
                           : plan.price === 0
                           ? "bg-muted text-muted-foreground"
-                          : "bg-blue-600 text-white hover:bg-blue-700"
+                          : "bg-primary text-primary-foreground shadow-[0_10px_24px_rgba(59,130,246,0.34)] hover:bg-primary/90"
                       }`}
                     >
                       {isCurrent
@@ -377,7 +377,7 @@ export default function PlansClient({ mode = "combined" }: { mode?: "personal" |
               })}
             </div>
           ) : (
-            <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+            <div className="dashboard-glass-card rounded-2xl p-6 text-sm text-muted-foreground">
               {t("teamGuide")}
             </div>
           )}

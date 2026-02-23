@@ -66,7 +66,7 @@ export default function TaskEditPage() {
 
   if (!currentWorkspace) {
     return (
-      <div className="dashboard-glass-card p-6 text-sm text-muted-foreground">
+      <div className="dashboard-glass-card premium-noise p-6 text-sm text-muted-foreground">
         {t("selectWorkspace") || "워크스페이스를 선택해주세요."}
       </div>
     );
@@ -74,14 +74,14 @@ export default function TaskEditPage() {
 
   if (loading || !task) {
     return (
-      <div className="dashboard-glass-card p-6 text-sm text-muted-foreground">
+      <div className="dashboard-glass-card premium-noise p-6 text-sm text-muted-foreground">
         {t("loading")}
       </div>
     );
   }
 
   return (
-    <div className="dashboard-glass-card p-3 md:p-5">
+    <div className="dashboard-glass-card premium-noise p-3 md:p-5">
       <TaskFormPanel
         isOpen
         mode="edit"

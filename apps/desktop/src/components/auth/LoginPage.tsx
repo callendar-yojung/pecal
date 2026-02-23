@@ -128,7 +128,7 @@ export function LoginPage() {
     try {
       const callbackUrl = APP_DEEPLINK_SCHEME
       const response = await fetch(
-        `${API_BASE_URL}/api/auth/${provider}/start?callback=${encodeURIComponent(callbackUrl)}`,
+        `${API_BASE_URL}/api/auth/${provider}/start?callback=${encodeURIComponent(callbackUrl)}`
       )
 
       if (!response.ok) {

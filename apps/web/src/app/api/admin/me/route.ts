@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
+import { getRequiredEnv } from "@/lib/required-env";
 
-const secret = new TextEncoder().encode(
-  process.env.API_SECRET_KEY || "default-secret-key"
-);
+const secret = new TextEncoder().encode(getRequiredEnv("API_SECRET_KEY"));
 
 // GET /api/admin/me - 현재 로그인한 관리자 정보
 export async function GET(request: NextRequest) {
@@ -30,4 +29,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 }
-

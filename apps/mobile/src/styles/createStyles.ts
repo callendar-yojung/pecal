@@ -12,6 +12,26 @@ type Colors = {
 };
 
 export function createStyles(colors: Colors) {
+  const radius = {
+    sm: 10,
+    md: 12,
+    lg: 14,
+    xl: 18,
+  };
+  const spacing = {
+    xs: 6,
+    sm: 8,
+    md: 10,
+    lg: 12,
+  };
+  const softShadow = {
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  } as const;
+
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.bg },
     centerScreen: { flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
@@ -91,6 +111,7 @@ export function createStyles(colors: Colors) {
       alignItems: 'center',
       justifyContent: 'space-between',
     },
+    headerHint: { color: colors.textMuted, fontSize: 12, fontWeight: '600' },
     logoArea: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -196,7 +217,7 @@ export function createStyles(colors: Colors) {
     planDesc: { fontSize: 11, color: colors.textMuted },
 
     content: { flex: 1, backgroundColor: colors.bg },
-    contentContainer: { padding: 12, paddingBottom: 84, gap: 10 },
+    contentContainer: { padding: 12, paddingBottom: 24, gap: 10 },
     section: { gap: 10 },
     sectionTitle: { fontSize: 18, fontWeight: '800', color: colors.text },
     panel: { borderWidth: 1, borderColor: colors.border, borderRadius: 14, backgroundColor: colors.card, padding: 12, gap: 8 },
@@ -223,11 +244,11 @@ export function createStyles(colors: Colors) {
     gridLabel: { color: colors.textMuted, fontSize: 12 },
     gridValue: { color: colors.text, fontSize: 24, fontWeight: '800', marginTop: 3 },
 
-    notificationBox: { marginHorizontal: 12, marginTop: 10, borderWidth: 1, borderColor: colors.border, borderRadius: 12, backgroundColor: colors.card, padding: 10, gap: 8 },
+    notificationBox: { marginHorizontal: 0, marginTop: 0, borderWidth: 1, borderColor: colors.border, borderRadius: 12, backgroundColor: colors.card, padding: 10, gap: 8 },
     notificationRow: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, backgroundColor: colors.cardSoft, padding: 9 },
     queueBanner: {
-      marginHorizontal: 12,
-      marginTop: 8,
+      marginHorizontal: 0,
+      marginTop: 0,
       borderWidth: 1,
       borderColor: colors.primary,
       borderRadius: 12,
@@ -257,6 +278,220 @@ export function createStyles(colors: Colors) {
       color: colors.primary,
       fontSize: 12,
       fontWeight: '800',
+    },
+
+    appBody: {
+      flex: 1,
+      flexDirection: 'row',
+      minHeight: 0,
+    },
+    leftSidebar: {
+      width: 248,
+      borderRightWidth: 1,
+      borderRightColor: colors.border,
+      backgroundColor: colors.nav,
+      paddingHorizontal: 10,
+      paddingVertical: 12,
+      gap: 10,
+    },
+    leftSidebarCollapsed: {
+      width: 76,
+    },
+    sidebarTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      minHeight: 36,
+    },
+    sidebarTopLabel: {
+      color: colors.text,
+      fontSize: 14,
+      fontWeight: '800',
+      letterSpacing: -0.2,
+    },
+    sidebarToggleButton: {
+      width: 30,
+      height: 30,
+      borderRadius: radius.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.card,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    sidebarWorkspaceSwitcher: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      backgroundColor: colors.card,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      ...softShadow,
+    },
+    sidebarWorkspaceSwitcherCollapsed: {
+      justifyContent: 'center',
+      paddingHorizontal: 0,
+    },
+    sidebarWorkspaceSwitcherTextWrap: {
+      flex: 1,
+      minWidth: 0,
+    },
+    sidebarWorkspaceSwitcherTitle: {
+      color: colors.text,
+      fontSize: 12,
+      fontWeight: '800',
+    },
+    sidebarWorkspaceSwitcherSub: {
+      color: colors.textMuted,
+      fontSize: 11,
+      fontWeight: '600',
+      marginTop: 2,
+    },
+    sidebarNav: {
+      gap: 6,
+    },
+    sidebarNavButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      backgroundColor: colors.cardSoft,
+      paddingHorizontal: 10,
+      paddingVertical: 10,
+    },
+    sidebarNavButtonCollapsed: {
+      justifyContent: 'center',
+      paddingHorizontal: 0,
+    },
+    sidebarNavButtonActive: {
+      borderColor: colors.primary,
+      backgroundColor: colors.card,
+      shadowColor: '#0F172A',
+      shadowOpacity: 0.12,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 4,
+    },
+    sidebarNavText: {
+      color: colors.textMuted,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    sidebarNavTextActive: {
+      color: colors.text,
+    },
+    sidebarDivider: {
+      height: 1,
+      backgroundColor: colors.border,
+      marginVertical: 2,
+    },
+    sidebarSectionTitle: {
+      color: colors.textMuted,
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 0.5,
+      textTransform: 'uppercase',
+      paddingHorizontal: 4,
+    },
+    sidebarWorkspaceScroll: {
+      flex: 1,
+      minHeight: 0,
+    },
+    sidebarWorkspaceContainer: {
+      gap: 6,
+      paddingBottom: 8,
+    },
+    sidebarWorkspaceItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.sm,
+      backgroundColor: colors.cardSoft,
+      paddingHorizontal: 10,
+      paddingVertical: 9,
+    },
+    sidebarWorkspaceItemCollapsed: {
+      justifyContent: 'center',
+      paddingHorizontal: 0,
+    },
+    sidebarWorkspaceItemActive: {
+      borderColor: colors.primary,
+      backgroundColor: colors.card,
+    },
+    sidebarWorkspaceText: {
+      flex: 1,
+      color: colors.textMuted,
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    sidebarWorkspaceTextActive: {
+      color: colors.text,
+    },
+    sidebarMainContent: {
+      flex: 1,
+      minWidth: 0,
+      backgroundColor: colors.bg,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.lg,
+      gap: spacing.md,
+    },
+    mainTopBar: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.xl,
+      backgroundColor: colors.card,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 10,
+      ...softShadow,
+    },
+    mainTopTitle: {
+      color: colors.text,
+      fontSize: 18,
+      fontWeight: '800',
+      letterSpacing: -0.2,
+    },
+    mainTopSubtitle: {
+      color: colors.textMuted,
+      fontSize: 12,
+      fontWeight: '600',
+      marginTop: 2,
+    },
+    mainTopActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    mainTopActionButton: {
+      minWidth: 36,
+      height: 36,
+      borderRadius: radius.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.cardSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 8,
+      position: 'relative',
+    },
+    mainTopActionText: {
+      color: colors.text,
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    mainSlotArea: {
+      flex: 1,
+      minHeight: 0,
     },
 
     emptyText: { color: colors.textMuted, fontSize: 12, textAlign: 'center', paddingVertical: 16 },

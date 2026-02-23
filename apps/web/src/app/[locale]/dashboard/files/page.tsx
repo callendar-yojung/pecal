@@ -302,27 +302,31 @@ export default function FilesPage() {
   const pagination = filesData?.pagination || { page: 1, totalPages: 1, total: 0, hasNext: false, hasPrev: false };
 
   return (
-    <div className="flex h-full flex-col space-y-6">
+    <div className="flex h-full flex-col space-y-8">
       {/* Header */}
-      <div className="dashboard-hero-card flex flex-col gap-3 p-6 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t("description")}</p>
+      <div className="dashboard-hero-shell">
+        <div className="dashboard-hero-orb dashboard-hero-orb-right" />
+        <div className="dashboard-hero-orb dashboard-hero-orb-left" />
+        <div className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground lg:text-4xl">{t("title")}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{t("description")}</p>
+          </div>
+          <button
+            type="button"
+            onClick={toggleSelectMode}
+            className={isSelectMode ? "ui-button-primary" : "ui-button-muted"}
+          >
+            {isSelectMode ? t("cancelSelect") : t("selectMode")}
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={toggleSelectMode}
-          className={isSelectMode ? "ui-button-primary" : "ui-button-muted"}
-        >
-          {isSelectMode ? t("cancelSelect") : t("selectMode")}
-        </button>
       </div>
 
-      <div className="dashboard-glass-card p-4 md:p-6">
+      <div className="dashboard-glass-card premium-noise p-4 md:p-6">
 
       {/* Selection Actions Bar */}
       {isSelectMode && (
-        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg bg-muted p-3">
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border border-border/70 bg-muted/60 p-3">
           <span className="text-sm text-muted-foreground">
             {t("selectedCount", { count: selectedFiles.size })}
           </span>
@@ -399,7 +403,7 @@ export default function FilesPage() {
 
       {/* File Grid */}
       {files.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-border py-16">
+        <div className="flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-border py-16">
           <Folder className="h-10 w-10 text-muted-foreground" />
           <p className="mt-4 text-lg font-medium text-foreground">
             {t("noFiles")}
@@ -416,10 +420,10 @@ export default function FilesPage() {
               return (
                 <div
                   key={file.file_id}
-                  className={`group relative cursor-pointer overflow-hidden rounded-lg border transition-all ${
+                  className={`group relative cursor-pointer overflow-hidden rounded-2xl border transition-all ${
                     isSelected
                       ? "border-primary bg-primary/10 ring-2 ring-primary"
-                      : "border-border bg-card hover:border-primary hover:shadow-lg"
+                      : "border-border/70 bg-card/90 hover:border-primary hover:shadow-[0_20px_40px_rgba(15,23,42,0.14)]"
                   }`}
                   onClick={() => {
                     if (isSelectMode) {
@@ -442,10 +446,10 @@ export default function FilesPage() {
                   {isSelectMode && (
                     <div className="absolute left-2 top-2 z-10">
                       <div
-                        className={`flex h-6 w-6 items-center justify-center rounded-md border-2 transition-colors ${
+                        className={`flex h-6 w-6 items-center justify-center rounded-lg border-2 transition-colors ${
                           isSelected
                             ? "border-primary bg-primary text-primary-foreground"
-                            : "border-white bg-black/30 text-transparent"
+                            : "border-border bg-background/70 text-transparent"
                         }`}
                       >
                         {isSelected && (
@@ -486,7 +490,7 @@ export default function FilesPage() {
 
                     {/* Hover overlay with delete button (not in select mode) */}
                     {!isSelectMode && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                      <div className="absolute inset-0 flex items-center justify-center bg-foreground/50 opacity-0 transition-opacity group-hover:opacity-100">
                         <button
                           type="button"
                           onClick={(e) => {
@@ -494,7 +498,7 @@ export default function FilesPage() {
                             setFileToDelete(file);
                             setDeleteConfirm("single");
                           }}
-                          className="rounded-full bg-red-600 p-2 text-white transition-colors hover:bg-red-700"
+                          className="rounded-full bg-destructive p-2 text-destructive-foreground transition-colors hover:bg-destructive/90"
                           title={t("delete")}
                         >
                           <X className="h-5 w-5" />
@@ -591,12 +595,12 @@ export default function FilesPage() {
       {/* File Preview Modal */}
       {selectedFile && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/70 p-4"
           onClick={() => setSelectedFile(null)}
           onKeyDown={(e) => e.key === "Escape" && setSelectedFile(null)}
         >
           <div
-            className="relative max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-lg bg-card"
+            className="relative max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-2xl bg-card/95 shadow-[0_24px_64px_rgba(0,0,0,0.35)]"
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
           >
@@ -604,7 +608,7 @@ export default function FilesPage() {
                 <button
                   type="button"
                   onClick={() => setSelectedFile(null)}
-                  className="absolute right-4 top-4 z-10 rounded-full bg-black/50 p-2 text-white transition-colors hover:bg-black/70"
+                  className="absolute right-4 top-4 z-10 rounded-full bg-foreground/50 p-2 text-background transition-colors hover:bg-foreground/70"
                 >
                   <X className="h-6 w-6" />
                 </button>
@@ -671,7 +675,7 @@ export default function FilesPage() {
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/70 p-4"
           onClick={() => {
             setDeleteConfirm(null);
             setFileToDelete(null);
@@ -684,7 +688,7 @@ export default function FilesPage() {
           }}
         >
           <div
-            className="w-full max-w-md rounded-lg bg-card p-6"
+            className="w-full max-w-md rounded-2xl bg-card/95 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.32)]"
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
           >

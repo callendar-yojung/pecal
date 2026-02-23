@@ -186,8 +186,8 @@ export default function PayPalButton({
 
   if (error) {
     return (
-      <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-        <p className="text-sm text-red-800 dark:text-red-200">
+      <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+        <p className="text-sm text-destructive">
           ⚠️ {error}
         </p>
       </div>
@@ -196,8 +196,8 @@ export default function PayPalButton({
 
   if (!paypalPlanId) {
     return (
-      <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+      <div className="rounded-lg border border-status-progress/40 bg-status-progress p-4">
+        <p className="text-sm text-status-progress-foreground">
           ⚠️ 이 플랜은 PayPal 구독이 설정되지 않았습니다. 관리자에게 문의하세요.
         </p>
       </div>

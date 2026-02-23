@@ -2,10 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import { createPayPalProduct, createPayPalBillingPlan } from "@/lib/paypal-subscription";
 import { createPlan } from "@/lib/plan";
+import { getRequiredEnv } from "@/lib/required-env";
 
-const secret = new TextEncoder().encode(
-  process.env.API_SECRET_KEY || "default-secret-key"
-);
+const secret = new TextEncoder().encode(getRequiredEnv("API_SECRET_KEY"));
 
 async function verifyAdminToken(request: NextRequest) {
   const token = request.cookies.get("admin_token")?.value;
@@ -97,4 +96,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

@@ -21,13 +21,17 @@ export default function SettingsLayout({
 
   return (
     <div className="space-y-6">
-      <div className="dashboard-hero-card p-8">
-        <h1 className="text-3xl font-bold text-foreground">
-          {t("title")}
-        </h1>
-        <p className="mt-2 text-muted-foreground">
-          {t("subtitle")}
-        </p>
+      <div className="dashboard-hero-shell">
+        <div className="dashboard-hero-orb dashboard-hero-orb-right" />
+        <div className="dashboard-hero-orb dashboard-hero-orb-left" />
+        <div className="relative z-10">
+          <h1 className="text-3xl font-bold text-foreground lg:text-4xl">
+            {t("title")}
+          </h1>
+          <p className="mt-2 text-muted-foreground">
+            {t("subtitle")}
+          </p>
+        </div>
       </div>
 
       <div className="flex flex-col gap-6 lg:flex-row">

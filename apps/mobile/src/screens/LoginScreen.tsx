@@ -1,5 +1,6 @@
-import { ActivityIndicator, Pressable, SafeAreaView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useI18n } from '../contexts/I18nContext';
 import { useThemeMode } from '../contexts/ThemeContext';
 import { createStyles } from '../styles/createStyles';

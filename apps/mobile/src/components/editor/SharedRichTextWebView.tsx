@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useThemeMode } from '../../contexts/ThemeContext';
+import { useI18n } from '../../contexts/I18nContext';
+import { getApiBaseUrl } from '../../lib/api';
 
 type Props = {
   valueJson?: string;
@@ -15,7 +17,8 @@ type Props = {
 type EditorMessage =
   | { type: 'ready' }
   | { type: 'update'; payload: { json: string; text: string } }
-  | { type: 'height'; payload: { height: number } };
+  | { type: 'height'; payload: { height: number } }
+  | { type: 'error'; payload: { message: string } };
 
 function escapeHtml(value: string) {
   return value
@@ -86,19 +89,24 @@ function buildHtml(input: { placeholder: string; dark: boolean; readOnly: boolea
 
       function blockToLine(block, idx) {
         if (!block || typeof block !== 'object') return '';
-        if (block.type === 'paragraph' || block.type === 'heading') return inlineText(block.content || []);
+        if (block.type === 'paragraph') return inlineText(block.content || []);
+        if (block.type === 'heading') {
+          const level = Number(block?.attrs?.level ?? 1);
+          const prefix = level === 1 ? '# ' : level === 2 ? '## ' : '### ';
+          return prefix + inlineText(block.content || []);
+        }
         if (block.type === 'blockquote') return '> ' + inlineText(block?.content?.[0]?.content || []);
         if (block.type === 'bulletList') {
           const items = Array.isArray(block.content) ? block.content : [];
-          return items.map((item) => '- ' + inlineText(item?.content?.[0]?.content || [])).join('\n');
+          return items.map((item) => '- ' + inlineText(item?.content?.[0]?.content || [])).join('\\n');
         }
         if (block.type === 'orderedList') {
           const items = Array.isArray(block.content) ? block.content : [];
-          return items.map((item, i) => String(i + 1) + '. ' + inlineText(item?.content?.[0]?.content || [])).join('\n');
+          return items.map((item, i) => String(i + 1) + '. ' + inlineText(item?.content?.[0]?.content || [])).join('\\n');
         }
         if (block.type === 'taskList') {
           const items = Array.isArray(block.content) ? block.content : [];
-          return items.map((item) => '- [ ] ' + inlineText(item?.content?.[0]?.content || [])).join('\n');
+          return items.map((item) => '- [ ] ' + inlineText(item?.content?.[0]?.content || [])).join('\\n');
         }
         if (block.type === 'codeBlock') {
           const code = inlineText(block.content || []);
@@ -112,7 +120,7 @@ function buildHtml(input: { placeholder: string; dark: boolean; readOnly: boolea
         try {
           const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
           const blocks = Array.isArray(parsed?.content) ? parsed.content : [];
-          const text = blocks.map((b, i) => blockToLine(b, i)).join('\n').trim();
+          const text = blocks.map((b, i) => blockToLine(b, i)).join('\\n').trim();
           return text || (fallbackText || '');
         } catch {
           return fallbackText || '';
@@ -120,16 +128,145 @@ function buildHtml(input: { placeholder: string; dark: boolean; readOnly: boolea
       }
 
       function toDoc(text) {
-        const lines = (text || '').split('\n');
-        return {
-          type: 'doc',
-          content: lines.length
-            ? lines.map((line) => ({
-                type: 'paragraph',
-                content: line ? [{ type: 'text', text: line }] : [],
-              }))
-            : [{ type: 'paragraph' }],
-        };
+        const lines = (text || '').split('\\n');
+        const content = [];
+        let i = 0;
+
+        const paragraph = (value) => ({
+          type: 'paragraph',
+          content: value ? [{ type: 'text', text: value }] : [],
+        });
+
+        while (i < lines.length) {
+          const line = lines[i] || '';
+          if (!line.trim()) {
+            content.push({ type: 'paragraph' });
+            i += 1;
+            continue;
+          }
+
+          if (line.startsWith('### ')) {
+            content.push({
+              type: 'heading',
+              attrs: { level: 3 },
+              content: [{ type: 'text', text: line.slice(4) }],
+            });
+            i += 1;
+            continue;
+          }
+          if (line.startsWith('## ')) {
+            content.push({
+              type: 'heading',
+              attrs: { level: 2 },
+              content: [{ type: 'text', text: line.slice(3) }],
+            });
+            i += 1;
+            continue;
+          }
+          if (line.startsWith('# ')) {
+            content.push({
+              type: 'heading',
+              attrs: { level: 1 },
+              content: [{ type: 'text', text: line.slice(2) }],
+            });
+            i += 1;
+            continue;
+          }
+
+          if (line.startsWith('> ')) {
+            content.push({ type: 'blockquote', content: [paragraph(line.slice(2))] });
+            i += 1;
+            continue;
+          }
+
+          if (/^- \\[\\s?\\] /.test(line)) {
+            const items = [];
+            while (i < lines.length && /^- \\[\\s?\\] /.test(lines[i] || '')) {
+              items.push({
+                type: 'taskItem',
+                attrs: { checked: false },
+                content: [paragraph((lines[i] || '').replace(/^- \\[\\s?\\] /, ''))],
+              });
+              i += 1;
+            }
+            content.push({ type: 'taskList', content: items });
+            continue;
+          }
+
+          if (/^[-*] /.test(line)) {
+            const items = [];
+            while (i < lines.length && /^[-*] /.test(lines[i] || '')) {
+              items.push({
+                type: 'listItem',
+                content: [paragraph((lines[i] || '').replace(/^[-*] /, ''))],
+              });
+              i += 1;
+            }
+            content.push({ type: 'bulletList', content: items });
+            continue;
+          }
+
+          if (/^\\d+\\. /.test(line)) {
+            const items = [];
+            while (i < lines.length && /^\\d+\\. /.test(lines[i] || '')) {
+              items.push({
+                type: 'listItem',
+                content: [paragraph((lines[i] || '').replace(/^\\d+\\. /, ''))],
+              });
+              i += 1;
+            }
+            content.push({ type: 'orderedList', content: items });
+            continue;
+          }
+
+          content.push(paragraph(line));
+          i += 1;
+        }
+
+        return { type: 'doc', content: content.length ? content : [{ type: 'paragraph' }] };
+      }
+
+      function getCaretIndex() {
+        const sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0) return 0;
+        const range = sel.getRangeAt(0).cloneRange();
+        const pre = range.cloneRange();
+        pre.selectNodeContents(editor);
+        pre.setEnd(range.endContainer, range.endOffset);
+        return pre.toString().length;
+      }
+
+      function setCaretIndex(index) {
+        const target = Math.max(0, index);
+        const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null);
+        let current = walker.nextNode();
+        let remaining = target;
+
+        while (current) {
+          const len = (current.textContent || '').length;
+          if (remaining <= len) {
+            const range = document.createRange();
+            range.setStart(current, remaining);
+            range.collapse(true);
+            const sel = window.getSelection();
+            if (sel) {
+              sel.removeAllRanges();
+              sel.addRange(range);
+            }
+            return;
+          }
+          remaining -= len;
+          current = walker.nextNode();
+        }
+
+        const range = document.createRange();
+        range.selectNodeContents(editor);
+        range.collapse(false);
+        const sel = window.getSelection();
+        if (sel) {
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
       }
 
       function emit() {
@@ -218,7 +355,7 @@ function buildHtml(input: { placeholder: string; dark: boolean; readOnly: boolea
           else if (action === 'codeblock') {
             const text = window.getSelection()?.toString() || 'code';
             const fence = String.fromCharCode(96) + String.fromCharCode(96) + String.fromCharCode(96);
-            document.execCommand('insertText', false, fence + '\n' + text + '\n' + fence);
+            document.execCommand('insertText', false, fence + '\\n' + text + '\\n' + fence);
           }
           else if (action === 'link') {
             const url = prompt('URL', 'https://');
@@ -277,6 +414,52 @@ function buildHtml(input: { placeholder: string; dark: boolean; readOnly: boolea
 
       editor.addEventListener('keyup', saveSelection);
       editor.addEventListener('mouseup', saveSelection);
+      editor.addEventListener('keydown', (event) => {
+        const isEnter = event.key === 'Enter' || event.keyCode === 13;
+        if (!isEnter) return;
+
+        const text = (editor.innerText || '').replace(/\\r/g, '');
+        const caret = getCaretIndex();
+        const lineStart = text.lastIndexOf('\\n', Math.max(0, caret - 1)) + 1;
+        const lineEndIndex = text.indexOf('\\n', caret);
+        const lineEnd = lineEndIndex === -1 ? text.length : lineEndIndex;
+        const line = text.slice(lineStart, lineEnd);
+
+        if (/^- \\[\\s?\\] /.test(line)) {
+          event.preventDefault();
+          const next = text.slice(0, caret) + '\\n- [ ] ' + text.slice(caret);
+          editor.innerText = next;
+          setCaretIndex(caret + 7);
+          emit();
+          emitHeight();
+          return;
+        }
+
+        if (/^[-*] /.test(line)) {
+          event.preventDefault();
+          const marker = line.startsWith('* ') ? '* ' : '- ';
+          const next = text.slice(0, caret) + '\\n' + marker + text.slice(caret);
+          editor.innerText = next;
+          setCaretIndex(caret + marker.length + 1);
+          emit();
+          emitHeight();
+          return;
+        }
+
+        const ordered = /^(\\d+)\\. /.exec(line);
+        if (ordered) {
+          event.preventDefault();
+          const nextNum = Number(ordered[1]) + 1;
+          const marker = nextNum + '. ';
+          const next = text.slice(0, caret) + '\\n' + marker + text.slice(caret);
+          editor.innerText = next;
+          setCaretIndex(caret + marker.length + 1);
+          emit();
+          emitHeight();
+          return;
+        }
+      });
+
       editor.addEventListener('input', () => {
         emit();
         emitHeight();
@@ -304,22 +487,57 @@ export function SharedRichTextWebView({
   onChange,
 }: Props) {
   const { mode } = useThemeMode();
+  const { locale } = useI18n();
   const ref = useRef<WebView>(null);
   const readyRef = useRef(false);
   const lastSentFromEditorRef = useRef('');
   const lastSentTextRef = useRef('');
   const [webHeight, setWebHeight] = useState(minHeight);
+  const [remoteUriIndex, setRemoteUriIndex] = useState(0);
+  const [fallbackLocalEditor, setFallbackLocalEditor] = useState(false);
 
   const html = useMemo(
     () => buildHtml({ placeholder, dark: mode === 'black', readOnly }),
     [placeholder, mode, readOnly]
   );
+  const remoteEditorUris = useMemo(() => {
+    const base = getApiBaseUrl().replace(/\/+$/, '');
+    return [`${base}/${locale}/mobile/editor`, `${base}/mobile/editor`];
+  }, [locale]);
+  const remoteEditorUri = remoteEditorUris[Math.min(remoteUriIndex, remoteEditorUris.length - 1)];
+  const handleRemoteFailure = useCallback(() => {
+    if (fallbackLocalEditor) return;
+    readyRef.current = false;
+    setRemoteUriIndex((prev) => {
+      const next = prev + 1;
+      if (next < remoteEditorUris.length) {
+        return next;
+      }
+      setFallbackLocalEditor(true);
+      return prev;
+    });
+  }, [fallbackLocalEditor, remoteEditorUris.length]);
 
   const postSetContent = useCallback((json: string, text: string) => {
+    if (!fallbackLocalEditor) {
+      ref.current?.postMessage(
+        JSON.stringify({
+          channel: 'pecal-editor',
+          type: 'set-content',
+          payload: {
+            json,
+            text,
+            readOnly,
+            placeholder,
+          },
+        })
+      );
+      return;
+    }
     ref.current?.injectJavaScript(
       `window.__setContentFromReact && window.__setContentFromReact(${JSON.stringify(json)}, ${JSON.stringify(text)}); true;`
     );
-  }, []);
+  }, [fallbackLocalEditor, placeholder, readOnly]);
 
   useEffect(() => {
     if (!readyRef.current) return;
@@ -329,18 +547,39 @@ export function SharedRichTextWebView({
 
   return (
     <View style={{ minHeight, borderRadius: 12, overflow: 'hidden' }}>
+      {!fallbackLocalEditor ? (
+        <Text style={{ fontSize: 11, color: mode === 'black' ? '#8D98AF' : '#7C8599', paddingBottom: 6 }}>
+          웹 에디터 동기화 모드
+        </Text>
+      ) : null}
       <WebView
         ref={ref}
         originWhitelist={['*']}
-        source={{ html }}
+        source={fallbackLocalEditor ? { html } : { uri: remoteEditorUri }}
         scrollEnabled
         style={{ height: Math.max(minHeight, webHeight) }}
         javaScriptEnabled
         automaticallyAdjustContentInsets={false}
         nestedScrollEnabled
+        onError={handleRemoteFailure}
+        onHttpError={handleRemoteFailure}
         onMessage={(event) => {
           try {
-            const message = JSON.parse(event.nativeEvent.data) as EditorMessage;
+            const raw = JSON.parse(event.nativeEvent.data) as
+              | EditorMessage
+              | {
+                  channel?: string;
+                  type?: string;
+                  payload?: { json?: string; text?: string; height?: number; message?: string };
+                };
+            const message = (raw as { channel?: string }).channel === 'pecal-editor'
+              ? ({
+                  type: (raw as { type?: string }).type === 'set-content'
+                    ? 'ready'
+                    : (raw as { type?: string }).type,
+                  payload: (raw as { payload?: { json?: string; text?: string; height?: number; message?: string } }).payload,
+                } as EditorMessage)
+              : (raw as EditorMessage);
             if (message.type === 'ready') {
               readyRef.current = true;
               postSetContent(valueJson || '{}', valueText || '');
@@ -355,6 +594,10 @@ export function SharedRichTextWebView({
             if (message.type === 'height') {
               const next = Math.max(minHeight, Math.min(1400, Number(message.payload.height) || minHeight));
               setWebHeight(next);
+              return;
+            }
+            if (message.type === 'error') {
+              return;
             }
           } catch {
             // ignore malformed bridge payload

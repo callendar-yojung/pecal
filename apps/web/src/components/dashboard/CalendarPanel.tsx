@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon } from "lucide-react"; // 아이콘 라이브러리 추가 권장
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Plus, Calendar as CalendarIcon } from "lucide-react"; // 아이콘 라이브러리 추가 권장
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -36,8 +36,6 @@ export default function CalendarPanel() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date()); // 기본값 오늘로 설정
   const [isLoading, setIsLoading] = useState(true);
-  const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const pickerRef = useRef<HTMLDivElement | null>(null);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -97,18 +95,6 @@ export default function CalendarPanel() {
   const handleNextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
   const handleDateClick = (day: number) => setSelectedDate(new Date(year, month, day));
 
-  const monthLabels = useMemo(
-    () =>
-      Array.from({ length: 12 }, (_, idx) =>
-        new Date(2000, idx, 1).toLocaleDateString(locale === "ko" ? "ko-KR" : "en-US", {
-          month: "long",
-        })
-      ),
-    [locale]
-  );
-
-  const yearOptions = useMemo(() => Array.from({ length: 31 }, (_, idx) => year - 15 + idx), [year]);
-
   useEffect(() => {
     if (!selectedDate) {
       setSelectedDate(new Date(year, month, 1));
@@ -121,19 +107,6 @@ export default function CalendarPanel() {
       setSelectedDate(new Date(year, month, 1));
     }
   }, [year, month, selectedDate]);
-
-  useEffect(() => {
-    const handleOutsideClick = (event: MouseEvent) => {
-      if (!pickerRef.current) return;
-      if (!pickerRef.current.contains(event.target as Node)) {
-        setIsPickerOpen(false);
-      }
-    };
-    if (isPickerOpen) {
-      document.addEventListener("mousedown", handleOutsideClick);
-    }
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
-  }, [isPickerOpen]);
 
   const getTaskColor = (task: Task) => task.color || task.tags?.[0]?.color || "#3B82F6";
 
@@ -196,7 +169,7 @@ export default function CalendarPanel() {
 
   if (isLoading) {
     return (
-        <Card className="flex h-[600px] items-center justify-center rounded-3xl bg-card/50 backdrop-blur-md">
+        <Card className="flex h-[600px] items-center justify-center rounded-3xl border-border/70 bg-card/70 backdrop-blur-md shadow-[0_14px_32px_rgba(15,23,42,0.08)]">
           <div className="flex flex-col items-center gap-4">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
             <p className="text-sm font-medium text-muted-foreground">Loading your schedule...</p>
@@ -209,89 +182,37 @@ export default function CalendarPanel() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-4 animate-in fade-in duration-700">
         {/* 캘린더 메인 섹션 */}
         <div className="lg:col-span-3 space-y-6">
-          <Card className="overflow-hidden rounded-[2.5rem] border-border/60 shadow-2xl shadow-foreground/5">
+          <Card className="premium-noise overflow-visible rounded-[2.5rem] border-border/60 bg-card/90 shadow-2xl shadow-foreground/5">
             {/* 헤더: 글래스모피즘 스타일 */}
             <div className="relative flex flex-col gap-4 border-b border-border/40 bg-muted/10 px-6 py-5 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-7">
-              <div className="relative space-y-1" ref={pickerRef}>
-                <button
-                  type="button"
-                  onClick={() => setIsPickerOpen((prev) => !prev)}
-                  className="rounded-2xl border border-border/50 bg-background/50 px-3 py-1 text-left transition hover:bg-background/80"
-                  aria-label="Change year and month"
-                >
+              <div className="relative space-y-1">
+                <div className="flex items-center gap-2 rounded-2xl border border-border/50 bg-background/50 px-3 py-1">
                   <h2 className="text-3xl font-bold tracking-tight text-foreground">
                     {currentDate.toLocaleDateString(locale, { month: "long" })}
                     <span className="ml-3 font-light text-muted-foreground/60">{year}</span>
                   </h2>
-                </button>
+                  <div className="flex flex-col gap-1">
+                    <button
+                      type="button"
+                      onClick={handleNextMonth}
+                      className="rounded-md border border-border/60 bg-background/80 p-1 text-muted-foreground transition hover:bg-background hover:text-foreground"
+                      aria-label="Next month"
+                    >
+                      <ChevronUp size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handlePrevMonth}
+                      className="rounded-md border border-border/60 bg-background/80 p-1 text-muted-foreground transition hover:bg-background hover:text-foreground"
+                      aria-label="Previous month"
+                    >
+                      <ChevronDown size={14} />
+                    </button>
+                  </div>
+                </div>
                 <p className="text-sm font-medium text-primary/70 italic">
                   {currentWorkspace?.name || t("calendar.title")}
                 </p>
-
-                {isPickerOpen && (
-                  <div className="absolute left-0 top-20 z-30 w-64 rounded-2xl border border-border bg-card p-3 shadow-2xl">
-                    <div className="mb-3 flex items-start justify-between gap-2">
-                      <div className="text-xs font-semibold tracking-wide text-muted-foreground">
-                        {locale === "ko" ? "연/월 선택" : "Pick Year / Month"}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setIsPickerOpen(false)}
-                        className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                      >
-                        {locale === "ko" ? "닫기" : "Close"}
-                      </button>
-                    </div>
-                    <div className="space-y-3">
-                      <div>
-                        <div className="mb-1 text-[11px] font-semibold text-muted-foreground">
-                          {locale === "ko" ? "연도" : "Year"}
-                        </div>
-                        <div className="grid max-h-28 grid-cols-4 gap-1 overflow-y-auto pr-1">
-                          {yearOptions.map((y) => (
-                            <button
-                              key={y}
-                              type="button"
-                              onClick={() => setCurrentDate(new Date(y, month, 1))}
-                              className={`rounded-md px-1.5 py-1 text-xs transition ${
-                                y === year
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted/40 text-foreground hover:bg-muted"
-                              }`}
-                            >
-                              {y}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="mb-1 text-[11px] font-semibold text-muted-foreground">
-                          {locale === "ko" ? "월" : "Month"}
-                        </div>
-                        <div className="grid grid-cols-3 gap-1">
-                          {monthLabels.map((label, idx) => (
-                            <button
-                              key={label}
-                              type="button"
-                              onClick={() => {
-                                setCurrentDate(new Date(year, idx, 1));
-                                setIsPickerOpen(false);
-                              }}
-                              className={`rounded-md px-2 py-1 text-xs transition ${
-                                idx === month
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted/40 text-foreground hover:bg-muted"
-                              }`}
-                            >
-                              {label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
 
               <div className="flex items-center gap-2 rounded-2xl border border-border/40 bg-background/50 p-1.5 shadow-inner">
@@ -312,7 +233,7 @@ export default function CalendarPanel() {
             <div className="p-5 sm:p-6">
               <div className="mb-4 grid grid-cols-7 gap-2 text-center sm:gap-4">
                 {weekDays.map((day, i) => (
-                    <div key={day} className={`text-xs font-black uppercase tracking-widest ${i === 0 ? "text-red-400" : i === 6 ? "text-blue-400" : "text-muted-foreground/50"}`}>
+                    <div key={day} className={`text-xs font-black uppercase tracking-widest ${i === 0 ? "text-destructive/70" : i === 6 ? "text-primary/70" : "text-muted-foreground/50"}`}>
                       {day}
                     </div>
                 ))}
@@ -343,10 +264,15 @@ export default function CalendarPanel() {
                                 {dayTasks.slice(0, 2).map((task) => (
                                   <div
                                     key={task.id}
-                                    className="truncate rounded-full px-2 py-1 text-[10px] font-semibold"
+                                    className="truncate rounded-full px-2 py-1 text-[10px] font-semibold cursor-pointer transition-transform hover:scale-[1.02]"
                                     style={{
                                       backgroundColor: getTaskColor(task),
                                       color: getReadableTextColor(getTaskColor(task)),
+                                    }}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      router.push(`/dashboard/tasks/${task.id}`);
                                     }}
                                   >
                                     {task.title || getContentText(task.content) || "Task"}
@@ -370,7 +296,7 @@ export default function CalendarPanel() {
 
         {/* 우측 사이드바: 벤토 카드 스타일 */}
         <div className="lg:col-span-1 space-y-6">
-          <Card className="rounded-[2.5rem] border-border/60 p-6 shadow-xl sm:p-8">
+          <Card className="premium-noise rounded-[2.5rem] border-border/60 bg-card/90 p-6 shadow-xl sm:p-8">
             <div className="mb-6 flex items-center justify-between sm:mb-8">
               <div className="flex items-center gap-3">
                 <div className="rounded-2xl bg-primary/10 p-2.5 text-primary">
@@ -402,7 +328,7 @@ export default function CalendarPanel() {
                   selectedDateTasks.map((task) => (
                       <div
                           key={task.id}
-                          className="group relative overflow-hidden rounded-3xl border border-border/50 bg-background p-5 transition-all hover:border-primary/30 hover:shadow-md"
+                          className="group relative overflow-hidden rounded-3xl border border-border/60 bg-background/90 p-5 transition-all hover:border-primary/30 hover:shadow-[0_16px_34px_rgba(15,23,42,0.14)]"
                           onClick={() => router.push(`/dashboard/tasks/${task.id}`)}
                       >
                         <div

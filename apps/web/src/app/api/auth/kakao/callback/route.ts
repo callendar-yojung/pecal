@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findOrCreateMember } from "@/lib/member";
 import { generateAccessToken, generateRefreshToken } from "@/lib/jwt";
+import {
+  getOAuthStateCookieName,
+  getOAuthStateCookieOptions,
+  verifyOAuthState,
+} from "@/lib/oauth-state";
 
 /**
  * GET /api/auth/kakao/callback?code=XXX&state=deskcal://auth/callback
@@ -20,21 +25,34 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const state = searchParams.get("state");
   const error = searchParams.get("error");
+  const stateCookieName = getOAuthStateCookieName("kakao");
+  const stateNonce = request.cookies.get(stateCookieName)?.value ?? null;
+  const appCallback = await verifyOAuthState("kakao", state, stateNonce);
 
-  // state에서 앱 callback URL 추출
-  const appCallback = state ? safeDecodeURIComponent(state) : null;
+  const withClearedStateCookie = (response: NextResponse) => {
+    response.cookies.set(stateCookieName, "", {
+      ...getOAuthStateCookieOptions("kakao"),
+      maxAge: 0,
+    });
+    return response;
+  };
 
-  // 에러 처리 헬퍼 함수
   const handleError = (errorMessage: string, status: number) => {
-    // 앱 callback이 있으면 에러와 함께 리다이렉트
-    if (appCallback && isCustomScheme(appCallback)) {
+    if (appCallback) {
       const errorUrl = new URL(appCallback);
       errorUrl.searchParams.set("error", errorMessage);
-      return NextResponse.redirect(errorUrl.toString());
+      return withClearedStateCookie(NextResponse.redirect(errorUrl.toString()));
     }
-    // 없으면 JSON 반환
-    return NextResponse.json({ error: errorMessage }, { status });
+    return withClearedStateCookie(
+      NextResponse.json({ error: errorMessage }, { status })
+    );
   };
+
+  if (!appCallback) {
+    return withClearedStateCookie(
+      NextResponse.json({ error: "Invalid OAuth state" }, { status: 400 })
+    );
+  }
 
   if (error) {
     return handleError(`Kakao OAuth error: ${error}`, 400);
@@ -120,11 +138,8 @@ export async function GET(request: NextRequest) {
 
     console.log("✅ JWT 토큰 생성 완료");
 
-    // 5. 앱 callback URL이 커스텀 스킴이면 리다이렉트, 아니면 JSON 반환
-    const desktopCallback =
-      appCallback && isCustomScheme(appCallback)
-        ? appCallback
-        : process.env.APP_DEEPLINK_SCHEME || "deskcal://auth/callback";
+    // 5. 검증된 callback URL로 리다이렉트
+    const desktopCallback = appCallback;
 
     if (accessToken && refreshToken) {
       const callbackUrl = new URL(desktopCallback);
@@ -142,20 +157,24 @@ export async function GET(request: NextRequest) {
 
       console.log('✅ 데스크톱 앱으로 리다이렉트:', callbackUrl.toString());
 
-      return NextResponse.redirect(callbackUrl.toString(), 307);
+      return withClearedStateCookie(
+        NextResponse.redirect(callbackUrl.toString(), 307)
+      );
     }
 
     // JSON으로 토큰과 사용자 정보 반환 (레거시 호환)
-    return NextResponse.json({
-      accessToken,
-      refreshToken,
-      member: {
-        memberId: member.member_id,
-        nickname: memberNickname,
-        email: member.email,
-        provider: "kakao",
-      },
-    });
+    return withClearedStateCookie(
+      NextResponse.json({
+        accessToken,
+        refreshToken,
+        member: {
+          memberId: member.member_id,
+          nickname: memberNickname,
+          email: member.email,
+          provider: "kakao",
+        },
+      })
+    );
 
   } catch (error) {
     console.error("❌ 카카오 콜백 처리 에러:", error);
@@ -163,25 +182,5 @@ export async function GET(request: NextRequest) {
       error instanceof Error ? error.message : "Authentication failed",
       500
     );
-  }
-}
-
-/**
- * URL이 커스텀 스킴인지 확인 (http/https가 아닌 경우)
- */
-function isCustomScheme(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    return !["http:", "https:"].includes(parsed.protocol);
-  } catch {
-    return false;
-  }
-}
-
-function safeDecodeURIComponent(value: string): string {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value;
   }
 }

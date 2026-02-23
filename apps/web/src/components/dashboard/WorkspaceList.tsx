@@ -231,7 +231,7 @@ export default function WorkspaceList() {
 
         {/* Add New Workspace Input */}
         {isAdding && (
-          <div className="rounded-md border border-border bg-card p-2">
+          <div className="rounded-xl border border-border bg-card/90 p-2">
             <input
               ref={inputRef}
               type="text"
@@ -240,7 +240,7 @@ export default function WorkspaceList() {
               onKeyDown={handleKeyDown}
               placeholder={t("workspace.enterWorkspaceName")}
               disabled={isSaving}
-              className="w-full rounded border border-input bg-background px-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full rounded-lg border border-input bg-background/90 px-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
             <div className="mt-2 flex gap-2">
               <button
@@ -277,7 +277,7 @@ export default function WorkspaceList() {
                 type="button"
                 onClick={handleCancelAdd}
                 disabled={isSaving}
-                className="flex-1 rounded border border-border bg-card px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-hover hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex-1 rounded-lg border border-border bg-background px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-hover hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {t("workspace.cancel")}
               </button>
@@ -291,7 +291,7 @@ export default function WorkspaceList() {
             <p className="mt-1 text-xs text-muted-foreground">Loading...</p>
           </div>
         ) : workspaces.length === 0 && !isAdding ? (
-          <div className="rounded-lg border border-border bg-card p-4 text-center">
+          <div className="rounded-xl border border-border bg-card/90 p-4 text-center">
             <p className="text-sm text-muted-foreground">
               {currentWorkspace.type === "personal"
                 ? t("workspace.noTeams")
@@ -313,7 +313,7 @@ export default function WorkspaceList() {
             return (
               <div
                 key={ws.workspace_id}
-                className={`group flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors ${
+                className={`group flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm transition-colors ${
                   isActive
                     ? "bg-active text-foreground"
                     : "text-muted-foreground hover:bg-hover hover:text-foreground"
@@ -390,7 +390,7 @@ export default function WorkspaceList() {
                         e.stopPropagation();
                         setDeleteTargetId(ws.workspace_id);
                       }}
-                      className="flex-shrink-0 rounded p-1 text-muted-foreground opacity-0 transition-all hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400 group-hover:opacity-100"
+                      className="flex-shrink-0 rounded p-1 text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
                       title={t("workspace.delete") || "Delete"}
                     >
                       <X className="h-3.5 w-3.5" />
@@ -406,11 +406,11 @@ export default function WorkspaceList() {
       {/* 삭제 확인 모달 */}
       {deleteTargetId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl p-6">
-            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+          <div className="w-full max-w-sm rounded-xl border border-border bg-popover p-6 shadow-2xl">
+            <h3 className="text-base font-semibold text-popover-foreground">
               {t("workspace.deleteConfirmTitle") || "워크스페이스 삭제"}
             </h3>
-            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            <p className="mt-2 text-sm text-muted-foreground">
               {t("workspace.deleteConfirmMessage") ||
                 "정말 이 워크스페이스를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다."}
             </p>
@@ -419,7 +419,7 @@ export default function WorkspaceList() {
                 type="button"
                 onClick={() => setDeleteTargetId(null)}
                 disabled={isDeleting}
-                className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                className="flex-1 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-hover disabled:opacity-50"
               >
                 {t("workspace.cancel") || "Cancel"}
               </button>
@@ -427,7 +427,7 @@ export default function WorkspaceList() {
                 type="button"
                 onClick={handleDeleteWorkspace}
                 disabled={isDeleting}
-                className="flex-1 rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 transition-colors"
+                className="flex-1 rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:opacity-50"
               >
                 {isDeleting ? (
                   <span className="flex items-center justify-center gap-1">

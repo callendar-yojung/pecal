@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -83,6 +83,7 @@ interface RichTextEditorProps {
   contentKey?: string | number;
   readOnly?: boolean;
   showToolbar?: boolean;
+  placeholder?: string;
 }
 
 export default function RichTextEditor({
@@ -91,7 +92,9 @@ export default function RichTextEditor({
   contentKey,
   readOnly = false,
   showToolbar = true,
+  placeholder = "내용을 입력하세요.",
 }: RichTextEditorProps) {
+  const [isEmpty, setIsEmpty] = useState(true);
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -107,13 +110,26 @@ export default function RichTextEditor({
       FontSize,
       Highlight,
       Link.configure({
-        openOnClick: false,
+        openOnClick: true,
         autolink: true,
         defaultProtocol: "https",
+        HTMLAttributes: {
+          target: "_blank",
+          rel: "noopener noreferrer nofollow",
+        },
       }),
-      TaskList,
+      TaskList.configure({
+        HTMLAttributes: {
+          class: "editor-task-list",
+          "data-type": "taskList",
+        },
+      }),
       TaskItem.configure({
         nested: true,
+        HTMLAttributes: {
+          class: "editor-task-item",
+          "data-type": "taskItem",
+        },
       }),
       TextAlign.configure({
         types: ["heading", "paragraph"],
@@ -128,19 +144,31 @@ export default function RichTextEditor({
       },
     },
     onUpdate: ({ editor }) => {
+      setIsEmpty(editor.isEmpty);
       onChange?.(editor.getJSON());
+    },
+    onCreate: ({ editor }) => {
+      setIsEmpty(editor.isEmpty);
     },
   });
 
   useEffect(() => {
     if (!editor || !initialContent) return;
     editor.commands.setContent(initialContent, false);
+    setIsEmpty(editor.isEmpty);
   }, [editor, contentKey]);
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
       {showToolbar && <RichTextToolbar editor={editor} />}
-      <EditorContent editor={editor} />
+      <div className="relative">
+        {!readOnly && isEmpty ? (
+          <div className="pointer-events-none absolute left-4 top-3 z-[1] text-sm text-muted-foreground/70">
+            {placeholder}
+          </div>
+        ) : null}
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 }

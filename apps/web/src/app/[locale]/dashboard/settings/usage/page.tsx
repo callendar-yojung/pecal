@@ -92,7 +92,7 @@ export default function UsagePage() {
 
   if (error) {
     return (
-      <div className="rounded-lg border border-destructive bg-destructive/10 p-6 text-destructive">
+      <div className="dashboard-glass-card rounded-2xl border border-destructive bg-destructive/10 p-6 text-destructive">
         {error}
       </div>
     );
@@ -103,15 +103,15 @@ export default function UsagePage() {
   }
 
   const getProgressColor = (percentage: number) => {
-    if (percentage >= 90) return "bg-red-600";
-    if (percentage >= 70) return "bg-yellow-600";
-    return "bg-blue-600";
+    if (percentage >= 90) return "bg-destructive";
+    if (percentage >= 70) return "bg-status-todo-foreground";
+    return "bg-status-progress-foreground";
   };
 
   return (
     <div className="space-y-6">
       {/* 플랜 정보 */}
-      <div className="dashboard-glass-card p-6">
+      <div className="dashboard-glass-card premium-noise p-6">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-card-foreground">
@@ -121,14 +121,14 @@ export default function UsagePage() {
               {usageData.workspace.name}
             </p>
           </div>
-          <div className="rounded-full bg-blue-100 px-4 py-2 text-sm font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+          <div className="rounded-full bg-status-progress px-4 py-2 text-sm font-medium text-status-progress-foreground">
             {usageData.plan.name}
           </div>
         </div>
       </div>
 
       {/* 스토리지 */}
-      <div className="dashboard-glass-card p-6">
+      <div className="dashboard-glass-card premium-noise p-6">
         <h2 className="text-lg font-semibold text-card-foreground">
           {t("storage")}
         </h2>
@@ -170,7 +170,7 @@ export default function UsagePage() {
 
       {/* 팀 멤버 (팀 워크스페이스인 경우에만 표시) */}
       {usageData.workspace.type === "team" && (
-        <div className="dashboard-glass-card p-6">
+        <div className="dashboard-glass-card premium-noise p-6">
           <h2 className="text-lg font-semibold text-card-foreground">
             {t("teamMembers")}
           </h2>
@@ -204,7 +204,7 @@ export default function UsagePage() {
               </div>
               <button
                 type="button"
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+                className="ui-button-primary px-4 py-2 text-sm"
               >
                 {t("inviteMember")}
               </button>
@@ -214,7 +214,7 @@ export default function UsagePage() {
       )}
 
       {/* 태스크 통계 */}
-      <div className="dashboard-glass-card p-6">
+      <div className="dashboard-glass-card premium-noise p-6">
         <h2 className="text-lg font-semibold text-card-foreground">
           {t("activity")}
         </h2>
@@ -223,37 +223,37 @@ export default function UsagePage() {
         </p>
 
         <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div className="rounded-lg bg-subtle p-4">
+          <div className="rounded-xl bg-subtle p-4">
             <p className="text-sm text-muted-foreground">{t("tasksCreated")}</p>
             <p className="mt-1 text-2xl font-bold text-card-foreground">
               {usageData.tasks.thisMonth.created}
             </p>
             <p className="text-xs text-muted-foreground">{t("thisMonth")}</p>
           </div>
-          <div className="rounded-lg bg-subtle p-4">
+          <div className="rounded-xl bg-subtle p-4">
             <p className="text-sm text-muted-foreground">{t("tasksCompleted")}</p>
-            <p className="mt-1 text-2xl font-bold text-green-600">
+            <p className="mt-1 text-2xl font-bold text-status-done-foreground">
               {usageData.tasks.thisMonth.completed}
             </p>
             <p className="text-xs text-muted-foreground">{t("thisMonth")}</p>
           </div>
-          <div className="rounded-lg bg-subtle p-4">
+          <div className="rounded-xl bg-subtle p-4">
             <p className="text-sm text-muted-foreground">{t("tasksTodo")}</p>
-            <p className="mt-1 text-2xl font-bold text-yellow-600">
+            <p className="mt-1 text-2xl font-bold text-status-todo-foreground">
               {usageData.tasks.thisMonth.todo}
             </p>
             <p className="text-xs text-muted-foreground">{t("thisMonth")}</p>
           </div>
-          <div className="rounded-lg bg-subtle p-4">
+          <div className="rounded-xl bg-subtle p-4">
             <p className="text-sm text-muted-foreground">{t("tasksInProgress")}</p>
-            <p className="mt-1 text-2xl font-bold text-blue-600">
+            <p className="mt-1 text-2xl font-bold text-status-progress-foreground">
               {usageData.tasks.thisMonth.inProgress}
             </p>
             <p className="text-xs text-muted-foreground">{t("thisMonth")}</p>
           </div>
         </div>
 
-        <div className="mt-6 rounded-lg bg-subtle p-4">
+        <div className="mt-6 rounded-xl bg-subtle p-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">{t("totalTasks")}</p>
             <p className="text-xl font-bold text-card-foreground">

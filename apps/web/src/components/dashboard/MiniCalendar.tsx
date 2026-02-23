@@ -19,7 +19,12 @@ interface CalendarDateTask {
   tasks: TaskWithTitle[];
 }
 
-export default function MiniCalendar() {
+interface MiniCalendarProps {
+  selectedDate?: Date;
+  onDateSelect?: (date: Date) => void;
+}
+
+export default function MiniCalendar({ selectedDate, onDateSelect }: MiniCalendarProps) {
   const t = useTranslations("dashboard.calendar");
   const locale = useLocale();
   const { currentWorkspace } = useWorkspace();
@@ -31,6 +36,11 @@ export default function MiniCalendar() {
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
+
+  useEffect(() => {
+    if (!selectedDate) return;
+    setCurrentDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
+  }, [selectedDate]);
 
   // 태스크 데이터 가져오기
   useEffect(() => {
@@ -92,6 +102,15 @@ export default function MiniCalendar() {
     );
   };
 
+  const isSelectedDay = (day: number | null) => {
+    if (!day || !selectedDate) return false;
+    return (
+      selectedDate.getFullYear() === year &&
+      selectedDate.getMonth() === month &&
+      selectedDate.getDate() === day
+    );
+  };
+
   const handlePrevMonth = () => {
     setCurrentDate(new Date(year, month - 1, 1));
   };
@@ -145,216 +164,216 @@ export default function MiniCalendar() {
 
   if (isLoading) {
     return (
-      <Card className="p-6">
-        <div className="flex items-center justify-center py-8">
-          <div className="text-muted-foreground">Loading...</div>
+      <div className="flex items-center justify-center py-12">
+        <div className="relative h-10 w-10">
+          <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
+          <div className="absolute inset-0 rounded-full border-t-2 border-primary animate-spin" />
         </div>
-      </Card>
+      </div>
     );
   }
 
   return (
-    <Card className="p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-foreground">
-          {t("title")}
-        </h2>
-        <div className="flex items-center gap-2">
-          <Button size="sm" onClick={handlePrevMonth} aria-label="Previous month">
-            <svg className="h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="relative" ref={pickerRef}>
+          <button
+            type="button"
+            onClick={() => setIsPickerOpen((prev) => !prev)}
+            className="group flex items-center gap-2 rounded-xl border border-border bg-background/80 px-4 py-2 text-sm font-bold text-foreground transition-all hover:bg-background hover:shadow-md hover:-translate-y-0.5"
+            aria-label="Change year and month"
+          >
+            {currentDate.toLocaleDateString(locale === "ko" ? "ko-KR" : "en-US", { year: "numeric", month: "long" })}
+            <svg className={`h-4 w-4 text-muted-foreground transition-transform duration-300 ${isPickerOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
             </svg>
-          </Button>
-          <div className="relative" ref={pickerRef}>
-            <button
-              type="button"
-              onClick={() => setIsPickerOpen((prev) => !prev)}
-              className="rounded-full border border-border bg-muted/40 px-3 py-1 text-sm font-medium text-foreground transition hover:bg-muted"
-              aria-label="Change year and month"
-            >
-              {currentDate.toLocaleDateString(locale === "ko" ? "ko-KR" : "en-US", { year: "numeric", month: "long" })}
-            </button>
+          </button>
 
-            {isPickerOpen && (
-              <div className="absolute left-0 top-10 z-30 w-64 rounded-xl border border-border bg-card p-3 shadow-xl">
-                <div className="mb-3 flex items-start justify-between gap-2">
-                  <div className="text-xs font-semibold tracking-wide text-muted-foreground">
-                    {locale === "ko" ? "연/월 선택" : "Pick Year / Month"}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsPickerOpen(false)}
-                    className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                  >
-                    {locale === "ko" ? "닫기" : "Close"}
-                  </button>
+          {isPickerOpen && (
+            <div className="absolute left-0 top-12 z-50 w-72 animate-in zoom-in-95 rounded-2xl border border-border bg-popover p-4 shadow-2xl fade-in duration-200">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                  {locale === "ko" ? "연/월 선택" : "Pick Date"}
                 </div>
-                <div className="space-y-3">
-                  <div>
-                    <div className="mb-1 text-[11px] font-semibold text-muted-foreground">
-                      {locale === "ko" ? "연도" : "Year"}
-                    </div>
-                    <div className="grid max-h-28 grid-cols-4 gap-1 overflow-y-auto pr-1">
-                      {yearOptions.map((y) => (
-                        <button
-                          key={y}
-                          type="button"
-                          onClick={() => setCurrentDate(new Date(y, month, 1))}
-                          className={`rounded-md px-1.5 py-1 text-xs transition ${
-                            y === year
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted/40 text-foreground hover:bg-muted"
-                          }`}
-                        >
-                          {y}
-                        </button>
-                      ))}
-                    </div>
+                <button
+                  type="button"
+                  onClick={() => setIsPickerOpen(false)}
+                  className="rounded-lg bg-muted p-1.5 text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    {locale === "ko" ? "연도" : "Year"}
                   </div>
+                  <div className="grid max-h-32 grid-cols-4 gap-1.5 overflow-y-auto pr-1 custom-scrollbar">
+                    {yearOptions.map((y) => (
+                      <button
+                        key={y}
+                        type="button"
+                        onClick={() => setCurrentDate(new Date(y, month, 1))}
+                        className={`rounded-lg py-2 text-xs font-bold transition-all ${
+                          y === year
+                            ? "bg-primary text-white shadow-lg shadow-primary/25 scale-105"
+                            : "bg-muted text-muted-foreground hover:bg-hover"
+                        }`}
+                      >
+                        {y}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-                  <div>
-                    <div className="mb-1 text-[11px] font-semibold text-muted-foreground">
-                      {locale === "ko" ? "월" : "Month"}
-                    </div>
-                    <div className="grid grid-cols-3 gap-1">
-                      {monthLabels.map((label, idx) => (
-                        <button
-                          key={label}
-                          type="button"
-                          onClick={() => {
-                            setCurrentDate(new Date(year, idx, 1));
-                            setIsPickerOpen(false);
-                          }}
-                          className={`rounded-md px-2 py-1 text-xs transition ${
-                            idx === month
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted/40 text-foreground hover:bg-muted"
-                          }`}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
+                <div>
+                  <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    {locale === "ko" ? "월" : "Month"}
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {monthLabels.map((label, idx) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => {
+                          setCurrentDate(new Date(year, idx, 1));
+                          setIsPickerOpen(false);
+                        }}
+                        className={`rounded-lg py-2 text-xs font-bold transition-all ${
+                          idx === month
+                            ? "bg-primary text-white shadow-lg shadow-primary/25 scale-105"
+                            : "bg-muted text-muted-foreground hover:bg-hover"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
-            )}
-          </div>
-          <Button size="sm" onClick={handleNextMonth} aria-label="Next month">
+            </div>
+          )}
+        </div>
+        
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={handlePrevMonth}
+            className="rounded-xl border border-border bg-background/80 p-2 shadow-sm transition-all hover:bg-background active:scale-95"
+          >
             <svg className="h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
             </svg>
-          </Button>
+          </button>
+          <button
+            onClick={handleNextMonth}
+            className="rounded-xl border border-border bg-background/80 p-2 shadow-sm transition-all hover:bg-background active:scale-95"
+          >
+            <svg className="h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
         </div>
       </div>
 
       {/* 캘린더 그리드 */}
-      <div className="space-y-2">
-        <div className="grid grid-cols-7 gap-1">
+      <div className="rounded-2xl border border-border bg-card/60 p-4 shadow-inner-glow">
+        <div className="grid grid-cols-7 gap-1 mb-2">
           {weekDays.map((day) => (
             <div
               key={day}
-              className="py-1 text-center text-xs font-medium text-muted-foreground"
+              className="py-1 text-center text-[10px] font-black uppercase tracking-widest text-muted-foreground"
             >
               {day}
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-1.5">
           {days.map((day, index) => {
             const tasks = getTasksForDay(day);
             const hasTask = tasks.length > 0;
+            const today = isToday(day);
+            const selected = isSelectedDay(day);
             return (
-              <div
+              <button
+                type="button"
                 key={index}
-                className={`relative aspect-square p-1 text-center text-sm ${
+                className={`group relative aspect-square flex items-center justify-center text-xs transition-all duration-300 ${
                   !day
                     ? ""
-                    : isToday(day)
-                      ? "rounded-lg bg-primary text-primary-foreground font-semibold"
+                    : selected
+                      ? "rounded-xl border border-primary/60 bg-primary/12 text-primary font-bold shadow-md shadow-primary/20"
+                    : today
+                      ? "rounded-xl bg-primary text-white font-bold shadow-lg shadow-primary/30 scale-105 z-10"
                       : hasTask
-                        ? "rounded-lg bg-muted text-foreground font-medium cursor-pointer hover:bg-muted/80"
-                        : "text-muted-foreground"
+                        ? "cursor-pointer rounded-xl border border-border bg-background text-foreground font-bold shadow-sm hover:-translate-y-0.5 hover:shadow-md hover:border-primary/30"
+                        : "rounded-xl text-muted-foreground hover:bg-muted/50"
                 }`}
                 title={hasTask && day ? tasks.map(t => t.title).join(", ") : undefined}
+                disabled={!day}
+                onClick={() => {
+                  if (!day) return;
+                  onDateSelect?.(new Date(year, month, day));
+                }}
               >
-                <div className="flex flex-col h-full items-center justify-start">
-                  <div className="mb-0.5">{day}</div>
-                  {hasTask && day && (
-                    <div className="flex flex-col gap-0.5 w-full px-0.5">
-                      {tasks.slice(0, 2).map((task, idx) => (
-                        <div
-                          key={task.id}
-                          className={`text-[8px] leading-tight truncate w-full px-0.5 rounded ${
-                            isToday(day) 
-                              ? "bg-primary-foreground/20 text-primary-foreground" 
-                              : "text-primary"
-                          }`}
-                          style={
-                            !isToday(day) && task.color
-                              ? { backgroundColor: task.color, color: "#fff" }
-                              : undefined
-                          }
-                          title={task.title}
-                        >
-                          {task.title}
-                        </div>
-                      ))}
-                      {tasks.length > 2 && (
-                        <div className={`text-[7px] text-center ${
-                          isToday(day) ? "text-primary-foreground/70" : "text-muted-foreground"
-                        }`}>
-                          +{tasks.length - 2}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+                <div className="relative z-10">{day}</div>
+                {hasTask && !today && (
+                  <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-0.5">
+                    <div className="h-1 w-1 rounded-full bg-primary" />
+                    {tasks.length > 1 && <div className="h-1 w-1 rounded-full bg-primary/50" />}
+                  </div>
+                )}
+              </button>
             );
           })}
         </div>
       </div>
 
       {/* 다가오는 일정 */}
-      <div className="mt-6 space-y-2">
-        <h3 className="text-sm font-semibold text-foreground">
-          {t("upcoming")}
-        </h3>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground">
+            {t("upcoming")}
+          </h3>
+          <div className="mx-4 h-px flex-1 bg-border" />
+        </div>
+        
         {upcomingDates.length === 0 ? (
-          <p className="text-xs text-muted-foreground">
-            {t("noTasksOnDate")}
-          </p>
+          <div className="rounded-2xl border border-dashed border-border bg-muted/30 py-8 text-center">
+             <p className="text-xs font-bold text-muted-foreground">
+              {t("noTasksOnDate")}
+            </p>
+          </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {upcomingDates.map((dateTask) => (
               <div
                 key={dateTask.date}
-                className="ui-card p-3 space-y-1"
+                className="group relative flex items-start gap-4 overflow-hidden rounded-2xl border border-border bg-card/90 p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">
-                    {new Date(dateTask.date).toLocaleDateString(locale === "ko" ? "ko-KR" : "en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })}
+                <div className="flex min-w-[48px] flex-col items-center justify-center rounded-xl border border-border bg-muted py-1">
+                  <span className="text-[10px] font-black uppercase text-muted-foreground">
+                    {new Date(dateTask.date).toLocaleDateString(locale === "ko" ? "ko-KR" : "en-US", { month: "short" })}
                   </span>
-                  <span className="text-xs text-muted-foreground">
-                    {dateTask.tasks.length}개
+                  <span className="text-base font-black text-foreground">
+                    {new Date(dateTask.date).getDate()}
                   </span>
                 </div>
-                <div className="space-y-1">
+                
+                <div className="flex-1 min-w-0 space-y-1.5">
                   {dateTask.tasks.slice(0, 2).map((task) => (
                     <div
                       key={task.id}
-                      className="text-xs text-card-foreground truncate"
+                      className="flex items-center gap-2 text-xs font-bold text-foreground/80 transition-colors group-hover:text-primary"
                     >
-                      • {task.title}
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
+                      <span className="truncate">{task.title}</span>
                     </div>
                   ))}
                   {dateTask.tasks.length > 2 && (
-                    <div className="text-xs text-muted-foreground">
-                      +{dateTask.tasks.length - 2}개 더
+                    <div className="ml-3.5 text-[10px] font-black text-muted-foreground">
+                      + {dateTask.tasks.length - 2} {locale === "ko" ? "개 더" : "more"}
                     </div>
                   )}
                 </div>
@@ -363,6 +382,6 @@ export default function MiniCalendar() {
           </div>
         )}
       </div>
-    </Card>
+    </div>
   );
 }

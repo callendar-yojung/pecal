@@ -1,35 +1,57 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useSession } from "next-auth/react";
 import { DashboardShell, MiniCalendar, TaskList } from "@/components/dashboard";
+import { Calendar, Layout, ListTodo, Sparkles } from "lucide-react";
 
 export default function DashboardPage() {
     const t = useTranslations("dashboard");
     const { data: session } = useSession();
+    const [overviewDate, setOverviewDate] = useState(new Date());
 
     return (
         <DashboardShell
-            title={t("welcome", { name: session?.user?.nickname || "User" })}
+            title={
+                <div className="flex items-center gap-4">
+                    <span>{t("welcome", { name: session?.user?.nickname || "User" })}</span>
+                    <Sparkles className="h-8 w-8 text-foreground/70 animate-pulse" />
+                </div>
+            }
             subtitle={t("overview.subtitle")}
             main={
-                <div className="dashboard-glass-card group p-8 transition hover:shadow-[0_16px_70px_rgba(15,23,42,0.08)]">
-                    <div className="mb-6 flex items-center justify-between">
-                        <div>
-                            <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Tasks</div>
-                            <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">Today & upcoming</div>
+                <div className="dashboard-glass-card group p-8 premium-noise">
+                    <div className="mb-8 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="rounded-2xl bg-muted p-3 transition-colors shadow-sm ring-1 ring-border group-hover:bg-hover">
+                                <ListTodo className="h-5 w-5 text-foreground" />
+                            </div>
+                            <div>
+                                <div className="text-lg font-bold text-foreground">Tasks Overview</div>
+                                <div className="text-sm font-medium text-muted-foreground">Manage your daily workflow efficiently</div>
+                            </div>
                         </div>
                     </div>
-                    <TaskList />
+                    <div className="relative rounded-2xl border border-border/70 bg-background/60 p-1">
+                        <TaskList selectedDate={overviewDate} onSelectedDateChange={setOverviewDate} />
+                    </div>
                 </div>
             }
             side={
-                <div className="dashboard-glass-card p-8">
-                    <div className="mb-6">
-                        <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Calendar</div>
-                        <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">Quick glance</div>
+                <div className="dashboard-glass-card p-8 group premium-noise">
+                    <div className="mb-8 flex items-center gap-3">
+                        <div className="rounded-2xl bg-muted p-3 transition-colors shadow-sm ring-1 ring-border group-hover:bg-hover">
+                            <Calendar className="h-5 w-5 text-foreground" />
+                        </div>
+                        <div>
+                            <div className="text-lg font-bold text-foreground">Calendar</div>
+                            <div className="text-sm font-medium text-muted-foreground">Upcoming events</div>
+                        </div>
                     </div>
-                    <MiniCalendar />
+                    <div className="rounded-2xl border border-border/70 bg-background/60 p-4 transition-all hover:shadow-inner-glow">
+                        <MiniCalendar selectedDate={overviewDate} onDateSelect={setOverviewDate} />
+                    </div>
                 </div>
             }
         />

@@ -1,16 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { loginAdmin } from "@/lib/admin";
 import { SignJWT } from "jose";
+import { getRequiredEnv } from "@/lib/required-env";
+import {
+  checkAdminLoginAllowed,
+  clearAdminLoginFailures,
+  getClientIp,
+  normalizeAdminUsername,
+  recordAdminLoginFailure,
+} from "@/lib/admin-login-rate-limit";
 
-const secret = new TextEncoder().encode(
-  process.env.API_SECRET_KEY || "default-secret-key"
-);
+const secret = new TextEncoder().encode(getRequiredEnv("API_SECRET_KEY"));
 
 // POST /api/admin/login - 관리자 로그인
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { username, password } = body;
+    const { username, password } = body as {
+      username?: string;
+      password?: string;
+    };
 
     if (!username || !password) {
       return NextResponse.json(
@@ -19,15 +28,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const normalizedUsername = normalizeAdminUsername(username);
+    const clientIp = getClientIp(request);
+    const guard = await checkAdminLoginAllowed(normalizedUsername, clientIp);
+    if (!guard.allowed) {
+      const response = NextResponse.json(
+        { error: "로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요." },
+        { status: 429 }
+      );
+      response.headers.set("Retry-After", String(guard.retryAfterSeconds));
+      return response;
+    }
+
     // 관리자 로그인 검증
-    const admin = await loginAdmin(username, password);
+    const admin = await loginAdmin(normalizedUsername, password);
 
     if (!admin) {
+      await recordAdminLoginFailure(normalizedUsername, clientIp);
       return NextResponse.json(
         { error: "아이디 또는 비밀번호가 올바르지 않습니다." },
         { status: 401 }
       );
     }
+
+    await clearAdminLoginFailures(normalizedUsername, clientIp);
 
     // JWT 토큰 생성
     const token = await new SignJWT({
@@ -69,4 +93,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

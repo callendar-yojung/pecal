@@ -279,7 +279,7 @@ export default function TaskExportPage() {
 
   if (!currentWorkspace) {
     return (
-      <div className="dashboard-glass-card p-6 text-sm text-muted-foreground">
+      <div className="dashboard-glass-card premium-noise p-6 text-sm text-muted-foreground">
         {tTasks("selectWorkspace") || "워크스페이스를 선택해주세요."}
       </div>
     );
@@ -287,15 +287,15 @@ export default function TaskExportPage() {
 
   if (loading || !task) {
     return (
-      <div className="dashboard-glass-card p-6 text-sm text-muted-foreground">
+      <div className="dashboard-glass-card premium-noise p-6 text-sm text-muted-foreground">
         {t("loading")}
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="dashboard-hero-card p-6">
+    <div className="space-y-8">
+      <div className="dashboard-hero-card premium-noise p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-xl font-semibold text-foreground">{t("title")}</h1>
@@ -335,7 +335,7 @@ export default function TaskExportPage() {
               type="datetime-local"
               value={newExpiresAt}
               onChange={(e) => setNewExpiresAt(e.target.value)}
-              className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              className="mt-2 w-full rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
             />
             <p className="mt-1 text-xs text-muted-foreground">{t("expiresHint")}</p>
           </div>
@@ -346,7 +346,7 @@ export default function TaskExportPage() {
             type="button"
             onClick={handleCreateExport}
             disabled={creating}
-            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="ui-button-primary px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
           >
             {creating ? t("creating") : t("createLink")}
           </button>
@@ -355,23 +355,23 @@ export default function TaskExportPage() {
             <button
               type="button"
               onClick={() => handleCopy(shareUrl)}
-              className="rounded-md border border-input bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+              className="ui-button px-3 py-2 text-sm"
             >
               {copyState === "copied" ? t("copied") : t("copy")}
             </button>
           )}
         </div>
 
-        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+        {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
 
         {shareUrl && (
-          <div className="mt-4 rounded-lg border border-border bg-muted/40 p-4">
+          <div className="mt-4 rounded-2xl border border-border/70 bg-muted/40 p-4">
             <p className="text-sm font-medium text-foreground">{t("linkLabel")}</p>
             <div className="mt-2">
               <input
                 readOnly
                 value={shareUrl}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
+                className="w-full rounded-xl border border-input/80 bg-background/90 px-3 py-2 text-sm text-foreground"
               />
             </div>
             <p className="mt-2 text-xs text-muted-foreground">{t("linkHint")}</p>
@@ -379,7 +379,7 @@ export default function TaskExportPage() {
         )}
       </div>
 
-      <div className="dashboard-glass-card p-6">
+      <div className="dashboard-glass-card premium-noise p-6">
         <h2 className="text-lg font-semibold text-foreground">{t("exportListTitle")}</h2>
         {exportsLoading ? (
           <p className="mt-3 text-sm text-muted-foreground">{t("loading")}</p>
@@ -395,7 +395,7 @@ export default function TaskExportPage() {
                 !!item.expires_at && new Date(item.expires_at) < new Date();
               const isRevoked = !!item.revoked_at;
               return (
-                <div key={item.export_id} className="rounded-lg border border-border p-4">
+                <div key={item.export_id} className="rounded-2xl border border-border/70 bg-background/70 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <div className="text-sm font-medium text-foreground">
@@ -405,12 +405,12 @@ export default function TaskExportPage() {
                         {t("createdAt")}: {new Date(item.created_at).toLocaleString()}
                       </div>
                       {isRevoked && (
-                        <div className="mt-1 text-xs font-medium text-red-600">
+                        <div className="mt-1 text-xs font-medium text-destructive">
                           {t("revoked")}
                         </div>
                       )}
                       {!isRevoked && isExpired && (
-                        <div className="mt-1 text-xs font-medium text-amber-600">
+                        <div className="mt-1 text-xs font-medium text-status-todo-foreground">
                           {t("expired")}
                         </div>
                       )}
@@ -424,7 +424,7 @@ export default function TaskExportPage() {
                             e.target.value as Visibility
                           )
                         }
-                        className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                        className="rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
                       >
                         <option value="public">{t("visibilityPublicShort")}</option>
                         <option value="restricted">{t("visibilityRestrictedShort")}</option>
@@ -432,7 +432,7 @@ export default function TaskExportPage() {
                       <button
                         type="button"
                         onClick={() => handleCopy(url)}
-                        className="rounded-md border border-input bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+                        className="ui-button px-3 py-2 text-sm"
                       >
                         {t("copy")}
                       </button>
@@ -440,7 +440,7 @@ export default function TaskExportPage() {
                         type="button"
                         onClick={() => handleRevoke(item.export_id)}
                         disabled={actionLoading[item.export_id]}
-                        className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100 disabled:opacity-60"
+                        className="ui-button-danger px-3 py-2 text-sm disabled:opacity-60"
                       >
                         {t("revoke")}
                       </button>
@@ -462,12 +462,12 @@ export default function TaskExportPage() {
                               [item.export_id]: e.target.value,
                             }))
                           }
-                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                          className="w-full rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
                         />
                         <button
                           type="button"
                           onClick={() => handleExpirySave(item.export_id)}
-                          className="rounded-md border border-input bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+                          className="ui-button px-3 py-2 text-sm"
                         >
                           {t("save")}
                         </button>
@@ -480,7 +480,7 @@ export default function TaskExportPage() {
                       <input
                         readOnly
                         value={url}
-                        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground"
+                        className="mt-1 w-full rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-xs text-foreground"
                       />
                     </div>
                   </div>
@@ -491,7 +491,7 @@ export default function TaskExportPage() {
         )}
       </div>
 
-      <div className="dashboard-glass-card p-6">
+      <div className="dashboard-glass-card premium-noise p-6">
         <h2 className="text-lg font-semibold text-foreground">{t("accessTitle")}</h2>
         {exportsList.length === 0 ? (
           <p className="mt-3 text-sm text-muted-foreground">{t("noExports")}</p>
@@ -502,7 +502,7 @@ export default function TaskExportPage() {
               <select
                 value={selectedExportId ?? ""}
                 onChange={(e) => setSelectedExportId(Number(e.target.value))}
-                className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                className="mt-2 w-full rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
               >
                 {exportsList.map((item) => (
                   <option key={item.export_id} value={item.export_id}>
@@ -524,13 +524,13 @@ export default function TaskExportPage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder={t("memberPlaceholder")}
-                    className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                    className="mt-2 w-full rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
                     onFocus={() => {
                       if (searchResults.length > 0) setShowSearch(true);
                     }}
                   />
                   {selectedMember && (
-                    <div className="mt-2 flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-2 py-1 text-xs">
+                    <div className="mt-2 flex items-center gap-2 rounded-xl border border-border/70 bg-muted/40 px-2 py-1 text-xs">
                       <span className="text-muted-foreground">{t("selectedMember")}</span>
                       <span className="truncate font-medium text-foreground">
                         {selectedMember.nickname || selectedMember.email}
@@ -548,7 +548,7 @@ export default function TaskExportPage() {
                     </div>
                   )}
                   {showSearch && (searchResults.length > 0 || searchLoading) && (
-                    <div className="absolute z-20 mt-1 w-full rounded-lg border border-border bg-popover shadow-lg">
+                    <div className="absolute z-20 mt-1 w-full rounded-xl border border-border/70 bg-popover shadow-[0_18px_38px_rgba(15,23,42,0.16)]">
                       {searchLoading ? (
                         <div className="px-3 py-2 text-xs text-muted-foreground">
                           {t("searching")}
@@ -603,7 +603,7 @@ export default function TaskExportPage() {
                   type="button"
                   onClick={handleAddAccess}
                   disabled={!selectedMember || !selectedExportId}
-                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                  className="ui-button-primary px-4 py-2 text-sm disabled:opacity-50"
                 >
                   {t("addMember")}
                 </button>
@@ -638,7 +638,7 @@ export default function TaskExportPage() {
         )}
       </div>
 
-      <div className="dashboard-glass-card p-3 md:p-5">
+      <div className="dashboard-glass-card premium-noise p-3 md:p-5">
         <TaskViewPanel
           task={task}
           showActions={false}

@@ -524,10 +524,12 @@ export default function TeamSettingsPage() {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="dashboard-hero-card p-8">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">
+    <div className="space-y-8">
+      <div className="dashboard-hero-shell">
+        <div className="dashboard-hero-orb dashboard-hero-orb-right" />
+        <div className="dashboard-hero-orb dashboard-hero-orb-left" />
+        <div className="relative z-10">
+          <h1 className="text-3xl font-bold text-foreground lg:text-4xl">
             {t("title")}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -542,7 +544,7 @@ export default function TeamSettingsPage() {
       </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
-          <div className="dashboard-glass-card p-4">
+          <div className="dashboard-glass-card premium-noise p-4">
             <h2 className="mb-3 text-lg font-semibold text-foreground">
               {t("teams")}
             </h2>
@@ -559,10 +561,10 @@ export default function TeamSettingsPage() {
                     key={team.id}
                     type="button"
                     onClick={() => setSelectedTeamId(team.id)}
-                    className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                    className={`w-full rounded-xl px-3 py-2 text-left text-sm transition-colors ${
                       team.id === selectedTeamId
-                        ? "bg-blue-600 text-white"
-                        : "hover:bg-accent text-foreground"
+                        ? "bg-primary text-primary-foreground shadow-[0_10px_24px_rgba(59,130,246,0.35)]"
+                        : "text-foreground hover:bg-accent"
                     }`}
                   >
                     <div className="font-medium">{team.name}</div>
@@ -582,7 +584,7 @@ export default function TeamSettingsPage() {
               </div>
             ) : (
               <>
-                <div className="dashboard-glass-card p-6">
+                <div className="dashboard-glass-card premium-noise p-6">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <h2 className="text-xl font-semibold text-foreground">
@@ -599,7 +601,7 @@ export default function TeamSettingsPage() {
                         <button
                           type="button"
                           onClick={handleManagePlan}
-                          className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-accent"
+                          className="ui-button px-3 py-2 text-sm"
                         >
                           {t("managePlan")}
                         </button>
@@ -609,7 +611,7 @@ export default function TeamSettingsPage() {
                           type="button"
                           onClick={handleDeleteTeam}
                           disabled={actionLoading}
-                          className="rounded-lg border border-red-300 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                          className="ui-button-danger px-3 py-2 text-sm disabled:opacity-50"
                         >
                           {t("deleteTeam")}
                         </button>
@@ -633,7 +635,7 @@ export default function TeamSettingsPage() {
                     {t("adminOnly")}
                   </div>
                 ) : (
-                  <div className="dashboard-glass-card p-6">
+                  <div className="dashboard-glass-card premium-noise p-6">
                     <h3 className="text-lg font-semibold text-foreground">
                       {t("membersTitle")}
                     </h3>
@@ -647,13 +649,13 @@ export default function TeamSettingsPage() {
                           value={identifier}
                           onChange={(e) => setIdentifier(e.target.value)}
                           placeholder={t("memberPlaceholder")}
-                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                          className="w-full rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
                           onFocus={() => {
                             if (memberSearch.length > 0) setShowSearch(true);
                           }}
                         />
                         {selectedMember && (
-                          <div className="mt-2 flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-2 py-1 text-xs">
+                          <div className="mt-2 flex items-center gap-2 rounded-xl border border-border/70 bg-muted/40 px-2 py-1 text-xs">
                             <span className="text-muted-foreground">{t("selectedMember")}</span>
                             <span className="truncate font-medium text-foreground">
                               {selectedMember.nickname || selectedMember.email}
@@ -671,7 +673,7 @@ export default function TeamSettingsPage() {
                           </div>
                         )}
                         {showSearch && (memberSearch.length > 0 || searchLoading) && (
-                          <div className="absolute z-20 mt-1 w-full rounded-lg border border-border bg-popover shadow-lg">
+                          <div className="absolute z-20 mt-1 w-full rounded-xl border border-border/70 bg-popover shadow-[0_20px_40px_rgba(15,23,42,0.18)]">
                             {searchLoading ? (
                               <div className="px-3 py-2 text-xs text-muted-foreground">
                                 {t("searching")}
@@ -729,7 +731,7 @@ export default function TeamSettingsPage() {
                             e.target.value ? Number(e.target.value) : null
                           )
                         }
-                        className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                        className="rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
                       >
                         <option value="">{t("memberRoleSelect")}</option>
                         {roleOptions.map((role) => (
@@ -749,7 +751,7 @@ export default function TeamSettingsPage() {
                           !memberRoleId ||
                           (memberLimit > 0 && members.length >= memberLimit)
                         }
-                        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                        className="ui-button-primary px-4 py-2 text-sm disabled:opacity-50"
                       >
                         {t("addMember")}
                       </button>
@@ -780,7 +782,7 @@ export default function TeamSettingsPage() {
                           <button
                             type="button"
                             onClick={handleManagePlan}
-                            className="mt-2 rounded-md border border-amber-300 px-2.5 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100"
+                            className="mt-2 rounded-lg border border-amber-300 px-2.5 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100"
                           >
                             {t("managePlan")}
                           </button>
@@ -789,7 +791,7 @@ export default function TeamSettingsPage() {
                     )}
 
                     {error && (
-                      <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                      <div className="mt-3 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
                         {error}
                       </div>
                     )}
@@ -808,7 +810,7 @@ export default function TeamSettingsPage() {
                           {members.map((m) => (
                             <div
                               key={m.member_id}
-                              className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2"
+                              className="flex items-center justify-between rounded-xl border border-border/70 bg-background/90 px-3 py-2"
                             >
                               <div>
                                 <div className="text-sm font-medium text-foreground">
@@ -832,7 +834,7 @@ export default function TeamSettingsPage() {
                                         Number(e.target.value)
                                       )
                                     }
-                                    className="rounded border border-border bg-background px-2 py-1 text-xs"
+                                    className="rounded-lg border border-border/70 bg-background px-2 py-1 text-xs"
                                   >
                                     {roleOptions.map((role) => (
                                       <option key={role.team_role_id} value={role.team_role_id}>
@@ -845,7 +847,7 @@ export default function TeamSettingsPage() {
                                   <button
                                     type="button"
                                     onClick={() => handleRemoveMember(m.member_id)}
-                                    className="rounded border border-red-200 px-2 py-1 text-red-600 hover:bg-red-50"
+                                    className="rounded-lg border border-destructive/30 px-2 py-1 text-destructive hover:bg-destructive/10"
                                   >
                                     {t("remove")}
                                   </button>
@@ -861,7 +863,7 @@ export default function TeamSettingsPage() {
 
                 {isAdmin && (
                   <div className="space-y-6">
-                    <div className="dashboard-glass-card p-6">
+                    <div className="dashboard-glass-card premium-noise p-6">
                       <h3 className="text-lg font-semibold text-foreground">
                         {t("rolesTitle")}
                       </h3>
@@ -874,13 +876,13 @@ export default function TeamSettingsPage() {
                           value={roleName}
                           onChange={(e) => setRoleName(e.target.value)}
                           placeholder={t("roleNamePlaceholder")}
-                          className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                          className="flex-1 rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
                         />
                         <button
                           type="button"
                           onClick={handleCreateRole}
                           disabled={actionLoading || !roleName.trim()}
-                          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                          className="ui-button-primary px-4 py-2 text-sm disabled:opacity-50"
                         >
                           {t("addRole")}
                         </button>
@@ -899,7 +901,7 @@ export default function TeamSettingsPage() {
                           roles.map((role) => (
                             <div
                               key={role.team_role_id}
-                              className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                              className="flex items-center justify-between rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
                             >
                               <div className="font-medium text-foreground">
                                 {role.name}
@@ -914,7 +916,7 @@ export default function TeamSettingsPage() {
                                   <button
                                     type="button"
                                     onClick={() => handleDeleteRole(role.team_role_id)}
-                                    className="rounded border border-red-200 px-2 py-1 text-red-600 hover:bg-red-50"
+                                    className="rounded-lg border border-destructive/30 px-2 py-1 text-destructive hover:bg-destructive/10"
                                   >
                                     {t("remove")}
                                   </button>
@@ -926,7 +928,7 @@ export default function TeamSettingsPage() {
                       </div>
                     </div>
 
-                    <div className="dashboard-glass-card p-6">
+                    <div className="dashboard-glass-card premium-noise p-6">
                       <h3 className="text-lg font-semibold text-foreground">
                         {t("permissionsTitle")}
                       </h3>
@@ -942,7 +944,7 @@ export default function TeamSettingsPage() {
                               e.target.value ? Number(e.target.value) : null
                             )
                           }
-                          className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                          className="flex-1 rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
                         >
                           <option value="">{t("roleSelect")}</option>
                           {roleOptions.map((role) => (
@@ -959,7 +961,7 @@ export default function TeamSettingsPage() {
                             !selectedRoleId ||
                             selectedRole?.name === "Owner"
                           }
-                          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                          className="ui-button-primary px-4 py-2 text-sm disabled:opacity-50"
                         >
                           {t("savePermissions")}
                         </button>
@@ -994,7 +996,7 @@ export default function TeamSettingsPage() {
                                         onClick={() => setSelectedAvailable(option.code)}
                                         className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm ${
                                           selectedAvailable === option.code
-                                            ? "bg-blue-50 text-blue-700"
+                                            ? "bg-primary/10 text-primary"
                                             : "hover:bg-accent"
                                         }`}
                                       >
@@ -1052,7 +1054,7 @@ export default function TeamSettingsPage() {
                                         onClick={() => setSelectedAssigned(option.code)}
                                         className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm ${
                                           selectedAssigned === option.code
-                                            ? "bg-blue-50 text-blue-700"
+                                            ? "bg-primary/10 text-primary"
                                             : "hover:bg-accent"
                                         }`}
                                       >

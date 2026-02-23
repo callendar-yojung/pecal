@@ -1,12 +1,13 @@
 {
   "name": "mobile-app",
   "private": true,
-  "main": "index.js",
+  "main": "expo-router/entry",
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
+    "start": "EXPO_NO_WATCHMAN=1 expo start --clear",
+    "android": "EXPO_NO_WATCHMAN=1 expo start --android --clear",
+    "ios": "EXPO_NO_WATCHMAN=1 expo start --ios --clear",
+    "web": "EXPO_NO_WATCHMAN=1 expo start --web --clear",
+    "reset-cache": "rm -rf .expo && rm -rf /tmp/metro-* /tmp/haste-map-*"
   },
   "dependencies": {
     "@expo/metro-runtime": "^6.1.2",
@@ -21,6 +22,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
+    "react-native-safe-area-context": "^5.6.2",
     "react-native-webview": "^13.15.0",
     "react-native-web": "0.21.0"
   },
