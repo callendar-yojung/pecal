@@ -5,6 +5,10 @@ on:
     branches: ["main"]
     paths:
       - "apps/web/**"
+      - "packages/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
       - ".github/workflows/web-deploy.yml"
   workflow_dispatch:
 
