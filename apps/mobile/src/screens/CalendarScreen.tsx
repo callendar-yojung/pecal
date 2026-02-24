@@ -175,6 +175,11 @@ export function CalendarScreen({
             {row.map((cell, colIdx) => {
               const isToday = cell.dateStr === todayStr;
               const schedules = schedulesByDate[cell.dateStr] ?? [];
+              const daySchedules = schedules
+                .slice()
+                .sort((a, b) => a.start_time.localeCompare(b.start_time));
+              const visibleSchedules = daySchedules.slice(0, 2);
+              const hiddenCount = Math.max(0, daySchedules.length - visibleSchedules.length);
               const isWeekend = colIdx === 0 || colIdx === 6;
               return (
                 <Pressable
@@ -183,18 +188,40 @@ export function CalendarScreen({
                     onSelectDate(cell.dateObj);
                     onOpenTaskFromDate(cell.dateObj);
                   }}
-                  style={{ flex: 1, minHeight: 56, alignItems: 'center', paddingTop: 6, paddingBottom: 4, gap: 2 }}
+                  style={{
+                    flex: 1,
+                    minHeight: 92,
+                    paddingTop: 6,
+                    paddingBottom: 6,
+                    paddingHorizontal: 4,
+                    gap: 4,
+                    borderRightWidth: colIdx < 6 ? 0.5 : 0,
+                    borderRightColor: colors.border,
+                  }}
                 >
                   <View style={{ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: isToday ? colors.primary : 'transparent' }}>
                     <Text style={{ fontSize: 13, fontWeight: isToday ? '800' : '500', color: isToday ? '#fff' : !cell.isCurrentMonth ? colors.border : isWeekend ? (colIdx === 0 ? '#EF4444' : '#5B6CF6') : colors.text }}>{cell.day}</Text>
                   </View>
-                  {schedules.length > 0 ? (
-                    <View style={{ flexDirection: 'row', gap: 2, alignItems: 'center', height: 8 }}>
-                      {schedules.slice(0, 3).map((task) => (
-                        <View key={task.id} style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: getTaskAccentColor(task) }} />
-                      ))}
-                      {schedules.length > 3 ? <Text style={{ fontSize: 8, fontWeight: '700', color: colors.textMuted }}>+</Text> : null}
+                  {visibleSchedules.map((task) => (
+                    <View
+                      key={task.id}
+                      style={{
+                        width: '100%',
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: `${getTaskAccentColor(task)}55`,
+                        backgroundColor: `${getTaskAccentColor(task)}22`,
+                        paddingHorizontal: 5,
+                        paddingVertical: 3,
+                      }}
+                    >
+                      <Text style={{ fontSize: 9, lineHeight: 11, color: colors.text, fontWeight: '700' }} numberOfLines={1}>
+                        {task.title}
+                      </Text>
                     </View>
+                  ))}
+                  {hiddenCount > 0 ? (
+                    <Text style={{ fontSize: 9, color: colors.textMuted, fontWeight: '700' }}>+{hiddenCount} more</Text>
                   ) : null}
                 </Pressable>
               );
@@ -258,54 +285,6 @@ export function CalendarScreen({
         </View>
       ) : null}
 
-      <View style={{ gap: 8 }}>
-        <Text style={{ color: colors.text, fontSize: 17, fontWeight: '700' }}>
-          {t('calendarMonthSchedule', { month: MONTHS[month], count: monthTasks.length })}
-        </Text>
-        {monthTasks.map((task) => {
-          const tag = tags.find((t) => (task.tag_ids ?? []).includes(t.tag_id));
-          return (
-            <Pressable
-              key={task.id}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                borderRadius: 12,
-                borderLeftWidth: 4,
-                borderLeftColor: getTaskAccentColor(task),
-                paddingHorizontal: 14,
-                paddingVertical: 12,
-                gap: 12,
-                backgroundColor: colors.cardSoft,
-              }}
-              onPress={() => onSelectTask(task.id)}
-            >
-              <View style={{ flex: 1, gap: 2 }}>
-                <Text style={{ fontSize: 11, color: colors.textMuted, fontWeight: '500' }}>
-                  {task.start_time.slice(8, 10)}일 {task.start_time.slice(11, 16)}
-                </Text>
-                <Text style={{ fontSize: 14, color: colors.text, fontWeight: '600' }} numberOfLines={1}>
-                  {task.title} {tag ? `· ${tag.name}` : ''}
-                </Text>
-              </View>
-              <View
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: activeTaskId === task.id ? colors.primary : getTaskStatusColor(task.status),
-                }}
-              />
-            </Pressable>
-          );
-        })}
-
-        {monthTasks.length === 0 ? (
-          <View style={{ borderRadius: 12, borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed', paddingVertical: 24, alignItems: 'center' }}>
-            <Text style={{ color: colors.textMuted, fontSize: 13 }}>{t('calendarEmpty')}</Text>
-          </View>
-        ) : null}
-      </View>
     </ScrollView>
   );
 }
