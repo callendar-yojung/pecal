@@ -133,7 +133,9 @@ export function TaskDetailWebView({ task, minHeight = 260 }: Props) {
               return;
             }
             if (message.type === 'height') {
-              const next = Math.max(minHeight, Math.min(2000, Number(message.payload?.height) || minHeight));
+              // Add a small buffer to avoid clipping due to border/pixel rounding differences.
+              const measured = Number(message.payload?.height) || minHeight;
+              const next = Math.max(minHeight, Math.min(6000, measured + 40));
               setWebHeight(next);
             }
           } catch {

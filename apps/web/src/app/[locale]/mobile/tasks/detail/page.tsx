@@ -177,14 +177,43 @@ export default function MobileTaskDetailPage() {
   }, [handleInbound]);
 
   useEffect(() => {
-    if (!rootRef.current || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver((entries) => {
-      const height = Math.ceil(entries[0]?.contentRect?.height ?? 300);
+    if (!rootRef.current || typeof window === "undefined" || typeof document === "undefined") return;
+
+    const emitHeight = () => {
+      const root = rootRef.current;
+      if (!root) return;
+
+      const rootRectHeight = Math.ceil(root.getBoundingClientRect().height || 0);
+      const rootScrollHeight = Math.ceil(root.scrollHeight || 0);
+      const bodyScrollHeight = Math.ceil(document.body?.scrollHeight || 0);
+      const docScrollHeight = Math.ceil(document.documentElement?.scrollHeight || 0);
+      const height = Math.max(300, rootRectHeight, rootScrollHeight, bodyScrollHeight, docScrollHeight);
       postToNative({ channel: "pecal-task-detail", type: "height", payload: { height } });
-    });
-    observer.observe(rootRef.current);
-    return () => observer.disconnect();
-  }, []);
+    };
+
+    emitHeight();
+    const rafId = window.requestAnimationFrame(emitHeight);
+    const timeoutId = window.setTimeout(emitHeight, 180);
+
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(() => emitHeight());
+      observer.observe(rootRef.current);
+      observer.observe(document.body);
+      observer.observe(document.documentElement);
+    }
+
+    window.addEventListener("load", emitHeight);
+    window.addEventListener("resize", emitHeight);
+
+    return () => {
+      if (observer) observer.disconnect();
+      window.cancelAnimationFrame(rafId);
+      window.clearTimeout(timeoutId);
+      window.removeEventListener("load", emitHeight);
+      window.removeEventListener("resize", emitHeight);
+    };
+  }, [task, theme]);
 
   if (!theme) return <div className="min-h-screen bg-transparent p-0" />;
 

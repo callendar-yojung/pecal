@@ -11,7 +11,7 @@ interface OAuthStatePayload {
   type: "oauth_state";
   provider: OAuthProvider;
   callback: string;
-  nonce: string;
+  nonceHash: string;
 }
 
 function getOAuthSecret(): Uint8Array {
@@ -88,33 +88,33 @@ export function getOAuthStateCookieOptions(provider: OAuthProvider) {
 export async function createOAuthState(
   provider: OAuthProvider,
   callback: string
-): Promise<{ state: string; nonce: string }> {
+): Promise<{ state: string }> {
   const normalized = normalizeCallbackUrl(callback);
   if (!normalized || !isAllowedOAuthCallback(normalized)) {
     throw new Error("Invalid OAuth callback");
   }
 
+  // Random entropy is still included to make each state unique and non-guessable.
   const nonce = randomBytes(24).toString("base64url");
   const state = await new SignJWT({
     type: "oauth_state",
     provider,
     callback: normalized,
-    nonce,
+    nonceHash: nonce,
   } satisfies OAuthStatePayload)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${OAUTH_STATE_TTL_SECONDS}s`)
     .sign(getOAuthSecret());
 
-  return { state, nonce };
+  return { state };
 }
 
 export async function verifyOAuthState(
   provider: OAuthProvider,
-  state: string | null,
-  nonceFromCookie: string | null
+  state: string | null
 ): Promise<string | null> {
-  if (!state || !nonceFromCookie) {
+  if (!state) {
     return null;
   }
 
@@ -123,8 +123,6 @@ export async function verifyOAuthState(
     if (payload.type !== "oauth_state") return null;
     if (payload.provider !== provider) return null;
     if (typeof payload.callback !== "string") return null;
-    if (typeof payload.nonce !== "string") return null;
-    if (payload.nonce !== nonceFromCookie) return null;
     if (!isAllowedOAuthCallback(payload.callback)) return null;
     return payload.callback;
   } catch {

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   createOAuthState,
-  getOAuthStateCookieName,
-  getOAuthStateCookieOptions,
   isAllowedOAuthCallback,
 } from "@/lib/oauth-state";
 import { getOAuthRedirectUri } from "@/lib/oauth-redirect-uri";
@@ -51,7 +49,7 @@ export async function GET(request: NextRequest) {
     // 카카오는 커스텀 스킴(deskcal://)을 허용하지 않음
     const redirectUri = getOAuthRedirectUri(request, "kakao");
 
-    const { state, nonce } = await createOAuthState("kakao", appCallback);
+    const { state } = await createOAuthState("kakao", appCallback);
 
     // 카카오 인증 URL 생성
     const params = new URLSearchParams({
@@ -63,17 +61,11 @@ export async function GET(request: NextRequest) {
 
     const authUrl = `${KAKAO_AUTH_URL}?${params.toString()}`;
 
-    const response = NextResponse.json({
+    return NextResponse.json({
       authUrl,
       redirectUri,
       state,
     });
-    response.cookies.set(
-      getOAuthStateCookieName("kakao"),
-      nonce,
-      getOAuthStateCookieOptions("kakao")
-    );
-    return response;
   } catch (error) {
     console.error("Kakao start error:", error);
     return NextResponse.json(

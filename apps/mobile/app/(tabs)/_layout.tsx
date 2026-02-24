@@ -43,6 +43,8 @@ export default function TabsLayout() {
   };
 
   const activeNav = navItems.find((item) => isRouteActive(item.route)) ?? navItems[0];
+  const compactTabBottom = 0;
+  const compactTabReservedSpace = 68 + insets.bottom;
 
   if (auth.loading) return null;
   if (!auth.session) return <Redirect href="/(auth)/login" />;
@@ -132,11 +134,19 @@ export default function TabsLayout() {
       {isCompact ? (
         <View style={{ flex: 1 }}>
           {sharedOverlays}
-          <View style={{ flex: 1, minHeight: 0 }}>
+          <View style={{ flex: 1, minHeight: 0, paddingBottom: compactTabReservedSpace }}>
             <Slot />
           </View>
 
-          <View style={[s.bottomTabs, { bottom: Math.max(10, insets.bottom + 6) }]}>
+          <View
+            style={[
+              s.bottomTabs,
+              {
+                bottom: compactTabBottom,
+                paddingBottom: Math.max(8, insets.bottom),
+              },
+            ]}
+          >
             {navItems.map((item) => {
               const active = isRouteActive(item.route);
               return (
@@ -145,29 +155,20 @@ export default function TabsLayout() {
                   onPress={() => router.replace(item.route)}
                   style={[
                     s.bottomTabButton,
-                    item.key === 'calendar' ? s.bottomTabButtonCenter : null,
                     active ? s.bottomTabButtonActive : null,
-                    active && item.key === 'calendar' ? s.bottomTabButtonCenterActive : null,
                   ]}
                 >
                   <View style={s.bottomTabIconWrap}>
                     <Ionicons
                       name={item.icon}
-                      size={17}
-                      color={
-                        active && item.key === 'calendar'
-                          ? '#FFFFFF'
-                          : active
-                            ? colors.text
-                            : colors.textMuted
-                      }
+                      size={18}
+                      color={active ? colors.text : colors.textMuted}
                     />
                   </View>
                   <Text
                     style={[
                       s.bottomTabText,
                       active ? s.bottomTabTextActive : null,
-                      active && item.key === 'calendar' ? s.bottomTabTextOnPrimary : null,
                     ]}
                   >
                     {item.label}

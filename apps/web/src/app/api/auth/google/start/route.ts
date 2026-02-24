@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   createOAuthState,
-  getOAuthStateCookieName,
-  getOAuthStateCookieOptions,
   isAllowedOAuthCallback,
 } from "@/lib/oauth-state";
 import { getOAuthRedirectUri } from "@/lib/oauth-redirect-uri";
@@ -51,7 +49,7 @@ export async function GET(request: NextRequest) {
     // 구글은 커스텀 스킴(deskcal://)을 웹 앱에서는 허용하지 않음
     const redirectUri = getOAuthRedirectUri(request, "google");
 
-    const { state, nonce } = await createOAuthState("google", appCallback);
+    const { state } = await createOAuthState("google", appCallback);
 
     // 구글 인증 URL 생성
     const params = new URLSearchParams({
@@ -66,17 +64,11 @@ export async function GET(request: NextRequest) {
 
     const authUrl = `${GOOGLE_AUTH_URL}?${params.toString()}`;
 
-    const response = NextResponse.json({
+    return NextResponse.json({
       authUrl,
       redirectUri,
       state,
     });
-    response.cookies.set(
-      getOAuthStateCookieName("google"),
-      nonce,
-      getOAuthStateCookieOptions("google")
-    );
-    return response;
   } catch (error) {
     console.error("Google start error:", error);
     return NextResponse.json(

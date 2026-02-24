@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { findOrCreateMember } from "@/lib/member";
 import { generateAccessToken, generateRefreshToken } from "@/lib/jwt";
 import {
-  getOAuthStateCookieName,
-  getOAuthStateCookieOptions,
   verifyOAuthState,
 } from "@/lib/oauth-state";
 import { getOAuthRedirectUri } from "@/lib/oauth-redirect-uri";
@@ -26,33 +24,19 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const state = searchParams.get("state");
   const error = searchParams.get("error");
-  const stateCookieName = getOAuthStateCookieName("kakao");
-  const stateNonce = request.cookies.get(stateCookieName)?.value ?? null;
-  const appCallback = await verifyOAuthState("kakao", state, stateNonce);
-
-  const withClearedStateCookie = (response: NextResponse) => {
-    response.cookies.set(stateCookieName, "", {
-      ...getOAuthStateCookieOptions("kakao"),
-      maxAge: 0,
-    });
-    return response;
-  };
+  const appCallback = await verifyOAuthState("kakao", state);
 
   const handleError = (errorMessage: string, status: number) => {
     if (appCallback) {
       const errorUrl = new URL(appCallback);
       errorUrl.searchParams.set("error", errorMessage);
-      return withClearedStateCookie(NextResponse.redirect(errorUrl.toString()));
+      return NextResponse.redirect(errorUrl.toString());
     }
-    return withClearedStateCookie(
-      NextResponse.json({ error: errorMessage }, { status })
-    );
+    return NextResponse.json({ error: errorMessage }, { status });
   };
 
   if (!appCallback) {
-    return withClearedStateCookie(
-      NextResponse.json({ error: "Invalid OAuth state" }, { status: 400 })
-    );
+    return NextResponse.json({ error: "Invalid OAuth state" }, { status: 400 });
   }
 
   if (error) {
@@ -156,24 +140,20 @@ export async function GET(request: NextRequest) {
 
       console.log('✅ 데스크톱 앱으로 리다이렉트:', callbackUrl.toString());
 
-      return withClearedStateCookie(
-        NextResponse.redirect(callbackUrl.toString(), 307)
-      );
+      return NextResponse.redirect(callbackUrl.toString(), 307);
     }
 
     // JSON으로 토큰과 사용자 정보 반환 (레거시 호환)
-    return withClearedStateCookie(
-      NextResponse.json({
-        accessToken,
-        refreshToken,
-        member: {
-          memberId: member.member_id,
-          nickname: memberNickname,
-          email: member.email,
-          provider: "kakao",
-        },
-      })
-    );
+    return NextResponse.json({
+      accessToken,
+      refreshToken,
+      member: {
+        memberId: member.member_id,
+        nickname: memberNickname,
+        email: member.email,
+        provider: "kakao",
+      },
+    });
 
   } catch (error) {
     console.error("❌ 카카오 콜백 처리 에러:", error);

@@ -7,7 +7,8 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pecal.mobile"
     },
     "android": {
       "package": "com.pecal.mobile"
