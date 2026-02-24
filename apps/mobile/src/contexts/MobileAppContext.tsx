@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useDashboardData } from '../hooks/useDashboardData';
+import { clearWidgetData, syncWidgetData } from '../lib/widget-bridge';
 
 type MobileAppContextValue = {
   auth: ReturnType<typeof useAuth>;
@@ -29,6 +30,20 @@ export function MobileAppProvider({ children }: { children: React.ReactNode }) {
     void data.loadDashboard(data.selectedWorkspace);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.selectedWorkspaceId]);
+
+  useEffect(() => {
+    if (!auth.session) {
+      void clearWidgetData();
+      return;
+    }
+    if (!data.selectedWorkspace) return;
+    void syncWidgetData({
+      tasks: data.tasks,
+      workspaceName: data.selectedWorkspace.name,
+      nickname: auth.session.nickname,
+      maxItems: 180,
+    });
+  }, [auth.session, data.selectedWorkspace, data.tasks]);
 
   const value = useMemo<MobileAppContextValue>(() => ({ auth, data }), [auth, data]);
 
