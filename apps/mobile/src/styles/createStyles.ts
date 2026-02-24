@@ -496,6 +496,19 @@ export function createStyles(colors: Colors) {
 
     emptyText: { color: colors.textMuted, fontSize: 12, textAlign: 'center', paddingVertical: 16 },
     errorText: { color: '#EF4444', fontSize: 12 },
+    webViewErrorBanner: {
+      position: 'absolute',
+      left: 10,
+      right: 10,
+      bottom: 10,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: '#FCA5A5',
+      backgroundColor: colors.card,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+    },
+    webViewErrorText: { color: '#EF4444', fontSize: 12, fontWeight: '700' },
 
     bottomTabs: {
       position: 'absolute',
