@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import RichTextEditor from "@/components/editor/RichTextEditor";
 
 type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE";
 
@@ -14,17 +15,7 @@ function defaultDateTime(offsetMinutes: number) {
   return `${y}-${m}-${d}T${hh}:${mm}`;
 }
 
-function toEditorDoc(text: string) {
-  const trimmed = text.trim();
-  return {
-    type: "doc",
-    content: [
-      trimmed
-        ? { type: "paragraph", content: [{ type: "text", text: trimmed }] }
-        : { type: "paragraph" },
-    ],
-  };
-}
+const EMPTY_DOC = { type: "doc", content: [{ type: "paragraph" }] };
 
 export default function MobileTaskNewPage() {
   const search = useMemo(
@@ -39,7 +30,8 @@ export default function MobileTaskNewPage() {
   const [startTime, setStartTime] = useState(defaultDateTime(0));
   const [endTime, setEndTime] = useState(defaultDateTime(30));
   const [status, setStatus] = useState<TaskStatus>("TODO");
-  const [content, setContent] = useState("");
+  const [content, setContent] = useState<Record<string, unknown>>(EMPTY_DOC);
+  const [editorKey, setEditorKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -73,7 +65,7 @@ export default function MobileTaskNewPage() {
           end_time: endTime,
           status,
           color: "#3B82F6",
-          content: JSON.stringify(toEditorDoc(content)),
+          content: JSON.stringify(content),
           tag_ids: [],
         }),
       });
@@ -84,7 +76,8 @@ export default function MobileTaskNewPage() {
       }
       setMessage("일정이 등록되었습니다.");
       setTitle("");
-      setContent("");
+      setContent(EMPTY_DOC);
+      setEditorKey((prev) => prev + 1);
     } catch {
       setMessage("네트워크 오류가 발생했습니다.");
     } finally {
@@ -146,12 +139,11 @@ export default function MobileTaskNewPage() {
             <option value="DONE">DONE</option>
           </select>
 
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
+          <RichTextEditor
+            initialContent={content}
+            contentKey={editorKey}
+            onChange={(next) => setContent(next as Record<string, unknown>)}
             placeholder="내용"
-            rows={8}
-            className="w-full rounded-xl border border-border bg-background px-3 py-3 outline-none focus:border-primary"
           />
         </div>
 
