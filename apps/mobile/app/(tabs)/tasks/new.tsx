@@ -23,8 +23,11 @@ export default function TaskCreatePage() {
     <FullPageWebView
       path="/mobile/tasks/new"
       query={{
+        mode: 'create',
         token: auth.session.accessToken,
         workspace_id: data.selectedWorkspace.workspace_id,
+        owner_type: data.selectedWorkspace.type,
+        owner_id: data.selectedWorkspace.owner_id,
         theme: mode === 'black' ? 'dark' : 'light',
       }}
     />

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { formatDateTime } from '../lib/date';
 import type { TagItem, TaskItem, TaskStatus } from '../lib/types';
@@ -32,7 +32,9 @@ export function TasksScreen({
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | TaskStatus>('ALL');
   const [tagFilter, setTagFilter] = useState<number | 'ALL'>('ALL');
-  const [sortBy, setSortBy] = useState<'START_ASC' | 'START_DESC' | 'TITLE_ASC'>('START_ASC');
+  const [sortBy, setSortBy] = useState<'START_ASC' | 'START_DESC' | 'TITLE_ASC'>('START_DESC');
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   const todoCount = tasks.filter((task) => task.status !== 'DONE').length;
   const filteredTasks = useMemo(() => {
@@ -52,6 +54,22 @@ export function TasksScreen({
         return a.start_time.localeCompare(b.start_time);
       });
   }, [tasks, statusFilter, tagFilter, query, sortBy]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTasks.length / pageSize));
+  const pagedTasks = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredTasks.slice(start, start + pageSize);
+  }, [filteredTasks, page]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, statusFilter, tagFilter, sortBy]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   return (
     <View style={s.section}>
@@ -153,7 +171,7 @@ export function TasksScreen({
       </View>
 
       <View style={{ gap: 8 }}>
-        {filteredTasks.map((task) => {
+        {pagedTasks.map((task) => {
           const badgeColor = getTaskStatusColor(task.status);
           const accentColor = getTaskAccentColor(task);
           return (
@@ -182,6 +200,33 @@ export function TasksScreen({
           );
         })}
         {!filteredTasks.length ? <Text style={s.emptyText}>{t('tasksEmpty')}</Text> : null}
+        {filteredTasks.length > 0 ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+            <Pressable
+              onPress={() => setPage((prev) => Math.max(1, prev - 1))}
+              disabled={page <= 1}
+              style={[
+                s.workspacePill,
+                { marginRight: 0, paddingVertical: 7, paddingHorizontal: 12, opacity: page <= 1 ? 0.5 : 1 },
+              ]}
+            >
+              <Text style={s.workspacePillText}>이전</Text>
+            </Pressable>
+            <Text style={s.itemMeta}>
+              {page} / {totalPages}
+            </Text>
+            <Pressable
+              onPress={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={page >= totalPages}
+              style={[
+                s.workspacePill,
+                { marginRight: 0, paddingVertical: 7, paddingHorizontal: 12, opacity: page >= totalPages ? 0.5 : 1 },
+              ]}
+            >
+              <Text style={s.workspacePillText}>다음</Text>
+            </Pressable>
+          </View>
+        ) : null}
       </View>
     </View>
   );

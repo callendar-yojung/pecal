@@ -4,6 +4,11 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import RichTextEditor from "@/components/editor/RichTextEditor";
 
 type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE";
+type OwnerType = "personal" | "team";
+type TagItem = { tag_id: number; name: string; color?: string };
+
+const EMPTY_DOC = { type: "doc", content: [{ type: "paragraph" }] };
+const TASK_COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#14B8A6", "#F43F5E", "#6B7280"];
 
 function defaultDateTime(offsetMinutes: number) {
   const date = new Date(Date.now() + offsetMinutes * 60_000);
@@ -15,75 +20,44 @@ function defaultDateTime(offsetMinutes: number) {
   return `${y}-${m}-${d}T${hh}:${mm}`;
 }
 
-const EMPTY_DOC = { type: "doc", content: [{ type: "paragraph" }] };
+function parseTaskContent(raw: unknown) {
+  if (typeof raw !== "string" || !raw.trim()) return EMPTY_DOC;
+  try {
+    return JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    return EMPTY_DOC;
+  }
+}
 
-export default function MobileTaskNewPage() {
+export default function MobileTaskEditorPage() {
   const search = useMemo(
     () => new URLSearchParams(typeof window === "undefined" ? "" : window.location.search),
     []
   );
   const token = search.get("token") ?? "";
+  const mode = search.get("mode") === "edit" ? "edit" : "create";
+  const taskId = Number(search.get("task_id") ?? "0");
   const workspaceId = Number(search.get("workspace_id") ?? "0");
+  const ownerType = (search.get("owner_type") ?? "") as OwnerType;
+  const ownerId = Number(search.get("owner_id") ?? "0");
   const theme = search.get("theme") === "dark" ? "dark" : "light";
 
   const [title, setTitle] = useState("");
   const [startTime, setStartTime] = useState(defaultDateTime(0));
   const [endTime, setEndTime] = useState(defaultDateTime(30));
   const [status, setStatus] = useState<TaskStatus>("TODO");
+  const [color, setColor] = useState("#3B82F6");
+  const [tagIds, setTagIds] = useState<number[]>([]);
+  const [tags, setTags] = useState<TagItem[]>([]);
   const [content, setContent] = useState<Record<string, unknown>>(EMPTY_DOC);
   const [editorKey, setEditorKey] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(mode === "edit");
   const [message, setMessage] = useState("");
 
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!token || !workspaceId) {
-      setMessage("인증 또는 워크스페이스 정보가 없습니다.");
-      return;
-    }
-    if (!title.trim()) {
-      setMessage("제목을 입력하세요.");
-      return;
-    }
-    if (new Date(startTime) >= new Date(endTime)) {
-      setMessage("종료 시간이 시작 시간보다 늦어야 합니다.");
-      return;
-    }
-    try {
-      setSaving(true);
-      setMessage("");
-      const res = await fetch("/api/tasks", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          workspace_id: workspaceId,
-          title: title.trim(),
-          start_time: startTime,
-          end_time: endTime,
-          status,
-          color: "#3B82F6",
-          content: JSON.stringify(content),
-          tag_ids: [],
-        }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setMessage(data.error ?? "등록에 실패했습니다.");
-        return;
-      }
-      setMessage("일정이 등록되었습니다.");
-      setTitle("");
-      setContent(EMPTY_DOC);
-      setEditorKey((prev) => prev + 1);
-    } catch {
-      setMessage("네트워크 오류가 발생했습니다.");
-    } finally {
-      setSaving(false);
-    }
-  };
+  const canCreate = !!token && workspaceId > 0;
+  const canLoadTags = !!token && ownerId > 0 && (ownerType === "team" || ownerType === "personal");
+  const canEdit = !!token && mode === "edit" && taskId > 0;
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -92,14 +66,154 @@ export default function MobileTaskNewPage() {
     root.classList.add(theme);
   }, [theme]);
 
+  useEffect(() => {
+    if (!canLoadTags) return;
+    void (async () => {
+      const res = await fetch(`/api/tags?owner_type=${ownerType}&owner_id=${ownerId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as { tags?: TagItem[] };
+      setTags(data.tags ?? []);
+    })();
+  }, [canLoadTags, ownerId, ownerType, token]);
+
+  useEffect(() => {
+    if (!canEdit) return;
+    void (async () => {
+      setLoading(true);
+      setMessage("");
+      try {
+        const res = await fetch(`/api/tasks/${taskId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setMessage((data as { error?: string }).error ?? "일정 정보를 불러오지 못했습니다.");
+          return;
+        }
+        const data = (await res.json()) as {
+          task?: {
+            title?: string;
+            start_time?: string;
+            end_time?: string;
+            status?: TaskStatus;
+            color?: string;
+            tag_ids?: number[];
+            content?: string | null;
+          };
+        };
+        const task = data.task;
+        if (!task) {
+          setMessage("일정을 찾을 수 없습니다.");
+          return;
+        }
+        setTitle(task.title ?? "");
+        setStartTime(task.start_time ?? defaultDateTime(0));
+        setEndTime(task.end_time ?? defaultDateTime(30));
+        setStatus(task.status ?? "TODO");
+        setColor(task.color ?? "#3B82F6");
+        setTagIds(Array.isArray(task.tag_ids) ? task.tag_ids : []);
+        setContent(parseTaskContent(task.content));
+        setEditorKey((prev) => prev + 1);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [canEdit, taskId, token]);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (mode === "edit") {
+      if (!canEdit) {
+        setMessage("인증 또는 일정 정보가 없습니다.");
+        return;
+      }
+    } else if (!canCreate) {
+      setMessage("인증 또는 워크스페이스 정보가 없습니다.");
+      return;
+    }
+
+    if (!title.trim()) {
+      setMessage("제목을 입력하세요.");
+      return;
+    }
+    if (new Date(startTime) >= new Date(endTime)) {
+      setMessage("종료 시간이 시작 시간보다 늦어야 합니다.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setMessage("");
+      const isEdit = mode === "edit";
+      const res = await fetch("/api/tasks", {
+        method: isEdit ? "PATCH" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(
+          isEdit
+            ? {
+                task_id: taskId,
+                title: title.trim(),
+                start_time: startTime,
+                end_time: endTime,
+                status,
+                color,
+                tag_ids: tagIds,
+                content: JSON.stringify(content),
+              }
+            : {
+                workspace_id: workspaceId,
+                title: title.trim(),
+                start_time: startTime,
+                end_time: endTime,
+                status,
+                color,
+                tag_ids: tagIds,
+                content: JSON.stringify(content),
+              }
+        ),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setMessage((data as { error?: string }).error ?? (isEdit ? "수정에 실패했습니다." : "등록에 실패했습니다."));
+        return;
+      }
+
+      if (isEdit) {
+        setMessage("일정이 수정되었습니다.");
+      } else {
+        setMessage("일정이 등록되었습니다.");
+        setTitle("");
+        setStartTime(defaultDateTime(0));
+        setEndTime(defaultDateTime(30));
+        setStatus("TODO");
+        setColor("#3B82F6");
+        setTagIds([]);
+        setContent(EMPTY_DOC);
+        setEditorKey((prev) => prev + 1);
+      }
+    } catch {
+      setMessage("네트워크 오류가 발생했습니다.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-background p-4 text-foreground">
-      <section className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h1 className="text-2xl font-bold">새 일정 등록</h1>
+      <section className="mx-auto max-w-3xl rounded-2xl border border-border bg-card p-4 shadow-sm">
+        <h1 className="text-2xl font-bold">{mode === "edit" ? "일정 수정" : "새 일정 등록"}</h1>
         <p className="mt-1 text-sm text-muted-foreground">모바일 WebView 전체 페이지 모드</p>
       </section>
 
       <form onSubmit={submit} className="mx-auto mt-4 max-w-3xl rounded-2xl border border-border bg-card p-4 shadow-sm">
+        {loading ? <p className="mb-3 text-sm text-muted-foreground">불러오는 중...</p> : null}
+
         <div className="space-y-3">
           <input
             value={title}
@@ -139,6 +253,58 @@ export default function MobileTaskNewPage() {
             <option value="DONE">DONE</option>
           </select>
 
+          <div className="rounded-xl border border-border bg-background p-3">
+            <p className="text-sm font-semibold">색상</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {TASK_COLORS.map((swatch) => (
+                <button
+                  key={swatch}
+                  type="button"
+                  onClick={() => setColor(swatch)}
+                  className={`h-8 w-8 rounded-full border-2 ${color === swatch ? "border-foreground" : "border-transparent"}`}
+                  style={{ backgroundColor: swatch }}
+                  aria-label={`color-${swatch}`}
+                />
+              ))}
+              <input
+                type="color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                className="h-8 w-10 cursor-pointer rounded border border-border bg-background"
+              />
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-border bg-background p-3">
+            <p className="text-sm font-semibold">태그</p>
+            {!tags.length ? (
+              <p className="mt-2 text-sm text-muted-foreground">사용 가능한 태그가 없습니다.</p>
+            ) : (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {tags.map((tag) => {
+                  const selected = tagIds.includes(tag.tag_id);
+                  return (
+                    <button
+                      key={tag.tag_id}
+                      type="button"
+                      onClick={() =>
+                        setTagIds((prev) =>
+                          selected ? prev.filter((id) => id !== tag.tag_id) : [...prev, tag.tag_id]
+                        )
+                      }
+                      className={`rounded-full border px-3 py-1 text-sm font-semibold ${
+                        selected ? "border-primary bg-primary/15 text-foreground" : "border-border bg-card text-muted-foreground"
+                      }`}
+                      style={selected ? { borderColor: tag.color ?? undefined } : undefined}
+                    >
+                      {tag.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           <RichTextEditor
             initialContent={content}
             contentKey={editorKey}
@@ -149,10 +315,10 @@ export default function MobileTaskNewPage() {
 
         <button
           type="submit"
-          disabled={saving}
+          disabled={saving || loading}
           className="mt-4 w-full rounded-xl bg-primary px-4 py-3 font-semibold text-primary-foreground disabled:opacity-60"
         >
-          {saving ? "등록 중..." : "일정 등록"}
+          {saving ? (mode === "edit" ? "저장 중..." : "등록 중...") : mode === "edit" ? "일정 저장" : "일정 등록"}
         </button>
 
         {message ? <p className="mt-3 text-sm text-muted-foreground">{message}</p> : null}
