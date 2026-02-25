@@ -1,0 +1,4 @@
+app_identifier(ENV.fetch("IOS_APP_IDENTIFIER", "com.pecal.mobile"))
+apple_id(ENV["APP_STORE_CONNECT_APPLE_ID"]) if ENV["APP_STORE_CONNECT_APPLE_ID"]
+itc_team_id(ENV["APP_STORE_CONNECT_TEAM_ID"]) if ENV["APP_STORE_CONNECT_TEAM_ID"]
+team_id(ENV["APPLE_TEAM_ID"]) if ENV["APPLE_TEAM_ID"]
