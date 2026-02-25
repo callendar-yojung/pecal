@@ -97,16 +97,18 @@ export function MobileApp() {
       <WorkspaceMenu
         open={data.workspacePickerOpen}
         onClose={() => data.setWorkspacePickerOpen(false)}
-        onSelectPersonal={data.selectPersonal}
-        onSelectTeam={data.selectTeamWorkspace}
+        onSelectWorkspace={(workspaceId) => data.setSelectedWorkspaceId(workspaceId)}
         onOpenCreateTeam={() => {
           data.setTeamCreateOpen(true);
           data.setTeamCreateStep('details');
         }}
         onLogout={auth.logout}
+        workspaces={data.workspaces}
+        teams={data.teams}
         teamWorkspaces={data.teamWorkspaces}
         selectedWorkspaceId={data.selectedWorkspaceId}
-        isPersonalSelected={data.selectedWorkspace?.type === 'personal'}
+        selectedWorkspaceType={data.selectedWorkspace?.type}
+        selectedWorkspaceOwnerId={data.selectedWorkspace?.owner_id}
       />
 
       <View style={s.workspaceRow}>

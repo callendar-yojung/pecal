@@ -1,0 +1,99 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Sidebar, NotificationsBell } from "@/components/dashboard";
+import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
+
+const DEFAULT_SIDEBAR_WIDTH = 256;
+const MOBILE_BREAKPOINT = 1024;
+const SIDEBAR_GUTTER = 0;
+
+export default function DashboardLayoutClient({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    const savedWidth = localStorage.getItem("sidebarWidth");
+    if (savedWidth) {
+      setSidebarWidth(parseInt(savedWidth, 10));
+    }
+
+    const handleResize = (e: CustomEvent<{ width: number }>) => {
+      setSidebarWidth(e.detail.width);
+    };
+
+    window.addEventListener("sidebarResize", handleResize as EventListener);
+    return () => {
+      window.removeEventListener("sidebarResize", handleResize as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < MOBILE_BREAKPOINT;
+      setIsMobile(mobile);
+      if (!mobile) {
+        setMobileOpen(false);
+      }
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  return (
+    <WorkspaceProvider>
+      <div className="dashboard-canvas min-h-screen">
+        <Sidebar
+          isMobile={isMobile}
+          mobileOpen={mobileOpen}
+          onClose={() => setMobileOpen(false)}
+        />
+        {isMobile && mobileOpen && (
+          <button
+            type="button"
+            aria-label="Close sidebar"
+            className="fixed inset-0 z-30 bg-black/40"
+            onClick={() => setMobileOpen(false)}
+          />
+        )}
+        {isMobile && (
+          <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-sidebar-border bg-sidebar-background px-4 py-3">
+            <button
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              className="ui-button px-2 py-1 text-sm"
+            >
+              Menu
+            </button>
+            <span className="text-sm font-semibold text-foreground">Dashboard</span>
+            <div className="ml-auto">
+              <NotificationsBell />
+            </div>
+          </div>
+        )}
+        <main
+          style={{
+            paddingLeft: isMobile ? "0px" : `${sidebarWidth + SIDEBAR_GUTTER}px`,
+          }}
+          className="dashboard-content transition-[padding-left] duration-0"
+        >
+          {!isMobile && (
+            <div className="sticky top-0 z-20 flex justify-end border-b border-border/70 bg-background/75 px-6 py-3 backdrop-blur-xl">
+              <NotificationsBell />
+            </div>
+          )}
+          <div className={isMobile ? "p-4" : "p-6"}>
+            <div className="mx-auto max-w-7xl">{children}</div>
+          </div>
+        </main>
+      </div>
+    </WorkspaceProvider>
+  );
+}

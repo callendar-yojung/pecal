@@ -94,28 +94,44 @@ export default function TabsLayout() {
       style={{ flex: 1, backgroundColor: colors.bg }}
     >
       <View style={s.header}>
-        <View style={s.logoArea}>
+        <Pressable style={s.logoArea} onPress={() => router.replace('/(tabs)/overview')}>
           <View style={[s.logoIcon, { backgroundColor: colors.primary }]}>
             <Text style={s.logoText}>P</Text>
           </View>
           <Text style={s.appTitle}>{t('appName')}</Text>
-        </View>
-        <Text style={s.headerHint}>{data.selectedWorkspace?.name ?? t('noWorkspace')}</Text>
+        </Pressable>
+        <Pressable
+          style={s.modeDropdownButton}
+          onPress={() => data.setWorkspacePickerOpen(!data.workspacePickerOpen)}
+        >
+          <View
+            style={[
+              s.wsTypeDot,
+              { backgroundColor: data.selectedWorkspace?.type === 'team' ? colors.primary : '#10B981' },
+            ]}
+          />
+          <Text style={s.modeDropdownText} numberOfLines={1}>
+            {data.modeLabel}
+          </Text>
+          <Text style={s.modeDropdownChevron}>{data.workspacePickerOpen ? '▲' : '▼'}</Text>
+        </Pressable>
       </View>
 
       <WorkspaceMenu
         open={data.workspacePickerOpen}
         onClose={() => data.setWorkspacePickerOpen(false)}
-        onSelectPersonal={data.selectPersonal}
-        onSelectTeam={data.selectTeamWorkspace}
+        onSelectWorkspace={(workspaceId) => data.setSelectedWorkspaceId(workspaceId)}
         onOpenCreateTeam={() => {
           data.setTeamCreateOpen(true);
           data.setTeamCreateStep('details');
         }}
         onLogout={auth.logout}
+        workspaces={data.workspaces}
+        teams={data.teams}
         teamWorkspaces={data.teamWorkspaces}
         selectedWorkspaceId={data.selectedWorkspaceId}
-        isPersonalSelected={data.selectedWorkspace?.type === 'personal'}
+        selectedWorkspaceType={data.selectedWorkspace?.type}
+        selectedWorkspaceOwnerId={data.selectedWorkspace?.owner_id}
       />
 
       <TeamCreateModal
