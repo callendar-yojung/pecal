@@ -82,6 +82,10 @@ jobs:
           cd apps/mobile
           bundle install
 
+      - name: Patch Xcode project format for CocoaPods
+        run: |
+          perl -0pi -e 's/objectVersion = 70;/objectVersion = 60;/' apps/mobile/ios/PecalMobile.xcodeproj/project.pbxproj
+
       - name: Install CocoaPods
         run: |
           cd apps/mobile/ios
