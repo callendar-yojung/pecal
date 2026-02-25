@@ -1,4 +1,5 @@
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useI18n } from '../contexts/I18nContext';
@@ -56,6 +57,19 @@ export function LoginScreen({ error, authLoading, onLogin }: Props) {
             </View>
           )}
         </Pressable>
+
+        {Platform.OS === 'ios' ? (
+          <Pressable style={[s.oauthButtonModern, s.appleButton]} onPress={() => onLogin('apple')}>
+            {authLoading === 'apple' ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <View style={s.oauthRow}>
+                <Ionicons name="logo-apple" size={16} color="#fff" />
+                <Text style={s.appleText}>{t('loginApple')}</Text>
+              </View>
+            )}
+          </Pressable>
+        ) : null}
       </View>
     </SafeAreaView>
   );

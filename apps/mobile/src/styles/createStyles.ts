@@ -97,8 +97,10 @@ export function createStyles(colors: Colors) {
     oauthRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     kakaoButton: { backgroundColor: '#FEE500', borderColor: '#E7D13F' },
     googleButton: { backgroundColor: colors.card, borderColor: colors.border },
+    appleButton: { backgroundColor: '#111111', borderColor: '#111111' },
     kakaoText: { color: '#111111', fontWeight: '700' },
     googleText: { fontWeight: '700' },
+    appleText: { color: '#FFFFFF', fontWeight: '700' },
 
     header: {
       paddingHorizontal: 12,

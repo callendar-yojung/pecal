@@ -75,6 +75,23 @@ export default function LoginPage() {
             </svg>
             {t("google")}
           </button>
+
+          <button
+            type="button"
+            onClick={() => signIn("apple", { callbackUrl: successCallbackUrl })}
+            className="flex w-full items-center justify-center gap-3 rounded-xl bg-black px-4 py-3 font-medium text-white transition-all duration-200 hover:bg-black/90 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M16.365 1.43c0 1.14-.465 2.254-1.203 3.064-.773.842-2.023 1.49-3.173 1.455-.147-1.104.43-2.265 1.174-3.044.803-.835 2.177-1.486 3.202-1.475zM20.93 17.06c-.66 1.44-.97 2.081-1.82 3.386-1.19 1.825-2.868 4.102-4.947 4.118-1.847.016-2.324-1.21-4.832-1.2-2.508.013-3.033 1.223-4.879 1.207-2.078-.016-3.667-2.073-4.857-3.898C-3.9 14.98-.4 8.35 4.56 8.28c1.93-.03 3.152 1.33 4.317 1.33 1.165 0 2.948-1.644 4.974-1.4.849.036 3.233.342 4.765 2.58-3.863 2.114-3.24 7.56 2.313 8.27z" />
+            </svg>
+            {t("apple")}
+          </button>
         </div>
       </div>
     </div>

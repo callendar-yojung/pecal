@@ -12,7 +12,7 @@ const DEFAULT_DEEPLINK_SCHEME = import.meta.env.DEV
   : 'deskcal://auth/callback'
 const APP_DEEPLINK_SCHEME = import.meta.env.VITE_APP_DEEPLINK_SCHEME || DEFAULT_DEEPLINK_SCHEME
 
-type OAuthProvider = 'kakao' | 'google'
+type OAuthProvider = 'kakao' | 'google' | 'apple'
 
 function getMergedParams(url: URL): URLSearchParams {
   const merged = new URLSearchParams(url.search)
@@ -243,6 +243,23 @@ export function LoginPage() {
                   <path fill="#FBBC05" d="M6.4 10.6c0-.7.2-1.4.5-2l-2.6-2C3.6 8 3.2 9.3 3.2 10.6s.4 2.6 1.1 3.7l2.6-2c-.3-.6-.5-1.3-.5-2z" />
                 </svg>
                 <span>{t('auth.googleLogin', 'Continue with Google')}</span>
+              </>
+            )}
+          </button>
+
+          <button
+            onClick={() => handleOAuthLogin('apple')}
+            disabled={!!isLoading}
+            className="mt-3 w-full flex items-center justify-center gap-3 px-6 py-3 bg-black hover:bg-black/90 text-white font-medium rounded-xl border border-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading === 'apple' ? (
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+            ) : (
+              <>
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M16.365 1.43c0 1.14-.465 2.254-1.203 3.064-.773.842-2.023 1.49-3.173 1.455-.147-1.104.43-2.265 1.174-3.044.803-.835 2.177-1.486 3.202-1.475zM20.93 17.06c-.66 1.44-.97 2.081-1.82 3.386-1.19 1.825-2.868 4.102-4.947 4.118-1.847.016-2.324-1.21-4.832-1.2-2.508.013-3.033 1.223-4.879 1.207-2.078-.016-3.667-2.073-4.857-3.898C-3.9 14.98-.4 8.35 4.56 8.28c1.93-.03 3.152 1.33 4.317 1.33 1.165 0 2.948-1.644 4.974-1.4.849.036 3.233.342 4.765 2.58-3.863 2.114-3.24 7.56 2.313 8.27z" />
+                </svg>
+                <span>{t('auth.appleLogin', 'Continue with Apple')}</span>
               </>
             )}
           </button>

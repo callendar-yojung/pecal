@@ -2,7 +2,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { randomBytes } from "node:crypto";
 import { getRequiredEnv } from "@/lib/required-env";
 
-type OAuthProvider = "google" | "kakao";
+type OAuthProvider = "google" | "kakao" | "apple";
 
 const OAUTH_STATE_TTL_SECONDS = 60 * 10;
 const OAUTH_STATE_COOKIE_PREFIX = "oauth_state_";

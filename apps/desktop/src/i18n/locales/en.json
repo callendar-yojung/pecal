@@ -1,6 +1,7 @@
 {
   "auth.kakaoLogin": "Login with Kakao",
   "auth.googleLogin": "Continue with Google",
+  "auth.appleLogin": "Continue with Apple",
   "auth.loginDescription": "Sign in to manage your calendar",
   "auth.loginFailed": "Login failed. Please try again.",
   "auth.cancelLogin": "Cancel login",

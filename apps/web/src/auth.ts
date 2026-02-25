@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import Kakao from "next-auth/providers/kakao";
 import Google from "next-auth/providers/google";
+import Apple from "next-auth/providers/apple";
 import { findOrCreateMember } from "./lib/member";
 import { cookies } from "next/headers";
 
@@ -30,6 +31,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       clientId: process.env.AUTH_GOOGLE_ID!,
       clientSecret: process.env.AUTH_GOOGLE_SECRET!,
     }),
+    ...(process.env.AUTH_APPLE_ID && process.env.AUTH_APPLE_SECRET
+      ? [
+          Apple({
+            clientId: process.env.AUTH_APPLE_ID,
+            clientSecret: process.env.AUTH_APPLE_SECRET,
+          }),
+        ]
+      : []),
   ],
   callbacks: {
     async signIn({ user, account }) {

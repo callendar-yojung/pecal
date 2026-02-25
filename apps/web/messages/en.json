@@ -300,7 +300,8 @@
     "title": "Log in",
     "description": "Sign in easily with your social account",
     "kakao": "Continue with Kakao",
-    "google": "Continue with Google"
+    "google": "Continue with Google",
+    "apple": "Continue with Apple"
   },
   "home": {
     "welcome": "Welcome!",
