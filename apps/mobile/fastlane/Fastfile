@@ -1,14 +1,30 @@
 default_platform(:ios)
 
+def app_store_api_key_from_env!
+  raw_key = ENV.fetch("APP_STORE_CONNECT_API_KEY_CONTENT").strip
+
+  key_content =
+    if raw_key.include?("BEGIN PRIVATE KEY")
+      raw_key.gsub("\\n", "\n")
+    else
+      require "base64"
+      Base64.strict_decode64(raw_key)
+    end
+
+  app_store_connect_api_key(
+    key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),
+    issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
+    key_content: key_content,
+    is_key_content_base64: false
+  )
+rescue ArgumentError
+  UI.user_error!("APP_STORE_CONNECT_API_KEY_CONTENT must be a .p8 private key text (or base64-encoded .p8 text)")
+end
+
 platform :ios do
   desc "Build iOS and upload to TestFlight"
   lane :beta do |options|
-    api_key = app_store_connect_api_key(
-      key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),
-      issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
-      key_content: ENV.fetch("APP_STORE_CONNECT_API_KEY_CONTENT"),
-      is_key_content_base64: false
-    )
+    api_key = app_store_api_key_from_env!
 
     if ENV["MATCH_GIT_URL"] && !ENV["MATCH_GIT_URL"].empty?
       match(
@@ -44,12 +60,7 @@ platform :ios do
 
   desc "Submit latest build to App Store review"
   lane :release do
-    api_key = app_store_connect_api_key(
-      key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),
-      issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
-      key_content: ENV.fetch("APP_STORE_CONNECT_API_KEY_CONTENT"),
-      is_key_content_base64: false
-    )
+    api_key = app_store_api_key_from_env!
 
     upload_to_app_store(
       api_key: api_key,
