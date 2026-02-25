@@ -46,13 +46,32 @@ export default function CalendarPanel() {
     const fetchTasks = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch(
-            `/api/tasks?workspace_id=${currentWorkspace.workspace_id}`
-        );
-        if (response.ok) {
-          const data = await response.json();
-          setTasks(data.tasks);
+        const allTasks: Task[] = [];
+        let page = 1;
+        let totalPages = 1;
+
+        while (page <= totalPages) {
+          const params = new URLSearchParams({
+            workspace_id: String(currentWorkspace.workspace_id),
+            page: String(page),
+            limit: "100",
+            sort_by: "start_time",
+            sort_order: "ASC",
+          });
+          const response = await fetch(`/api/tasks?${params.toString()}`);
+          if (!response.ok) break;
+
+          const data = (await response.json()) as {
+            tasks?: Task[];
+            totalPages?: number;
+          };
+
+          allTasks.push(...(data.tasks ?? []));
+          totalPages = Number(data.totalPages ?? 1);
+          page += 1;
         }
+
+        setTasks(allTasks);
       } catch (error) {
         console.error("Failed to fetch tasks:", error);
       } finally {

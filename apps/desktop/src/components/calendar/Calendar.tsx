@@ -9,6 +9,7 @@ import { taskApi } from '../../api'
 import { isTauriApp } from '../../utils/tauri'
 import { parseApiDateTime } from '../../utils/datetime'
 import { getErrorMessage } from '../../utils/error'
+import type { Task } from '../../types'
 
 export function Calendar() {
   const { t } = useTranslation()
@@ -37,15 +38,37 @@ export function Calendar() {
       setError(null)
 
       try {
-        const response = await taskApi.getTasks(selectedWorkspaceId)
-        setEvents(response.tasks)
+        const allTasks: Task[] = []
+        const firstPage = await taskApi.getTasksPaginated({
+          workspace_id: selectedWorkspaceId,
+          page: 1,
+          limit: 100,
+          sort_by: 'start_time',
+          sort_order: 'ASC',
+        })
+        allTasks.push(...(firstPage.tasks ?? []))
+
+        if (firstPage.totalPages > 1) {
+          for (let page = 2; page <= firstPage.totalPages; page += 1) {
+            const pageRes = await taskApi.getTasksPaginated({
+              workspace_id: selectedWorkspaceId,
+              page,
+              limit: 100,
+              sort_by: 'start_time',
+              sort_order: 'ASC',
+            })
+            allTasks.push(...(pageRes.tasks ?? []))
+          }
+        }
+
+        setEvents(allTasks)
 
         if (isTauriApp()) {
-          if (response.tasks.length === 0) {
+          if (allTasks.length === 0) {
             await invoke('clear_workspace_task_alarms', { workspaceId: selectedWorkspaceId })
           } else {
             await invoke('sync_task_alarms', {
-              alarms: response.tasks.map((task) => ({
+              alarms: allTasks.map((task) => ({
                 task_id: task.id,
                 workspace_id: task.workspace_id,
                 title: task.title,
