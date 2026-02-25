@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       client_id: APPLE_CLIENT_ID,
       redirect_uri: redirectUri,
       response_type: "code",
-      response_mode: "query",
+      response_mode: "form_post",
       scope: "name email",
       state,
     });
@@ -58,4 +58,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

@@ -31,11 +31,13 @@ async function verifyAppleIdToken(idToken: string, audience: string) {
   return payload as AppleIdTokenPayload;
 }
 
-export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const code = searchParams.get("code");
-  const state = searchParams.get("state");
-  const error = searchParams.get("error");
+async function handleAppleCallback(
+  request: NextRequest,
+  params: URLSearchParams
+) {
+  const code = params.get("code");
+  const state = params.get("state");
+  const error = params.get("error");
   const appCallback = await verifyOAuthState("apple", state);
 
   const handleError = (errorMessage: string, status: number) => {
@@ -139,3 +141,15 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function GET(request: NextRequest) {
+  return handleAppleCallback(request, request.nextUrl.searchParams);
+}
+
+export async function POST(request: NextRequest) {
+  const formData = await request.formData();
+  const params = new URLSearchParams();
+  for (const [key, value] of formData.entries()) {
+    params.set(key, String(value));
+  }
+  return handleAppleCallback(request, params);
+}
