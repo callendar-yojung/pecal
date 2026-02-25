@@ -1,0 +1,63 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Build iOS and upload to TestFlight"
+  lane :beta do |options|
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),
+      issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
+      key_content: ENV.fetch("APP_STORE_CONNECT_API_KEY_CONTENT"),
+      is_key_content_base64: false
+    )
+
+    if ENV["MATCH_GIT_URL"] && !ENV["MATCH_GIT_URL"].empty?
+      match(
+        type: "appstore",
+        readonly: ENV.fetch("MATCH_READONLY", "true") == "true",
+        app_identifier: ENV.fetch("IOS_APP_IDENTIFIER", "com.pecal.mobile")
+      )
+    end
+
+    build_number = ENV["IOS_BUILD_NUMBER"]
+    increment_build_number(
+      xcodeproj: "ios/PecalMobile.xcodeproj",
+      build_number: build_number
+    ) if build_number && !build_number.empty?
+
+    build_app(
+      workspace: "ios/PecalMobile.xcworkspace",
+      scheme: "PecalMobile",
+      configuration: "Release",
+      clean: true,
+      export_method: "app-store",
+      output_directory: "build/ios",
+      output_name: "PecalMobile.ipa"
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true,
+      changelog: (options[:changelog] || ENV["CHANGELOG"]),
+      distribute_external: false
+    )
+  end
+
+  desc "Submit latest build to App Store review"
+  lane :release do
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),
+      issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
+      key_content: ENV.fetch("APP_STORE_CONNECT_API_KEY_CONTENT"),
+      is_key_content_base64: false
+    )
+
+    upload_to_app_store(
+      api_key: api_key,
+      skip_screenshots: true,
+      skip_metadata: true,
+      submit_for_review: true,
+      automatic_release: false,
+      precheck_include_in_app_purchases: false
+    )
+  end
+end

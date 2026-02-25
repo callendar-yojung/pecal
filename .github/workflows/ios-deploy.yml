@@ -1,0 +1,95 @@
+name: iOS Build & TestFlight
+
+on:
+  workflow_dispatch:
+    inputs:
+      lane:
+        description: "fastlane lane to run"
+        required: true
+        default: "beta"
+        type: choice
+        options:
+          - beta
+          - release
+      changelog:
+        description: "TestFlight changelog (beta lane only)"
+        required: false
+        default: ""
+        type: string
+  push:
+    tags:
+      - "ios-v*"
+
+concurrency:
+  group: ios-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ios-deploy:
+    runs-on: macos-14
+    env:
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
+      IOS_APP_IDENTIFIER: com.pecal.mobile
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APP_STORE_CONNECT_TEAM_ID: ${{ secrets.APP_STORE_CONNECT_TEAM_ID }}
+      APP_STORE_CONNECT_APPLE_ID: ${{ secrets.APP_STORE_CONNECT_APPLE_ID }}
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+      MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+      MATCH_READONLY: ${{ secrets.MATCH_READONLY || 'true' }}
+      FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT: "120"
+      FASTLANE_XCODEBUILD_SETTINGS_RETRIES: "10"
+      CI: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+
+      - name: Install fastlane
+        run: |
+          cd apps/mobile
+          bundle install
+
+      - name: Install CocoaPods
+        run: |
+          cd apps/mobile/ios
+          pod install --repo-update
+
+      - name: Run fastlane
+        run: |
+          cd apps/mobile
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            bundle exec fastlane ios beta changelog:"${{ github.ref_name }}"
+          else
+            bundle exec fastlane ios ${{ github.event.inputs.lane }} changelog:"${{ github.event.inputs.changelog }}"
+          fi
+
+      - name: Upload IPA artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: apps/mobile/build/ios/*.ipa
+          if-no-files-found: ignore
