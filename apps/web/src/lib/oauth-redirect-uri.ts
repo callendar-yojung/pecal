@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 
-type OAuthProvider = "kakao" | "google";
+type OAuthProvider = "kakao" | "google" | "apple";
 
 export function getOAuthRedirectUri(request: NextRequest, provider: OAuthProvider): string {
   const path = `/api/auth/${provider}/callback`;
@@ -18,4 +18,3 @@ export function getOAuthRedirectUri(request: NextRequest, provider: OAuthProvide
 
   return new URL(path, request.nextUrl.origin).toString();
 }
-

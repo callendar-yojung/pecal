@@ -1,6 +1,7 @@
 {
   "auth.kakaoLogin": "카카오 로그인",
   "auth.googleLogin": "구글 로그인",
+  "auth.appleLogin": "Apple 로그인",
   "auth.loginDescription": "캘린더를 관리하려면 로그인하세요",
   "auth.loginFailed": "로그인에 실패했습니다. 다시 시도해주세요.",
   "auth.cancelLogin": "로그인 취소",

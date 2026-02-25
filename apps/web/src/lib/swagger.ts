@@ -281,7 +281,7 @@ Authorization: Bearer <access_token>
           member_id: { type: "integer", description: "회원 ID" },
           email: { type: "string", description: "이메일" },
           nickname: { type: "string", description: "닉네임" },
-          provider: { type: "string", enum: ["kakao", "google"], description: "소셜 로그인 제공자" },
+          provider: { type: "string", enum: ["kakao", "google", "apple"], description: "소셜 로그인 제공자" },
           created_at: { type: "string" },
           lasted_at: { type: "string", description: "마지막 로그인" },
         },
@@ -526,6 +526,40 @@ Authorization: Bearer <access_token>
                   type: "object",
                   properties: {
                     authUrl: { type: "string", description: "브라우저에서 열 구글 로그인 URL" },
+                    redirectUri: { type: "string" },
+                    state: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          "400": { description: "callback 파라미터 누락" },
+        },
+      },
+    },
+    "/api/auth/apple/start": {
+      get: {
+        tags: ["Auth - OAuth"],
+        summary: "Apple OAuth 시작 URL 생성",
+        description: "브라우저 기반 OAuth 흐름 시작을 위한 Apple 로그인 URL 생성",
+        parameters: [
+          {
+            name: "callback",
+            in: "query",
+            required: true,
+            schema: { type: "string" },
+            description: "앱의 딥링크 콜백 URL (예: myapp://auth/callback)",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "OAuth URL 생성 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    authUrl: { type: "string", description: "브라우저에서 열 Apple 로그인 URL" },
                     redirectUri: { type: "string" },
                     state: { type: "string" },
                   },

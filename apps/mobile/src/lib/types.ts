@@ -1,4 +1,4 @@
-export type OAuthProvider = 'kakao' | 'google';
+export type OAuthProvider = 'kakao' | 'google' | 'apple';
 export type WorkspaceType = 'personal' | 'team';
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE';
 export type MainTab = 'overview' | 'tasks' | 'calendar' | 'memo' | 'files';
