@@ -1,6 +1,6 @@
 default_platform(:ios)
 
-def app_store_api_key_from_env!
+def load_app_store_api_credentials!
   raw_key = ENV.fetch("APP_STORE_CONNECT_API_KEY_CONTENT").strip
 
   key_content =
@@ -11,12 +11,19 @@ def app_store_api_key_from_env!
       Base64.strict_decode64(raw_key)
     end
 
-  app_store_connect_api_key(
+  require "tmpdir"
+  key_id = ENV.fetch("APP_STORE_CONNECT_KEY_ID")
+  issuer_id = ENV.fetch("APP_STORE_CONNECT_ISSUER_ID")
+  key_path = File.join(Dir.tmpdir, "AuthKey_#{key_id}.p8")
+  File.write(key_path, key_content)
+
+  api_key = app_store_connect_api_key(
     key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),
-    issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
+    issuer_id: issuer_id,
     key_content: key_content,
     is_key_content_base64: false
   )
+  [api_key, key_path, key_id, issuer_id]
 rescue ArgumentError
   UI.user_error!("APP_STORE_CONNECT_API_KEY_CONTENT must be a .p8 private key text (or base64-encoded .p8 text)")
 end
@@ -24,7 +31,8 @@ end
 platform :ios do
   desc "Build iOS and upload to TestFlight"
   lane :beta do |options|
-    api_key = app_store_api_key_from_env!
+    api_key, auth_key_path, auth_key_id, auth_issuer_id = load_app_store_api_credentials!
+    team_id = ENV.fetch("APPLE_TEAM_ID", ENV.fetch("APP_STORE_CONNECT_TEAM_ID"))
 
     if ENV["MATCH_GIT_URL"] && !ENV["MATCH_GIT_URL"].empty?
       match(
@@ -46,6 +54,18 @@ platform :ios do
       configuration: "Release",
       clean: true,
       export_method: "app-store",
+      export_options: {
+        signingStyle: "automatic",
+        teamID: team_id
+      },
+      xcargs: [
+        "CODE_SIGN_STYLE=Automatic",
+        "DEVELOPMENT_TEAM=#{team_id}",
+        "-allowProvisioningUpdates",
+        "-authenticationKeyPath #{auth_key_path}",
+        "-authenticationKeyID #{auth_key_id}",
+        "-authenticationKeyIssuerID #{auth_issuer_id}"
+      ].join(" "),
       output_directory: "build/ios",
       output_name: "PecalMobile.ipa"
     )
@@ -60,7 +80,7 @@ platform :ios do
 
   desc "Submit latest build to App Store review"
   lane :release do
-    api_key = app_store_api_key_from_env!
+    api_key, = load_app_store_api_credentials!
 
     upload_to_app_store(
       api_key: api_key,
