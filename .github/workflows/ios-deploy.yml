@@ -75,7 +75,13 @@ jobs:
       - name: Select Xcode 16
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: "16.2"
+          xcode-version: "latest-stable"
+
+      - name: Ensure iOS platform SDK is installed
+        run: |
+          xcodebuild -showsdks
+          sudo xcodebuild -downloadPlatform iOS || true
+          xcodebuild -showsdks
 
       - name: Install fastlane
         run: |
