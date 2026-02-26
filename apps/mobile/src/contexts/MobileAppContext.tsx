@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useMemo } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { clearWidgetData, syncWidgetData } from '../lib/widget-bridge';
+import { apiFetch } from '../lib/api';
+import type { TaskItem } from '../lib/types';
 
 type MobileAppContextValue = {
   auth: ReturnType<typeof useAuth>;
@@ -37,12 +39,29 @@ export function MobileAppProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     if (!data.selectedWorkspace) return;
-    void syncWidgetData({
-      tasks: data.tasks,
-      workspaceName: data.selectedWorkspace.name,
-      nickname: auth.session.nickname,
-      maxItems: 180,
-    });
+    const session = auth.session;
+    const selectedWorkspace = data.selectedWorkspace;
+    void (async () => {
+      let tasksForWidget: TaskItem[] = data.tasks;
+      if (!tasksForWidget.length) {
+        try {
+          const res = await apiFetch<{ tasks?: TaskItem[] }>(
+            `/api/tasks?workspace_id=${selectedWorkspace.workspace_id}&limit=200&sort_by=start_time&sort_order=ASC`,
+            session
+          );
+          tasksForWidget = res.tasks ?? [];
+        } catch {
+          // Keep existing tasks array on fetch failure.
+        }
+      }
+
+      await syncWidgetData({
+        tasks: tasksForWidget,
+        workspaceName: selectedWorkspace.name,
+        nickname: session.nickname,
+        maxItems: 180,
+      });
+    })();
   }, [auth.session, data.selectedWorkspace, data.tasks]);
 
   const value = useMemo<MobileAppContextValue>(() => ({ auth, data }), [auth, data]);

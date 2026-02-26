@@ -31,14 +31,38 @@ function getBridge(): WidgetBridgeModule | null {
 
 function isValidDate(input: string | undefined | null) {
   if (!input) return false;
-  return !Number.isNaN(new Date(input).getTime());
+  return parseDate(input) !== null;
+}
+
+function parseDate(input: string | undefined | null) {
+  if (!input) return null;
+  const primary = new Date(input);
+  if (!Number.isNaN(primary.getTime())) return primary;
+  const normalized = input.replace(' ', 'T');
+  const fallback = new Date(normalized);
+  if (!Number.isNaN(fallback.getTime())) return fallback;
+  return null;
 }
 
 function pickTasksForWidget(tasks: TaskItem[], limit: number): WidgetTask[] {
-  return tasks
-    .filter((task) => isValidDate(task.start_time) && isValidDate(task.end_time))
-    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
-    .slice(0, limit)
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+  const normalized = tasks
+    .map((task) => ({
+      task,
+      start: parseDate(task.start_time),
+      end: parseDate(task.end_time),
+    }))
+    .filter((item): item is { task: TaskItem; start: Date; end: Date } => !!item.start && !!item.end)
+    .sort((a, b) => a.start.getTime() - b.start.getTime());
+
+  const inCurrentMonth = normalized.filter(({ start, end }) => end >= monthStart && start <= monthEnd);
+  const selected = (inCurrentMonth.length > 0 ? inCurrentMonth : normalized).slice(0, limit);
+
+  return selected
+    .map(({ task }) => task)
     .map((task) => ({
       id: task.id,
       title: task.title || '제목 없음',
