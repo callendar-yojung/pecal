@@ -57,14 +57,36 @@ class ReactNativeDelegate: ExpoReactNativeFactoryDelegate {
 
   override func sourceURL(for bridge: RCTBridge) -> URL? {
     // needed to return the correct URL for expo-dev-client.
-    bridge.bundleURL ?? bundleURL()
+    return bridge.bundleURL ?? bundleURL()
   }
 
   override func bundleURL() -> URL? {
 #if DEBUG
-    return RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: ".expo/.virtual-metro-entry")
+    let provider = RCTBundleURLProvider.sharedSettings()
+    if let expoRouterUrl = provider.jsBundleURL(forBundleRoot: ".expo/.virtual-metro-entry") {
+      return expoRouterUrl
+    }
+    if let indexUrl = provider.jsBundleURL(forBundleRoot: "index") {
+      return indexUrl
+    }
+    // Use the actual packager host if available (required for real devices).
+    if let host = provider.jsLocation, !host.isEmpty,
+       let dynamicMetroUrl = URL(
+        string: "http://\(host)/.expo/.virtual-metro-entry.bundle?platform=ios&dev=true&minify=false"
+       ) {
+      return dynamicMetroUrl
+    }
+#if targetEnvironment(simulator)
+    // Simulator-only fallback.
+    if let simulatorMetroUrl = URL(
+      string: "http://localhost:8081/.expo/.virtual-metro-entry.bundle?platform=ios&dev=true&minify=false"
+    ) {
+      return simulatorMetroUrl
+    }
+#endif
 #else
     return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
 #endif
+    return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
   }
 }
