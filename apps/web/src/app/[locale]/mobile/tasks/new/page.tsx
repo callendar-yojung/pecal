@@ -1,11 +1,30 @@
 "use client";
 
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type ChangeEvent, type FormEvent, useEffect, useMemo, useState } from "react";
 import RichTextEditor from "@/components/editor/RichTextEditor";
 
 type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE";
 type OwnerType = "personal" | "team";
 type TagItem = { tag_id: number; name: string; color?: string };
+type PendingFile = {
+  file_id: number;
+  original_name: string;
+  file_path: string;
+  file_size: number;
+  file_size_formatted: string;
+  mime_type: string | null;
+};
+type TaskAttachment = {
+  attachment_id: number;
+  task_id: number;
+  file_id: number;
+  original_name: string;
+  file_path: string;
+  file_size: number;
+  file_size_formatted: string;
+  mime_type: string | null;
+  created_at: string;
+};
 
 const EMPTY_DOC = { type: "doc", content: [{ type: "paragraph" }] };
 const TASK_COLORS = [
@@ -87,14 +106,20 @@ export default function MobileTaskEditorPage() {
   const ownerId = Number(search.get("owner_id") ?? "0");
   const theme = search.get("theme") === "dark" ? "dark" : "light";
   const initialDate = search.get("initial_date") ?? "";
+  const alarmEnabledParam = search.get("alarm_enabled");
+  const defaultReminderFromSettings = useMemo(
+    () => (alarmEnabledParam === "0" || alarmEnabledParam === "false" ? null : 10),
+    [alarmEnabledParam],
+  );
 
   const [title, setTitle] = useState("");
   const [startTime, setStartTime] = useState(defaultDateTime(0));
   const [endTime, setEndTime] = useState(defaultDateTime(30));
   const [status, setStatus] = useState<TaskStatus>("TODO");
   const [color, setColor] = useState("#3B82F6");
-  const [reminderMinutes, setReminderMinutes] = useState<number | null>(10);
-  const [rrule, setRrule] = useState("");
+  const [reminderMinutes, setReminderMinutes] = useState<number | null>(
+    defaultReminderFromSettings,
+  );
   const [tagIds, setTagIds] = useState<number[]>([]);
   const [tags, setTags] = useState<TagItem[]>([]);
   const [content, setContent] = useState<Record<string, unknown>>(EMPTY_DOC);
@@ -102,6 +127,11 @@ export default function MobileTaskEditorPage() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(mode === "edit");
   const [message, setMessage] = useState("");
+  const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
+  const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [loadingAttachments, setLoadingAttachments] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
   const canCreate = !!token && workspaceId > 0;
   const canLoadTags =
@@ -109,6 +139,21 @@ export default function MobileTaskEditorPage() {
     ownerId > 0 &&
     (ownerType === "team" || ownerType === "personal");
   const canEdit = !!token && mode === "edit" && taskId > 0;
+
+  const fetchAttachments = async () => {
+    if (!canEdit) return;
+    setLoadingAttachments(true);
+    try {
+      const response = await fetch(`/api/tasks/attachments?task_id=${taskId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) return;
+      const data = (await response.json()) as { attachments?: TaskAttachment[] };
+      setAttachments(data.attachments ?? []);
+    } finally {
+      setLoadingAttachments(false);
+    }
+  };
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -157,7 +202,6 @@ export default function MobileTaskEditorPage() {
             status?: TaskStatus;
             color?: string;
             reminder_minutes?: number | null;
-            rrule?: string | null;
             tag_ids?: number[];
             content?: string | null;
           };
@@ -177,7 +221,6 @@ export default function MobileTaskEditorPage() {
             ? task.reminder_minutes
             : null,
         );
-        setRrule(task.rrule ?? "");
         setTagIds(Array.isArray(task.tag_ids) ? task.tag_ids : []);
         setContent(parseTaskContent(task.content));
         setEditorKey((prev) => prev + 1);
@@ -185,6 +228,10 @@ export default function MobileTaskEditorPage() {
         setLoading(false);
       }
     })();
+  }, [canEdit, taskId, token]);
+
+  useEffect(() => {
+    void fetchAttachments();
   }, [canEdit, taskId, token]);
 
   useEffect(() => {
@@ -235,7 +282,6 @@ export default function MobileTaskEditorPage() {
                 status,
                 color,
                 reminder_minutes: reminderMinutes,
-                rrule: rrule.trim() || null,
                 tag_ids: tagIds,
                 content: JSON.stringify(content),
               }
@@ -247,8 +293,8 @@ export default function MobileTaskEditorPage() {
                 status,
                 color,
                 reminder_minutes: reminderMinutes,
-                rrule: rrule.trim() || null,
                 tag_ids: tagIds,
+                file_ids: pendingFiles.map((file) => file.file_id),
                 content: JSON.stringify(content),
               },
         ),
@@ -265,6 +311,25 @@ export default function MobileTaskEditorPage() {
 
       const responseData = (await res.json().catch(() => ({}))) as { taskId?: number };
       const savedTaskId = isEdit ? taskId : Number(responseData.taskId ?? 0);
+      if (savedTaskId > 0 && isEdit && pendingFiles.length > 0) {
+        await Promise.all(
+          pendingFiles.map((file) =>
+            fetch("/api/tasks/attachments", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                task_id: savedTaskId,
+                file_id: file.file_id,
+              }),
+            }),
+          ),
+        );
+        setPendingFiles([]);
+        await fetchAttachments();
+      }
       if (Number.isFinite(savedTaskId) && savedTaskId > 0) {
         postToNative({
           type: "task_saved",
@@ -284,16 +349,86 @@ export default function MobileTaskEditorPage() {
         setEndTime(defaultDateTime(30));
         setStatus("TODO");
         setColor("#3B82F6");
-        setReminderMinutes(10);
-        setRrule("");
+        setReminderMinutes(defaultReminderFromSettings);
         setTagIds([]);
         setContent(EMPTY_DOC);
+        setPendingFiles([]);
+        setAttachments([]);
         setEditorKey((prev) => prev + 1);
       }
     } catch {
       setMessage("네트워크 오류가 발생했습니다.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !token || !ownerType || !ownerId) return;
+
+    setUploadingFile(true);
+    setUploadError("");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("owner_type", ownerType);
+      formData.append("owner_id", String(ownerId));
+
+      const response = await fetch("/api/files/upload", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      const data = (await response.json()) as {
+        file?: PendingFile;
+        error?: string;
+      };
+      if (!response.ok || !data.file) {
+        setUploadError(data.error ?? "파일 업로드에 실패했습니다.");
+        return;
+      }
+      setPendingFiles((prev) => [data.file as PendingFile, ...prev]);
+    } catch {
+      setUploadError("파일 업로드 중 오류가 발생했습니다.");
+    } finally {
+      setUploadingFile(false);
+      event.target.value = "";
+    }
+  };
+
+  const handleRemovePendingFile = async (fileId: number) => {
+    try {
+      await fetch(`/api/files?id=${fileId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setPendingFiles((prev) => prev.filter((f) => f.file_id !== fileId));
+    } catch {
+      setUploadError("파일 삭제 중 오류가 발생했습니다.");
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId: number) => {
+    const ok = typeof window === "undefined" ? true : window.confirm("첨부파일을 삭제할까요?");
+    if (!ok) return;
+    try {
+      const response = await fetch(
+        `/api/tasks/attachments?attachment_id=${attachmentId}&delete_file=true`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      if (!response.ok) {
+        setUploadError("첨부파일 삭제에 실패했습니다.");
+        return;
+      }
+      setAttachments((prev) => prev.filter((a) => a.attachment_id !== attachmentId));
+    } catch {
+      setUploadError("첨부파일 삭제 중 오류가 발생했습니다.");
     }
   };
 
@@ -436,16 +571,6 @@ export default function MobileTaskEditorPage() {
           </div>
 
           <div className="rounded-xl border border-border bg-background p-3">
-            <p className="text-sm font-semibold">반복 규칙</p>
-            <input
-              value={rrule}
-              onChange={(e) => setRrule(e.target.value)}
-              placeholder="예: FREQ=WEEKLY;INTERVAL=1"
-              className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-3 text-base outline-none focus:border-primary"
-            />
-          </div>
-
-          <div className="rounded-xl border border-border bg-background p-3">
             <p className="text-sm font-semibold">태그</p>
             {!tags.length ? (
               <p className="mt-2 text-sm text-muted-foreground">
@@ -483,6 +608,62 @@ export default function MobileTaskEditorPage() {
                 })}
               </div>
             )}
+          </div>
+
+          <div className="rounded-xl border border-border bg-background p-3">
+            <p className="text-sm font-semibold">첨부파일</p>
+            <input
+              type="file"
+              onChange={handleFileUpload}
+              className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+            />
+            {uploadingFile ? (
+              <p className="mt-2 text-xs text-muted-foreground">업로드 중...</p>
+            ) : null}
+            {uploadError ? (
+              <p className="mt-2 text-xs text-red-500">{uploadError}</p>
+            ) : null}
+            <div className="mt-2 space-y-2">
+              {pendingFiles.map((file) => (
+                <div
+                  key={`pending-${file.file_id}`}
+                  className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-xs"
+                >
+                  <span className="truncate">{file.original_name}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePendingFile(file.file_id)}
+                    className="text-red-500"
+                  >
+                    삭제
+                  </button>
+                </div>
+              ))}
+              {attachments.map((att) => (
+                <div
+                  key={att.attachment_id}
+                  className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-xs"
+                >
+                  <span className="truncate">{att.original_name}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteAttachment(att.attachment_id)}
+                    className="text-red-500"
+                  >
+                    삭제
+                  </button>
+                </div>
+              ))}
+              {!uploadingFile &&
+              pendingFiles.length === 0 &&
+              attachments.length === 0 &&
+              !loadingAttachments ? (
+                <p className="text-xs text-muted-foreground">첨부된 파일이 없습니다.</p>
+              ) : null}
+              {loadingAttachments ? (
+                <p className="text-xs text-muted-foreground">첨부파일 불러오는 중...</p>
+              ) : null}
+            </div>
           </div>
 
           <RichTextEditor

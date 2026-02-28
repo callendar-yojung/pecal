@@ -121,14 +121,6 @@ export function TaskEditorForm({
         ))}
       </View>
 
-      <TextInput
-        value={rrule}
-        onChangeText={onRruleChange}
-        placeholder="RRULE (예: FREQ=WEEKLY;INTERVAL=1)"
-        style={s.input}
-        placeholderTextColor={colors.textMuted}
-      />
-
       <View style={s.row}>
         <Pressable style={s.primaryButtonHalf} onPress={onSubmit}>
           <Text style={s.primaryButtonText}>{saving ? '저장 중...' : submitLabel}</Text>

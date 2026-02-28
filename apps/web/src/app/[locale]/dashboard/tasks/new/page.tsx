@@ -25,7 +25,6 @@ export default function TaskCreatePage() {
         content: taskData.content,
         color: taskData.color,
         reminder_minutes: taskData.reminder_minutes ?? null,
-        rrule: taskData.rrule ?? null,
         tag_ids: taskData.tag_ids,
         file_ids: taskData.file_ids,
         workspace_id: currentWorkspace.workspace_id,

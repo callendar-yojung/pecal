@@ -334,7 +334,7 @@ export function CalendarScreen({
                     onOpenTaskFromDate(cell.dateObj);
                     onCreateTaskFromDate?.(cell.dateObj);
                   }}
-                  style={{
+                  style={({ pressed }) => ({
                     flex: 1,
                     minHeight: 92,
                     paddingTop: 6,
@@ -343,7 +343,8 @@ export function CalendarScreen({
                     gap: 4,
                     borderRightWidth: colIdx < 6 ? 0.5 : 0,
                     borderRightColor: colors.border,
-                  }}
+                    backgroundColor: pressed ? `${colors.primary}1E` : 'transparent',
+                  })}
                 >
                   <View style={{ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: isToday ? colors.primary : 'transparent' }}>
                     <Text style={{ fontSize: 13, fontWeight: isToday ? '800' : '500', color: isToday ? '#fff' : !cell.isCurrentMonth ? colors.border : isWeekend ? (colIdx === 0 ? '#EF4444' : '#5B6CF6') : colors.text }}>{cell.day}</Text>

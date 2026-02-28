@@ -240,7 +240,6 @@ export default function TaskViewPanel({
         </div>
         <div className="text-sm text-muted-foreground">
           알림: {formatReminder(task.reminder_minutes)}
-          {task.rrule ? ` · 반복: ${task.rrule}` : ""}
         </div>
 
         {task.created_by_name && (

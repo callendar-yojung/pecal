@@ -97,7 +97,6 @@ export async function POST(request: NextRequest) {
       tag_ids,
       file_ids,
       reminder_minutes,
-      rrule,
     } = body;
 
     // 유효성 검사
@@ -155,7 +154,6 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
-
     // 태스크 생성
     const taskId = await createTask({
       title,
@@ -166,7 +164,7 @@ export async function POST(request: NextRequest) {
       color: color || "#3B82F6",
       tag_ids: tag_ids || [],
       reminder_minutes: reminderParsed.value,
-      rrule: typeof rrule === "string" && rrule.trim() ? rrule.trim() : null,
+      rrule: null,
       member_id: user.memberId,
       workspace_id: Number(workspace_id),
     });
@@ -216,7 +214,6 @@ export async function PATCH(request: NextRequest) {
       color,
       tag_ids,
       reminder_minutes,
-      rrule,
     } = body;
 
     if (!task_id) {
@@ -273,6 +270,7 @@ export async function PATCH(request: NextRequest) {
         { status: 400 },
       );
     }
+    const hasRrule = Object.prototype.hasOwnProperty.call(body, "rrule");
 
     await updateTask(
       Number(task_id),
@@ -285,7 +283,7 @@ export async function PATCH(request: NextRequest) {
         color,
         tag_ids,
         reminder_minutes: hasReminderMinutes ? reminderParsed.value : undefined,
-        rrule: typeof rrule === "string" ? rrule.trim() || null : undefined,
+        rrule: hasRrule ? null : undefined,
       },
       user.memberId,
     );

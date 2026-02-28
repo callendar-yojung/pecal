@@ -228,6 +228,15 @@ export function useAuth() {
     await persistSession(null);
   };
 
+  const updateSessionProfile = async (patch: Partial<Pick<AuthSession, 'nickname' | 'email'>>) => {
+    if (!session) return;
+    const next: AuthSession = {
+      ...session,
+      ...patch,
+    };
+    await persistSession(next);
+  };
+
   const applyAuthCallbackParams = async (params: Record<string, string | string[] | undefined>) => {
     const parsed = parseAuthCallbackFromQuery(params);
     if (!parsed) {
@@ -259,6 +268,7 @@ export function useAuth() {
     restore,
     login,
     logout,
+    updateSessionProfile,
     applyAuthCallbackParams,
     forceLogout,
   };

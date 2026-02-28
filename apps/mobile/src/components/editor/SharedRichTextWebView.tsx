@@ -504,11 +504,13 @@ export function SharedRichTextWebView({
   );
   const remoteEditorUris = useMemo(() => {
     const base = getApiBaseUrl().replace(/\/+$/, '');
+    const params = new URLSearchParams({ theme: webTheme });
+    const query = params.toString();
     return [
-      `${base}/${locale}/mobile/editor`,
-      `${base}/mobile/editor`,
+      `${base}/${locale}/mobile/editor?${query}`,
+      `${base}/mobile/editor?${query}`,
     ];
-  }, [locale]);
+  }, [locale, webTheme]);
   const remoteEditorUri = remoteEditorUris[Math.min(remoteUriIndex, remoteEditorUris.length - 1)];
   const handleRemoteFailure = useCallback(() => {
     if (fallbackLocalEditor) return;

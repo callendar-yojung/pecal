@@ -14,9 +14,10 @@ type Props = {
 
 export function FullPageWebView({ path, query, onMessage }: Props) {
   const { locale } = useI18n();
-  const { colors } = useThemeMode();
+  const { colors, mode } = useThemeMode();
   const s = createStyles(colors);
   const [error, setError] = useState<string | null>(null);
+  const webTheme = mode === 'black' ? 'dark' : 'light';
 
   const uri = useMemo(() => {
     const normalizedBase = getApiBaseUrl().replace(/\/+$/, '');
@@ -26,9 +27,12 @@ export function FullPageWebView({ path, query, onMessage }: Props) {
       if (value === undefined || value === null || value === '') return;
       params.set(key, String(value));
     });
+    if (!params.has('theme')) {
+      params.set('theme', webTheme);
+    }
     const queryString = params.toString();
     return `${normalizedBase}/${locale}${normalizedPath}${queryString ? `?${queryString}` : ''}`;
-  }, [locale, path, query]);
+  }, [locale, path, query, webTheme]);
 
   return (
     <View style={{ flex: 1, minHeight: 0 }}>

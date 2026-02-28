@@ -49,7 +49,7 @@ export default function TaskDetailPage() {
         <View style={[s.panel, { borderRadius: 16, gap: 12 }]}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
             <Text style={s.formTitle}>일정 상세</Text>
-            <Pressable style={s.headerActionButton} onPress={() => router.replace(`/tasks/${taskId}/edit`)}>
+            <Pressable style={s.headerActionButton} onPress={() => router.push(`/tasks/${taskId}/edit`)}>
               <Text style={s.headerActionText}>수정</Text>
             </Pressable>
           </View>
@@ -75,7 +75,7 @@ export default function TaskDetailPage() {
         </Pressable>
         <Pressable
           style={s.primaryButtonHalf}
-          onPress={() => router.replace(`/tasks/${taskId}/edit`)}
+          onPress={() => router.push(`/tasks/${taskId}/edit`)}
         >
           <Text style={s.primaryButtonText}>수정 페이지 열기</Text>
         </Pressable>

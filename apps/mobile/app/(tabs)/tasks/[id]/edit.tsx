@@ -50,7 +50,11 @@ export default function TaskEditPage() {
           if (!Number.isFinite(savedTaskId) || savedTaskId <= 0) return;
           data.setActiveScheduleId(savedTaskId);
           void data.loadDashboard(selectedWorkspace);
-          router.replace(`/tasks/${savedTaskId}`);
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace(`/tasks/${savedTaskId}`);
+          }
           return;
         }
 
