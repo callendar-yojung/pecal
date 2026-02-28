@@ -100,21 +100,26 @@ export default function TabsLayout() {
           </View>
           <Text style={s.appTitle}>{t('appName')}</Text>
         </Pressable>
-        <Pressable
-          style={s.modeDropdownButton}
-          onPress={() => data.setWorkspacePickerOpen(!data.workspacePickerOpen)}
-        >
-          <View
-            style={[
-              s.wsTypeDot,
-              { backgroundColor: data.selectedWorkspace?.type === 'team' ? colors.primary : '#10B981' },
-            ]}
-          />
-          <Text style={s.modeDropdownText} numberOfLines={1}>
-            {data.modeLabel}
-          </Text>
-          <Text style={s.modeDropdownChevron}>{data.workspacePickerOpen ? '▲' : '▼'}</Text>
-        </Pressable>
+        <View style={s.headerActions}>
+          <Pressable
+            style={s.modeDropdownButton}
+            onPress={() => data.setWorkspacePickerOpen(!data.workspacePickerOpen)}
+          >
+            <View
+              style={[
+                s.wsTypeDot,
+                { backgroundColor: data.selectedWorkspace?.type === 'team' ? colors.primary : '#10B981' },
+              ]}
+            />
+            <Text style={s.modeDropdownText} numberOfLines={1}>
+              {data.modeLabel}
+            </Text>
+            <Text style={s.modeDropdownChevron}>{data.workspacePickerOpen ? '▲' : '▼'}</Text>
+          </Pressable>
+          <Pressable style={s.headerActionButton} onPress={() => router.push('/settings')}>
+            <Ionicons name="settings-outline" size={16} color={colors.text} />
+          </Pressable>
+        </View>
       </View>
 
       <WorkspaceMenu
@@ -331,7 +336,7 @@ export default function TabsLayout() {
                 <Pressable style={s.mainTopActionButton} onPress={() => setLocale(locale === 'ko' ? 'en' : 'ko')}>
                   <Text style={s.mainTopActionText}>{locale.toUpperCase()}</Text>
                 </Pressable>
-                <Pressable style={s.mainTopActionButton} onPress={() => router.push('/team/settings')}>
+                <Pressable style={s.mainTopActionButton} onPress={() => router.push('/settings')}>
                   <Ionicons name="settings-outline" size={15} color={colors.text} />
                 </Pressable>
                 <Pressable style={s.mainTopActionButton} onPress={() => data.setShowNotifications(!data.showNotifications)}>

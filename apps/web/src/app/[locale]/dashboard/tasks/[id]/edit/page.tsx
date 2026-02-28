@@ -55,7 +55,6 @@ export default function TaskEditPage() {
         status: taskData.status,
         color: taskData.color,
         reminder_minutes: taskData.reminder_minutes ?? null,
-        rrule: taskData.rrule ?? null,
         tag_ids: taskData.tag_ids,
       }),
     });

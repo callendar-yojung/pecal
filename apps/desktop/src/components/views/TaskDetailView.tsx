@@ -198,7 +198,6 @@ export function TaskDetailView() {
                 </svg>
                 <span className="text-sm text-gray-600 dark:text-gray-400">
                   알림: {formatReminder(detailTask.reminder_minutes)}
-                  {detailTask.rrule ? ` · 반복: ${detailTask.rrule}` : ''}
                 </span>
               </div>
             </div>

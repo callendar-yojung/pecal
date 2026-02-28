@@ -17,6 +17,7 @@ type ThemeContextValue = {
   mode: ThemeMode;
   colors: ThemeColors;
   toggleMode: () => void;
+  setMode: (mode: ThemeMode) => void;
 };
 
 const palettes: Record<ThemeMode, ThemeColors> = {
@@ -52,6 +53,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       mode,
       colors: palettes[mode],
       toggleMode: () => setMode((prev) => (prev === 'light' ? 'black' : 'light')),
+      setMode,
     }),
     [mode]
   );

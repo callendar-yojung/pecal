@@ -32,7 +32,6 @@ export interface TaskFormData {
   status?: "TODO" | "IN_PROGRESS" | "DONE";
   color?: string;
   reminder_minutes?: number | null;
-  rrule?: string | null;
   tag_ids?: number[];
   file_ids?: number[];
   created_at?: string;
@@ -148,7 +147,6 @@ export default function TaskFormPanel({
     content: "",
     color: "#3B82F6",
     reminder_minutes: 10,
-    rrule: null,
     tag_ids: [],
   });
   const [errors, setErrors] = useState<
@@ -450,13 +448,20 @@ export default function TaskFormPanel({
   useEffect(() => {
     if (initialData && mode === "edit") {
       setFormData({
-        ...initialData,
+        id: initialData.id,
+        title: initialData.title ?? "",
         start_time: formatDateTimeLocal(initialData.start_time),
         end_time: formatDateTimeLocal(initialData.end_time),
         content: initialData.content || "",
+        status: initialData.status,
         color: initialData.color || "#3B82F6",
         reminder_minutes: initialData.reminder_minutes ?? 10,
-        rrule: initialData.rrule ?? null,
+        tag_ids: initialData.tag_ids ?? [],
+        file_ids: initialData.file_ids ?? [],
+        created_at: initialData.created_at,
+        updated_at: initialData.updated_at,
+        created_by_name: initialData.created_by_name ?? null,
+        updated_by_name: initialData.updated_by_name ?? null,
       });
       setCurrentMode("edit");
     } else {
@@ -468,7 +473,6 @@ export default function TaskFormPanel({
         content: "",
         color: "#3B82F6",
         reminder_minutes: 10,
-        rrule: null,
         tag_ids: [],
       });
       setCurrentMode("create");
@@ -625,7 +629,7 @@ export default function TaskFormPanel({
             ))}
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-1">
             <div className="space-y-2">
               <div className="text-sm font-semibold text-foreground">알림</div>
               <select
@@ -647,18 +651,6 @@ export default function TaskFormPanel({
                 <option value="60">1시간 전</option>
                 <option value="1440">1일 전</option>
               </select>
-            </div>
-            <div className="space-y-2">
-              <div className="text-sm font-semibold text-foreground">반복 규칙</div>
-              <input
-                type="text"
-                value={formData.rrule ?? ""}
-                onChange={(e) =>
-                  handleChange("rrule", e.target.value.trim() || null)
-                }
-                placeholder="예: FREQ=WEEKLY;INTERVAL=1"
-                className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:outline-none"
-              />
             </div>
           </div>
 

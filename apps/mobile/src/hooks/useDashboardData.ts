@@ -34,7 +34,6 @@ type TaskMutationInput = {
   assignee_id?: number | null;
   is_all_day?: boolean;
   reminder_minutes?: number | null;
-  rrule?: string | null;
 };
 
 type TaskCreateInput = {
@@ -49,7 +48,6 @@ type TaskCreateInput = {
   assignee_id?: number | null;
   is_all_day?: boolean;
   reminder_minutes?: number | null;
-  rrule?: string | null;
 };
 
 type MemoMeta = {
@@ -608,7 +606,6 @@ export function useDashboardData(session: AuthSession | null) {
       assignee_id: input.assignee_id ?? null,
       is_all_day: input.is_all_day ?? false,
       reminder_minutes: input.reminder_minutes ?? null,
-      rrule: input.rrule ?? null,
     };
 
     try {
