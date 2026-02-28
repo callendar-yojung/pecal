@@ -1,17 +1,18 @@
-import { NextRequest } from "next/server";
-import { getAuthUser } from "@/lib/auth-helper";
-import { deleteNotification, markNotificationRead } from "@/lib/notification";
+import type { NextRequest } from "next/server";
 import {
   jsonError,
   jsonServerError,
   jsonSuccess,
   jsonUnauthorized,
 } from "@/lib/api-response";
+import { getAuthUser } from "@/lib/auth-helper";
+import { invalidateMemberCaches } from "@/lib/member-cache";
+import { deleteNotification, markNotificationRead } from "@/lib/notification";
 
 // PATCH /api/notifications/{id}
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getAuthUser(request);
@@ -24,6 +25,12 @@ export async function PATCH(
     }
 
     const success = await markNotificationRead(notificationId, user.memberId);
+    if (success) {
+      await invalidateMemberCaches(user.memberId, {
+        notificationsUnread: true,
+        notificationsList: true,
+      });
+    }
     return jsonSuccess({ success });
   } catch (error) {
     return jsonServerError(error, "Failed to update notification");
@@ -33,7 +40,7 @@ export async function PATCH(
 // DELETE /api/notifications/{id}
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getAuthUser(request);
@@ -46,6 +53,12 @@ export async function DELETE(
     }
 
     const success = await deleteNotification(notificationId, user.memberId);
+    if (success) {
+      await invalidateMemberCaches(user.memberId, {
+        notificationsUnread: true,
+        notificationsList: true,
+      });
+    }
     return jsonSuccess({ success });
   } catch (error) {
     return jsonServerError(error, "Failed to delete notification");

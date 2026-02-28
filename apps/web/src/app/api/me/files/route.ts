@@ -1,14 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth-helper";
-import { getWorkspaceById, checkWorkspaceAccess } from "@/lib/workspace";
-import { getFilesByOwner, deleteFileRecord, getFileById } from "@/lib/file";
-import type { OwnerType } from "@/lib/storage";
 import { unlink } from "node:fs/promises";
 import path from "node:path";
+import { type NextRequest, NextResponse } from "next/server";
+import { getAuthUser } from "@/lib/auth-helper";
+import { deleteFileRecord, getFileById, getFilesByOwner } from "@/lib/file";
+import type { OwnerType } from "@/lib/storage";
+import { checkWorkspaceAccess, getWorkspaceById } from "@/lib/workspace";
 
 // 파일 스토리지에서 삭제 (S3 또는 로컬)
 async function deleteFileFromStorage(filePath: string): Promise<void> {
-  const { isS3Configured, extractS3KeyFromUrl, deleteFromS3 } = await import("@/lib/s3");
+  const { isS3Configured, extractS3KeyFromUrl, deleteFromS3 } = await import(
+    "@/lib/s3"
+  );
   if (isS3Configured()) {
     // S3에서 삭제
     const s3Key = extractS3KeyFromUrl(filePath);
@@ -34,19 +36,22 @@ export async function GET(request: NextRequest) {
     const workspaceId = searchParams.get("workspace_id");
     const filterType = searchParams.get("type"); // "image", "document", "other"
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
-    const limit = Math.min(100, Math.max(1, Number(searchParams.get("limit")) || 24));
+    const limit = Math.min(
+      100,
+      Math.max(1, Number(searchParams.get("limit")) || 24),
+    );
 
     if (!workspaceId) {
       return NextResponse.json(
         { error: "workspace_id is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // 워크스페이스 접근 권한 확인
     const hasAccess = await checkWorkspaceAccess(
       Number(workspaceId),
-      user.memberId
+      user.memberId,
     );
 
     if (!hasAccess) {
@@ -58,7 +63,7 @@ export async function GET(request: NextRequest) {
     if (!workspace) {
       return NextResponse.json(
         { error: "Workspace not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -76,7 +81,7 @@ export async function GET(request: NextRequest) {
         f.mime_type?.includes("document") ||
         f.mime_type?.includes("text") ||
         f.mime_type?.includes("spreadsheet") ||
-        f.mime_type?.includes("presentation")
+        f.mime_type?.includes("presentation"),
     );
     const allOthers = allFiles.filter(
       (f) =>
@@ -85,7 +90,7 @@ export async function GET(request: NextRequest) {
         !f.mime_type?.includes("document") &&
         !f.mime_type?.includes("text") &&
         !f.mime_type?.includes("spreadsheet") &&
-        !f.mime_type?.includes("presentation")
+        !f.mime_type?.includes("presentation"),
     );
 
     // 타입별 필터링
@@ -143,7 +148,7 @@ export async function GET(request: NextRequest) {
     console.error("Failed to fetch files:", error);
     return NextResponse.json(
       { error: "Failed to fetch files" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -166,21 +171,21 @@ export async function POST(request: NextRequest) {
     if (!file_ids || !Array.isArray(file_ids) || file_ids.length === 0) {
       return NextResponse.json(
         { error: "file_ids array is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!workspace_id) {
       return NextResponse.json(
         { error: "workspace_id is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // 워크스페이스 접근 권한 확인
     const hasAccess = await checkWorkspaceAccess(
       Number(workspace_id),
-      user.memberId
+      user.memberId,
     );
 
     if (!hasAccess) {
@@ -192,7 +197,7 @@ export async function POST(request: NextRequest) {
     if (!workspace) {
       return NextResponse.json(
         { error: "Workspace not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -248,7 +253,7 @@ export async function POST(request: NextRequest) {
     console.error("Failed to bulk delete files:", error);
     return NextResponse.json(
       { error: "Failed to delete files" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -268,14 +273,14 @@ export async function DELETE(request: NextRequest) {
     if (!fileId || !workspaceId) {
       return NextResponse.json(
         { error: "file_id and workspace_id are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // 워크스페이스 접근 권한 확인
     const hasAccess = await checkWorkspaceAccess(
       Number(workspaceId),
-      user.memberId
+      user.memberId,
     );
 
     if (!hasAccess) {
@@ -293,7 +298,7 @@ export async function DELETE(request: NextRequest) {
     if (!workspace) {
       return NextResponse.json(
         { error: "Workspace not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -304,7 +309,7 @@ export async function DELETE(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: "File does not belong to this workspace" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -321,7 +326,7 @@ export async function DELETE(request: NextRequest) {
     if (!success) {
       return NextResponse.json(
         { error: "Failed to delete file" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -330,7 +335,7 @@ export async function DELETE(request: NextRequest) {
     console.error("Failed to delete file:", error);
     return NextResponse.json(
       { error: "Failed to delete file" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

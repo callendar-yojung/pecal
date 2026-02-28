@@ -1,7 +1,7 @@
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import createMiddleware from "next-intl/middleware";
 import { routing } from "./i18n/routing";
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
 
 const intlMiddleware = createMiddleware(routing);
 
@@ -16,7 +16,8 @@ export default function middleware(request: NextRequest) {
   // API 라우트에 CORS 헤더 추가
   if (pathname.startsWith("/api")) {
     // 환경별 Origin 설정
-    const origin = process.env.NODE_ENV === "production"
+    const origin =
+      process.env.NODE_ENV === "production"
         ? "https://pecal.site"
         : "http://localhost:1420";
 
@@ -26,7 +27,8 @@ export default function middleware(request: NextRequest) {
         status: 200,
         headers: {
           "Access-Control-Allow-Origin": origin,
-          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+          "Access-Control-Allow-Methods":
+            "GET, POST, PUT, DELETE, PATCH, OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type, Authorization",
           "Access-Control-Allow-Credentials": "true",
         },
@@ -36,8 +38,14 @@ export default function middleware(request: NextRequest) {
     // 다른 요청에도 CORS 헤더 추가
     const response = NextResponse.next();
     response.headers.set("Access-Control-Allow-Origin", origin);
-    response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
-    response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    response.headers.set(
+      "Access-Control-Allow-Methods",
+      "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+    );
+    response.headers.set(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization",
+    );
     response.headers.set("Access-Control-Allow-Credentials", "true");
     return response;
   }

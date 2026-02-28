@@ -1,15 +1,11 @@
-import { NextRequest } from "next/server";
-import { requireOwnerAccess } from "@/lib/access";
-import { createFileRecord } from "@/lib/file";
-import { canUploadFile, type OwnerType, formatBytes } from "@/lib/storage";
-import { v4 as uuidv4 } from "uuid";
-import { writeFile, mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import {
-  jsonError,
-  jsonServerError,
-  jsonSuccess,
-} from "@/lib/api-response";
+import type { NextRequest } from "next/server";
+import { v4 as uuidv4 } from "uuid";
+import { requireOwnerAccess } from "@/lib/access";
+import { jsonError, jsonServerError, jsonSuccess } from "@/lib/api-response";
+import { createFileRecord } from "@/lib/file";
+import { canUploadFile, formatBytes, type OwnerType } from "@/lib/storage";
 
 // 허용된 파일 타입
 const ALLOWED_TYPES = [
@@ -28,7 +24,7 @@ const ALLOWED_TYPES = [
   "application/vnd.ms-powerpoint",
   "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   "application/haansofthwp", // 한글(HWP) MIME 타입
-  "application/x-hwp",       // 일부 브라우저에서 전송하는 타입
+  "application/x-hwp", // 일부 브라우저에서 전송하는 타입
   // 텍스트
   "text/plain",
   "text/plain; charset=utf-8", // 한글 텍스트 포함
@@ -60,7 +56,11 @@ export async function POST(request: NextRequest): Promise<Response> {
       return jsonError("Invalid owner_type. Must be 'team' or 'personal'", 400);
     }
 
-    const access = await requireOwnerAccess(request, ownerType, Number(ownerId));
+    const access = await requireOwnerAccess(
+      request,
+      ownerType,
+      Number(ownerId),
+    );
     if (access instanceof Response) return access;
     const { user } = access;
 
@@ -72,13 +72,22 @@ export async function POST(request: NextRequest): Promise<Response> {
     const fileSizeBytes = file.size;
 
     // 용량 체크
-    const uploadCheck = await canUploadFile(ownerType, Number(ownerId), fileSizeBytes);
+    const uploadCheck = await canUploadFile(
+      ownerType,
+      Number(ownerId),
+      fileSizeBytes,
+    );
     if (!uploadCheck.allowed) {
-      return jsonError(uploadCheck.reason || "Upload limit exceeded", 403, "LIMIT_EXCEEDED", {
-        used_bytes: uploadCheck.used_bytes,
-        limit_bytes: uploadCheck.limit_bytes,
-        max_file_size_bytes: uploadCheck.max_file_size_bytes,
-      });
+      return jsonError(
+        uploadCheck.reason || "Upload limit exceeded",
+        403,
+        "LIMIT_EXCEEDED",
+        {
+          used_bytes: uploadCheck.used_bytes,
+          limit_bytes: uploadCheck.limit_bytes,
+          max_file_size_bytes: uploadCheck.max_file_size_bytes,
+        },
+      );
     }
 
     // 파일 저장 경로 생성
@@ -90,7 +99,9 @@ export async function POST(request: NextRequest): Promise<Response> {
     let publicPath: string;
 
     // S3가 설정되어 있으면 S3에 업로드, 아니면 로컬 파일 시스템 사용
-    const { isS3Configured, generateS3Key, uploadToS3 } = await import("@/lib/s3");
+    const { isS3Configured, generateS3Key, uploadToS3 } = await import(
+      "@/lib/s3"
+    );
     if (isS3Configured()) {
       // S3에 업로드
       const s3Key = generateS3Key(ownerType, Number(ownerId), storedName);
@@ -102,7 +113,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         "public",
         "uploads",
         ownerType === "team" ? "teams" : "personal",
-        ownerId
+        ownerId,
       );
       const filePath = path.join(uploadDir, storedName);
       publicPath = `/uploads/${ownerType === "team" ? "teams" : "personal"}/${ownerId}/${storedName}`;

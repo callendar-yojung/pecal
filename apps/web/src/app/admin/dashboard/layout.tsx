@@ -1,8 +1,5 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-
 interface AdminLayoutProps {
   children: React.ReactNode;
 }
@@ -20,4 +17,3 @@ export default function AdminDashboardLayout({
 }) {
   return <>{children}</>;
 }
-

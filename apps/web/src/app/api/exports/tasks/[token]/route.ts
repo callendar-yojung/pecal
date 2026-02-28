@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getTaskByIdWithNames } from "@/lib/task";
-import { getTaskTagIds, getTagsByOwner } from "@/lib/tag";
-import { getWorkspaceById } from "@/lib/workspace";
+import { type NextRequest, NextResponse } from "next/server";
 import { requireExportAccessByToken } from "@/lib/access";
+import { getTagsByOwner, getTaskTagIds } from "@/lib/tag";
+import { getTaskByIdWithNames } from "@/lib/task";
+import { getWorkspaceById } from "@/lib/workspace";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ token: string }> }
+  { params }: { params: Promise<{ token: string }> },
 ) {
   const { token } = await params;
 

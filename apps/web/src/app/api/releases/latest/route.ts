@@ -17,7 +17,7 @@ export async function GET() {
     console.error("❌ Failed to fetch releases:", error);
     return NextResponse.json(
       { error: "Failed to fetch releases" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

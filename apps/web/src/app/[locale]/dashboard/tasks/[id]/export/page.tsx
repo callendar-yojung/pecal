@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import TaskViewPanel, {
+  type TaskViewData,
+} from "@/components/dashboard/TaskViewPanel";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import TaskViewPanel, { type TaskViewData } from "@/components/dashboard/TaskViewPanel";
 
 type Visibility = "public" | "restricted";
 
@@ -32,7 +34,7 @@ const toDateTimeLocal = (value?: string | null) => {
   const date = new Date(value);
   const pad = (num: number) => String(num).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
-    date.getHours()
+    date.getHours(),
   )}:${pad(date.getMinutes())}`;
 };
 
@@ -61,20 +63,25 @@ export default function TaskExportPage() {
   const [selectedExportId, setSelectedExportId] = useState<number | null>(null);
   const [newExpiresAt, setNewExpiresAt] = useState("");
   const [expiryDrafts, setExpiryDrafts] = useState<Record<number, string>>({});
-  const [actionLoading, setActionLoading] = useState<Record<number, boolean>>({});
+  const [actionLoading, setActionLoading] = useState<Record<number, boolean>>(
+    {},
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<SearchResult | null>(null);
+  const [selectedMember, setSelectedMember] = useState<SearchResult | null>(
+    null,
+  );
   const [origin, setOrigin] = useState("");
 
   const taskId = Number(params?.id);
   const locale = typeof params?.locale === "string" ? params.locale : "en";
 
   const selectedExport = useMemo(
-    () => exportsList.find((item) => item.export_id === selectedExportId) || null,
-    [exportsList, selectedExportId]
+    () =>
+      exportsList.find((item) => item.export_id === selectedExportId) || null,
+    [exportsList, selectedExportId],
   );
 
   useEffect(() => {
@@ -82,7 +89,7 @@ export default function TaskExportPage() {
     setSelectedMember(null);
     setSearchResults([]);
     setShowSearch(false);
-  }, [selectedExportId]);
+  }, []);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -111,7 +118,7 @@ export default function TaskExportPage() {
     fetchTask();
   }, [currentWorkspace?.workspace_id, taskId, t]);
 
-  const fetchExports = async () => {
+  const fetchExports = useCallback(async () => {
     if (!taskId || Number.isNaN(taskId)) return;
     setExportsLoading(true);
     try {
@@ -134,16 +141,19 @@ export default function TaskExportPage() {
     } finally {
       setExportsLoading(false);
     }
-  };
+  }, [taskId]);
 
   useEffect(() => {
     if (!currentWorkspace?.workspace_id || Number.isNaN(taskId)) return;
     fetchExports();
-  }, [currentWorkspace?.workspace_id, taskId]);
+  }, [currentWorkspace?.workspace_id, taskId, fetchExports]);
 
   useEffect(() => {
     const trimmed = searchQuery.trim();
-    if (selectedMember && trimmed !== (selectedMember.nickname || selectedMember.email || "")) {
+    if (
+      selectedMember &&
+      trimmed !== (selectedMember.nickname || selectedMember.email || "")
+    ) {
       setSelectedMember(null);
     }
     if (!trimmed || trimmed.length < 2 || !selectedExportId) {
@@ -157,7 +167,7 @@ export default function TaskExportPage() {
       try {
         const res = await fetch(
           `/api/members/search?q=${encodeURIComponent(trimmed)}&type=${isEmail ? "email" : "nickname"}`,
-          { signal: controller.signal }
+          { signal: controller.signal },
         );
         const data = await res.json();
         if (res.ok) {
@@ -271,7 +281,7 @@ export default function TaskExportPage() {
     setActionLoading((prev) => ({ ...prev, [selectedExportId]: true }));
     await fetch(
       `/api/exports/tasks/id/${selectedExportId}/access?member_id=${memberId}`,
-      { method: "DELETE" }
+      { method: "DELETE" },
     );
     await fetchExports();
     setActionLoading((prev) => ({ ...prev, [selectedExportId]: false }));
@@ -298,16 +308,22 @@ export default function TaskExportPage() {
       <div className="dashboard-hero-card premium-noise p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl font-semibold text-foreground">{t("title")}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">{t("description")}</p>
+            <h1 className="text-xl font-semibold text-foreground">
+              {t("title")}
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("description")}
+            </p>
           </div>
         </div>
 
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           <div>
-            <p className="text-sm font-medium text-foreground">{t("visibilityLabel")}</p>
+            <p className="text-sm font-medium text-foreground">
+              {t("visibilityLabel")}
+            </p>
             <div className="mt-2 space-y-2">
-              <label className="flex items-center gap-2 text-sm text-foreground">
+              <div className="flex items-center gap-2 text-sm text-foreground">
                 <input
                   type="radio"
                   name="visibility"
@@ -316,8 +332,8 @@ export default function TaskExportPage() {
                   onChange={() => setVisibility("public")}
                 />
                 {t("visibilityPublic")}
-              </label>
-              <label className="flex items-center gap-2 text-sm text-foreground">
+              </div>
+              <div className="flex items-center gap-2 text-sm text-foreground">
                 <input
                   type="radio"
                   name="visibility"
@@ -326,18 +342,22 @@ export default function TaskExportPage() {
                   onChange={() => setVisibility("restricted")}
                 />
                 {t("visibilityRestricted")}
-              </label>
+              </div>
             </div>
           </div>
           <div>
-            <label className="text-sm font-medium text-foreground">{t("expiresLabel")}</label>
+            <div className="text-sm font-medium text-foreground">
+              {t("expiresLabel")}
+            </div>
             <input
               type="datetime-local"
               value={newExpiresAt}
               onChange={(e) => setNewExpiresAt(e.target.value)}
               className="mt-2 w-full rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
             />
-            <p className="mt-1 text-xs text-muted-foreground">{t("expiresHint")}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("expiresHint")}
+            </p>
           </div>
         </div>
 
@@ -366,7 +386,9 @@ export default function TaskExportPage() {
 
         {shareUrl && (
           <div className="mt-4 rounded-2xl border border-border/70 bg-muted/40 p-4">
-            <p className="text-sm font-medium text-foreground">{t("linkLabel")}</p>
+            <p className="text-sm font-medium text-foreground">
+              {t("linkLabel")}
+            </p>
             <div className="mt-2">
               <input
                 readOnly
@@ -374,13 +396,17 @@ export default function TaskExportPage() {
                 className="w-full rounded-xl border border-input/80 bg-background/90 px-3 py-2 text-sm text-foreground"
               />
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">{t("linkHint")}</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {t("linkHint")}
+            </p>
           </div>
         )}
       </div>
 
       <div className="dashboard-glass-card premium-noise p-6">
-        <h2 className="text-lg font-semibold text-foreground">{t("exportListTitle")}</h2>
+        <h2 className="text-lg font-semibold text-foreground">
+          {t("exportListTitle")}
+        </h2>
         {exportsLoading ? (
           <p className="mt-3 text-sm text-muted-foreground">{t("loading")}</p>
         ) : exportsList.length === 0 ? (
@@ -395,14 +421,18 @@ export default function TaskExportPage() {
                 !!item.expires_at && new Date(item.expires_at) < new Date();
               const isRevoked = !!item.revoked_at;
               return (
-                <div key={item.export_id} className="rounded-2xl border border-border/70 bg-background/70 p-4">
+                <div
+                  key={item.export_id}
+                  className="rounded-2xl border border-border/70 bg-background/70 p-4"
+                >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <div className="text-sm font-medium text-foreground">
                         {t("exportItemTitle", { id: item.export_id })}
                       </div>
                       <div className="mt-1 text-xs text-muted-foreground">
-                        {t("createdAt")}: {new Date(item.created_at).toLocaleString()}
+                        {t("createdAt")}:{" "}
+                        {new Date(item.created_at).toLocaleString()}
                       </div>
                       {isRevoked && (
                         <div className="mt-1 text-xs font-medium text-destructive">
@@ -421,13 +451,17 @@ export default function TaskExportPage() {
                         onChange={(e) =>
                           handleVisibilityChange(
                             item.export_id,
-                            e.target.value as Visibility
+                            e.target.value as Visibility,
                           )
                         }
                         className="rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
                       >
-                        <option value="public">{t("visibilityPublicShort")}</option>
-                        <option value="restricted">{t("visibilityRestrictedShort")}</option>
+                        <option value="public">
+                          {t("visibilityPublicShort")}
+                        </option>
+                        <option value="restricted">
+                          {t("visibilityRestrictedShort")}
+                        </option>
                       </select>
                       <button
                         type="button"
@@ -449,9 +483,9 @@ export default function TaskExportPage() {
 
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground">
+                      <div className="text-xs font-medium text-muted-foreground">
                         {t("expiresLabel")}
-                      </label>
+                      </div>
                       <div className="mt-1 flex gap-2">
                         <input
                           type="datetime-local"
@@ -474,9 +508,9 @@ export default function TaskExportPage() {
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground">
+                      <div className="text-xs font-medium text-muted-foreground">
                         {t("shareLink")}
-                      </label>
+                      </div>
                       <input
                         readOnly
                         value={url}
@@ -492,13 +526,17 @@ export default function TaskExportPage() {
       </div>
 
       <div className="dashboard-glass-card premium-noise p-6">
-        <h2 className="text-lg font-semibold text-foreground">{t("accessTitle")}</h2>
+        <h2 className="text-lg font-semibold text-foreground">
+          {t("accessTitle")}
+        </h2>
         {exportsList.length === 0 ? (
           <p className="mt-3 text-sm text-muted-foreground">{t("noExports")}</p>
         ) : (
           <div className="mt-4 space-y-4">
             <div>
-              <label className="text-sm font-medium text-foreground">{t("selectExport")}</label>
+              <div className="text-sm font-medium text-foreground">
+                {t("selectExport")}
+              </div>
               <select
                 value={selectedExportId ?? ""}
                 onChange={(e) => setSelectedExportId(Number(e.target.value))}
@@ -513,13 +551,15 @@ export default function TaskExportPage() {
             </div>
 
             {selectedExport?.visibility !== "restricted" ? (
-              <p className="text-sm text-muted-foreground">{t("accessPublicHint")}</p>
+              <p className="text-sm text-muted-foreground">
+                {t("accessPublicHint")}
+              </p>
             ) : (
               <>
                 <div className="relative">
-                  <label className="text-sm font-medium text-foreground">
+                  <div className="text-sm font-medium text-foreground">
                     {t("addMemberLabel")}
-                  </label>
+                  </div>
                   <input
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -531,7 +571,9 @@ export default function TaskExportPage() {
                   />
                   {selectedMember && (
                     <div className="mt-2 flex items-center gap-2 rounded-xl border border-border/70 bg-muted/40 px-2 py-1 text-xs">
-                      <span className="text-muted-foreground">{t("selectedMember")}</span>
+                      <span className="text-muted-foreground">
+                        {t("selectedMember")}
+                      </span>
                       <span className="truncate font-medium text-foreground">
                         {selectedMember.nickname || selectedMember.email}
                       </span>
@@ -547,57 +589,64 @@ export default function TaskExportPage() {
                       </button>
                     </div>
                   )}
-                  {showSearch && (searchResults.length > 0 || searchLoading) && (
-                    <div className="absolute z-20 mt-1 w-full rounded-xl border border-border/70 bg-popover shadow-[0_18px_38px_rgba(15,23,42,0.16)]">
-                      {searchLoading ? (
-                        <div className="px-3 py-2 text-xs text-muted-foreground">
-                          {t("searching")}
-                        </div>
-                      ) : (
-                        searchResults.map((item) => (
-                          <button
-                            key={item.member_id}
-                            type="button"
-                            onClick={() => {
-                              const useEmail = searchQuery.includes("@");
-                              setSelectedMember(item);
-                              setSearchQuery(
-                                useEmail
-                                  ? item.email || item.nickname || ""
-                                  : item.nickname || item.email || ""
-                              );
-                              setShowSearch(false);
-                            }}
-                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
-                          >
-                            <div className="h-7 w-7 overflow-hidden rounded-full bg-muted">
-                              {item.profile_image_url ? (
-                                <img
-                                  src={item.profile_image_url}
-                                  alt={item.nickname || "User"}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-                                  {(item.nickname || item.email || "U").charAt(0)}
-                                </div>
-                              )}
-                            </div>
-                            <div className="min-w-0">
-                              <div className="truncate font-medium text-foreground">
-                                {item.nickname || item.email || `#${item.member_id}`}
+                  {showSearch &&
+                    (searchResults.length > 0 || searchLoading) && (
+                      <div className="absolute z-20 mt-1 w-full rounded-xl border border-border/70 bg-popover shadow-[0_18px_38px_rgba(15,23,42,0.16)]">
+                        {searchLoading ? (
+                          <div className="px-3 py-2 text-xs text-muted-foreground">
+                            {t("searching")}
+                          </div>
+                        ) : (
+                          searchResults.map((item) => (
+                            <button
+                              key={item.member_id}
+                              type="button"
+                              onClick={() => {
+                                const useEmail = searchQuery.includes("@");
+                                setSelectedMember(item);
+                                setSearchQuery(
+                                  useEmail
+                                    ? item.email || item.nickname || ""
+                                    : item.nickname || item.email || "",
+                                );
+                                setShowSearch(false);
+                              }}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
+                            >
+                              <div className="h-7 w-7 overflow-hidden rounded-full bg-muted">
+                                {item.profile_image_url ? (
+                                  <img
+                                    src={item.profile_image_url}
+                                    alt={item.nickname || "User"}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+                                    {(
+                                      item.nickname ||
+                                      item.email ||
+                                      "U"
+                                    ).charAt(0)}
+                                  </div>
+                                )}
                               </div>
-                              {item.email && (
-                                <div className="truncate text-xs text-muted-foreground">
-                                  {item.email}
+                              <div className="min-w-0">
+                                <div className="truncate font-medium text-foreground">
+                                  {item.nickname ||
+                                    item.email ||
+                                    `#${item.member_id}`}
                                 </div>
-                              )}
-                            </div>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  )}
+                                {item.email && (
+                                  <div className="truncate text-xs text-muted-foreground">
+                                    {item.email}
+                                  </div>
+                                )}
+                              </div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
                 </div>
                 <button
                   type="button"
@@ -609,7 +658,9 @@ export default function TaskExportPage() {
                 </button>
 
                 <div>
-                  <p className="text-sm font-medium text-foreground">{t("allowedMembers")}</p>
+                  <p className="text-sm font-medium text-foreground">
+                    {t("allowedMembers")}
+                  </p>
                   {selectedExport?.access_members?.length ? (
                     <div className="mt-2 flex flex-wrap gap-2">
                       {selectedExport.access_members.map((member) => (
@@ -617,7 +668,9 @@ export default function TaskExportPage() {
                           key={member.member_id}
                           className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 px-3 py-1 text-xs"
                         >
-                          {member.nickname || member.email || `#${member.member_id}`}
+                          {member.nickname ||
+                            member.email ||
+                            `#${member.member_id}`}
                           <button
                             type="button"
                             onClick={() => handleRemoveAccess(member.member_id)}
@@ -629,7 +682,9 @@ export default function TaskExportPage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="mt-2 text-xs text-muted-foreground">{t("noAllowedMembers")}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {t("noAllowedMembers")}
+                    </p>
                   )}
                 </div>
               </>

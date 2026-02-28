@@ -1,6 +1,5 @@
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import pool from "./db";
-import type { RowDataPacket, ResultSetHeader } from "mysql2";
-import { type FileRecord } from "./file";
 
 export interface TaskAttachment {
   attachment_id: number;
@@ -21,14 +20,14 @@ export interface TaskAttachmentWithFile extends TaskAttachment {
 export interface TaskAttachmentRecord extends TaskAttachment {}
 
 export async function getTaskAttachmentById(
-  attachmentId: number
+  attachmentId: number,
 ): Promise<TaskAttachmentRecord | null> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT attachment_id, task_id, file_id, created_at, created_by
      FROM task_attachments
      WHERE attachment_id = ?
      LIMIT 1`,
-    [attachmentId]
+    [attachmentId],
   );
   return rows.length > 0 ? (rows[0] as TaskAttachmentRecord) : null;
 }
@@ -39,13 +38,13 @@ export async function getTaskAttachmentById(
 export async function attachFileToTask(
   taskId: number,
   fileId: number,
-  createdBy: number
+  createdBy: number,
 ): Promise<number> {
   const [result] = await pool.execute<ResultSetHeader>(
     `INSERT INTO task_attachments (task_id, file_id, created_by, created_at)
      VALUES (?, ?, ?, NOW())
      ON DUPLICATE KEY UPDATE attachment_id = attachment_id`,
-    [taskId, fileId, createdBy]
+    [taskId, fileId, createdBy],
   );
   return result.insertId;
 }
@@ -53,7 +52,9 @@ export async function attachFileToTask(
 /**
  * 태스크의 첨부파일 목록 조회
  */
-export async function getTaskAttachments(taskId: number): Promise<TaskAttachmentWithFile[]> {
+export async function getTaskAttachments(
+  taskId: number,
+): Promise<TaskAttachmentWithFile[]> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT
       ta.attachment_id,
@@ -70,7 +71,7 @@ export async function getTaskAttachments(taskId: number): Promise<TaskAttachment
      JOIN files f ON ta.file_id = f.file_id
      WHERE ta.task_id = ?
      ORDER BY ta.created_at DESC`,
-    [taskId]
+    [taskId],
   );
   return rows as TaskAttachmentWithFile[];
 }
@@ -80,11 +81,11 @@ export async function getTaskAttachments(taskId: number): Promise<TaskAttachment
  */
 export async function detachFileFromTask(
   taskId: number,
-  fileId: number
+  fileId: number,
 ): Promise<boolean> {
   const [result] = await pool.execute<ResultSetHeader>(
     `DELETE FROM task_attachments WHERE task_id = ? AND file_id = ?`,
-    [taskId, fileId]
+    [taskId, fileId],
   );
   return result.affectedRows > 0;
 }
@@ -92,10 +93,12 @@ export async function detachFileFromTask(
 /**
  * 첨부파일 ID로 삭제
  */
-export async function deleteTaskAttachment(attachmentId: number): Promise<boolean> {
+export async function deleteTaskAttachment(
+  attachmentId: number,
+): Promise<boolean> {
   const [result] = await pool.execute<ResultSetHeader>(
     `DELETE FROM task_attachments WHERE attachment_id = ?`,
-    [attachmentId]
+    [attachmentId],
   );
   return result.affectedRows > 0;
 }
@@ -106,7 +109,7 @@ export async function deleteTaskAttachment(attachmentId: number): Promise<boolea
 export async function detachAllFilesFromTask(taskId: number): Promise<number> {
   const [result] = await pool.execute<ResultSetHeader>(
     `DELETE FROM task_attachments WHERE task_id = ?`,
-    [taskId]
+    [taskId],
   );
   return result.affectedRows;
 }
@@ -117,7 +120,7 @@ export async function detachAllFilesFromTask(taskId: number): Promise<number> {
 export async function getTasksWithFile(fileId: number): Promise<number[]> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT DISTINCT task_id FROM task_attachments WHERE file_id = ?`,
-    [fileId]
+    [fileId],
   );
   return rows.map((row) => row.task_id);
 }
@@ -128,7 +131,7 @@ export async function getTasksWithFile(fileId: number): Promise<number[]> {
 export async function getTaskAttachmentCount(taskId: number): Promise<number> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT COUNT(*) as count FROM task_attachments WHERE task_id = ?`,
-    [taskId]
+    [taskId],
   );
   return Number(rows[0]?.count || 0);
 }
@@ -138,11 +141,11 @@ export async function getTaskAttachmentCount(taskId: number): Promise<number> {
  */
 export async function isFileAttachedToTask(
   taskId: number,
-  fileId: number
+  fileId: number,
 ): Promise<boolean> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT 1 FROM task_attachments WHERE task_id = ? AND file_id = ? LIMIT 1`,
-    [taskId, fileId]
+    [taskId, fileId],
   );
   return rows.length > 0;
 }

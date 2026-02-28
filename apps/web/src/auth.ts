@@ -1,9 +1,9 @@
-import NextAuth from "next-auth";
-import Kakao from "next-auth/providers/kakao";
-import Google from "next-auth/providers/google";
-import Apple from "next-auth/providers/apple";
-import { findOrCreateMember } from "./lib/member";
 import { cookies } from "next/headers";
+import NextAuth from "next-auth";
+import Apple from "next-auth/providers/apple";
+import Google from "next-auth/providers/google";
+import Kakao from "next-auth/providers/kakao";
+import { findOrCreateMember } from "./lib/member";
 
 declare module "next-auth" {
   interface Session {
@@ -60,7 +60,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           account.providerAccountId,
           user.email ?? null,
           user.image ?? null,
-          locale
+          locale,
         );
 
         (user as Record<string, unknown>).memberId = member.member_id;
@@ -79,7 +79,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user && account) {
         token.memberId = (user as Record<string, unknown>).memberId as number;
         token.nickname = (user as Record<string, unknown>).nickname as string;
-        token.profileImageUrl = (user as Record<string, unknown>).profileImageUrl as string | null;
+        token.profileImageUrl = (user as Record<string, unknown>)
+          .profileImageUrl as string | null;
         token.provider = account.provider;
       }
       if (trigger === "update" && session) {
@@ -94,7 +95,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.id = token.sub!;
       session.user.memberId = token.memberId as number;
       session.user.nickname = token.nickname as string;
-      session.user.profileImageUrl = (token.profileImageUrl as string | null) ?? null;
+      session.user.profileImageUrl =
+        (token.profileImageUrl as string | null) ?? null;
       session.user.provider = token.provider as string;
       return session;
     },

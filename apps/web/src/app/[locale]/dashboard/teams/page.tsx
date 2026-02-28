@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useEffect, useMemo, useState } from "react";
 import { PERMISSIONS } from "@/lib/permissions";
 
 interface Team {
@@ -61,7 +61,9 @@ export default function TeamSettingsPage() {
   const [roleName, setRoleName] = useState("");
   const [identifier, setIdentifier] = useState("");
   const [memberRoleId, setMemberRoleId] = useState<number | null>(null);
-  const [selectedAvailable, setSelectedAvailable] = useState<string | null>(null);
+  const [selectedAvailable, setSelectedAvailable] = useState<string | null>(
+    null,
+  );
   const [selectedAssigned, setSelectedAssigned] = useState<string | null>(null);
   const [loadingTeams, setLoadingTeams] = useState(true);
   const [loadingMembers, setLoadingMembers] = useState(false);
@@ -79,11 +81,12 @@ export default function TeamSettingsPage() {
   const [memberSearch, setMemberSearch] = useState<MemberSearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<MemberSearchResult | null>(null);
+  const [selectedMember, setSelectedMember] =
+    useState<MemberSearchResult | null>(null);
 
   const selectedTeam = useMemo(
     () => teams.find((t) => t.id === selectedTeamId) || null,
-    [teams, selectedTeamId]
+    [teams, selectedTeamId],
   );
 
   useEffect(() => {
@@ -138,11 +141,10 @@ export default function TeamSettingsPage() {
           setSelectedRoleId((prev) =>
             prev && list.some((role: TeamRole) => role.team_role_id === prev)
               ? prev
-              : list[0].team_role_id
+              : list[0].team_role_id,
           );
           const memberRole =
-            list.find((role: TeamRole) => role.name === "Member") ||
-            list[0];
+            list.find((role: TeamRole) => role.name === "Member") || list[0];
           setMemberRoleId(memberRole.team_role_id);
         } else {
           setSelectedRoleId(null);
@@ -158,7 +160,7 @@ export default function TeamSettingsPage() {
     const fetchPlan = async () => {
       try {
         const subRes = await fetch(
-          `/api/subscriptions?owner_id=${selectedTeamId}&owner_type=team&active=true`
+          `/api/subscriptions?owner_id=${selectedTeamId}&owner_type=team&active=true`,
         );
         const subData = await subRes.json();
         if (subData?.plan_id) {
@@ -171,7 +173,7 @@ export default function TeamSettingsPage() {
         const plansRes = await fetch("/api/plans");
         const plansData = await plansRes.json();
         const teamPlans = (plansData || []).filter(
-          (p: Plan) => p.plan_type === "team"
+          (p: Plan) => p.plan_type === "team",
         );
         if (teamPlans.length > 0) {
           teamPlans.sort((a: Plan, b: Plan) => a.price - b.price);
@@ -204,7 +206,7 @@ export default function TeamSettingsPage() {
       try {
         setLoadingRolePermissions(true);
         const res = await fetch(
-          `/api/teams/${selectedTeamId}/roles/${selectedRoleId}/permissions`
+          `/api/teams/${selectedTeamId}/roles/${selectedRoleId}/permissions`,
         );
         const data = await res.json();
         setRolePermissions(data.permissions || []);
@@ -221,7 +223,10 @@ export default function TeamSettingsPage() {
 
   useEffect(() => {
     const trimmed = identifier.trim();
-    if (selectedMember && trimmed !== (selectedMember.nickname || selectedMember.email || "")) {
+    if (
+      selectedMember &&
+      trimmed !== (selectedMember.nickname || selectedMember.email || "")
+    ) {
       setSelectedMember(null);
     }
     if (!trimmed || trimmed.length < 2) {
@@ -235,7 +240,7 @@ export default function TeamSettingsPage() {
       try {
         const res = await fetch(
           `/api/members/search?q=${encodeURIComponent(trimmed)}&type=${isEmail ? "email" : "nickname"}`,
-          { signal: controller.signal }
+          { signal: controller.signal },
         );
         const data = await res.json();
         if (res.ok) {
@@ -252,7 +257,7 @@ export default function TeamSettingsPage() {
       controller.abort();
       window.clearTimeout(id);
     };
-  }, [identifier]);
+  }, [identifier, selectedMember]);
 
   const handleAddMember = async () => {
     if (!selectedTeamId || !selectedMember) return;
@@ -277,7 +282,7 @@ export default function TeamSettingsPage() {
             planName: data.plan_name ?? null,
           });
           setError(
-            t("maxMembers", { count: Number(data.max || 0) || memberLimit })
+            t("maxMembers", { count: Number(data.max || 0) || memberLimit }),
           );
           return;
         }
@@ -305,7 +310,7 @@ export default function TeamSettingsPage() {
     try {
       const res = await fetch(
         `/api/teams/${selectedTeamId}/members?member_id=${memberId}`,
-        { method: "DELETE" }
+        { method: "DELETE" },
       );
       const data = await res.json();
       if (!res.ok) {
@@ -362,7 +367,7 @@ export default function TeamSettingsPage() {
     try {
       const res = await fetch(
         `/api/teams/${selectedTeamId}/roles?role_id=${roleId}`,
-        { method: "DELETE" }
+        { method: "DELETE" },
       );
       const data = await res.json();
       if (!res.ok) {
@@ -397,7 +402,7 @@ export default function TeamSettingsPage() {
           body: JSON.stringify({
             codes: rolePermissions.map((p) => p.code),
           }),
-        }
+        },
       );
       const data = await res.json();
       if (!res.ok) {
@@ -500,27 +505,29 @@ export default function TeamSettingsPage() {
         code: permission.code,
         label: t(permission.labelKey),
       })),
-    [t]
+    [t],
   );
   const selectedRole = useMemo(
     () => roles.find((role) => role.team_role_id === selectedRoleId) || null,
-    [roles, selectedRoleId]
+    [roles, selectedRoleId],
   );
   const currentUserRole = useMemo(() => {
     if (!currentMemberId) return null;
-    return members.find((member) => member.member_id === currentMemberId) || null;
+    return (
+      members.find((member) => member.member_id === currentMemberId) || null
+    );
   }, [members, currentMemberId]);
   const assignedCodes = useMemo(
     () => new Set(rolePermissions.map((permission) => permission.code)),
-    [rolePermissions]
+    [rolePermissions],
   );
   const availablePermissions = useMemo(
     () => permissionOptions.filter((option) => !assignedCodes.has(option.code)),
-    [permissionOptions, assignedCodes]
+    [permissionOptions, assignedCodes],
   );
   const assignedPermissions = useMemo(
     () => permissionOptions.filter((option) => assignedCodes.has(option.code)),
-    [permissionOptions, assignedCodes]
+    [permissionOptions, assignedCodes],
   );
 
   return (
@@ -532,9 +539,7 @@ export default function TeamSettingsPage() {
           <h1 className="text-3xl font-bold text-foreground lg:text-4xl">
             {t("title")}
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t("subtitle")}
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
           {currentUserRole && (
             <p className="mt-2 text-xs font-medium text-muted-foreground">
               {t("myRole")}: {currentUserRole.role_name || t("memberRole")}
@@ -543,136 +548,138 @@ export default function TeamSettingsPage() {
         </div>
       </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="dashboard-glass-card premium-noise p-4">
-            <h2 className="mb-3 text-lg font-semibold text-foreground">
-              {t("teams")}
-            </h2>
-            {loadingTeams ? (
-              <p className="text-sm text-muted-foreground">{t("loading")}</p>
-            ) : teams.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                {t("noTeams")}
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {teams.map((team) => (
-                  <button
-                    key={team.id}
-                    type="button"
-                    onClick={() => setSelectedTeamId(team.id)}
-                    className={`w-full rounded-xl px-3 py-2 text-left text-sm transition-colors ${
-                      team.id === selectedTeamId
-                        ? "bg-primary text-primary-foreground shadow-[0_10px_24px_rgba(59,130,246,0.35)]"
-                        : "text-foreground hover:bg-accent"
-                    }`}
-                  >
-                    <div className="font-medium">{team.name}</div>
-                    <div className="text-xs opacity-80">
-                      {team.memberCount ?? 0} {t("members")}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="lg:col-span-2 space-y-6">
-            {!selectedTeam ? (
-              <div className="dashboard-glass-card p-6 text-sm text-muted-foreground">
-                {t("selectTeam")}
-              </div>
-            ) : (
-              <>
-                <div className="dashboard-glass-card premium-noise p-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h2 className="text-xl font-semibold text-foreground">
-                        {selectedTeam.name}
-                      </h2>
-                      {selectedTeam.description && (
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {selectedTeam.description}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      {isAdmin && (
-                        <button
-                          type="button"
-                          onClick={handleManagePlan}
-                          className="ui-button px-3 py-2 text-sm"
-                        >
-                          {t("managePlan")}
-                        </button>
-                      )}
-                      {isAdmin && (
-                        <button
-                          type="button"
-                          onClick={handleDeleteTeam}
-                          disabled={actionLoading}
-                          className="ui-button-danger px-3 py-2 text-sm disabled:opacity-50"
-                        >
-                          {t("deleteTeam")}
-                        </button>
-                      )}
-                    </div>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="dashboard-glass-card premium-noise p-4">
+          <h2 className="mb-3 text-lg font-semibold text-foreground">
+            {t("teams")}
+          </h2>
+          {loadingTeams ? (
+            <p className="text-sm text-muted-foreground">{t("loading")}</p>
+          ) : teams.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t("noTeams")}</p>
+          ) : (
+            <div className="space-y-2">
+              {teams.map((team) => (
+                <button
+                  key={team.id}
+                  type="button"
+                  onClick={() => setSelectedTeamId(team.id)}
+                  className={`w-full rounded-xl px-3 py-2 text-left text-sm transition-colors ${
+                    team.id === selectedTeamId
+                      ? "bg-primary text-primary-foreground shadow-[0_10px_24px_rgba(59,130,246,0.35)]"
+                      : "text-foreground hover:bg-accent"
+                  }`}
+                >
+                  <div className="font-medium">{team.name}</div>
+                  <div className="text-xs opacity-80">
+                    {team.memberCount ?? 0} {t("members")}
                   </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
-                  <div className="mt-4 text-sm text-muted-foreground">
-                    {plan ? (
-                      <span>
-                        {t("currentPlan")}: {plan.name} · {t("maxMembers", { count: plan.max_members })}
-                      </span>
-                    ) : (
-                      <span>{t("planLoading")}</span>
+        <div className="lg:col-span-2 space-y-6">
+          {!selectedTeam ? (
+            <div className="dashboard-glass-card p-6 text-sm text-muted-foreground">
+              {t("selectTeam")}
+            </div>
+          ) : (
+            <>
+              <div className="dashboard-glass-card premium-noise p-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-semibold text-foreground">
+                      {selectedTeam.name}
+                    </h2>
+                    {selectedTeam.description && (
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {selectedTeam.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={handleManagePlan}
+                        className="ui-button px-3 py-2 text-sm"
+                      >
+                        {t("managePlan")}
+                      </button>
+                    )}
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={handleDeleteTeam}
+                        disabled={actionLoading}
+                        className="ui-button-danger px-3 py-2 text-sm disabled:opacity-50"
+                      >
+                        {t("deleteTeam")}
+                      </button>
                     )}
                   </div>
                 </div>
 
-                {!isAdmin ? (
-                  <div className="dashboard-glass-card p-6 text-sm text-muted-foreground">
-                    {t("adminOnly")}
-                  </div>
-                ) : (
-                  <div className="dashboard-glass-card premium-noise p-6">
-                    <h3 className="text-lg font-semibold text-foreground">
-                      {t("membersTitle")}
-                    </h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {t("membersDesc")}
-                    </p>
+                <div className="mt-4 text-sm text-muted-foreground">
+                  {plan ? (
+                    <span>
+                      {t("currentPlan")}: {plan.name} ·{" "}
+                      {t("maxMembers", { count: plan.max_members })}
+                    </span>
+                  ) : (
+                    <span>{t("planLoading")}</span>
+                  )}
+                </div>
+              </div>
 
-                    <div className="mt-4 grid gap-2 md:grid-cols-3">
-                      <div className="relative md:col-span-2">
-                        <input
-                          value={identifier}
-                          onChange={(e) => setIdentifier(e.target.value)}
-                          placeholder={t("memberPlaceholder")}
-                          className="w-full rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
-                          onFocus={() => {
-                            if (memberSearch.length > 0) setShowSearch(true);
-                          }}
-                        />
-                        {selectedMember && (
-                          <div className="mt-2 flex items-center gap-2 rounded-xl border border-border/70 bg-muted/40 px-2 py-1 text-xs">
-                            <span className="text-muted-foreground">{t("selectedMember")}</span>
-                            <span className="truncate font-medium text-foreground">
-                              {selectedMember.nickname || selectedMember.email}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedMember(null);
-                                setIdentifier("");
-                              }}
-                              className="text-muted-foreground hover:text-foreground"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        )}
-                        {showSearch && (memberSearch.length > 0 || searchLoading) && (
+              {!isAdmin ? (
+                <div className="dashboard-glass-card p-6 text-sm text-muted-foreground">
+                  {t("adminOnly")}
+                </div>
+              ) : (
+                <div className="dashboard-glass-card premium-noise p-6">
+                  <h3 className="text-lg font-semibold text-foreground">
+                    {t("membersTitle")}
+                  </h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {t("membersDesc")}
+                  </p>
+
+                  <div className="mt-4 grid gap-2 md:grid-cols-3">
+                    <div className="relative md:col-span-2">
+                      <input
+                        value={identifier}
+                        onChange={(e) => setIdentifier(e.target.value)}
+                        placeholder={t("memberPlaceholder")}
+                        className="w-full rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
+                        onFocus={() => {
+                          if (memberSearch.length > 0) setShowSearch(true);
+                        }}
+                      />
+                      {selectedMember && (
+                        <div className="mt-2 flex items-center gap-2 rounded-xl border border-border/70 bg-muted/40 px-2 py-1 text-xs">
+                          <span className="text-muted-foreground">
+                            {t("selectedMember")}
+                          </span>
+                          <span className="truncate font-medium text-foreground">
+                            {selectedMember.nickname || selectedMember.email}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedMember(null);
+                              setIdentifier("");
+                            }}
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      )}
+                      {showSearch &&
+                        (memberSearch.length > 0 || searchLoading) && (
                           <div className="absolute z-20 mt-1 w-full rounded-xl border border-border/70 bg-popover shadow-[0_20px_40px_rgba(15,23,42,0.18)]">
                             {searchLoading ? (
                               <div className="px-3 py-2 text-xs text-muted-foreground">
@@ -689,7 +696,7 @@ export default function TeamSettingsPage() {
                                     setIdentifier(
                                       useEmail
                                         ? item.email || item.nickname || ""
-                                        : item.nickname || item.email || ""
+                                        : item.nickname || item.email || "",
                                     );
                                     setShowSearch(false);
                                   }}
@@ -704,13 +711,19 @@ export default function TeamSettingsPage() {
                                       />
                                     ) : (
                                       <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-                                        {(item.nickname || item.email || "U").charAt(0)}
+                                        {(
+                                          item.nickname ||
+                                          item.email ||
+                                          "U"
+                                        ).charAt(0)}
                                       </div>
                                     )}
                                   </div>
                                   <div className="min-w-0">
                                     <div className="truncate font-medium text-foreground">
-                                      {item.nickname || item.email || `#${item.member_id}`}
+                                      {item.nickname ||
+                                        item.email ||
+                                        `#${item.member_id}`}
                                     </div>
                                     {item.email && (
                                       <div className="truncate text-xs text-muted-foreground">
@@ -723,361 +736,378 @@ export default function TeamSettingsPage() {
                             )}
                           </div>
                         )}
+                    </div>
+                    <select
+                      value={memberRoleId ?? ""}
+                      onChange={(e) =>
+                        setMemberRoleId(
+                          e.target.value ? Number(e.target.value) : null,
+                        )
+                      }
+                      className="rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
+                    >
+                      <option value="">{t("memberRoleSelect")}</option>
+                      {roleOptions.map((role) => (
+                        <option
+                          key={role.team_role_id}
+                          value={role.team_role_id}
+                        >
+                          {role.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="mt-2">
+                    <button
+                      type="button"
+                      onClick={handleAddMember}
+                      disabled={
+                        actionLoading ||
+                        !selectedMember ||
+                        !memberRoleId ||
+                        (memberLimit > 0 && members.length >= memberLimit)
+                      }
+                      className="ui-button-primary px-4 py-2 text-sm disabled:opacity-50"
+                    >
+                      {t("addMember")}
+                    </button>
+                  </div>
+
+                  {memberLimit > 0 && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {t("memberCount", {
+                        current: members.length,
+                        max: memberLimit,
+                      })}
+                    </p>
+                  )}
+
+                  {limitInfo && (
+                    <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                      <div className="font-medium">
+                        {t("maxMembers", { count: limitInfo.max })}
                       </div>
+                      <div className="mt-1 text-xs text-amber-800">
+                        {t("memberCount", {
+                          current: limitInfo.current,
+                          max: limitInfo.max,
+                        })}
+                        {limitInfo.planName ? ` · ${limitInfo.planName}` : ""}
+                      </div>
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={handleManagePlan}
+                          className="mt-2 rounded-lg border border-amber-300 px-2.5 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100"
+                        >
+                          {t("managePlan")}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {error && (
+                    <div className="mt-3 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                      {error}
+                    </div>
+                  )}
+
+                  <div className="mt-4">
+                    {loadingMembers ? (
+                      <p className="text-sm text-muted-foreground">
+                        {t("loading")}
+                      </p>
+                    ) : members.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        {t("noMembers")}
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {members.map((m) => (
+                          <div
+                            key={m.member_id}
+                            className="flex items-center justify-between rounded-xl border border-border/70 bg-background/90 px-3 py-2"
+                          >
+                            <div>
+                              <div className="text-sm font-medium text-foreground">
+                                {m.nickname || m.email || `#${m.member_id}`}
+                              </div>
+                              {m.email && (
+                                <div className="text-xs text-muted-foreground">
+                                  {m.email}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              {m.member_id === selectedTeam?.created_by ? (
+                                <span>{t("ownerRole")}</span>
+                              ) : (
+                                <select
+                                  value={m.role_id ?? ""}
+                                  onChange={(e) =>
+                                    handleChangeMemberRole(
+                                      m.member_id,
+                                      Number(e.target.value),
+                                    )
+                                  }
+                                  className="rounded-lg border border-border/70 bg-background px-2 py-1 text-xs"
+                                >
+                                  {roleOptions.map((role) => (
+                                    <option
+                                      key={role.team_role_id}
+                                      value={role.team_role_id}
+                                    >
+                                      {role.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
+                              {m.member_id !== currentMemberId && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleRemoveMember(m.member_id)
+                                  }
+                                  className="rounded-lg border border-destructive/30 px-2 py-1 text-destructive hover:bg-destructive/10"
+                                >
+                                  {t("remove")}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {isAdmin && (
+                <div className="space-y-6">
+                  <div className="dashboard-glass-card premium-noise p-6">
+                    <h3 className="text-lg font-semibold text-foreground">
+                      {t("rolesTitle")}
+                    </h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {t("rolesDesc")}
+                    </p>
+
+                    <div className="mt-4 flex gap-2">
+                      <input
+                        value={roleName}
+                        onChange={(e) => setRoleName(e.target.value)}
+                        placeholder={t("roleNamePlaceholder")}
+                        className="flex-1 rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCreateRole}
+                        disabled={actionLoading || !roleName.trim()}
+                        className="ui-button-primary px-4 py-2 text-sm disabled:opacity-50"
+                      >
+                        {t("addRole")}
+                      </button>
+                    </div>
+
+                    <div className="mt-4 space-y-2">
+                      {loadingRoles ? (
+                        <p className="text-sm text-muted-foreground">
+                          {t("loading")}
+                        </p>
+                      ) : roles.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                          {t("noRoles")}
+                        </p>
+                      ) : (
+                        roles.map((role) => (
+                          <div
+                            key={role.team_role_id}
+                            className="flex items-center justify-between rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
+                          >
+                            <div className="font-medium text-foreground">
+                              {role.name}
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>
+                                {t("roleMembers", {
+                                  count: role.memberCount ?? 0,
+                                })}
+                              </span>
+                              {role.name !== "Owner" && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleDeleteRole(role.team_role_id)
+                                  }
+                                  className="rounded-lg border border-destructive/30 px-2 py-1 text-destructive hover:bg-destructive/10"
+                                >
+                                  {t("remove")}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="dashboard-glass-card premium-noise p-6">
+                    <h3 className="text-lg font-semibold text-foreground">
+                      {t("permissionsTitle")}
+                    </h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {t("permissionsDesc")}
+                    </p>
+
+                    <div className="mt-4 flex gap-2">
                       <select
-                        value={memberRoleId ?? ""}
+                        value={selectedRoleId ?? ""}
                         onChange={(e) =>
-                          setMemberRoleId(
-                            e.target.value ? Number(e.target.value) : null
+                          setSelectedRoleId(
+                            e.target.value ? Number(e.target.value) : null,
                           )
                         }
-                        className="rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
+                        className="flex-1 rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
                       >
-                        <option value="">{t("memberRoleSelect")}</option>
+                        <option value="">{t("roleSelect")}</option>
                         {roleOptions.map((role) => (
-                          <option key={role.team_role_id} value={role.team_role_id}>
+                          <option
+                            key={role.team_role_id}
+                            value={role.team_role_id}
+                          >
                             {role.name}
                           </option>
                         ))}
                       </select>
-                    </div>
-                    <div className="mt-2">
                       <button
                         type="button"
-                        onClick={handleAddMember}
+                        onClick={handleSaveRolePermissions}
                         disabled={
                           actionLoading ||
-                          !selectedMember ||
-                          !memberRoleId ||
-                          (memberLimit > 0 && members.length >= memberLimit)
+                          !selectedRoleId ||
+                          selectedRole?.name === "Owner"
                         }
                         className="ui-button-primary px-4 py-2 text-sm disabled:opacity-50"
                       >
-                        {t("addMember")}
+                        {t("savePermissions")}
                       </button>
                     </div>
 
-                    {memberLimit > 0 && (
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        {t("memberCount", {
-                          current: members.length,
-                          max: memberLimit,
-                        })}
-                      </p>
-                    )}
-
-                    {limitInfo && (
-                      <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-                        <div className="font-medium">
-                          {t("maxMembers", { count: limitInfo.max })}
-                        </div>
-                        <div className="mt-1 text-xs text-amber-800">
-                          {t("memberCount", {
-                            current: limitInfo.current,
-                            max: limitInfo.max,
-                          })}
-                          {limitInfo.planName ? ` · ${limitInfo.planName}` : ""}
-                        </div>
-                        {isAdmin && (
-                          <button
-                            type="button"
-                            onClick={handleManagePlan}
-                            className="mt-2 rounded-lg border border-amber-300 px-2.5 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100"
-                          >
-                            {t("managePlan")}
-                          </button>
-                        )}
-                      </div>
-                    )}
-
-                    {error && (
-                      <div className="mt-3 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-                        {error}
-                      </div>
-                    )}
-
                     <div className="mt-4">
-                      {loadingMembers ? (
+                      {loadingRolePermissions ? (
                         <p className="text-sm text-muted-foreground">
                           {t("loading")}
                         </p>
-                      ) : members.length === 0 ? (
+                      ) : !selectedRoleId ? (
                         <p className="text-sm text-muted-foreground">
-                          {t("noMembers")}
+                          {t("selectRole")}
                         </p>
                       ) : (
-                        <div className="space-y-2">
-                          {members.map((m) => (
-                            <div
-                              key={m.member_id}
-                              className="flex items-center justify-between rounded-xl border border-border/70 bg-background/90 px-3 py-2"
-                            >
-                              <div>
-                                <div className="text-sm font-medium text-foreground">
-                                  {m.nickname || m.email || `#${m.member_id}`}
-                                </div>
-                                {m.email && (
-                                  <div className="text-xs text-muted-foreground">
-                                    {m.email}
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                {m.member_id === selectedTeam?.created_by ? (
-                                  <span>{t("ownerRole")}</span>
+                        <div className="grid gap-3 md:grid-cols-[1fr_auto_1fr]">
+                          <div>
+                            <div className="text-xs font-medium text-muted-foreground">
+                              {t("availablePermissions")}
+                            </div>
+                            <div className="mt-2 rounded-lg border border-border bg-background">
+                              <div className="max-h-64 overflow-auto">
+                                {availablePermissions.length === 0 ? (
+                                  <p className="p-3 text-xs text-muted-foreground">
+                                    {t("noAvailablePermissions")}
+                                  </p>
                                 ) : (
-                                  <select
-                                    value={m.role_id ?? ""}
-                                    onChange={(e) =>
-                                      handleChangeMemberRole(
-                                        m.member_id,
-                                        Number(e.target.value)
-                                      )
-                                    }
-                                    className="rounded-lg border border-border/70 bg-background px-2 py-1 text-xs"
-                                  >
-                                    {roleOptions.map((role) => (
-                                      <option key={role.team_role_id} value={role.team_role_id}>
-                                        {role.name}
-                                      </option>
-                                    ))}
-                                  </select>
-                                )}
-                                {m.member_id !== currentMemberId && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveMember(m.member_id)}
-                                    className="rounded-lg border border-destructive/30 px-2 py-1 text-destructive hover:bg-destructive/10"
-                                  >
-                                    {t("remove")}
-                                  </button>
+                                  availablePermissions.map((option) => (
+                                    <button
+                                      key={option.code}
+                                      type="button"
+                                      onClick={() =>
+                                        setSelectedAvailable(option.code)
+                                      }
+                                      className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm ${
+                                        selectedAvailable === option.code
+                                          ? "bg-primary/10 text-primary"
+                                          : "hover:bg-accent"
+                                      }`}
+                                    >
+                                      <span>{option.label}</span>
+                                      <span className="text-xs text-muted-foreground">
+                                        {option.code}
+                                      </span>
+                                    </button>
+                                  ))
                                 )}
                               </div>
                             </div>
-                          ))}
+                          </div>
+
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={handleAssignPermission}
+                              disabled={
+                                !selectedAvailable ||
+                                selectedRole?.name === "Owner"
+                              }
+                              className="rounded border border-border px-3 py-1 text-sm hover:bg-accent disabled:opacity-50"
+                            >
+                              {t("addPermissionArrow")}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleUnassignPermission}
+                              disabled={
+                                !selectedAssigned ||
+                                selectedRole?.name === "Owner"
+                              }
+                              className="rounded border border-border px-3 py-1 text-sm hover:bg-accent disabled:opacity-50"
+                            >
+                              {t("removePermissionArrow")}
+                            </button>
+                          </div>
+
+                          <div>
+                            <div className="text-xs font-medium text-muted-foreground">
+                              {t("assignedPermissions")}
+                            </div>
+                            <div className="mt-2 rounded-lg border border-border bg-background">
+                              <div className="max-h-64 overflow-auto">
+                                {assignedPermissions.length === 0 ? (
+                                  <p className="p-3 text-xs text-muted-foreground">
+                                    {t("noAssignedPermissions")}
+                                  </p>
+                                ) : (
+                                  assignedPermissions.map((option) => (
+                                    <button
+                                      key={option.code}
+                                      type="button"
+                                      onClick={() =>
+                                        setSelectedAssigned(option.code)
+                                      }
+                                      className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm ${
+                                        selectedAssigned === option.code
+                                          ? "bg-primary/10 text-primary"
+                                          : "hover:bg-accent"
+                                      }`}
+                                    >
+                                      <span>{option.label}</span>
+                                      <span className="text-xs text-muted-foreground">
+                                        {option.code}
+                                      </span>
+                                    </button>
+                                  ))
+                                )}
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
                   </div>
-                )}
-
-                {isAdmin && (
-                  <div className="space-y-6">
-                    <div className="dashboard-glass-card premium-noise p-6">
-                      <h3 className="text-lg font-semibold text-foreground">
-                        {t("rolesTitle")}
-                      </h3>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {t("rolesDesc")}
-                      </p>
-
-                      <div className="mt-4 flex gap-2">
-                        <input
-                          value={roleName}
-                          onChange={(e) => setRoleName(e.target.value)}
-                          placeholder={t("roleNamePlaceholder")}
-                          className="flex-1 rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleCreateRole}
-                          disabled={actionLoading || !roleName.trim()}
-                          className="ui-button-primary px-4 py-2 text-sm disabled:opacity-50"
-                        >
-                          {t("addRole")}
-                        </button>
-                      </div>
-
-                      <div className="mt-4 space-y-2">
-                        {loadingRoles ? (
-                          <p className="text-sm text-muted-foreground">
-                            {t("loading")}
-                          </p>
-                        ) : roles.length === 0 ? (
-                          <p className="text-sm text-muted-foreground">
-                            {t("noRoles")}
-                          </p>
-                        ) : (
-                          roles.map((role) => (
-                            <div
-                              key={role.team_role_id}
-                              className="flex items-center justify-between rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
-                            >
-                              <div className="font-medium text-foreground">
-                                {role.name}
-                              </div>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <span>
-                                  {t("roleMembers", {
-                                    count: role.memberCount ?? 0,
-                                  })}
-                                </span>
-                                {role.name !== "Owner" && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeleteRole(role.team_role_id)}
-                                    className="rounded-lg border border-destructive/30 px-2 py-1 text-destructive hover:bg-destructive/10"
-                                  >
-                                    {t("remove")}
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="dashboard-glass-card premium-noise p-6">
-                      <h3 className="text-lg font-semibold text-foreground">
-                        {t("permissionsTitle")}
-                      </h3>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {t("permissionsDesc")}
-                      </p>
-
-                      <div className="mt-4 flex gap-2">
-                        <select
-                          value={selectedRoleId ?? ""}
-                          onChange={(e) =>
-                            setSelectedRoleId(
-                              e.target.value ? Number(e.target.value) : null
-                            )
-                          }
-                          className="flex-1 rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
-                        >
-                          <option value="">{t("roleSelect")}</option>
-                          {roleOptions.map((role) => (
-                            <option key={role.team_role_id} value={role.team_role_id}>
-                              {role.name}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          onClick={handleSaveRolePermissions}
-                          disabled={
-                            actionLoading ||
-                            !selectedRoleId ||
-                            selectedRole?.name === "Owner"
-                          }
-                          className="ui-button-primary px-4 py-2 text-sm disabled:opacity-50"
-                        >
-                          {t("savePermissions")}
-                        </button>
-                      </div>
-
-                      <div className="mt-4">
-                        {loadingRolePermissions ? (
-                          <p className="text-sm text-muted-foreground">
-                            {t("loading")}
-                          </p>
-                        ) : !selectedRoleId ? (
-                          <p className="text-sm text-muted-foreground">
-                            {t("selectRole")}
-                          </p>
-                        ) : (
-                          <div className="grid gap-3 md:grid-cols-[1fr_auto_1fr]">
-                            <div>
-                              <div className="text-xs font-medium text-muted-foreground">
-                                {t("availablePermissions")}
-                              </div>
-                              <div className="mt-2 rounded-lg border border-border bg-background">
-                                <div className="max-h-64 overflow-auto">
-                                  {availablePermissions.length === 0 ? (
-                                    <p className="p-3 text-xs text-muted-foreground">
-                                      {t("noAvailablePermissions")}
-                                    </p>
-                                  ) : (
-                                    availablePermissions.map((option) => (
-                                      <button
-                                        key={option.code}
-                                        type="button"
-                                        onClick={() => setSelectedAvailable(option.code)}
-                                        className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm ${
-                                          selectedAvailable === option.code
-                                            ? "bg-primary/10 text-primary"
-                                            : "hover:bg-accent"
-                                        }`}
-                                      >
-                                        <span>{option.label}</span>
-                                        <span className="text-xs text-muted-foreground">
-                                          {option.code}
-                                        </span>
-                                      </button>
-                                    ))
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex flex-col items-center justify-center gap-2">
-                              <button
-                                type="button"
-                                onClick={handleAssignPermission}
-                                disabled={
-                                  !selectedAvailable ||
-                                  selectedRole?.name === "Owner"
-                                }
-                                className="rounded border border-border px-3 py-1 text-sm hover:bg-accent disabled:opacity-50"
-                              >
-                                {t("addPermissionArrow")}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={handleUnassignPermission}
-                                disabled={
-                                  !selectedAssigned ||
-                                  selectedRole?.name === "Owner"
-                                }
-                                className="rounded border border-border px-3 py-1 text-sm hover:bg-accent disabled:opacity-50"
-                              >
-                                {t("removePermissionArrow")}
-                              </button>
-                            </div>
-
-                            <div>
-                              <div className="text-xs font-medium text-muted-foreground">
-                                {t("assignedPermissions")}
-                              </div>
-                              <div className="mt-2 rounded-lg border border-border bg-background">
-                                <div className="max-h-64 overflow-auto">
-                                  {assignedPermissions.length === 0 ? (
-                                    <p className="p-3 text-xs text-muted-foreground">
-                                      {t("noAssignedPermissions")}
-                                    </p>
-                                  ) : (
-                                    assignedPermissions.map((option) => (
-                                      <button
-                                        key={option.code}
-                                        type="button"
-                                        onClick={() => setSelectedAssigned(option.code)}
-                                        className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm ${
-                                          selectedAssigned === option.code
-                                            ? "bg-primary/10 text-primary"
-                                            : "hover:bg-accent"
-                                        }`}
-                                      >
-                                        <span>{option.label}</span>
-                                        <span className="text-xs text-muted-foreground">
-                                          {option.code}
-                                        </span>
-                                      </button>
-                                    ))
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
+    </div>
   );
 }

@@ -1,5 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { RowDataPacket } from "mysql2";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
+import pool from "@/lib/db";
+import { invalidateMemberCaches } from "@/lib/member-cache";
+import { findMemberByEmailOrNickname } from "@/lib/member";
+import { getActivePlanForOwner } from "@/lib/storage";
 import {
   addTeamMember,
   checkTeamMembership,
@@ -8,14 +13,10 @@ import {
   removeTeamMember,
   updateTeamMemberRole,
 } from "@/lib/team";
-import { findMemberByEmailOrNickname } from "@/lib/member";
-import { getActivePlanForOwner } from "@/lib/storage";
-import pool from "@/lib/db";
-import type { RowDataPacket } from "mysql2";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getAuthUser(request);
   if (!user) {
@@ -39,7 +40,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getAuthUser(request);
   if (!user) {
@@ -66,7 +67,7 @@ export async function POST(
   if (!identifier || typeof identifier !== "string") {
     return NextResponse.json(
       { error: "identifier is required" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -83,37 +84,41 @@ export async function POST(
   const planInfo = await getActivePlanForOwner("team", teamId);
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT COUNT(*) as count FROM team_members WHERE team_id = ?`,
-    [teamId]
+    [teamId],
   );
   const currentCount = Number(rows[0]?.count || 0);
 
   if (currentCount >= planInfo.max_members) {
     return NextResponse.json(
       { error: "Member limit reached" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   const roleIdValue =
-    typeof roleId === "number" && Number.isFinite(roleId)
-      ? roleId
-      : null;
+    typeof roleId === "number" && Number.isFinite(roleId) ? roleId : null;
   try {
     const added = await addTeamMember(
       teamId,
       member.member_id,
       user.memberId,
-      roleIdValue
+      roleIdValue,
     );
+    if (added) {
+      await invalidateMemberCaches(member.member_id, {
+        meTeams: true,
+        meWorkspaces: true,
+      });
+    }
     return NextResponse.json({ success: added });
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: "Invalid role" }, { status: 400 });
   }
 }
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getAuthUser(request);
   if (!user) {
@@ -141,28 +146,28 @@ export async function PATCH(
   if (!memberId || !roleId) {
     return NextResponse.json(
       { error: "member_id and role_id are required" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   if (memberId === team.created_by) {
     return NextResponse.json(
       { error: "Owner role cannot be changed" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   try {
     const updated = await updateTeamMemberRole(teamId, memberId, roleId);
     return NextResponse.json({ success: updated });
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: "Invalid role" }, { status: 400 });
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getAuthUser(request);
   if (!user) {
@@ -189,17 +194,23 @@ export async function DELETE(
   if (!memberId) {
     return NextResponse.json(
       { error: "member_id is required" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   if (memberId === team.created_by) {
     return NextResponse.json(
       { error: "Owner cannot be removed" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   const removed = await removeTeamMember(teamId, memberId);
+  if (removed) {
+    await invalidateMemberCaches(memberId, {
+      meTeams: true,
+      meWorkspaces: true,
+    });
+  }
   return NextResponse.json({ success: removed });
 }

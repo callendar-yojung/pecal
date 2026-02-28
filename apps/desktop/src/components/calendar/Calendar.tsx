@@ -4,8 +4,8 @@ import { invoke } from '@tauri-apps/api/core'
 import { CalendarHeader } from './CalendarHeader'
 import { CalendarGrid } from './CalendarGrid'
 import { TaskDrawer } from './TaskDrawer'
-import { useWorkspaceStore, useCalendarStore } from '../../stores'
-import { taskApi } from '../../api'
+import { useWorkspaceStore, useCalendarStore, useViewStore } from '../../stores'
+import { calendarApi, taskApi } from '../../api'
 import { isTauriApp } from '../../utils/tauri'
 import { parseApiDateTime } from '../../utils/datetime'
 import { getErrorMessage } from '../../utils/error'
@@ -14,7 +14,8 @@ import type { Task } from '../../types'
 export function Calendar() {
   const { t } = useTranslation()
   const { selectedWorkspaceId } = useWorkspaceStore()
-  const { setEvents, setLoading, setError, clearEvents, setSelectedDate, error } = useCalendarStore()
+  const { openTaskDetail } = useViewStore()
+  const { selectedDate, setEvents, setLoading, setError, clearEvents, setSelectedDate, error } = useCalendarStore()
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
   const toggleDrawer = useCallback(() => setIsDrawerOpen((prev) => !prev), [])
@@ -25,6 +26,17 @@ export function Calendar() {
       setIsDrawerOpen(true)
     },
     [setSelectedDate],
+  )
+  const openTaskDetailWithRefresh = useCallback(
+    async (task: Task) => {
+      try {
+        const detail = await taskApi.getTaskById(task.id)
+        openTaskDetail(detail ?? task)
+      } catch {
+        openTaskDetail(task)
+      }
+    },
+    [openTaskDetail],
   )
 
   useEffect(() => {
@@ -38,28 +50,36 @@ export function Calendar() {
       setError(null)
 
       try {
-        const allTasks: Task[] = []
-        const firstPage = await taskApi.getTasksPaginated({
-          workspace_id: selectedWorkspaceId,
-          page: 1,
-          limit: 100,
-          sort_by: 'start_time',
-          sort_order: 'ASC',
-        })
-        allTasks.push(...(firstPage.tasks ?? []))
+        const year = selectedDate.getFullYear()
+        const month = selectedDate.getMonth() + 1
+        const res = await calendarApi.getMonthlyTasks(selectedWorkspaceId, year, month)
 
-        if (firstPage.totalPages > 1) {
-          for (let page = 2; page <= firstPage.totalPages; page += 1) {
-            const pageRes = await taskApi.getTasksPaginated({
+        const byId = new Map<number, Task>()
+        for (const row of res.tasksByDate ?? []) {
+          for (const item of row.tasks ?? []) {
+            if (byId.has(item.id)) continue
+            byId.set(item.id, {
+              id: item.id,
+              title: item.title,
+              start_time: item.start_time,
+              end_time: item.end_time,
+              color: item.color ?? '#93c5fd',
+              status: 'todo',
+              content: '',
+              reminder_minutes: null,
+              rrule: null,
+              tag_ids: [],
+              created_at: item.start_time,
+              updated_at: item.end_time || item.start_time,
+              created_by: 0,
+              updated_by: 0,
               workspace_id: selectedWorkspaceId,
-              page,
-              limit: 100,
-              sort_by: 'start_time',
-              sort_order: 'ASC',
             })
-            allTasks.push(...(pageRes.tasks ?? []))
           }
         }
+        const allTasks = Array.from(byId.values()).sort(
+          (a, b) => parseApiDateTime(a.start_time).getTime() - parseApiDateTime(b.start_time).getTime(),
+        )
 
         setEvents(allTasks)
 
@@ -73,7 +93,7 @@ export function Calendar() {
                 workspace_id: task.workspace_id,
                 title: task.title,
                 start_at_unix: Math.floor(parseApiDateTime(task.start_time).getTime() / 1000),
-                reminder_minutes_before: 10,
+                reminder_minutes_before: Math.max(0, Number(task.reminder_minutes ?? 10)),
                 is_enabled: task.status !== 'done',
               })),
             })
@@ -90,7 +110,7 @@ export function Calendar() {
     }
 
     fetchEvents()
-  }, [selectedWorkspaceId, setEvents, setLoading, setError, clearEvents, t])
+  }, [selectedWorkspaceId, selectedDate, setEvents, setLoading, setError, clearEvents, t])
 
   if (!selectedWorkspaceId) {
     return (
@@ -110,8 +130,8 @@ export function Calendar() {
         </div>
       )}
       <CalendarHeader onToggleDrawer={toggleDrawer} />
-      <CalendarGrid onOpenMore={openDrawerForDate} />
-      <TaskDrawer isOpen={isDrawerOpen} onClose={closeDrawer} />
+      <CalendarGrid onOpenMore={openDrawerForDate} onOpenTaskDetail={openTaskDetailWithRefresh} />
+      <TaskDrawer isOpen={isDrawerOpen} onClose={closeDrawer} onOpenTaskDetail={openTaskDetailWithRefresh} />
     </div>
   )
 }

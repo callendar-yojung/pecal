@@ -10,11 +10,18 @@ type WidgetTask = {
   color: string;
 };
 
+type WidgetWorkspace = {
+  workspace_id: number;
+  workspace_name: string;
+  tasks: WidgetTask[];
+};
+
 type WidgetPayload = {
   generated_at: string;
-  workspace_name: string;
   nickname: string;
-  tasks: WidgetTask[];
+  workspace_name?: string;
+  tasks?: WidgetTask[];
+  workspaces?: WidgetWorkspace[];
 };
 
 type WidgetBridgeModule = {
@@ -53,7 +60,7 @@ function pickTasksForWidget(tasks: TaskItem[], limit: number): WidgetTask[] {
     .map((task) => ({
       task,
       start: parseDate(task.start_time),
-      end: parseDate(task.end_time),
+      end: parseDate(task.end_time) ?? parseDate(task.start_time),
     }))
     .filter((item): item is { task: TaskItem; start: Date; end: Date } => !!item.start && !!item.end)
     .sort((a, b) => a.start.getTime() - b.start.getTime());
@@ -75,19 +82,44 @@ function pickTasksForWidget(tasks: TaskItem[], limit: number): WidgetTask[] {
 
 export async function syncWidgetData(params: {
   tasks: TaskItem[];
-  workspaceName: string;
+  workspaceName?: string;
   nickname: string;
   maxItems?: number;
+  workspaces?: Array<{
+    workspaceId: number;
+    workspaceName: string;
+    tasks: TaskItem[];
+  }>;
 }) {
   const bridge = getBridge();
   if (!bridge?.setWidgetData) return false;
 
   const payload: WidgetPayload = {
     generated_at: new Date().toISOString(),
-    workspace_name: params.workspaceName,
     nickname: params.nickname,
+    workspace_name: params.workspaceName,
     tasks: pickTasksForWidget(params.tasks ?? [], Math.max(1, params.maxItems ?? 180)),
+    workspaces: (params.workspaces ?? [])
+      .filter((workspace) => Number.isFinite(workspace.workspaceId) && workspace.workspaceId > 0)
+      .map((workspace) => ({
+        workspace_id: workspace.workspaceId,
+        workspace_name: workspace.workspaceName || `Workspace ${workspace.workspaceId}`,
+        tasks: pickTasksForWidget(
+          workspace.tasks ?? [],
+          Math.max(1, params.maxItems ?? 180)
+        ),
+      })),
   };
+
+  if (!payload.workspaces?.length && params.workspaceName) {
+    payload.workspaces = [
+      {
+        workspace_id: 0,
+        workspace_name: params.workspaceName,
+        tasks: payload.tasks ?? [],
+      },
+    ];
+  }
 
   try {
     await bridge.setWidgetData(JSON.stringify(payload));

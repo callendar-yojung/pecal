@@ -107,6 +107,8 @@ export interface Task {
   end_time: string
   content?: string
   color?: string
+  reminder_minutes?: number | null
+  rrule?: string | null
   tag_ids?: number[]
   status?: TaskStatus
   created_at: string
@@ -124,6 +126,8 @@ export interface CreateTaskPayload {
   color: string
   tag_ids: number[]
   file_ids?: number[]
+  reminder_minutes?: number | null
+  rrule?: string | null
   status?: TaskStatus | BackendTaskStatus
   workspace_id: number
 }
@@ -135,6 +139,8 @@ export interface UpdateTaskPayload {
   end_time?: string
   content?: string
   color?: string
+  reminder_minutes?: number | null
+  rrule?: string | null
   tag_ids?: number[]
   status?: TaskStatus | BackendTaskStatus
 }

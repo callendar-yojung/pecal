@@ -1,16 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
-import {
-  getTaskAttachments,
-  attachFileToTask,
-  detachFileFromTask,
-  deleteTaskAttachment,
-  getTaskAttachmentById,
-} from "@/lib/task-attachment";
-import { getFileById, deleteFileRecord } from "@/lib/file";
-import { formatBytes } from "@/lib/storage";
 import { unlink } from "node:fs/promises";
 import path from "node:path";
+import { type NextRequest, NextResponse } from "next/server";
 import { requireTaskAccess } from "@/lib/access";
+import { deleteFileRecord, getFileById } from "@/lib/file";
+import { formatBytes } from "@/lib/storage";
+import {
+  attachFileToTask,
+  deleteTaskAttachment,
+  detachFileFromTask,
+  getTaskAttachmentById,
+  getTaskAttachments,
+} from "@/lib/task-attachment";
 
 // GET /api/tasks/attachments?task_id={taskId}
 export async function GET(request: NextRequest) {
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     if (!taskId) {
       return NextResponse.json(
         { error: "task_id is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     console.error("Failed to fetch task attachments:", error);
     return NextResponse.json(
       { error: "Failed to fetch attachments" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     if (!task_id || !file_id) {
       return NextResponse.json(
         { error: "task_id and file_id are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -66,16 +66,13 @@ export async function POST(request: NextRequest) {
     // 파일 존재 여부 확인
     const file = await getFileById(Number(file_id));
     if (!file) {
-      return NextResponse.json(
-        { error: "File not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "File not found" }, { status: 404 });
     }
 
     const attachmentId = await attachFileToTask(
       Number(task_id),
       Number(file_id),
-      access.user.memberId
+      access.user.memberId,
     );
 
     return NextResponse.json({
@@ -86,7 +83,7 @@ export async function POST(request: NextRequest) {
     console.error("Failed to attach file:", error);
     return NextResponse.json(
       { error: "Failed to attach file" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -103,7 +100,10 @@ export async function DELETE(request: NextRequest) {
     if (attachmentId) {
       const attachment = await getTaskAttachmentById(Number(attachmentId));
       if (!attachment) {
-        return NextResponse.json({ error: "Attachment not found" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Attachment not found" },
+          { status: 404 },
+        );
       }
       const access = await requireTaskAccess(request, attachment.task_id);
       if (access instanceof NextResponse) return access;
@@ -116,7 +116,7 @@ export async function DELETE(request: NextRequest) {
     if (!taskId || !fileId) {
       return NextResponse.json(
         { error: "task_id and file_id (or attachment_id) are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -132,7 +132,11 @@ export async function DELETE(request: NextRequest) {
       if (file) {
         // 물리적 파일 삭제
         try {
-          const physicalPath = path.join(process.cwd(), "public", file.file_path);
+          const physicalPath = path.join(
+            process.cwd(),
+            "public",
+            file.file_path,
+          );
           await unlink(physicalPath);
         } catch {
           // 파일이 이미 없거나 삭제 실패해도 계속 진행
@@ -147,7 +151,7 @@ export async function DELETE(request: NextRequest) {
     console.error("Failed to detach file:", error);
     return NextResponse.json(
       { error: "Failed to detach file" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

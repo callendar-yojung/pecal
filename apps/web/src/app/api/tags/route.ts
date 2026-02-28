@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { requireOwnerAccess } from "@/lib/access";
 import { createTag, getTagsByOwner } from "@/lib/tag";
 
@@ -12,18 +12,22 @@ export async function GET(request: NextRequest) {
     if (!ownerType || !ownerId) {
       return NextResponse.json(
         { error: "owner_type and owner_id are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (ownerType !== "team" && ownerType !== "personal") {
       return NextResponse.json(
         { error: "owner_type must be 'team' or 'personal'" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const access = await requireOwnerAccess(request, ownerType, Number(ownerId));
+    const access = await requireOwnerAccess(
+      request,
+      ownerType,
+      Number(ownerId),
+    );
     if (access instanceof NextResponse) return access;
 
     const tags = await getTagsByOwner(ownerType, Number(ownerId));
@@ -33,7 +37,7 @@ export async function GET(request: NextRequest) {
     console.error("Failed to fetch tags:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -47,18 +51,22 @@ export async function POST(request: NextRequest) {
     if (!name || !owner_type || !owner_id) {
       return NextResponse.json(
         { error: "name, owner_type, and owner_id are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (owner_type !== "team" && owner_type !== "personal") {
       return NextResponse.json(
         { error: "owner_type must be 'team' or 'personal'" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const access = await requireOwnerAccess(request, owner_type, Number(owner_id));
+    const access = await requireOwnerAccess(
+      request,
+      owner_type,
+      Number(owner_id),
+    );
     if (access instanceof NextResponse) return access;
     const { user } = access;
 
@@ -78,13 +86,13 @@ export async function POST(request: NextRequest) {
     if (error.code === "ER_DUP_ENTRY") {
       return NextResponse.json(
         { error: "Tag with this name already exists" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

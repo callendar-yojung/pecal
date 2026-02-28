@@ -1,12 +1,12 @@
 // typescript
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useLocale, useTranslations } from "next-intl";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Button from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 interface Tag {
   tag_id: number;
@@ -37,7 +37,11 @@ type SortBy = "date" | "priority" | "status";
 const isLightColor = (hex?: string) => {
   if (!hex) return false;
   let h = hex.replace("#", "");
-  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  if (h.length === 3)
+    h = h
+      .split("")
+      .map((c) => c + c)
+      .join("");
   const r = parseInt(h.substring(0, 2), 16) / 255;
   const g = parseInt(h.substring(2, 4), 16) / 255;
   const b = parseInt(h.substring(4, 6), 16) / 255;
@@ -154,7 +158,14 @@ export default function TasksPanel() {
     } finally {
       setLoading(false);
     }
-  }, [currentWorkspace?.workspace_id, page, limit, sortBy, filterStatus, searchQuery]);
+  }, [
+    currentWorkspace?.workspace_id,
+    page,
+    limit,
+    sortBy,
+    filterStatus,
+    searchQuery,
+  ]);
 
   useEffect(() => {
     fetchTasks();
@@ -237,7 +248,10 @@ export default function TasksPanel() {
     router.push(`/dashboard/tasks/${task.id}`);
   };
 
-  const handleStatusChange = async (taskId: number, newStatus: "TODO" | "IN_PROGRESS" | "DONE") => {
+  const handleStatusChange = async (
+    taskId: number,
+    newStatus: "TODO" | "IN_PROGRESS" | "DONE",
+  ) => {
     try {
       const response = await fetch("/api/tasks", {
         method: "PATCH",
@@ -249,7 +263,11 @@ export default function TasksPanel() {
       });
 
       if (response.ok) {
-        setTasks(tasks.map(task => (task.id === taskId ? { ...task, status: newStatus } : task)));
+        setTasks(
+          tasks.map((task) =>
+            task.id === taskId ? { ...task, status: newStatus } : task,
+          ),
+        );
         await fetchStatusCounts();
       } else {
         console.error("Failed to update task:", response.statusText);
@@ -280,258 +298,341 @@ export default function TasksPanel() {
   if (!currentWorkspace) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">{t("noWorkspace") || "No workspace selected"}</div>
+        <div className="text-muted-foreground">
+          {t("noWorkspace") || "No workspace selected"}
+        </div>
       </div>
     );
   }
 
   return (
-      <div className="space-y-6">
-        {/* 상단 통계 카드 */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-          <button
-              onClick={() => handleFilterStatusChange("all")}
-                  className={`ui-card p-4 text-left transition-colors ${
-                  filterStatus === "all"
-                      ? "border-primary bg-primary/10 shadow-[0_10px_24px_rgba(59,130,246,0.16)]"
-                      : "border-border/70 bg-card/90 hover:bg-hover"
-              }`}
-          >
-            <p className="text-sm text-muted-foreground">{t("filter.all")}</p>
-            <p className="mt-1 text-2xl font-bold text-foreground">{allCount}</p>
-          </button>
-          <button
-              onClick={() => handleFilterStatusChange("TODO")}
-                  className={`ui-card p-4 text-left transition-colors ${
-                  filterStatus === "TODO"
-                      ? "border-status-todo-foreground bg-status-todo shadow-[0_10px_24px_rgba(245,158,11,0.16)]"
-                      : "border-border/70 bg-card/90 hover:bg-hover"
-              }`}
-          >
-            <p className="text-sm text-muted-foreground">{statusLabels.TODO}</p>
-            <p className="mt-1 text-2xl font-bold text-foreground">{todoCount}</p>
-          </button>
-          <button
-              onClick={() => handleFilterStatusChange("IN_PROGRESS")}
-                  className={`ui-card p-4 text-left transition-colors ${
-                  filterStatus === "IN_PROGRESS"
-                      ? "border-status-progress-foreground bg-status-progress shadow-[0_10px_24px_rgba(59,130,246,0.16)]"
-                      : "border-border/70 bg-card/90 hover:bg-hover"
-              }`}
-          >
-            <p className="text-sm text-muted-foreground">{statusLabels.IN_PROGRESS}</p>
-            <p className="mt-1 text-2xl font-bold text-foreground">{inProgressCount}</p>
-          </button>
-          <button
-              onClick={() => handleFilterStatusChange("DONE")}
-                  className={`ui-card p-4 text-left transition-colors ${
-                  filterStatus === "DONE"
-                      ? "border-status-done-foreground bg-status-done shadow-[0_10px_24px_rgba(34,197,94,0.16)]"
-                      : "border-border/70 bg-card/90 hover:bg-hover"
-              }`}
-          >
-            <p className="text-sm text-muted-foreground">{statusLabels.DONE}</p>
-            <p className="mt-1 text-2xl font-bold text-foreground">{doneCount}</p>
-          </button>
+    <div className="space-y-6">
+      {/* 상단 통계 카드 */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+        <button
+          type="button"
+          onClick={() => handleFilterStatusChange("all")}
+          className={`ui-card p-4 text-left transition-colors ${
+            filterStatus === "all"
+              ? "border-primary bg-primary/10 shadow-[0_10px_24px_rgba(59,130,246,0.16)]"
+              : "border-border/70 bg-card/90 hover:bg-hover"
+          }`}
+        >
+          <p className="text-sm text-muted-foreground">{t("filter.all")}</p>
+          <p className="mt-1 text-2xl font-bold text-foreground">{allCount}</p>
+        </button>
+        <button
+          type="button"
+          onClick={() => handleFilterStatusChange("TODO")}
+          className={`ui-card p-4 text-left transition-colors ${
+            filterStatus === "TODO"
+              ? "border-status-todo-foreground bg-status-todo shadow-[0_10px_24px_rgba(245,158,11,0.16)]"
+              : "border-border/70 bg-card/90 hover:bg-hover"
+          }`}
+        >
+          <p className="text-sm text-muted-foreground">{statusLabels.TODO}</p>
+          <p className="mt-1 text-2xl font-bold text-foreground">{todoCount}</p>
+        </button>
+        <button
+          type="button"
+          onClick={() => handleFilterStatusChange("IN_PROGRESS")}
+          className={`ui-card p-4 text-left transition-colors ${
+            filterStatus === "IN_PROGRESS"
+              ? "border-status-progress-foreground bg-status-progress shadow-[0_10px_24px_rgba(59,130,246,0.16)]"
+              : "border-border/70 bg-card/90 hover:bg-hover"
+          }`}
+        >
+          <p className="text-sm text-muted-foreground">
+            {statusLabels.IN_PROGRESS}
+          </p>
+          <p className="mt-1 text-2xl font-bold text-foreground">
+            {inProgressCount}
+          </p>
+        </button>
+        <button
+          type="button"
+          onClick={() => handleFilterStatusChange("DONE")}
+          className={`ui-card p-4 text-left transition-colors ${
+            filterStatus === "DONE"
+              ? "border-status-done-foreground bg-status-done shadow-[0_10px_24px_rgba(34,197,94,0.16)]"
+              : "border-border/70 bg-card/90 hover:bg-hover"
+          }`}
+        >
+          <p className="text-sm text-muted-foreground">{statusLabels.DONE}</p>
+          <p className="mt-1 text-2xl font-bold text-foreground">{doneCount}</p>
+        </button>
+      </div>
+
+      {/* 필터 및 검색 바 */}
+      <div className="space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap gap-2">
+            <input
+              type="text"
+              placeholder={t("filter.search")}
+              value={searchInput}
+              onChange={(e) => handleSearchInputChange(e.target.value)}
+              className="rounded-xl border border-input/80 bg-background/90 px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            <select
+              value={sortBy}
+              onChange={(e) => handleSortChange(e.target.value as SortBy)}
+              className="rounded-xl border border-input/80 bg-background/90 px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="date">{t("filter.sortByDate")}</option>
+              <option value="priority">{t("filter.sortByPriority")}</option>
+              <option value="status">{t("filter.sortByStatus")}</option>
+            </select>
+          </div>
+          <Button variant="primary" size="lg" onClick={handleOpenCreateModal}>
+            + {t("addTask")}
+          </Button>
         </div>
 
-        {/* 필터 및 검색 바 */}
-        <div className="space-y-4">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap gap-2">
-              <input
-                  type="text"
-                  placeholder={t("filter.search")}
-                  value={searchInput}
-                  onChange={(e) => handleSearchInputChange(e.target.value)}
-                  className="rounded-xl border border-input/80 bg-background/90 px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+        {/* 날짜 범위 필터 */}
+        <div className="ui-card flex flex-wrap items-center gap-3 p-3">
+          <div className="flex items-center gap-2">
+            <svg
+              aria-hidden="true"
+              className="h-5 w-5 text-muted-foreground"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
-              <select
-                  value={sortBy}
-                  onChange={(e) => handleSortChange(e.target.value as SortBy)}
-                  className="rounded-xl border border-input/80 bg-background/90 px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="date">{t("filter.sortByDate")}</option>
-                <option value="priority">{t("filter.sortByPriority")}</option>
-                <option value="status">{t("filter.sortByStatus")}</option>
-              </select>
-            </div>
-            <Button variant="primary" size="lg" onClick={handleOpenCreateModal}>
-              + {t("addTask")}
-            </Button>
+            </svg>
+            <span className="text-sm font-medium text-card-foreground">
+              {t("filter.dateRange")}
+            </span>
           </div>
-
-          {/* 날짜 범위 필터 */}
-          <div className="ui-card flex flex-wrap items-center gap-3 p-3">
-            <div className="flex items-center gap-2">
-              <svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="rounded-xl border border-input/80 bg-muted/60 px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            <span className="text-muted-foreground">~</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="rounded-xl border border-input/80 bg-muted/60 px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          {(startDate || endDate) && (
+            <Button
+              size="sm"
+              onClick={clearDateFilter}
+              className="flex items-center gap-1"
+            >
+              <svg
+                aria-hidden="true"
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
-              <span className="text-sm font-medium text-card-foreground">{t("filter.dateRange")}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="rounded-xl border border-input/80 bg-muted/60 px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-              <span className="text-muted-foreground">~</span>
-              <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="rounded-xl border border-input/80 bg-muted/60 px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-            {(startDate || endDate) && (
-                <Button size="sm" onClick={clearDateFilter} className="flex items-center gap-1">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  {t("filter.reset")}
-                </Button>
-            )}
-            {(startDate || endDate) && (
-                <span className="ml-auto text-sm text-muted-foreground">
+              {t("filter.reset")}
+            </Button>
+          )}
+          {(startDate || endDate) && (
+            <span className="ml-auto text-sm text-muted-foreground">
               {t("filter.tasksCount", { count: filteredTasks.length })}
             </span>
-            )}
-          </div>
-        </div>
-
-        {/* 태스크 목록 */}
-        <div className="space-y-3">
-          {filteredTasks.length === 0 ? (
-              <Card className="rounded-2xl border-border/70 bg-card/90 p-12 text-center shadow-[0_14px_30px_rgba(15,23,42,0.06)]">
-                <p className="text-muted-foreground">{t("filter.noTasks")}</p>
-              </Card>
-          ) : (
-              filteredTasks.map((task) => {
-                const taskPriority = task.priority || "medium";
-                return (
-                  <Card
-                      key={task.id}
-                      onClick={() => handleTaskClick(task)}
-                      className="group relative cursor-pointer overflow-hidden rounded-2xl border border-border/70 bg-card/90 p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-[0_12px_30px_rgba(15,23,42,0.12)]"
-                  >
-                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${priorityStyles[taskPriority]}`} />
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3
-                              className={`text-lg font-semibold ${
-                                  task.status === "DONE"
-                                      ? "text-muted-foreground line-through"
-                                      : "text-foreground"
-                              }`}
-                          >
-                            {task.title}
-                          </h3>
-
-                          {task.tags?.length ? (
-                              <div className="flex gap-2">
-                                {task.tags.map((tag) => {
-                                  const textColor = tag.color ? (isLightColor(tag.color) ? "#000" : "#fff") : undefined;
-                                  return (
-                                      <span
-                                          key={tag.tag_id}
-                                          className="rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-black/5 dark:ring-white/10"
-                                          style={{ backgroundColor: tag.color ?? undefined, color: textColor }}
-                                      >
-                              {tag.name.toLowerCase() === "high" ? t("filter.urgent") : tag.name}
-                            </span>
-                                  );
-                                })}
-                              </div>
-                          ) : null}
-                        </div>
-                        {task.content && (
-                            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                              {getContentText(task.content)}
-                            </p>
-                        )}
-                        <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      {formatDateTime(task.start_time)} - {formatDateTime(task.end_time)}
-                    </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <select
-                            value={task.status}
-                            onClick={(e) => e.stopPropagation()}
-                            onChange={(e) => handleStatusChange(task.id, e.target.value as Task["status"])}
-                            className={`rounded-full px-3 py-1 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-ring ${statusStyles[task.status]}`}
-                        >
-                          <option value="TODO">{statusLabels.TODO}</option>
-                          <option value="IN_PROGRESS">{statusLabels.IN_PROGRESS}</option>
-                          <option value="DONE">{statusLabels.DONE}</option>
-                        </select>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })
           )}
         </div>
-
-        {/* 하단: 페이지 크기 + 페이지네이션 */}
-        {total > 0 && (
-          <Card className="flex items-center justify-between rounded-2xl border-border/70 bg-card/90 px-6 py-3 shadow-[0_12px_28px_rgba(15,23,42,0.08)]">
-            <div className="flex items-center gap-3">
-              <div className="text-xs text-muted-foreground">
-                {t("filter.tasksCount", { count: total })}
-              </div>
-              <select
-                value={limit}
-                onChange={(e) => handleLimitChange(Number(e.target.value))}
-                className="rounded-lg border border-border/70 bg-background/90 px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-              >
-                <option value={10}>{t("filter.perPage", { count: 10 })}</option>
-                <option value={20}>{t("filter.perPage", { count: 20 })}</option>
-                <option value={50}>{t("filter.perPage", { count: 50 })}</option>
-                <option value={100}>{t("filter.perPage", { count: 100 })}</option>
-              </select>
-            </div>
-            {totalPages > 1 && (
-              <div className="flex items-center gap-1">
-                <Button size="sm" onClick={() => setPage(1)} disabled={page === 1}>
-                  «
-                </Button>
-                <Button size="sm" onClick={() => setPage(page - 1)} disabled={page === 1}>
-                  ‹
-                </Button>
-                {(() => {
-                  const pages: number[] = [];
-                  const start = Math.max(1, page - 2);
-                  const end = Math.min(totalPages, page + 2);
-                  for (let i = start; i <= end; i++) pages.push(i);
-                  return pages.map((p) => (
-                    <Button
-                      key={p}
-                      onClick={() => setPage(p)}
-                      variant={p === page ? "primary" : "muted"}
-                      size="sm"
-                    >
-                      {p}
-                    </Button>
-                  ));
-                })()}
-                <Button size="sm" onClick={() => setPage(page + 1)} disabled={page === totalPages}>
-                  ›
-                </Button>
-                <Button size="sm" onClick={() => setPage(totalPages)} disabled={page === totalPages}>
-                  »
-                </Button>
-              </div>
-            )}
-          </Card>
-        )}
-
       </div>
+
+      {/* 태스크 목록 */}
+      <div className="space-y-3">
+        {filteredTasks.length === 0 ? (
+          <Card className="rounded-2xl border-border/70 bg-card/90 p-12 text-center shadow-[0_14px_30px_rgba(15,23,42,0.06)]">
+            <p className="text-muted-foreground">{t("filter.noTasks")}</p>
+          </Card>
+        ) : (
+          filteredTasks.map((task) => {
+            const taskPriority = task.priority || "medium";
+            return (
+              <Card
+                key={task.id}
+                onClick={() => handleTaskClick(task)}
+                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-border/70 bg-card/90 p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-[0_12px_30px_rgba(15,23,42,0.12)]"
+              >
+                <div
+                  className={`absolute left-0 top-0 bottom-0 w-1.5 ${priorityStyles[taskPriority]}`}
+                />
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3
+                        className={`text-lg font-semibold ${
+                          task.status === "DONE"
+                            ? "text-muted-foreground line-through"
+                            : "text-foreground"
+                        }`}
+                      >
+                        {task.title}
+                      </h3>
+
+                      {task.tags?.length ? (
+                        <div className="flex gap-2">
+                          {task.tags.map((tag) => {
+                            const textColor = tag.color
+                              ? isLightColor(tag.color)
+                                ? "#000"
+                                : "#fff"
+                              : undefined;
+                            return (
+                              <span
+                                key={tag.tag_id}
+                                className="rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-black/5 dark:ring-white/10"
+                                style={{
+                                  backgroundColor: tag.color ?? undefined,
+                                  color: textColor,
+                                }}
+                              >
+                                {tag.name.toLowerCase() === "high"
+                                  ? t("filter.urgent")
+                                  : tag.name}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
+                    {task.content && (
+                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                        {getContentText(task.content)}
+                      </p>
+                    )}
+                    <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <svg
+                          aria-hidden="true"
+                          className="h-4 w-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        {formatDateTime(task.start_time)} -{" "}
+                        {formatDateTime(task.end_time)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={task.status}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) =>
+                        handleStatusChange(
+                          task.id,
+                          e.target.value as Task["status"],
+                        )
+                      }
+                      className={`rounded-full px-3 py-1 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-ring ${statusStyles[task.status]}`}
+                    >
+                      <option value="TODO">{statusLabels.TODO}</option>
+                      <option value="IN_PROGRESS">
+                        {statusLabels.IN_PROGRESS}
+                      </option>
+                      <option value="DONE">{statusLabels.DONE}</option>
+                    </select>
+                  </div>
+                </div>
+              </Card>
+            );
+          })
+        )}
+      </div>
+
+      {/* 하단: 페이지 크기 + 페이지네이션 */}
+      {total > 0 && (
+        <Card className="flex items-center justify-between rounded-2xl border-border/70 bg-card/90 px-6 py-3 shadow-[0_12px_28px_rgba(15,23,42,0.08)]">
+          <div className="flex items-center gap-3">
+            <div className="text-xs text-muted-foreground">
+              {t("filter.tasksCount", { count: total })}
+            </div>
+            <select
+              value={limit}
+              onChange={(e) => handleLimitChange(Number(e.target.value))}
+              className="rounded-lg border border-border/70 bg-background/90 px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+            >
+              <option value={10}>{t("filter.perPage", { count: 10 })}</option>
+              <option value={20}>{t("filter.perPage", { count: 20 })}</option>
+              <option value={50}>{t("filter.perPage", { count: 50 })}</option>
+              <option value={100}>{t("filter.perPage", { count: 100 })}</option>
+            </select>
+          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                onClick={() => setPage(1)}
+                disabled={page === 1}
+              >
+                «
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setPage(page - 1)}
+                disabled={page === 1}
+              >
+                ‹
+              </Button>
+              {(() => {
+                const pages: number[] = [];
+                const start = Math.max(1, page - 2);
+                const end = Math.min(totalPages, page + 2);
+                for (let i = start; i <= end; i++) pages.push(i);
+                return pages.map((p) => (
+                  <Button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    variant={p === page ? "primary" : "muted"}
+                    size="sm"
+                  >
+                    {p}
+                  </Button>
+                ));
+              })()}
+              <Button
+                size="sm"
+                onClick={() => setPage(page + 1)}
+                disabled={page === totalPages}
+              >
+                ›
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setPage(totalPages)}
+                disabled={page === totalPages}
+              >
+                »
+              </Button>
+            </div>
+          )}
+        </Card>
+      )}
+    </div>
   );
 }

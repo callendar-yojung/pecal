@@ -35,7 +35,16 @@ export async function createOrUpdateRelease(data: ReleaseData) {
        checksum = VALUES(checksum),
        release_notes = VALUES(release_notes),
        updated_at = NOW()`,
-      [version, platform, fileName, downloadUrl, fileSize, checksum, releaseNotes, isPrerelease]
+      [
+        version,
+        platform,
+        fileName,
+        downloadUrl,
+        fileSize,
+        checksum,
+        releaseNotes,
+        isPrerelease,
+      ],
     );
 
     return {
@@ -55,7 +64,7 @@ export async function getLatestRelease(platform: string) {
        WHERE platform = ? AND is_prerelease = false
        ORDER BY created_at DESC
        LIMIT 1`,
-      [platform]
+      [platform],
     );
 
     return (rows as any[])[0] || null;
@@ -76,7 +85,7 @@ export async function getAllLatestReleases() {
          WHERE is_prerelease = false
          GROUP BY platform
        ) r2 ON r1.platform = r2.platform AND r1.created_at = r2.max_created
-       WHERE r1.is_prerelease = false`
+       WHERE r1.is_prerelease = false`,
     );
 
     const releases = rows as any[];

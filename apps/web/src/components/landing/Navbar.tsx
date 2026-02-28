@@ -1,9 +1,9 @@
 "use client";
 
-import { Link } from "@/i18n/routing";
-import { useSession, signOut } from "next-auth/react";
-import { useState } from "react";
+import { signOut, useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
+import { useState } from "react";
+import { Link } from "@/i18n/routing";
 import LanguageSwitcher from "./LanguageSwitcher";
 
 export default function Navbar() {
@@ -21,9 +21,7 @@ export default function Navbar() {
                 Pc
               </span>
             </div>
-            <span className="text-lg font-semibold text-foreground">
-              Pecal
-            </span>
+            <span className="text-lg font-semibold text-foreground">Pecal</span>
           </Link>
 
           <div className="hidden items-center gap-6 md:flex">
@@ -94,6 +92,7 @@ export default function Navbar() {
           aria-label="메뉴 열기"
         >
           <svg
+            aria-hidden="true"
             className="h-6 w-6 text-foreground"
             fill="none"
             stroke="currentColor"

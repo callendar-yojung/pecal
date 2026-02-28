@@ -7,7 +7,7 @@ export async function ensurePermissionsSeeded() {
       `INSERT INTO permissions (code, description)
        SELECT ?, ?
        WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE code = ?)`,
-      [permission.code, permission.description, permission.code]
+      [permission.code, permission.description, permission.code],
     );
   }
 }

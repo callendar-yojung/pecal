@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { requireExportAccessByToken } from "@/lib/access";
-import { getTaskAttachments } from "@/lib/task-attachment";
 import { formatBytes } from "@/lib/storage";
+import { getTaskAttachments } from "@/lib/task-attachment";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ token: string }> }
+  { params }: { params: Promise<{ token: string }> },
 ) {
   const { token } = await params;
 

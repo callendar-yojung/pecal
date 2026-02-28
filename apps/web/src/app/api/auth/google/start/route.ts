@@ -1,9 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import {
-  createOAuthState,
-  isAllowedOAuthCallback,
-} from "@/lib/oauth-state";
+import { type NextRequest, NextResponse } from "next/server";
 import { getOAuthRedirectUri } from "@/lib/oauth-redirect-uri";
+import { createOAuthState, isAllowedOAuthCallback } from "@/lib/oauth-state";
 
 /**
  * GET /api/auth/google/start?callback=deskcal://auth/callback
@@ -24,7 +21,7 @@ export async function GET(request: NextRequest) {
       console.error("AUTH_GOOGLE_ID is not configured");
       return NextResponse.json(
         { error: "Google client ID not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -34,14 +31,14 @@ export async function GET(request: NextRequest) {
     if (!appCallback) {
       return NextResponse.json(
         { error: "callback parameter is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!isAllowedOAuthCallback(appCallback)) {
       return NextResponse.json(
         { error: "Invalid callback URL" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -73,7 +70,7 @@ export async function GET(request: NextRequest) {
     console.error("Google start error:", error);
     return NextResponse.json(
       { error: "Failed to start Google OAuth", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

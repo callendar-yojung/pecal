@@ -1,11 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
-import { getTeamById, updateTeam, deleteTeam, checkTeamMembership } from "@/lib/team";
+import { invalidateMemberCaches } from "@/lib/member-cache";
+import {
+  checkTeamMembership,
+  deleteTeam,
+  getTeamById,
+  updateTeam,
+} from "@/lib/team";
 
 // GET /api/teams/[id] - 팀 상세 조회
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getAuthUser(request);
@@ -15,7 +21,7 @@ export async function GET(
 
     const { id } = await params;
     const teamId = Number(id);
-    if (isNaN(teamId)) {
+    if (Number.isNaN(teamId)) {
       return NextResponse.json({ error: "Invalid team ID" }, { status: 400 });
     }
 
@@ -35,7 +41,7 @@ export async function GET(
     console.error("Failed to fetch team:", error);
     return NextResponse.json(
       { error: "Failed to fetch team" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -43,7 +49,7 @@ export async function GET(
 // PATCH /api/teams/[id] - 팀 수정
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getAuthUser(request);
@@ -53,7 +59,7 @@ export async function PATCH(
 
     const { id } = await params;
     const teamId = Number(id);
-    if (isNaN(teamId)) {
+    if (Number.isNaN(teamId)) {
       return NextResponse.json({ error: "Invalid team ID" }, { status: 400 });
     }
 
@@ -67,31 +73,32 @@ export async function PATCH(
     const { name, description } = body;
 
     if (!name || typeof name !== "string" || name.trim().length === 0) {
-      return NextResponse.json(
-        { error: "Invalid team name" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid team name" }, { status: 400 });
     }
 
     const success = await updateTeam(
       teamId,
       name.trim(),
-      description && typeof description === "string" ? description.trim() : null
+      description && typeof description === "string"
+        ? description.trim()
+        : null,
     );
 
     if (!success) {
       return NextResponse.json({ error: "Team not found" }, { status: 404 });
     }
 
+    await invalidateMemberCaches(user.memberId, { meTeams: true });
+
     return NextResponse.json({
       success: true,
-      message: "Team updated successfully"
+      message: "Team updated successfully",
     });
   } catch (error) {
     console.error("Failed to update team:", error);
     return NextResponse.json(
       { error: "Failed to update team" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -99,7 +106,7 @@ export async function PATCH(
 // DELETE /api/teams/[id] - 팀 삭제
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getAuthUser(request);
@@ -109,7 +116,7 @@ export async function DELETE(
 
     const { id } = await params;
     const teamId = Number(id);
-    if (isNaN(teamId)) {
+    if (Number.isNaN(teamId)) {
       return NextResponse.json({ error: "Invalid team ID" }, { status: 400 });
     }
 
@@ -133,15 +140,20 @@ export async function DELETE(
       return NextResponse.json({ error: "Team not found" }, { status: 404 });
     }
 
+    await invalidateMemberCaches(user.memberId, {
+      meTeams: true,
+      meWorkspaces: true,
+    });
+
     return NextResponse.json({
       success: true,
-      message: "Team deleted successfully"
+      message: "Team deleted successfully",
     });
   } catch (error) {
     console.error("Failed to delete team:", error);
     return NextResponse.json(
       { error: "Failed to delete team" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

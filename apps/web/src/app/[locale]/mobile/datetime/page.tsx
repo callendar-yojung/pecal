@@ -19,7 +19,10 @@ type Outbound =
 
 function postToNative(message: Outbound) {
   const serialized = JSON.stringify(message);
-  if (typeof window !== "undefined" && (window as any).ReactNativeWebView?.postMessage) {
+  if (
+    typeof window !== "undefined" &&
+    (window as any).ReactNativeWebView?.postMessage
+  ) {
     (window as any).ReactNativeWebView.postMessage(serialized);
   }
 }
@@ -101,7 +104,9 @@ function applyTheme(theme: "light" | "dark") {
           "--hover": "#E8ECF8",
           "--active": "#DCE3F5",
         };
-  Object.entries(palette).forEach(([key, value]) => root.style.setProperty(key, value));
+  Object.entries(palette).forEach(([key, value]) => {
+    root.style.setProperty(key, value);
+  });
 }
 
 export default function MobileDateTimePage() {
@@ -117,16 +122,20 @@ export default function MobileDateTimePage() {
         const minutes = idx % 2 === 0 ? "00" : "30";
         return `${hours}:${minutes}`;
       }),
-    []
+    [],
   );
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
       try {
         const parsed = JSON.parse(String(event.data)) as Inbound;
-        if (parsed.channel !== "pecal-datetime" || parsed.type !== "set-value") return;
+        if (parsed.channel !== "pecal-datetime" || parsed.type !== "set-value")
+          return;
         if (parsed.payload?.label) setLabel(parsed.payload.label);
-        if (parsed.payload?.theme === "dark" || parsed.payload?.theme === "light") {
+        if (
+          parsed.payload?.theme === "dark" ||
+          parsed.payload?.theme === "light"
+        ) {
           setTheme(parsed.payload.theme);
         }
         const split = splitDateTime(parsed.payload?.value || "");
@@ -136,7 +145,9 @@ export default function MobileDateTimePage() {
         postToNative({
           channel: "pecal-datetime",
           type: "error",
-          payload: { message: error instanceof Error ? error.message : String(error) },
+          payload: {
+            message: error instanceof Error ? error.message : String(error),
+          },
         });
       }
     };
@@ -146,12 +157,17 @@ export default function MobileDateTimePage() {
     postToNative({ channel: "pecal-datetime", type: "ready" });
     return () => {
       window.removeEventListener("message", onMessage);
-      document.removeEventListener("message", onMessage as unknown as EventListener);
+      document.removeEventListener(
+        "message",
+        onMessage as unknown as EventListener,
+      );
     };
   }, []);
 
   useEffect(() => {
-    const rootTheme = document.documentElement.classList.contains("dark") ? "dark" : "light";
+    const rootTheme = document.documentElement.classList.contains("dark")
+      ? "dark"
+      : "light";
     setTheme(rootTheme);
   }, []);
 
@@ -187,7 +203,9 @@ export default function MobileDateTimePage() {
   return (
     <div className="min-h-screen bg-transparent p-2">
       <div className="rounded-xl border border-border bg-card p-3">
-        <div className="mb-2 text-xs font-semibold text-muted-foreground">{label}</div>
+        <div className="mb-2 text-xs font-semibold text-muted-foreground">
+          {label}
+        </div>
         <div className="flex gap-2">
           <input
             type="date"

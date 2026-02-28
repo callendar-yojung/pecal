@@ -1,12 +1,12 @@
 import {
-  Navbar,
-  Hero,
-  TrustedBy,
-  Features,
-  Stats,
-  Pricing,
   CTA,
+  Features,
   Footer,
+  Hero,
+  Navbar,
+  Pricing,
+  Stats,
+  TrustedBy,
 } from "@/components/landing";
 
 export default function Home() {

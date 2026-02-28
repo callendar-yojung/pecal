@@ -13,6 +13,7 @@ export default async function LoginSuccessPage({ params }: Props) {
       <section className="w-full max-w-md rounded-2xl bg-background p-8 shadow-lg">
         <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
           <svg
+            aria-hidden="true"
             className="h-7 w-7"
             fill="none"
             stroke="currentColor"
@@ -31,9 +32,7 @@ export default async function LoginSuccessPage({ params }: Props) {
           {isKo ? "로그인 성공!" : "Login successful!"}
         </h1>
         <p className="mt-2 text-center text-sm text-muted-foreground">
-          {isKo
-            ? "이제 Pecal을 사용할 수 있어요."
-            : "You can now use Pecal."}
+          {isKo ? "이제 Pecal을 사용할 수 있어요." : "You can now use Pecal."}
         </p>
 
         <div className="mt-7 space-y-3">

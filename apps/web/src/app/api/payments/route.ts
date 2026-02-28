@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
 import { getPaymentsByOwner } from "@/lib/payment-history";
 
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   if (!ownerId || !ownerType) {
     return NextResponse.json(
       { error: "owner_id and owner_type are required" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     console.error("[Payments API] Error:", error.message);
     return NextResponse.json(
       { error: "Failed to fetch payment history" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

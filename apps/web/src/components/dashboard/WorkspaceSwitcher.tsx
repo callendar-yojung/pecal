@@ -1,9 +1,15 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { useTranslations } from "next-intl";
-import { Check, ChevronDown, Plus, UserCircle2, UsersRound } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Plus,
+  UserCircle2,
+  UsersRound,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 interface Workspace {
@@ -36,11 +42,7 @@ export default function WorkspaceSwitcher() {
   const [isCreatingTeam, setIsCreatingTeam] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [wsRes, teamRes, meRes] = await Promise.all([
         fetch("/api/me/workspaces"),
@@ -56,7 +58,11 @@ export default function WorkspaceSwitcher() {
     } catch (error) {
       console.error("Failed to fetch data:", error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -81,7 +87,8 @@ export default function WorkspaceSwitcher() {
   const primaryPersonalWorkspace =
     currentWorkspace?.type === "personal"
       ? personalWorkspaces.find(
-          (workspace) => workspace.workspace_id === currentWorkspace.workspace_id
+          (workspace) =>
+            workspace.workspace_id === currentWorkspace.workspace_id,
         ) || personalWorkspaces[0]
       : personalWorkspaces[0];
   const personalLabel = nickname
@@ -198,7 +205,7 @@ export default function WorkspaceSwitcher() {
                       onClick={() => {
                         // 팀의 워크스페이스를 찾아서 선택
                         const teamWs = workspaces.find(
-                          (w) => w.type === "team" && w.owner_id === team.id
+                          (w) => w.type === "team" && w.owner_id === team.id,
                         );
                         if (teamWs) handleSelect(teamWs);
                       }}
@@ -217,7 +224,8 @@ export default function WorkspaceSwitcher() {
                           {team.name}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {team.role_name || t("memberRole")} · {team.memberCount} {t("members")}
+                          {team.role_name || t("memberRole")} ·{" "}
+                          {team.memberCount} {t("members")}
                         </p>
                       </div>
                       {currentWorkspace?.type === "team" &&
@@ -252,9 +260,7 @@ export default function WorkspaceSwitcher() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-dashed border-primary/50">
                   <Plus className="h-4 w-4" />
                 </div>
-                <span className="text-sm font-semibold">
-                  {t("createTeam")}
-                </span>
+                <span className="text-sm font-semibold">{t("createTeam")}</span>
               </button>
             </div>
           </div>
@@ -295,7 +301,6 @@ export default function WorkspaceSwitcher() {
                   className="w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   required
                   disabled={isCreatingTeam}
-                  autoFocus
                 />
               </div>
 
@@ -305,15 +310,16 @@ export default function WorkspaceSwitcher() {
                   className="mb-1.5 block text-sm font-medium text-foreground"
                 >
                   {t("teamDescription") || "Description"}{" "}
-                  <span className="text-xs text-muted-foreground">(Optional)</span>
+                  <span className="text-xs text-muted-foreground">
+                    (Optional)
+                  </span>
                 </label>
                 <textarea
                   id="teamDescription"
                   value={newTeamDescription}
                   onChange={(e) => setNewTeamDescription(e.target.value)}
                   placeholder={
-                    t("teamDescriptionPlaceholder") ||
-                    "What's this team about?"
+                    t("teamDescriptionPlaceholder") || "What's this team about?"
                   }
                   rows={3}
                   className="w-full resize-none rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -402,10 +408,10 @@ export default function WorkspaceSwitcher() {
                       if (data?.teamId) {
                         sessionStorage.setItem(
                           "pending_team_id",
-                          String(data.teamId)
+                          String(data.teamId),
                         );
                         router.push(
-                          "/dashboard/settings/billing/plans?owner_type=team"
+                          "/dashboard/settings/billing/plans?owner_type=team",
                         );
                       }
                     } catch (error) {
@@ -420,6 +426,7 @@ export default function WorkspaceSwitcher() {
                   {isCreatingTeam ? (
                     <span className="flex items-center justify-center gap-2">
                       <svg
+                        aria-hidden="true"
                         className="animate-spin h-4 w-4"
                         fill="none"
                         viewBox="0 0 24 24"

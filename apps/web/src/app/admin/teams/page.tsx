@@ -16,22 +16,21 @@ export default function AdminTeamsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const fetchTeams = async () => {
+      try {
+        const response = await fetch("/api/admin/teams");
+        if (response.ok) {
+          const data = await response.json();
+          setTeams(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch teams:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchTeams();
   }, []);
-
-  const fetchTeams = async () => {
-    try {
-      const response = await fetch("/api/admin/teams");
-      if (response.ok) {
-        const data = await response.json();
-        setTeams(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch teams:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -140,4 +139,3 @@ export default function AdminTeamsPage() {
     </div>
   );
 }
-

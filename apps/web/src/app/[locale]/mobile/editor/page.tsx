@@ -20,12 +20,19 @@ type BridgeInbound =
 type BridgeOutbound =
   | { channel: "pecal-editor"; type: "ready" }
   | { channel: "pecal-editor"; type: "height"; payload: { height: number } }
-  | { channel: "pecal-editor"; type: "update"; payload: { json: string; text: string } }
+  | {
+      channel: "pecal-editor";
+      type: "update";
+      payload: { json: string; text: string };
+    }
   | { channel: "pecal-editor"; type: "error"; payload: { message: string } };
 
 function postToNative(message: BridgeOutbound) {
   const serialized = JSON.stringify(message);
-  if (typeof window !== "undefined" && (window as any).ReactNativeWebView?.postMessage) {
+  if (
+    typeof window !== "undefined" &&
+    (window as any).ReactNativeWebView?.postMessage
+  ) {
     (window as any).ReactNativeWebView.postMessage(serialized);
   }
 }
@@ -112,7 +119,9 @@ function applyTheme(theme: "light" | "dark") {
           "--active": "#DCE3F5",
         };
 
-  Object.entries(palette).forEach(([key, value]) => root.style.setProperty(key, value));
+  Object.entries(palette).forEach(([key, value]) => {
+    root.style.setProperty(key, value);
+  });
 }
 
 function plainTextFromNode(node: any): string {
@@ -128,7 +137,10 @@ function plainTextFromNode(node: any): string {
 
   if (node.type === "orderedList") {
     return content
-      .map((item: any, idx: number) => `${idx + 1}. ${plainTextFromNode(item?.content?.[0])}`)
+      .map(
+        (item: any, idx: number) =>
+          `${idx + 1}. ${plainTextFromNode(item?.content?.[0])}`,
+      )
       .join("\n");
   }
 
@@ -141,7 +153,9 @@ function plainTextFromNode(node: any): string {
   if (node.type === "heading") {
     const level = Number(node?.attrs?.level ?? 1);
     const prefix = level === 1 ? "# " : level === 2 ? "## " : "### ";
-    return prefix + content.map((child: any) => plainTextFromNode(child)).join("");
+    return (
+      prefix + content.map((child: any) => plainTextFromNode(child)).join("")
+    );
   }
 
   if (node.type === "blockquote") {
@@ -149,7 +163,11 @@ function plainTextFromNode(node: any): string {
   }
 
   if (node.type === "codeBlock") {
-    return ["```", content.map((child: any) => plainTextFromNode(child)).join(""), "```"].join("\n");
+    return [
+      "```",
+      content.map((child: any) => plainTextFromNode(child)).join(""),
+      "```",
+    ].join("\n");
   }
 
   return content.map((child: any) => plainTextFromNode(child)).join("");
@@ -168,12 +186,21 @@ export default function MobileEditorPage() {
 
   const handleInbound = useCallback((raw: unknown) => {
     try {
-      const parsed = typeof raw === "string" ? (JSON.parse(raw) as BridgeInbound) : (raw as BridgeInbound);
+      const parsed =
+        typeof raw === "string"
+          ? (JSON.parse(raw) as BridgeInbound)
+          : (raw as BridgeInbound);
       if (!parsed || (parsed as any).channel !== "pecal-editor") return;
       if ((parsed as any).type !== "set-content") return;
 
       const payload = (parsed as any).payload as
-        | { json?: string; text?: string; readOnly?: boolean; placeholder?: string; theme?: "light" | "dark" }
+        | {
+            json?: string;
+            text?: string;
+            readOnly?: boolean;
+            placeholder?: string;
+            theme?: "light" | "dark";
+          }
         | undefined;
       if (!payload) return;
       setReadOnly(!!payload.readOnly);
@@ -187,13 +214,17 @@ export default function MobileEditorPage() {
       postToNative({
         channel: "pecal-editor",
         type: "error",
-        payload: { message: error instanceof Error ? error.message : String(error) },
+        payload: {
+          message: error instanceof Error ? error.message : String(error),
+        },
       });
     }
   }, []);
 
   useEffect(() => {
-    const rootTheme = document.documentElement.classList.contains("dark") ? "dark" : "light";
+    const rootTheme = document.documentElement.classList.contains("dark")
+      ? "dark"
+      : "light";
     setTheme(rootTheme);
   }, []);
 
@@ -235,13 +266,17 @@ export default function MobileEditorPage() {
     if (!rootRef.current || typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver((entries) => {
       const height = Math.ceil(entries[0]?.contentRect?.height ?? 300);
-      postToNative({ channel: "pecal-editor", type: "height", payload: { height } });
+      postToNative({
+        channel: "pecal-editor",
+        type: "height",
+        payload: { height },
+      });
     });
     observer.observe(rootRef.current);
     return () => observer.disconnect();
   }, []);
 
-  const initialContent = useMemo(() => content, [content, contentKey]);
+  const initialContent = useMemo(() => content, [content]);
 
   if (!theme) return <div className="min-h-screen bg-transparent p-0" />;
 
@@ -264,7 +299,9 @@ export default function MobileEditorPage() {
             postToNative({
               channel: "pecal-editor",
               type: "error",
-              payload: { message: error instanceof Error ? error.message : String(error) },
+              payload: {
+                message: error instanceof Error ? error.message : String(error),
+              },
             });
           }
         }}

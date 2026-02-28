@@ -124,7 +124,11 @@ export async function listPayPalProducts(page = 1, pageSize = 20) {
 }
 
 // PayPal 플랜 목록 조회
-export async function listPayPalPlans(productId?: string, page = 1, pageSize = 20) {
+export async function listPayPalPlans(
+  productId?: string,
+  page = 1,
+  pageSize = 20,
+) {
   const query = productId
     ? `product_id=${productId}&page=${page}&page_size=${pageSize}`
     : `page=${page}&page_size=${pageSize}`;
@@ -145,4 +149,3 @@ export async function listPayPalPlans(productId?: string, page = 1, pageSize = 2
     throw error;
   }
 }
-

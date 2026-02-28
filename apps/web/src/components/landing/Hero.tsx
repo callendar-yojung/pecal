@@ -1,8 +1,8 @@
 "use client";
 
-import { Link } from "@/i18n/routing";
-import { useTranslations } from "next-intl";
 import { LayoutDashboard } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/routing";
 
 export default function Hero() {
   const t = useTranslations("hero");
@@ -18,9 +18,7 @@ export default function Hero() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
             </span>
-            <span className="text-muted-foreground">
-              {t("badge")}
-            </span>
+            <span className="text-muted-foreground">{t("badge")}</span>
           </div>
 
           <h1 className="mb-6 text-4xl font-bold tracking-tight text-foreground md:text-6xl lg:text-7xl">
@@ -47,6 +45,7 @@ export default function Hero() {
               className="group flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-8 py-4 text-base font-medium text-foreground transition-all hover:bg-hover hover:shadow-lg sm:w-auto"
             >
               <svg
+                aria-hidden="true"
                 className="h-4 w-4"
                 fill="none"
                 stroke="currentColor"
@@ -81,9 +80,7 @@ export default function Hero() {
                   <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
                     <LayoutDashboard className="h-8 w-8 text-foreground" />
                   </div>
-                  <p className="text-muted-foreground">
-                    {t("preview")}
-                  </p>
+                  <p className="text-muted-foreground">{t("preview")}</p>
                 </div>
               </div>
             </div>

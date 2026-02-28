@@ -1,16 +1,14 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useTranslations, useLocale } from "next-intl";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import Button from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 
 interface TaskWithTitle {
   id: number;
   title: string;
-  start_time: Date;
-  end_time: Date;
+  start_time: string | Date;
+  end_time: string | Date;
   color?: string | null;
 }
 
@@ -24,7 +22,29 @@ interface MiniCalendarProps {
   onDateSelect?: (date: Date) => void;
 }
 
-export default function MiniCalendar({ selectedDate, onDateSelect }: MiniCalendarProps) {
+function dateKeyFromDateTime(value?: string | Date | null) {
+  if (!value) return "";
+  if (value instanceof Date) {
+    const y = value.getFullYear();
+    const m = String(value.getMonth() + 1).padStart(2, "0");
+    const d = String(value.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+  const normalized = value.includes(" ") ? value.replace(" ", "T") : value;
+  const parsed = new Date(normalized);
+  if (Number.isNaN(parsed.getTime())) return "";
+  const y = parsed.getFullYear();
+  const m = String(parsed.getMonth() + 1).padStart(2, "0");
+  const d = String(parsed.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+export default function MiniCalendar({
+  selectedDate,
+  onDateSelect,
+}: MiniCalendarProps) {
   const t = useTranslations("dashboard.calendar");
   const locale = useLocale();
   const { currentWorkspace } = useWorkspace();
@@ -39,7 +59,9 @@ export default function MiniCalendar({ selectedDate, onDateSelect }: MiniCalenda
 
   useEffect(() => {
     if (!selectedDate) return;
-    setCurrentDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
+    setCurrentDate(
+      new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1),
+    );
   }, [selectedDate]);
 
   // 태스크 데이터 가져오기
@@ -50,7 +72,7 @@ export default function MiniCalendar({ selectedDate, onDateSelect }: MiniCalenda
       try {
         setIsLoading(true);
         const response = await fetch(
-          `/api/calendar?workspace_id=${currentWorkspace.workspace_id}&year=${year}&month=${month + 1}`
+          `/api/calendar?workspace_id=${currentWorkspace.workspace_id}&year=${year}&month=${month + 1}`,
         );
         if (response.ok) {
           const data = await response.json();
@@ -65,7 +87,7 @@ export default function MiniCalendar({ selectedDate, onDateSelect }: MiniCalenda
     };
 
     fetchTasksByDate();
-  }, [currentWorkspace?.workspace_id, year, month]);
+  }, [currentWorkspace?.workspace_id, year, month, currentWorkspace]);
 
   const firstDayOfMonth = new Date(year, month, 1);
   const lastDayOfMonth = new Date(year, month + 1, 0);
@@ -82,7 +104,9 @@ export default function MiniCalendar({ selectedDate, onDateSelect }: MiniCalenda
 
   const tasksByDateMap = useMemo(() => {
     const map = new Map<string, TaskWithTitle[]>();
-    tasksByDate.forEach((entry) => map.set(entry.date, entry.tasks || []));
+    tasksByDate.forEach((entry) => {
+      map.set(entry.date, entry.tasks || []);
+    });
     return map;
   }, [tasksByDate]);
 
@@ -124,15 +148,15 @@ export default function MiniCalendar({ selectedDate, onDateSelect }: MiniCalenda
       Array.from({ length: 12 }, (_, idx) =>
         new Date(2000, idx, 1).toLocaleDateString(
           locale === "ko" ? "ko-KR" : "en-US",
-          { month: "long" }
-        )
+          { month: "long" },
+        ),
       ),
-    [locale]
+    [locale],
   );
 
   const yearOptions = useMemo(
     () => Array.from({ length: 31 }, (_, idx) => year - 15 + idx),
-    [year]
+    [year],
   );
 
   useEffect(() => {
@@ -153,13 +177,17 @@ export default function MiniCalendar({ selectedDate, onDateSelect }: MiniCalenda
   }, [isPickerOpen]);
 
   // 요일 다국어 지원
-  const weekDays = locale === "ko"
-    ? ["일", "월", "화", "수", "목", "금", "토"]
-    : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const weekDays =
+    locale === "ko"
+      ? ["일", "월", "화", "수", "목", "금", "토"]
+      : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   // 다가오는 일정 (오늘 이후 태스크가 있는 날짜)
   const upcomingDates = tasksByDate
-    .filter((dateTask) => new Date(dateTask.date) >= new Date(new Date().setHours(0, 0, 0, 0)))
+    .filter(
+      (dateTask) =>
+        new Date(dateTask.date) >= new Date(new Date().setHours(0, 0, 0, 0)),
+    )
     .slice(0, 5);
 
   if (isLoading) {
@@ -183,9 +211,23 @@ export default function MiniCalendar({ selectedDate, onDateSelect }: MiniCalenda
             className="group flex items-center gap-2 rounded-xl border border-border bg-background/80 px-4 py-2 text-sm font-bold text-foreground transition-all hover:bg-background hover:shadow-md hover:-translate-y-0.5"
             aria-label="Change year and month"
           >
-            {currentDate.toLocaleDateString(locale === "ko" ? "ko-KR" : "en-US", { year: "numeric", month: "long" })}
-            <svg className={`h-4 w-4 text-muted-foreground transition-transform duration-300 ${isPickerOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+            {currentDate.toLocaleDateString(
+              locale === "ko" ? "ko-KR" : "en-US",
+              { year: "numeric", month: "long" },
+            )}
+            <svg
+              aria-hidden="true"
+              className={`h-4 w-4 text-muted-foreground transition-transform duration-300 ${isPickerOpen ? "rotate-180" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2.5}
+                d="M19 9l-7 7-7-7"
+              />
             </svg>
           </button>
 
@@ -200,8 +242,19 @@ export default function MiniCalendar({ selectedDate, onDateSelect }: MiniCalenda
                   onClick={() => setIsPickerOpen(false)}
                   className="rounded-lg bg-muted p-1.5 text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    aria-hidden="true"
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
@@ -256,22 +309,46 @@ export default function MiniCalendar({ selectedDate, onDateSelect }: MiniCalenda
             </div>
           )}
         </div>
-        
+
         <div className="flex items-center gap-1.5">
           <button
+            type="button"
             onClick={handlePrevMonth}
             className="rounded-xl border border-border bg-background/80 p-2 shadow-sm transition-all hover:bg-background active:scale-95"
           >
-            <svg className="h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+            <svg
+              aria-hidden="true"
+              className="h-4 w-4 text-muted-foreground"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2.5}
+                d="M15 19l-7-7 7-7"
+              />
             </svg>
           </button>
           <button
+            type="button"
             onClick={handleNextMonth}
             className="rounded-xl border border-border bg-background/80 p-2 shadow-sm transition-all hover:bg-background active:scale-95"
           >
-            <svg className="h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+            <svg
+              aria-hidden="true"
+              className="h-4 w-4 text-muted-foreground"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2.5}
+                d="M9 5l7 7-7 7"
+              />
             </svg>
           </button>
         </div>
@@ -295,22 +372,31 @@ export default function MiniCalendar({ selectedDate, onDateSelect }: MiniCalenda
             const hasTask = tasks.length > 0;
             const today = isToday(day);
             const selected = isSelectedDay(day);
+            const cellDate =
+              day == null
+                ? ""
+                : `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+            const firstTask = tasks[0];
             return (
               <button
                 type="button"
-                key={index}
+                key={day ? `day-${year}-${month}-${day}` : `empty-${index}`}
                 className={`group relative aspect-square flex items-center justify-center text-xs transition-all duration-300 ${
                   !day
                     ? ""
                     : selected
                       ? "rounded-xl border border-primary/60 bg-primary/12 text-primary font-bold shadow-md shadow-primary/20"
-                    : today
-                      ? "rounded-xl bg-primary text-white font-bold shadow-lg shadow-primary/30 scale-105 z-10"
-                      : hasTask
-                        ? "cursor-pointer rounded-xl border border-border bg-background text-foreground font-bold shadow-sm hover:-translate-y-0.5 hover:shadow-md hover:border-primary/30"
-                        : "rounded-xl text-muted-foreground hover:bg-muted/50"
+                      : today
+                        ? "rounded-xl bg-primary text-white font-bold shadow-lg shadow-primary/30 scale-105 z-10"
+                        : hasTask
+                          ? "cursor-pointer rounded-xl border border-border bg-background text-foreground font-bold shadow-sm hover:-translate-y-0.5 hover:shadow-md hover:border-primary/30"
+                          : "rounded-xl text-muted-foreground hover:bg-muted/50"
                 }`}
-                title={hasTask && day ? tasks.map(t => t.title).join(", ") : undefined}
+                title={
+                  hasTask && day
+                    ? tasks.map((t) => t.title).join(", ")
+                    : undefined
+                }
                 disabled={!day}
                 onClick={() => {
                   if (!day) return;
@@ -318,10 +404,51 @@ export default function MiniCalendar({ selectedDate, onDateSelect }: MiniCalenda
                 }}
               >
                 <div className="relative z-10">{day}</div>
-                {hasTask && !today && (
-                  <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-0.5">
-                    <div className="h-1 w-1 rounded-full bg-primary" />
-                    {tasks.length > 1 && <div className="h-1 w-1 rounded-full bg-primary/50" />}
+                {hasTask && !today && firstTask && (
+                  <div className="absolute bottom-1 left-1 right-1 flex items-center gap-1">
+                    {(() => {
+                      const startKey = dateKeyFromDateTime(firstTask.start_time);
+                      const endKey = dateKeyFromDateTime(
+                        firstTask.end_time || firstTask.start_time,
+                      );
+                      const isStart = startKey === cellDate;
+                      const isEnd = endKey === cellDate;
+                      const isSingle = isStart && isEnd;
+                      const markerLabel = isSingle
+                        ? "•"
+                        : isStart
+                          ? "↘"
+                          : isEnd
+                            ? "↗"
+                            : "━";
+                      const chipColor = firstTask.color || "#5B6CF6";
+
+                      return (
+                        <div
+                          className={`h-3 min-w-0 flex-1 px-1 text-[8px] leading-3 font-bold border ${
+                            isSingle
+                              ? "rounded-full"
+                              : isStart
+                                ? "rounded-l-full rounded-r-sm"
+                                : isEnd
+                                  ? "rounded-r-full rounded-l-sm"
+                                  : "rounded-sm"
+                          }`}
+                          style={{
+                            backgroundColor: `${chipColor}3d`,
+                            borderColor: `${chipColor}88`,
+                            color: "rgba(15,23,42,0.8)",
+                          }}
+                        >
+                          {markerLabel}
+                        </div>
+                      );
+                    })()}
+                    {tasks.length > 1 ? (
+                      <span className="text-[8px] font-bold text-muted-foreground">
+                        +{tasks.length - 1}
+                      </span>
+                    ) : null}
                   </div>
                 )}
               </button>
@@ -338,10 +465,10 @@ export default function MiniCalendar({ selectedDate, onDateSelect }: MiniCalenda
           </h3>
           <div className="mx-4 h-px flex-1 bg-border" />
         </div>
-        
+
         {upcomingDates.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-muted/30 py-8 text-center">
-             <p className="text-xs font-bold text-muted-foreground">
+            <p className="text-xs font-bold text-muted-foreground">
               {t("noTasksOnDate")}
             </p>
           </div>
@@ -354,13 +481,16 @@ export default function MiniCalendar({ selectedDate, onDateSelect }: MiniCalenda
               >
                 <div className="flex min-w-[48px] flex-col items-center justify-center rounded-xl border border-border bg-muted py-1">
                   <span className="text-[10px] font-black uppercase text-muted-foreground">
-                    {new Date(dateTask.date).toLocaleDateString(locale === "ko" ? "ko-KR" : "en-US", { month: "short" })}
+                    {new Date(dateTask.date).toLocaleDateString(
+                      locale === "ko" ? "ko-KR" : "en-US",
+                      { month: "short" },
+                    )}
                   </span>
                   <span className="text-base font-black text-foreground">
                     {new Date(dateTask.date).getDate()}
                   </span>
                 </div>
-                
+
                 <div className="flex-1 min-w-0 space-y-1.5">
                   {dateTask.tasks.slice(0, 2).map((task) => (
                     <div
@@ -373,7 +503,8 @@ export default function MiniCalendar({ selectedDate, onDateSelect }: MiniCalenda
                   ))}
                   {dateTask.tasks.length > 2 && (
                     <div className="ml-3.5 text-[10px] font-black text-muted-foreground">
-                      + {dateTask.tasks.length - 2} {locale === "ko" ? "개 더" : "more"}
+                      + {dateTask.tasks.length - 2}{" "}
+                      {locale === "ko" ? "개 더" : "more"}
                     </div>
                   )}
                 </div>

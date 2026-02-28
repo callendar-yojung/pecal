@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -51,6 +51,7 @@ export default function AdminLoginPage() {
           <div className="text-center mb-8">
             <div className="inline-block p-3 bg-blue-600 rounded-xl mb-4">
               <svg
+                aria-hidden="true"
                 className="w-8 h-8 text-white"
                 fill="none"
                 stroke="currentColor"
@@ -141,4 +142,3 @@ export default function AdminLoginPage() {
     </div>
   );
 }
-

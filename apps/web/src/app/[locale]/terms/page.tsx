@@ -1,7 +1,7 @@
+import type { Metadata } from "next";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
-import Link from "next/link";
-import type { Metadata } from "next";
 
 export async function generateMetadata({
   params,
@@ -38,9 +38,7 @@ export default function TermsOfServicePage() {
         <div className="space-y-8">
           {/* Title */}
           <div className="space-y-4">
-            <h1 className="text-4xl font-bold text-foreground">
-              {t("title")}
-            </h1>
+            <h1 className="text-4xl font-bold text-foreground">{t("title")}</h1>
             <p className="text-sm text-muted-foreground">{t("lastUpdated")}</p>
           </div>
 
@@ -63,8 +61,8 @@ export default function TermsOfServicePage() {
               {t("section2.title")}
             </h2>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section2.items") as string[]).map((item, i) => (
-                <li key={i}>{item}</li>
+              {(t.raw("section2.items") as string[]).map((item) => (
+                <li key={item}>{item}</li>
               ))}
             </ul>
           </section>
@@ -75,8 +73,8 @@ export default function TermsOfServicePage() {
               {t("section3.title")}
             </h2>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section3.items") as string[]).map((item, i) => (
-                <li key={i}>{item}</li>
+              {(t.raw("section3.items") as string[]).map((item) => (
+                <li key={item}>{item}</li>
               ))}
             </ul>
           </section>
@@ -87,8 +85,8 @@ export default function TermsOfServicePage() {
               {t("section4.title")}
             </h2>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section4.items") as string[]).map((item, i) => (
-                <li key={i}>{item}</li>
+              {(t.raw("section4.items") as string[]).map((item) => (
+                <li key={item}>{item}</li>
               ))}
             </ul>
           </section>
@@ -100,8 +98,8 @@ export default function TermsOfServicePage() {
             </h2>
             <p className="text-muted-foreground">{t("section5.content")}</p>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section5.items") as string[]).map((item, i) => (
-                <li key={i}>{item}</li>
+              {(t.raw("section5.items") as string[]).map((item) => (
+                <li key={item}>{item}</li>
               ))}
             </ul>
           </section>
@@ -112,8 +110,8 @@ export default function TermsOfServicePage() {
               {t("section6.title")}
             </h2>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section6.items") as string[]).map((item, i) => (
-                <li key={i}>{item}</li>
+              {(t.raw("section6.items") as string[]).map((item) => (
+                <li key={item}>{item}</li>
               ))}
             </ul>
           </section>
@@ -124,8 +122,8 @@ export default function TermsOfServicePage() {
               {t("section7.title")}
             </h2>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section7.items") as string[]).map((item, i) => (
-                <li key={i}>{item}</li>
+              {(t.raw("section7.items") as string[]).map((item) => (
+                <li key={item}>{item}</li>
               ))}
             </ul>
           </section>
@@ -136,8 +134,8 @@ export default function TermsOfServicePage() {
               {t("section8.title")}
             </h2>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section8.items") as string[]).map((item, i) => (
-                <li key={i}>{item}</li>
+              {(t.raw("section8.items") as string[]).map((item) => (
+                <li key={item}>{item}</li>
               ))}
             </ul>
           </section>
@@ -148,8 +146,8 @@ export default function TermsOfServicePage() {
               {t("section9.title")}
             </h2>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section9.items") as string[]).map((item, i) => (
-                <li key={i}>{item}</li>
+              {(t.raw("section9.items") as string[]).map((item) => (
+                <li key={item}>{item}</li>
               ))}
             </ul>
           </section>
@@ -168,8 +166,8 @@ export default function TermsOfServicePage() {
               {t("section11.title")}
             </h2>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section11.items") as string[]).map((item, i) => (
-                <li key={i}>{item}</li>
+              {(t.raw("section11.items") as string[]).map((item) => (
+                <li key={item}>{item}</li>
               ))}
             </ul>
           </section>
@@ -180,8 +178,8 @@ export default function TermsOfServicePage() {
               {t("section12.title")}
             </h2>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section12.items") as string[]).map((item, i) => (
-                <li key={i}>{item}</li>
+              {(t.raw("section12.items") as string[]).map((item) => (
+                <li key={item}>{item}</li>
               ))}
             </ul>
           </section>
@@ -192,8 +190,8 @@ export default function TermsOfServicePage() {
               {t("section13.title")}
             </h2>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section13.items") as string[]).map((item, i) => (
-                <li key={i}>{item}</li>
+              {(t.raw("section13.items") as string[]).map((item) => (
+                <li key={item}>{item}</li>
               ))}
             </ul>
           </section>

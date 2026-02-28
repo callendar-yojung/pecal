@@ -31,15 +31,21 @@ export default function DashboardShell({
             ) : null}
           </div>
           <div className="flex -space-x-3 overflow-hidden p-1">
-             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-foreground text-xl font-bold text-background shadow-lg ring-4 ring-background">P</div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-foreground text-xl font-bold text-background shadow-lg ring-4 ring-background">
+              P
+            </div>
           </div>
         </div>
       </div>
 
       <div className={side ? "grid gap-8 lg:grid-cols-12" : ""}>
-        <div className={side ? "lg:col-span-8 space-y-8" : "space-y-8"}>{main}</div>
+        <div className={side ? "lg:col-span-8 space-y-8" : "space-y-8"}>
+          {main}
+        </div>
         {side ? (
-          <div className="lg:col-span-4 h-fit lg:sticky lg:top-8 space-y-8">{side}</div>
+          <div className="lg:col-span-4 h-fit lg:sticky lg:top-8 space-y-8">
+            {side}
+          </div>
         ) : null}
       </div>
     </div>

@@ -14,7 +14,15 @@
       "package": "com.pecal.mobile"
     },
     "plugins": [
+      "expo-notifications",
       "expo-router"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ee18ce25-67d9-45cd-a401-ba3d259ada83"
+      }
+    },
+    "owner": "tlswlfk"
   }
 }

@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
 import { getWorkspacesByMemberId } from "@/lib/workspace";
 
 // GET /api/workspaces/member/[id] - 특정 회원의 워크스페이스 목록 조회
 export async function GET(
-    request: NextRequest,
-    context: { params: Promise<{ id: string }> }
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getAuthUser(request);
@@ -16,7 +16,7 @@ export async function GET(
     const { id } = await context.params;
     const targetMemberId = Number(id);
 
-    if (isNaN(targetMemberId)) {
+    if (Number.isNaN(targetMemberId)) {
       return NextResponse.json({ error: "Invalid member ID" }, { status: 400 });
     }
 
@@ -31,7 +31,7 @@ export async function GET(
     console.error("Failed to fetch member workspaces:", error);
     return NextResponse.json(
       { error: "Failed to fetch member workspaces" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

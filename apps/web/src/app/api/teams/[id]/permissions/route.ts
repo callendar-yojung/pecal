@@ -1,12 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
-import { getTeamById } from "@/lib/team";
-import { addPermissionToRole, getPermissionsByRole, removePermissionFromRole } from "@/lib/team";
 import { isValidPermissionCode } from "@/lib/permissions";
+import {
+  addPermissionToRole,
+  getPermissionsByRole,
+  getTeamById,
+  removePermissionFromRole,
+} from "@/lib/team";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getAuthUser(request);
   if (!user) {
@@ -35,7 +39,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getAuthUser(request);
   if (!user) {
@@ -63,27 +67,36 @@ export async function POST(
     return NextResponse.json({ error: "code is required" }, { status: 400 });
   }
   if (!isValidPermissionCode(code.trim())) {
-    return NextResponse.json({ error: "Invalid permission code" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid permission code" },
+      { status: 400 },
+    );
   }
 
-  const roleName = typeof role === "string" && role.trim() ? role.trim() : "Member";
+  const roleName =
+    typeof role === "string" && role.trim() ? role.trim() : "Member";
   try {
     const success = await addPermissionToRole(
       teamId,
       roleName,
       code.trim(),
-      description && typeof description === "string" ? description.trim() : null,
-      user.memberId
+      description && typeof description === "string"
+        ? description.trim()
+        : null,
+      user.memberId,
     );
     return NextResponse.json({ success });
-  } catch (error) {
-    return NextResponse.json({ error: "Failed to add permission" }, { status: 400 });
+  } catch (_error) {
+    return NextResponse.json(
+      { error: "Failed to add permission" },
+      { status: 400 },
+    );
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getAuthUser(request);
   if (!user) {

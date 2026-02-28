@@ -17,29 +17,31 @@ interface Subscription {
 export default function AdminSubscriptionsPage() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "ACTIVE" | "CANCELED" | "EXPIRED">("all");
+  const [filter, setFilter] = useState<
+    "all" | "ACTIVE" | "CANCELED" | "EXPIRED"
+  >("all");
 
   useEffect(() => {
+    const fetchSubscriptions = async () => {
+      try {
+        const response = await fetch("/api/admin/subscriptions");
+        if (response.ok) {
+          const data = await response.json();
+          setSubscriptions(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch subscriptions:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchSubscriptions();
   }, []);
 
-  const fetchSubscriptions = async () => {
-    try {
-      const response = await fetch("/api/admin/subscriptions");
-      if (response.ok) {
-        const data = await response.json();
-        setSubscriptions(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch subscriptions:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filteredSubscriptions = filter === "all"
-    ? subscriptions
-    : subscriptions.filter(s => s.status === filter);
+  const filteredSubscriptions =
+    filter === "all"
+      ? subscriptions
+      : subscriptions.filter((s) => s.status === filter);
 
   if (loading) {
     return (
@@ -51,7 +53,8 @@ export default function AdminSubscriptionsPage() {
 
   const getStatusBadge = (status: string) => {
     const colors = {
-      ACTIVE: "bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400",
+      ACTIVE:
+        "bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400",
       CANCELED: "bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400",
       EXPIRED: "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400",
     };
@@ -74,6 +77,7 @@ export default function AdminSubscriptionsPage() {
       <div className="flex gap-2">
         {["all", "ACTIVE", "CANCELED", "EXPIRED"].map((status) => (
           <button
+            type="button"
             key={status}
             onClick={() => setFilter(status as any)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -129,12 +133,14 @@ export default function AdminSubscriptionsPage() {
                     {sub.owner_name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      sub.owner_type === 'team' 
-                        ? 'bg-purple-100 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400'
-                        : 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                    }`}>
-                      {sub.owner_type === 'team' ? '팀' : '개인'}
+                    <span
+                      className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        sub.owner_type === "team"
+                          ? "bg-purple-100 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400"
+                          : "bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
+                      }`}
+                    >
+                      {sub.owner_type === "team" ? "팀" : "개인"}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
@@ -144,7 +150,9 @@ export default function AdminSubscriptionsPage() {
                     ₩{sub.plan_price.toLocaleString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(sub.status)}`}>
+                    <span
+                      className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(sub.status)}`}
+                    >
                       {sub.status}
                     </span>
                   </td>
@@ -173,7 +181,7 @@ export default function AdminSubscriptionsPage() {
             활성 구독
           </p>
           <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-            {subscriptions.filter(s => s.status === "ACTIVE").length}
+            {subscriptions.filter((s) => s.status === "ACTIVE").length}
           </p>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -181,8 +189,9 @@ export default function AdminSubscriptionsPage() {
             월 매출
           </p>
           <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-            ₩{subscriptions
-              .filter(s => s.status === "ACTIVE")
+            ₩
+            {subscriptions
+              .filter((s) => s.status === "ACTIVE")
               .reduce((sum, s) => sum + s.plan_price, 0)
               .toLocaleString()}
           </p>
@@ -192,7 +201,7 @@ export default function AdminSubscriptionsPage() {
             취소된 구독
           </p>
           <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-            {subscriptions.filter(s => s.status === "CANCELED").length}
+            {subscriptions.filter((s) => s.status === "CANCELED").length}
           </p>
         </div>
       </div>

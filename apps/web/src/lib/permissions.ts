@@ -48,7 +48,7 @@ export const PERMISSIONS: PermissionDefinition[] = [
 ];
 
 export const PERMISSION_CODE_SET = new Set(
-  PERMISSIONS.map((permission) => permission.code)
+  PERMISSIONS.map((permission) => permission.code),
 );
 
 export function isValidPermissionCode(code: string) {

@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
+import TaskViewPanel, {
+  type TaskViewData,
+} from "@/components/dashboard/TaskViewPanel";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import TaskViewPanel, { type TaskViewData } from "@/components/dashboard/TaskViewPanel";
 
 export default function TaskDetailPage() {
   const t = useTranslations("dashboard.tasks");
@@ -36,7 +38,7 @@ export default function TaskDetailPage() {
     };
 
     fetchTask();
-  }, [currentWorkspace?.workspace_id, taskId]);
+  }, [currentWorkspace?.workspace_id, taskId, router.push]);
 
   if (!currentWorkspace) {
     return (

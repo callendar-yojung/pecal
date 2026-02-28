@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getLatestRelease } from "@/lib/release";
 
 function normalizeVersion(version?: string | null): string[] {
@@ -36,7 +36,10 @@ function buildSigUrl(downloadUrl: string): string {
   }
 }
 
-function buildPlatformCandidates(target: string, arch?: string | null): string[] {
+function buildPlatformCandidates(
+  target: string,
+  arch?: string | null,
+): string[] {
   const candidates = new Set<string>();
   const safeArch = arch?.trim();
   const baseTarget = target.split("-")[0];
@@ -82,7 +85,7 @@ export async function GET(request: NextRequest) {
     if (!target) {
       return NextResponse.json(
         { error: "target query is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -97,7 +100,10 @@ export async function GET(request: NextRequest) {
       return new NextResponse(null, { status: 204 });
     }
 
-    if (currentVersion && compareVersions(latestRelease.version, currentVersion) <= 0) {
+    if (
+      currentVersion &&
+      compareVersions(latestRelease.version, currentVersion) <= 0
+    ) {
       return new NextResponse(null, { status: 204 });
     }
 
@@ -106,7 +112,7 @@ export async function GET(request: NextRequest) {
     if (!sigResponse.ok) {
       return NextResponse.json(
         { error: `signature fetch failed: ${sigResponse.status}` },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -114,7 +120,7 @@ export async function GET(request: NextRequest) {
     if (!signature) {
       return NextResponse.json(
         { error: "signature is empty" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -129,7 +135,7 @@ export async function GET(request: NextRequest) {
     console.error("❌ Failed to fetch tauri updater release:", error);
     return NextResponse.json(
       { error: "Failed to fetch tauri updater release" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

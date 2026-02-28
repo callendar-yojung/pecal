@@ -2,11 +2,12 @@ import type { NextRequest } from "next/server";
 
 type OAuthProvider = "kakao" | "google" | "apple";
 
-export function getOAuthRedirectUri(request: NextRequest, provider: OAuthProvider): string {
+export function getOAuthRedirectUri(
+  request: NextRequest,
+  provider: OAuthProvider,
+): string {
   const path = `/api/auth/${provider}/callback`;
-  const configured =
-    process.env.AUTH_URL ||
-    process.env.NEXTAUTH_URL;
+  const configured = process.env.AUTH_URL || process.env.NEXTAUTH_URL;
 
   if (configured) {
     try {

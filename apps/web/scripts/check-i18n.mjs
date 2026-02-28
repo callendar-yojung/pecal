@@ -22,7 +22,10 @@ async function main() {
   const koPath = resolve(baseDir, "ko.json");
   const enPath = resolve(baseDir, "en.json");
 
-  const [koJson, enJson] = await Promise.all([loadJson(koPath), loadJson(enPath)]);
+  const [koJson, enJson] = await Promise.all([
+    loadJson(koPath),
+    loadJson(enPath),
+  ]);
   const koKeys = new Set(flattenKeys(koJson));
   const enKeys = new Set(flattenKeys(enJson));
 

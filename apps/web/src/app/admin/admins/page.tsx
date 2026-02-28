@@ -17,22 +17,21 @@ export default function AdminAdminsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const fetchAdmins = async () => {
+      try {
+        const response = await fetch("/api/admin/admins");
+        if (response.ok) {
+          const data = await response.json();
+          setAdmins(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch admins:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchAdmins();
   }, []);
-
-  const fetchAdmins = async () => {
-    try {
-      const response = await fetch("/api/admin/admins");
-      if (response.ok) {
-        const data = await response.json();
-        setAdmins(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch admins:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -54,7 +53,10 @@ export default function AdminAdminsPage() {
             시스템 관리자를 관리합니다
           </p>
         </div>
-        <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+        <button
+          type="button"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+        >
           + 관리자 추가
         </button>
       </div>
@@ -123,10 +125,16 @@ export default function AdminAdminsPage() {
                       : "-"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <button className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 mr-3">
+                    <button
+                      type="button"
+                      className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
+                    >
                       수정
                     </button>
-                    <button className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
+                    <button
+                      type="button"
+                      className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                    >
                       삭제
                     </button>
                   </td>
@@ -159,4 +167,3 @@ export default function AdminAdminsPage() {
     </div>
   );
 }
-

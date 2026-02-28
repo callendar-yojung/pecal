@@ -1,5 +1,6 @@
+import { useCallback, useState } from 'react';
 import { Redirect, useRouter } from 'expo-router';
-import { ScrollView, Text } from 'react-native';
+import { RefreshControl, ScrollView, Text } from 'react-native';
 import { useMobileApp } from '../../src/contexts/MobileAppContext';
 import { useThemeMode } from '../../src/contexts/ThemeContext';
 import { createStyles } from '../../src/styles/createStyles';
@@ -10,11 +11,26 @@ export default function FilesTab() {
   const { colors } = useThemeMode();
   const s = createStyles(colors);
   const router = useRouter();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    if (!data.selectedWorkspace) return;
+    setRefreshing(true);
+    try {
+      await data.loadDashboard(data.selectedWorkspace);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [data]);
 
   if (!auth.session) return <Redirect href="/(auth)/login" />;
 
   return (
-    <ScrollView style={s.content} contentContainerStyle={s.contentContainer}>
+    <ScrollView
+      style={s.content}
+      contentContainerStyle={s.contentContainer}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+    >
       {data.error || auth.error ? <Text style={s.errorText}>{data.error || auth.error}</Text> : null}
       {!data.selectedWorkspace ? <Text style={s.emptyText}>워크스페이스를 선택하세요.</Text> : null}
       {data.selectedWorkspace ? (

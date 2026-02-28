@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAllAdmins } from "@/lib/admin";
 import { getRequiredEnv } from "@/lib/required-env";
 
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     console.error("Admin admins error:", error);
     return NextResponse.json(
       { error: "관리자 조회 중 오류가 발생했습니다." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

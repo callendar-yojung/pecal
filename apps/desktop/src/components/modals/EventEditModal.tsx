@@ -14,6 +14,10 @@ import { EMPTY_RICH_CONTENT, parseRichContent, serializeRichContent } from '../.
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
 const pad = (n: number) => String(n).padStart(2, '0')
+const parseDateInput = (value: string) => {
+  const [year, month, day] = value.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
 
 const KO_DAYS = ['일', '월', '화', '수', '목', '금', '토']
 const EN_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -37,7 +41,8 @@ export function EventEditModal() {
 
   const [title, setTitle] = useState('')
   const [contentDoc, setContentDoc] = useState<Record<string, unknown>>(EMPTY_RICH_CONTENT)
-  const [eventDate, setEventDate] = useState<Date>(new Date())
+  const [startDate, setStartDate] = useState<Date>(new Date())
+  const [endDate, setEndDate] = useState<Date>(new Date())
   const [startHour, setStartHour] = useState(9)
   const [startMinute, setStartMinute] = useState(0)
   const [endHour, setEndHour] = useState(10)
@@ -45,6 +50,7 @@ export function EventEditModal() {
   const [status, setStatus] = useState<TaskStatus>('todo')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [color, setColor] = useState('#3b82f6')
+  const [reminderMinutes, setReminderMinutes] = useState<number | null>(10)
   const [tags, setTags] = useState<Tag[]>([])
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
   const [isTagsLoading, setIsTagsLoading] = useState(false)
@@ -71,13 +77,19 @@ export function EventEditModal() {
       const end = parseApiDateTime(selectedEvent.end_time)
       setTitle(selectedEvent.title)
       setContentDoc(parseRichContent(selectedEvent.content))
-      setEventDate(start)
+      setStartDate(start)
+      setEndDate(end)
       setStartHour(start.getHours())
       setStartMinute(start.getMinutes())
       setEndHour(end.getHours())
       setEndMinute(end.getMinutes())
       setStatus(selectedEvent.status || 'todo')
       setColor(selectedEvent.color || '#3b82f6')
+      setReminderMinutes(
+        typeof selectedEvent.reminder_minutes === 'number'
+          ? selectedEvent.reminder_minutes
+          : null
+      )
       setSelectedTagIds(selectedEvent.tag_ids || [])
       setNewTagName('')
       setNewTagColor('#6366f1')
@@ -124,14 +136,14 @@ export function EventEditModal() {
 
   if (openedModal !== 'EDIT' || !selectedEvent) return null
 
-  const startDatetime = buildDatetime(eventDate, startHour, startMinute)
-  const endDatetime = buildDatetime(eventDate, endHour, endMinute)
+  const startDatetime = buildDatetime(startDate, startHour, startMinute)
+  const endDatetime = buildDatetime(endDate, endHour, endMinute)
 
   const dayNames = i18n.language === 'ko' ? KO_DAYS : EN_DAYS
   const formattedDate =
     i18n.language === 'ko'
-      ? `${format(eventDate, 'yyyy')}년 ${format(eventDate, 'M')}월 ${format(eventDate, 'd')}일 (${dayNames[eventDate.getDay()]})`
-      : `${dayNames[eventDate.getDay()]}, ${format(eventDate, 'MMMM d, yyyy')}`
+      ? `${format(startDate, 'yyyy')}년 ${format(startDate, 'M')}월 ${format(startDate, 'd')}일 (${dayNames[startDate.getDay()]}) ~ ${format(endDate, 'yyyy')}년 ${format(endDate, 'M')}월 ${format(endDate, 'd')}일 (${dayNames[endDate.getDay()]})`
+      : `${dayNames[startDate.getDay()]}, ${format(startDate, 'MMMM d, yyyy')} ~ ${dayNames[endDate.getDay()]}, ${format(endDate, 'MMMM d, yyyy')}`
 
   // 파일 선택 즉시 업로드 (task_id 포함 → 백엔드가 자동 연결)
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -192,6 +204,7 @@ export function EventEditModal() {
         start_time: toMysqlDatetime(startDatetime),
         end_time: toMysqlDatetime(endDatetime),
         color,
+        reminder_minutes: reminderMinutes,
         tag_ids: selectedTagIds,
         status: backendStatus,
       }
@@ -206,6 +219,7 @@ export function EventEditModal() {
                 title: title.trim(),
                 content: serializedContent || undefined,
                 color,
+                reminder_minutes: reminderMinutes,
                 tag_ids: selectedTagIds,
                 start_time: startDatetime.toISOString(),
                 end_time: endDatetime.toISOString(),
@@ -294,6 +308,22 @@ export function EventEditModal() {
                 autoFocus
               />
 
+              <div className="flex items-center gap-2 flex-wrap">
+                <input
+                  type="date"
+                  value={format(startDate, 'yyyy-MM-dd')}
+                  onChange={(e) => setStartDate(parseDateInput(e.target.value))}
+                  className={timeSelectClass}
+                />
+                <span className="text-gray-400 dark:text-gray-500">~</span>
+                <input
+                  type="date"
+                  value={format(endDate, 'yyyy-MM-dd')}
+                  onChange={(e) => setEndDate(parseDateInput(e.target.value))}
+                  className={timeSelectClass}
+                />
+              </div>
+
               {/* 시간 선택 */}
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="flex items-center gap-1">
@@ -346,6 +376,25 @@ export function EventEditModal() {
                     <option value="todo">{t('status.todo')}</option>
                     <option value="in_progress">{t('status.inProgress')}</option>
                     <option value="done">{t('status.done')}</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">알림</label>
+                  <select
+                    value={reminderMinutes === null ? '' : String(reminderMinutes)}
+                    onChange={(e) =>
+                      setReminderMinutes(e.target.value === '' ? null : Number(e.target.value))
+                    }
+                    className="px-2 py-1.5 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">없음</option>
+                    <option value="0">정시</option>
+                    <option value="5">5분 전</option>
+                    <option value="10">10분 전</option>
+                    <option value="15">15분 전</option>
+                    <option value="30">30분 전</option>
+                    <option value="60">1시간 전</option>
+                    <option value="1440">1일 전</option>
                   </select>
                 </div>
               </div>

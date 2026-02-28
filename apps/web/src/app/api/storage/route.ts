@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
 import {
-  getStorageUsageByTeamId,
-  initializeStorageUsageForTeam,
-  updateStorageUsage,
-  recalculateStorageUsageForTeam,
   checkStorageLimit,
   deleteStorageUsageForTeam,
+  getStorageUsageByTeamId,
+  initializeStorageUsageForTeam,
+  recalculateStorageUsageForTeam,
+  updateStorageUsage,
 } from "@/lib/storage";
 
 // GET /api/storage?team_id=1 - 팀의 저장소 사용량 조회
@@ -23,7 +23,10 @@ export async function GET(request: NextRequest) {
     const checkLimitParam = searchParams.get("check_limit");
 
     if (!teamIdParam) {
-      return NextResponse.json({ error: "team_id is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "team_id is required" },
+        { status: 400 },
+      );
     }
 
     const teamId = Number(teamIdParam);
@@ -40,7 +43,7 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching storage usage:", error);
     return NextResponse.json(
       { error: "Failed to fetch storage usage" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -57,7 +60,10 @@ export async function POST(request: NextRequest) {
     const { team_id, action } = body;
 
     if (!team_id) {
-      return NextResponse.json({ error: "team_id is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "team_id is required" },
+        { status: 400 },
+      );
     }
 
     const teamId = Number(team_id);
@@ -65,7 +71,10 @@ export async function POST(request: NextRequest) {
     if (action === "recalculate") {
       const recalculatedSize = await recalculateStorageUsageForTeam(teamId);
       const storageUsage = await getStorageUsageByTeamId(teamId);
-      return NextResponse.json({ ...storageUsage, recalculated_size: recalculatedSize });
+      return NextResponse.json({
+        ...storageUsage,
+        recalculated_size: recalculatedSize,
+      });
     }
 
     await initializeStorageUsageForTeam(teamId);
@@ -75,7 +84,7 @@ export async function POST(request: NextRequest) {
     console.error("Error initializing storage usage:", error);
     return NextResponse.json(
       { error: "Failed to initialize storage usage" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -94,13 +103,19 @@ export async function PUT(request: NextRequest) {
     if (!team_id || used_storage_mb === undefined) {
       return NextResponse.json(
         { error: "team_id and used_storage_mb are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const success = await updateStorageUsage(Number(team_id), Number(used_storage_mb));
+    const success = await updateStorageUsage(
+      Number(team_id),
+      Number(used_storage_mb),
+    );
     if (!success) {
-      return NextResponse.json({ error: "Storage usage not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Storage usage not found" },
+        { status: 404 },
+      );
     }
 
     const storageUsage = await getStorageUsageByTeamId(Number(team_id));
@@ -109,7 +124,7 @@ export async function PUT(request: NextRequest) {
     console.error("Error updating storage usage:", error);
     return NextResponse.json(
       { error: "Failed to update storage usage" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -126,12 +141,18 @@ export async function DELETE(request: NextRequest) {
     const teamIdParam = searchParams.get("team_id");
 
     if (!teamIdParam) {
-      return NextResponse.json({ error: "team_id is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "team_id is required" },
+        { status: 400 },
+      );
     }
 
     const success = await deleteStorageUsageForTeam(Number(teamIdParam));
     if (!success) {
-      return NextResponse.json({ error: "Storage usage not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Storage usage not found" },
+        { status: 404 },
+      );
     }
 
     return NextResponse.json({ message: "Storage usage deleted successfully" });
@@ -139,7 +160,7 @@ export async function DELETE(request: NextRequest) {
     console.error("Error deleting storage usage:", error);
     return NextResponse.json(
       { error: "Failed to delete storage usage" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

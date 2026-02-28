@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
 import { createOrder } from "@/lib/paypal";
 
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     if (!plan_id || !amount) {
       return NextResponse.json(
         { error: "plan_id와 amount가 필요합니다." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -31,8 +31,7 @@ export async function POST(request: NextRequest) {
     console.error("Error creating PayPal order:", error);
     return NextResponse.json(
       { error: "Failed to create PayPal order" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

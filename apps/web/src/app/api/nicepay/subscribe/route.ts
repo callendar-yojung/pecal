@@ -1,18 +1,18 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
-import { getPlanById } from "@/lib/plan";
+import { getActiveBillingKey, saveBillingKey } from "@/lib/billing-key";
 import {
   approveBillingByBid,
   generateMoid,
   registerBillingKeyByCard,
 } from "@/lib/nicepay";
-import { getActiveBillingKey, saveBillingKey } from "@/lib/billing-key";
+import { createPaymentRecord } from "@/lib/payment-history";
+import { getPlanById } from "@/lib/plan";
 import {
   createSubscription,
   getActiveSubscriptionByOwner,
   schedulePlanChange,
 } from "@/lib/subscription";
-import { createPaymentRecord } from "@/lib/payment-history";
 
 function maskCardNo(cardNo: string): string {
   if (cardNo.length <= 4) return cardNo;
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     if (!planId || !ownerId || !ownerType) {
       return NextResponse.json(
         { error: "결제 파라미터가 올바르지 않습니다." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -55,13 +55,13 @@ export async function POST(request: NextRequest) {
     if (!plan) {
       return NextResponse.json(
         { error: "플랜 정보를 찾을 수 없습니다." },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     const activeSub = await getActiveSubscriptionByOwner(
       Number(ownerId),
-      ownerType
+      ownerType,
     );
     const activePrice = activeSub?.plan_price ?? null;
 
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       const scheduled = await schedulePlanChange(
         Number(ownerId),
         ownerType,
-        Number(planId)
+        Number(planId),
       );
       return NextResponse.json({ scheduled });
     }
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
         ownerType,
         Number(planId),
         user.memberId,
-        user.memberId
+        user.memberId,
       );
 
       await createPaymentRecord({
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: "카드 정보 입력값이 올바르지 않습니다." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
       registerResult.bid,
       registerResult.cardCode,
       registerResult.cardName,
-      maskCardNo(rawCardNo)
+      maskCardNo(rawCardNo),
     );
 
     const subscriptionId = await createSubscription(
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
       ownerType,
       Number(planId),
       user.memberId,
-      user.memberId
+      user.memberId,
     );
 
     await createPaymentRecord({
@@ -194,7 +194,7 @@ export async function POST(request: NextRequest) {
     console.error("[NicePay Subscribe] Error:", error?.message || error);
     return NextResponse.json(
       { error: error?.message || "결제 처리 중 서버 오류가 발생했습니다." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

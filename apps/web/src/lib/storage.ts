@@ -1,5 +1,5 @@
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import pool from "./db";
-import type { RowDataPacket, ResultSetHeader } from "mysql2";
 
 export type OwnerType = "team" | "personal";
 
@@ -45,11 +45,11 @@ export function formatBytes(bytes: number): string {
  */
 export async function getStorageUsage(
   ownerType: OwnerType,
-  ownerId: number
+  ownerId: number,
 ): Promise<StorageUsage | null> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT * FROM storage_usage WHERE owner_type = ? AND owner_id = ?`,
-    [ownerType, ownerId]
+    [ownerType, ownerId],
   );
   return rows.length > 0 ? (rows[0] as StorageUsage) : null;
 }
@@ -59,13 +59,13 @@ export async function getStorageUsage(
  */
 export async function initializeStorageUsage(
   ownerType: OwnerType,
-  ownerId: number
+  ownerId: number,
 ): Promise<void> {
   await pool.execute(
     `INSERT INTO storage_usage (owner_type, owner_id, used_bytes, file_count)
      VALUES (?, ?, 0, 0)
      ON DUPLICATE KEY UPDATE owner_id = owner_id`,
-    [ownerType, ownerId]
+    [ownerType, ownerId],
   );
 }
 
@@ -75,7 +75,7 @@ export async function initializeStorageUsage(
 export async function increaseStorageUsage(
   ownerType: OwnerType,
   ownerId: number,
-  bytes: number
+  bytes: number,
 ): Promise<void> {
   await pool.execute(
     `INSERT INTO storage_usage (owner_type, owner_id, used_bytes, file_count)
@@ -83,7 +83,7 @@ export async function increaseStorageUsage(
      ON DUPLICATE KEY UPDATE
        used_bytes = used_bytes + VALUES(used_bytes),
        file_count = file_count + 1`,
-    [ownerType, ownerId, bytes]
+    [ownerType, ownerId, bytes],
   );
 }
 
@@ -93,14 +93,14 @@ export async function increaseStorageUsage(
 export async function decreaseStorageUsage(
   ownerType: OwnerType,
   ownerId: number,
-  bytes: number
+  bytes: number,
 ): Promise<void> {
   await pool.execute(
     `UPDATE storage_usage
      SET used_bytes = GREATEST(0, used_bytes - ?),
          file_count = GREATEST(0, file_count - 1)
      WHERE owner_type = ? AND owner_id = ?`,
-    [bytes, ownerType, ownerId]
+    [bytes, ownerType, ownerId],
   );
 }
 
@@ -109,7 +109,7 @@ export async function decreaseStorageUsage(
  */
 export async function recalculateStorageUsage(
   ownerType: OwnerType,
-  ownerId: number
+  ownerId: number,
 ): Promise<StorageUsage> {
   const connection = await pool.getConnection();
   try {
@@ -118,7 +118,7 @@ export async function recalculateStorageUsage(
     const [rows] = await connection.execute<RowDataPacket[]>(
       `SELECT COALESCE(SUM(file_size), 0) as total_bytes, COUNT(*) as file_count
        FROM files WHERE owner_type = ? AND owner_id = ?`,
-      [ownerType, ownerId]
+      [ownerType, ownerId],
     );
 
     const totalBytes = Number(rows[0]?.total_bytes || 0);
@@ -130,7 +130,7 @@ export async function recalculateStorageUsage(
        ON DUPLICATE KEY UPDATE
          used_bytes = VALUES(used_bytes),
          file_count = VALUES(file_count)`,
-      [ownerType, ownerId, totalBytes, fileCount]
+      [ownerType, ownerId, totalBytes, fileCount],
     );
 
     await connection.commit();
@@ -155,7 +155,7 @@ export async function recalculateStorageUsage(
  */
 export async function getActivePlanForOwner(
   ownerType: OwnerType,
-  ownerId: number
+  ownerId: number,
 ): Promise<{
   plan_id: number;
   name: string;
@@ -171,7 +171,7 @@ export async function getActivePlanForOwner(
      WHERE s.owner_type = ? AND s.owner_id = ? AND s.status = 'ACTIVE'
      ORDER BY s.started_at DESC
      LIMIT 1`,
-    [ownerType, ownerId]
+    [ownerType, ownerId],
   );
 
   if (subscriptions.length > 0) {
@@ -187,7 +187,7 @@ export async function getActivePlanForOwner(
   const fallbackType = ownerType === "team" ? "team" : "personal";
   const [fallbackPlans] = await pool.execute<RowDataPacket[]>(
     `SELECT * FROM plans WHERE plan_type = ? ORDER BY price ASC LIMIT 1`,
-    [fallbackType]
+    [fallbackType],
   );
 
   if (fallbackPlans.length > 0) {
@@ -215,7 +215,7 @@ export async function getActivePlanForOwner(
  */
 export async function getStorageLimitInfo(
   ownerType: OwnerType,
-  ownerId: number
+  ownerId: number,
 ): Promise<StorageLimitInfo> {
   const plan = await getActivePlanForOwner(ownerType, ownerId);
   const usage = await getStorageUsage(ownerType, ownerId);
@@ -237,7 +237,7 @@ export async function getStorageLimitInfo(
 export async function canUploadFile(
   ownerType: OwnerType,
   ownerId: number,
-  fileSizeBytes: number
+  fileSizeBytes: number,
 ): Promise<{
   allowed: boolean;
   reason?: string;
@@ -282,11 +282,11 @@ export async function canUploadFile(
  */
 export async function deleteStorageUsage(
   ownerType: OwnerType,
-  ownerId: number
+  ownerId: number,
 ): Promise<boolean> {
   const [result] = await pool.execute<ResultSetHeader>(
     `DELETE FROM storage_usage WHERE owner_type = ? AND owner_id = ?`,
-    [ownerType, ownerId]
+    [ownerType, ownerId],
   );
   return result.affectedRows > 0;
 }
@@ -302,7 +302,7 @@ export interface TeamStorageUsage {
 }
 
 export async function getStorageUsageByTeamId(
-  teamId: number
+  teamId: number,
 ): Promise<TeamStorageUsage | null> {
   const usage = await getStorageUsage("team", teamId);
   if (!usage) return null;
@@ -315,7 +315,7 @@ export async function getStorageUsageByTeamId(
 
 export async function checkStorageLimit(
   teamId: number,
-  additionalMb: number
+  additionalMb: number,
 ): Promise<{ allowed: boolean; current: number; limit: number }> {
   const result = await canUploadFile("team", teamId, mbToBytes(additionalMb));
   return {
@@ -327,7 +327,7 @@ export async function checkStorageLimit(
 
 // 레거시 initializeStorageUsage (팀용)
 export async function initializeStorageUsageForTeam(
-  teamId: number
+  teamId: number,
 ): Promise<void> {
   await initializeStorageUsage("team", teamId);
 }
@@ -335,20 +335,20 @@ export async function initializeStorageUsageForTeam(
 // 레거시 updateStorageUsage (팀용)
 export async function updateStorageUsage(
   teamId: number,
-  usedStorageMb: number
+  usedStorageMb: number,
 ): Promise<boolean> {
   const [result] = await pool.execute<ResultSetHeader>(
     `UPDATE storage_usage
      SET used_bytes = ?
      WHERE owner_type = 'team' AND owner_id = ?`,
-    [mbToBytes(usedStorageMb), teamId]
+    [mbToBytes(usedStorageMb), teamId],
   );
   return result.affectedRows > 0;
 }
 
 // 레거시 recalculateStorageUsage (팀용, MB 반환)
 export async function recalculateStorageUsageForTeam(
-  teamId: number
+  teamId: number,
 ): Promise<number> {
   const result = await recalculateStorageUsage("team", teamId);
   return bytesToMB(result.used_bytes);
@@ -356,7 +356,7 @@ export async function recalculateStorageUsageForTeam(
 
 // 레거시 deleteStorageUsage (팀용)
 export async function deleteStorageUsageForTeam(
-  teamId: number
+  teamId: number,
 ): Promise<boolean> {
   return deleteStorageUsage("team", teamId);
 }

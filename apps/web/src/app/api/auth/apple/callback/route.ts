@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
-import { findOrCreateMember } from "@/lib/member";
+import { createRemoteJWKSet, type JWTPayload, jwtVerify } from "jose";
+import { type NextRequest, NextResponse } from "next/server";
 import { generateAccessToken, generateRefreshToken } from "@/lib/jwt";
-import { verifyOAuthState } from "@/lib/oauth-state";
+import { findOrCreateMember } from "@/lib/member";
 import { getOAuthRedirectUri } from "@/lib/oauth-redirect-uri";
+import { verifyOAuthState } from "@/lib/oauth-state";
 
 interface AppleTokenResponse {
   access_token: string;
@@ -19,7 +19,7 @@ interface AppleIdTokenPayload extends JWTPayload {
 }
 
 const APPLE_JWKS = createRemoteJWKSet(
-  new URL("https://appleid.apple.com/auth/keys")
+  new URL("https://appleid.apple.com/auth/keys"),
 );
 
 async function verifyAppleIdToken(idToken: string, audience: string) {
@@ -33,7 +33,7 @@ async function verifyAppleIdToken(idToken: string, audience: string) {
 
 async function handleAppleCallback(
   request: NextRequest,
-  params: URLSearchParams
+  params: URLSearchParams,
 ) {
   const code = params.get("code");
   const state = params.get("state");
@@ -93,7 +93,7 @@ async function handleAppleCallback(
     const tokenData: AppleTokenResponse = await tokenResponse.json();
     const idTokenPayload = await verifyAppleIdToken(
       tokenData.id_token,
-      appleClientId
+      appleClientId,
     );
 
     if (!idTokenPayload.sub) {
@@ -101,7 +101,8 @@ async function handleAppleCallback(
     }
 
     const providerId = idTokenPayload.sub;
-    const email = typeof idTokenPayload.email === "string" ? idTokenPayload.email : null;
+    const email =
+      typeof idTokenPayload.email === "string" ? idTokenPayload.email : null;
 
     const member = await findOrCreateMember("apple", providerId, email);
     const memberNickname = member.nickname ?? "사용자";
@@ -136,7 +137,7 @@ async function handleAppleCallback(
     console.error("Apple callback error:", error);
     return handleError(
       error instanceof Error ? error.message : "Authentication failed",
-      500
+      500,
     );
   }
 }

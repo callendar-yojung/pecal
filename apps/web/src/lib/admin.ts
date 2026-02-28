@@ -1,6 +1,6 @@
-import pool from "./db";
-import type { RowDataPacket, ResultSetHeader } from "mysql2";
 import bcrypt from "bcryptjs";
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
+import pool from "./db";
 
 export interface Admin {
   admin_id: number;
@@ -19,11 +19,11 @@ export interface AdminWithPassword extends Admin {
 // 관리자 로그인
 export async function loginAdmin(
   username: string,
-  password: string
+  password: string,
 ): Promise<Admin | null> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     "SELECT * FROM admins WHERE username = ?",
-    [username]
+    [username],
   );
 
   if (rows.length === 0) {
@@ -38,9 +38,10 @@ export async function loginAdmin(
   }
 
   // 마지막 로그인 시간 업데이트
-  await pool.execute("UPDATE admins SET last_login = NOW() WHERE admin_id = ?", [
-    admin.admin_id,
-  ]);
+  await pool.execute(
+    "UPDATE admins SET last_login = NOW() WHERE admin_id = ?",
+    [admin.admin_id],
+  );
 
   // 비밀번호 제외하고 반환
   const { password: _, ...adminWithoutPassword } = admin;
@@ -51,7 +52,7 @@ export async function loginAdmin(
 export async function getAdminById(adminId: number): Promise<Admin | null> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     "SELECT admin_id, username, name, email, role, created_at, last_login FROM admins WHERE admin_id = ?",
-    [adminId]
+    [adminId],
   );
 
   return rows.length > 0 ? (rows[0] as Admin) : null;
@@ -60,7 +61,7 @@ export async function getAdminById(adminId: number): Promise<Admin | null> {
 // 모든 관리자 조회
 export async function getAllAdmins(): Promise<Admin[]> {
   const [rows] = await pool.execute<RowDataPacket[]>(
-    "SELECT admin_id, username, name, email, role, created_at, last_login FROM admins ORDER BY created_at DESC"
+    "SELECT admin_id, username, name, email, role, created_at, last_login FROM admins ORDER BY created_at DESC",
   );
 
   return rows as Admin[];
@@ -84,7 +85,7 @@ export async function createAdmin(data: {
       data.name,
       data.email,
       data.role || "ADMIN",
-    ]
+    ],
   );
 
   return result.insertId;
@@ -97,7 +98,7 @@ export async function updateAdmin(
     name?: string;
     email?: string;
     role?: "SUPER_ADMIN" | "ADMIN";
-  }
+  },
 ): Promise<boolean> {
   const updates: string[] = [];
   const values: any[] = [];
@@ -123,7 +124,7 @@ export async function updateAdmin(
 
   const [result] = await pool.execute<ResultSetHeader>(
     `UPDATE admins SET ${updates.join(", ")} WHERE admin_id = ?`,
-    values
+    values,
   );
 
   return result.affectedRows > 0;
@@ -132,13 +133,13 @@ export async function updateAdmin(
 // 관리자 비밀번호 변경
 export async function changeAdminPassword(
   adminId: number,
-  newPassword: string
+  newPassword: string,
 ): Promise<boolean> {
   const hashedPassword = await bcrypt.hash(newPassword, 10);
 
   const [result] = await pool.execute<ResultSetHeader>(
     "UPDATE admins SET password = ? WHERE admin_id = ?",
-    [hashedPassword, adminId]
+    [hashedPassword, adminId],
   );
 
   return result.affectedRows > 0;
@@ -148,7 +149,7 @@ export async function changeAdminPassword(
 export async function deleteAdmin(adminId: number): Promise<boolean> {
   const [result] = await pool.execute<ResultSetHeader>(
     "DELETE FROM admins WHERE admin_id = ?",
-    [adminId]
+    [adminId],
   );
 
   return result.affectedRows > 0;
@@ -158,27 +159,27 @@ export async function deleteAdmin(adminId: number): Promise<boolean> {
 export async function getDashboardStats() {
   // 총 회원 수
   const [membersCount] = await pool.execute<RowDataPacket[]>(
-    "SELECT COUNT(*) as count FROM members"
+    "SELECT COUNT(*) as count FROM members",
   );
 
   // 총 팀 수
   const [teamsCount] = await pool.execute<RowDataPacket[]>(
-    "SELECT COUNT(*) as count FROM teams"
+    "SELECT COUNT(*) as count FROM teams",
   );
 
   // 총 구독 수
   const [subscriptionsCount] = await pool.execute<RowDataPacket[]>(
-    "SELECT COUNT(*) as count FROM subscriptions WHERE status = 'ACTIVE'"
+    "SELECT COUNT(*) as count FROM subscriptions WHERE status = 'ACTIVE'",
   );
 
   // 총 태스크 수
   const [tasksCount] = await pool.execute<RowDataPacket[]>(
-    "SELECT COUNT(*) as count FROM tasks"
+    "SELECT COUNT(*) as count FROM tasks",
   );
 
   // 최근 가입 회원 (7일)
   const [recentMembers] = await pool.execute<RowDataPacket[]>(
-    "SELECT COUNT(*) as count FROM members WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)"
+    "SELECT COUNT(*) as count FROM members WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)",
   );
 
   return {
@@ -189,4 +190,3 @@ export async function getDashboardStats() {
     recentMembers: recentMembers[0].count,
   };
 }
-

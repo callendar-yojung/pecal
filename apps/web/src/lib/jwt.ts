@@ -1,4 +1,4 @@
-import { SignJWT, jwtVerify, type JWTPayload } from "jose";
+import { type JWTPayload, jwtVerify, SignJWT } from "jose";
 import { getRequiredEnv } from "@/lib/required-env";
 
 export interface TokenPayload extends JWTPayload {

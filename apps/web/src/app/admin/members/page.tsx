@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -18,27 +17,26 @@ export default function AdminMembersPage() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
+    const fetchMembers = async () => {
+      try {
+        const response = await fetch("/api/admin/members");
+        if (response.ok) {
+          const data = await response.json();
+          setMembers(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch members:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchMembers();
   }, []);
-
-  const fetchMembers = async () => {
-    try {
-      const response = await fetch("/api/admin/members");
-      if (response.ok) {
-        const data = await response.json();
-        setMembers(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch members:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const filteredMembers = members.filter(
     (member) =>
       member.email?.toLowerCase().includes(search.toLowerCase()) ||
-      member.nickname?.toLowerCase().includes(search.toLowerCase())
+      member.nickname?.toLowerCase().includes(search.toLowerCase()),
   );
 
   if (loading) {
@@ -115,61 +113,61 @@ export default function AdminMembersPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {member.nickname || "-"}
                   </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
                       {member.provider}
                     </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {new Date(member.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {member.lasted_at
-                            ? new Date(member.lasted_at).toLocaleDateString()
-                            : "-"}
-                    </td>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    {new Date(member.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    {member.lasted_at
+                      ? new Date(member.lasted_at).toLocaleDateString()
+                      : "-"}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-          {filteredMembers.length === 0 && (
-              <div className="text-center py-12">
-                  <p className="text-gray-500 dark:text-gray-400">
-                      검색 결과가 없습니다.
-                  </p>
-              </div>
-          )}
+        {filteredMembers.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-500 dark:text-gray-400">
+              검색 결과가 없습니다.
+            </p>
+          </div>
+        )}
       </div>
 
-        {/* 통계 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                    전체 회원
-                </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {members.length}
-                </p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                    Kakao 회원
-                </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {members.filter((m) => m.provider === "kakao").length}
-                </p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                    Google 회원
-                </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {members.filter((m) => m.provider === "google").length}
-                </p>
-            </div>
+      {/* 통계 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+            전체 회원
+          </p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            {members.length}
+          </p>
         </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+            Kakao 회원
+          </p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            {members.filter((m) => m.provider === "kakao").length}
+          </p>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+            Google 회원
+          </p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            {members.filter((m) => m.provider === "google").length}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

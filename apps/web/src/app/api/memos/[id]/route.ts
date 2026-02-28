@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { requireOwnerAccess } from "@/lib/access";
 import {
   deleteMemo,
   getMemoById,
-  updateMemo,
   type MemoOwnerType,
+  updateMemo,
 } from "@/lib/memo";
 
 function parseOwnerType(value: string | null): MemoOwnerType | null {
@@ -14,11 +14,13 @@ function parseOwnerType(value: string | null): MemoOwnerType | null {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
   const memoId = Number(id);
-  const ownerType = parseOwnerType(request.nextUrl.searchParams.get("owner_type"));
+  const ownerType = parseOwnerType(
+    request.nextUrl.searchParams.get("owner_type"),
+  );
   const ownerId = Number(request.nextUrl.searchParams.get("owner_id"));
 
   if (Number.isNaN(memoId) || !ownerType || Number.isNaN(ownerId)) {
@@ -35,7 +37,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
   const memoId = Number(id);
@@ -66,11 +68,13 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
   const memoId = Number(id);
-  const ownerType = parseOwnerType(request.nextUrl.searchParams.get("owner_type"));
+  const ownerType = parseOwnerType(
+    request.nextUrl.searchParams.get("owner_type"),
+  );
   const ownerId = Number(request.nextUrl.searchParams.get("owner_id"));
 
   if (Number.isNaN(memoId) || !ownerType || Number.isNaN(ownerId)) {

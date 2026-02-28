@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
 import { getActiveBillingKey, removeBillingKeyById } from "@/lib/billing-key";
 import { expireBillingKey, generateMoid } from "@/lib/nicepay";
@@ -15,7 +15,7 @@ export async function DELETE(request: NextRequest) {
     if (!billingKey) {
       return NextResponse.json(
         { error: "등록된 카드가 없습니다." },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -27,7 +27,7 @@ export async function DELETE(request: NextRequest) {
     } catch (expireError: any) {
       console.warn(
         "[Billing Remove] NicePay expire failed (continuing with DB removal):",
-        expireError.message
+        expireError.message,
       );
     }
 
@@ -42,7 +42,7 @@ export async function DELETE(request: NextRequest) {
     console.error("[Billing Remove] Error:", error.message);
     return NextResponse.json(
       { error: error.message || "카드 삭제 중 오류가 발생했습니다." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

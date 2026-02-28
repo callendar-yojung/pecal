@@ -1,6 +1,16 @@
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import pool from "./db";
-import type { RowDataPacket, ResultSetHeader } from "mysql2";
-import { type OwnerType, increaseStorageUsage, decreaseStorageUsage } from "./storage";
+import {
+  createCacheKey,
+  deleteCacheByPattern,
+  deleteCacheKey,
+  readThroughCache,
+} from "./redis-cache";
+import {
+  decreaseStorageUsage,
+  increaseStorageUsage,
+  type OwnerType,
+} from "./storage";
 
 export interface FileRecord {
   file_id: number;
@@ -26,6 +36,54 @@ export interface CreateFileData {
   uploaded_by: number;
 }
 
+const FILE_DETAIL_TTL_SECONDS = Number(process.env.REDIS_FILE_DETAIL_TTL_SEC ?? 60);
+const FILE_LIST_TTL_SECONDS = Number(process.env.REDIS_FILE_LIST_TTL_SEC ?? 30);
+const FILE_TOTAL_SIZE_TTL_SECONDS = Number(process.env.REDIS_FILE_TOTAL_SIZE_TTL_SEC ?? 20);
+
+function fileDetailCacheKey(fileId: number) {
+  return createCacheKey("files", "detail", fileId);
+}
+
+function filesByOwnerCacheKey(ownerType: OwnerType, ownerId: number) {
+  return createCacheKey("files", "owner", ownerType, ownerId);
+}
+
+function fileTotalSizeByOwnerCacheKey(ownerType: OwnerType, ownerId: number) {
+  return createCacheKey("files", "owner", ownerType, ownerId, "total_size");
+}
+
+function filesByUploaderCacheKey(uploadedBy: number) {
+  return createCacheKey("files", "uploader", uploadedBy);
+}
+
+async function invalidateFileCaches(options: {
+  fileId?: number;
+  ownerType?: OwnerType;
+  ownerId?: number;
+  uploadedBy?: number;
+}) {
+  const jobs: Promise<void>[] = [];
+  if (options.fileId) {
+    jobs.push(deleteCacheKey(fileDetailCacheKey(options.fileId)));
+  }
+  if (options.ownerType && options.ownerId) {
+    jobs.push(deleteCacheKey(filesByOwnerCacheKey(options.ownerType, options.ownerId)));
+    jobs.push(deleteCacheKey(fileTotalSizeByOwnerCacheKey(options.ownerType, options.ownerId)));
+  }
+  if (options.uploadedBy) {
+    jobs.push(deleteCacheKey(filesByUploaderCacheKey(options.uploadedBy)));
+  }
+  if (options.ownerType && options.ownerId && options.fileId) {
+    // defensive cleanup for possible future paginated owner-file keys
+    jobs.push(
+      deleteCacheByPattern(
+        createCacheKey("files", "owner", options.ownerType, options.ownerId, "*"),
+      ),
+    );
+  }
+  await Promise.all(jobs);
+}
+
 /**
  * 파일 레코드 생성
  */
@@ -47,13 +105,19 @@ export async function createFileRecord(data: CreateFileData): Promise<number> {
         data.file_size,
         data.mime_type || null,
         data.uploaded_by,
-      ]
+      ],
     );
 
     // 저장소 사용량 증가
     await increaseStorageUsage(data.owner_type, data.owner_id, data.file_size);
 
     await connection.commit();
+    await invalidateFileCaches({
+      fileId: result.insertId,
+      ownerType: data.owner_type,
+      ownerId: data.owner_id,
+      uploadedBy: data.uploaded_by,
+    });
     return result.insertId;
   } catch (error) {
     await connection.rollback();
@@ -67,11 +131,17 @@ export async function createFileRecord(data: CreateFileData): Promise<number> {
  * 파일 ID로 조회
  */
 export async function getFileById(fileId: number): Promise<FileRecord | null> {
-  const [rows] = await pool.execute<RowDataPacket[]>(
-    `SELECT * FROM files WHERE file_id = ?`,
-    [fileId]
+  return readThroughCache<FileRecord | null>(
+    fileDetailCacheKey(fileId),
+    FILE_DETAIL_TTL_SECONDS,
+    async () => {
+      const [rows] = await pool.execute<RowDataPacket[]>(
+        `SELECT * FROM files WHERE file_id = ?`,
+        [fileId],
+      );
+      return rows.length > 0 ? (rows[0] as FileRecord) : null;
+    },
   );
-  return rows.length > 0 ? (rows[0] as FileRecord) : null;
 }
 
 /**
@@ -79,24 +149,38 @@ export async function getFileById(fileId: number): Promise<FileRecord | null> {
  */
 export async function getFilesByOwner(
   ownerType: OwnerType,
-  ownerId: number
+  ownerId: number,
 ): Promise<FileRecord[]> {
-  const [rows] = await pool.execute<RowDataPacket[]>(
-    `SELECT * FROM files WHERE owner_type = ? AND owner_id = ? ORDER BY created_at DESC`,
-    [ownerType, ownerId]
+  return readThroughCache<FileRecord[]>(
+    filesByOwnerCacheKey(ownerType, ownerId),
+    FILE_LIST_TTL_SECONDS,
+    async () => {
+      const [rows] = await pool.execute<RowDataPacket[]>(
+        `SELECT * FROM files WHERE owner_type = ? AND owner_id = ? ORDER BY created_at DESC`,
+        [ownerType, ownerId],
+      );
+      return rows as FileRecord[];
+    },
   );
-  return rows as FileRecord[];
 }
 
 /**
  * 업로더별 파일 목록 조회
  */
-export async function getFilesByUploader(uploadedBy: number): Promise<FileRecord[]> {
-  const [rows] = await pool.execute<RowDataPacket[]>(
-    `SELECT * FROM files WHERE uploaded_by = ? ORDER BY created_at DESC`,
-    [uploadedBy]
+export async function getFilesByUploader(
+  uploadedBy: number,
+): Promise<FileRecord[]> {
+  return readThroughCache<FileRecord[]>(
+    filesByUploaderCacheKey(uploadedBy),
+    FILE_LIST_TTL_SECONDS,
+    async () => {
+      const [rows] = await pool.execute<RowDataPacket[]>(
+        `SELECT * FROM files WHERE uploaded_by = ? ORDER BY created_at DESC`,
+        [uploadedBy],
+      );
+      return rows as FileRecord[];
+    },
   );
-  return rows as FileRecord[];
 }
 
 /**
@@ -110,7 +194,7 @@ export async function deleteFileRecord(fileId: number): Promise<boolean> {
     // 파일 정보 가져오기
     const [fileRows] = await connection.execute<RowDataPacket[]>(
       `SELECT owner_type, owner_id, file_size FROM files WHERE file_id = ?`,
-      [fileId]
+      [fileId],
     );
 
     if (fileRows.length === 0) {
@@ -123,15 +207,26 @@ export async function deleteFileRecord(fileId: number): Promise<boolean> {
     // 파일 삭제
     const [result] = await connection.execute<ResultSetHeader>(
       `DELETE FROM files WHERE file_id = ?`,
-      [fileId]
+      [fileId],
     );
 
     if (result.affectedRows > 0) {
       // 저장소 사용량 감소
-      await decreaseStorageUsage(file.owner_type, file.owner_id, file.file_size);
+      await decreaseStorageUsage(
+        file.owner_type,
+        file.owner_id,
+        file.file_size,
+      );
     }
 
     await connection.commit();
+    if (result.affectedRows > 0) {
+      await invalidateFileCaches({
+        fileId,
+        ownerType: file.owner_type,
+        ownerId: Number(file.owner_id),
+      });
+    }
     return result.affectedRows > 0;
   } catch (error) {
     await connection.rollback();
@@ -146,12 +241,25 @@ export async function deleteFileRecord(fileId: number): Promise<boolean> {
  */
 export async function updateFileName(
   fileId: number,
-  originalName: string
+  originalName: string,
 ): Promise<boolean> {
+  const [fileRows] = await pool.execute<RowDataPacket[]>(
+    `SELECT owner_type, owner_id, uploaded_by FROM files WHERE file_id = ?`,
+    [fileId],
+  );
   const [result] = await pool.execute<ResultSetHeader>(
     `UPDATE files SET original_name = ? WHERE file_id = ?`,
-    [originalName, fileId]
+    [originalName, fileId],
   );
+  if (result.affectedRows > 0) {
+    const file = fileRows[0];
+    await invalidateFileCaches({
+      fileId,
+      ownerType: file?.owner_type as OwnerType | undefined,
+      ownerId: file?.owner_id ? Number(file.owner_id) : undefined,
+      uploadedBy: file?.uploaded_by ? Number(file.uploaded_by) : undefined,
+    });
+  }
   return result.affectedRows > 0;
 }
 
@@ -160,15 +268,21 @@ export async function updateFileName(
  */
 export async function getTotalFileSize(
   ownerType: OwnerType,
-  ownerId: number
+  ownerId: number,
 ): Promise<number> {
-  const [rows] = await pool.execute<RowDataPacket[]>(
-    `SELECT COALESCE(SUM(file_size), 0) as total_size
-     FROM files
-     WHERE owner_type = ? AND owner_id = ?`,
-    [ownerType, ownerId]
+  return readThroughCache<number>(
+    fileTotalSizeByOwnerCacheKey(ownerType, ownerId),
+    FILE_TOTAL_SIZE_TTL_SECONDS,
+    async () => {
+      const [rows] = await pool.execute<RowDataPacket[]>(
+        `SELECT COALESCE(SUM(file_size), 0) as total_size
+         FROM files
+         WHERE owner_type = ? AND owner_id = ?`,
+        [ownerType, ownerId],
+      );
+      return Number(rows[0]?.total_size || 0);
+    },
   );
-  return Number(rows[0]?.total_size || 0);
 }
 
 /**
@@ -176,11 +290,11 @@ export async function getTotalFileSize(
  */
 export async function getFileCount(
   ownerType: OwnerType,
-  ownerId: number
+  ownerId: number,
 ): Promise<number> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT COUNT(*) as count FROM files WHERE owner_type = ? AND owner_id = ?`,
-    [ownerType, ownerId]
+    [ownerType, ownerId],
   );
   return Number(rows[0]?.count || 0);
 }
@@ -211,7 +325,7 @@ export async function getFilesByTeamId(teamId: number): Promise<File[]> {
 export async function createFile(
   teamId: number,
   fileName: string,
-  fileSizeMb: number
+  fileSizeMb: number,
 ): Promise<number> {
   return createFileRecord({
     owner_type: "team",
@@ -224,7 +338,10 @@ export async function createFile(
   });
 }
 
-export async function updateFile(fileId: number, fileName: string): Promise<boolean> {
+export async function updateFile(
+  fileId: number,
+  fileName: string,
+): Promise<boolean> {
   return updateFileName(fileId, fileName);
 }
 
@@ -232,7 +349,9 @@ export async function deleteFile(fileId: number): Promise<boolean> {
   return deleteFileRecord(fileId);
 }
 
-export async function getTotalFileSizeByTeamId(teamId: number): Promise<number> {
+export async function getTotalFileSizeByTeamId(
+  teamId: number,
+): Promise<number> {
   const bytes = await getTotalFileSize("team", teamId);
   return bytes / (1024 * 1024); // MB로 변환
 }

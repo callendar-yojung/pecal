@@ -1,5 +1,3 @@
-import { getRequiredEnv } from "@/lib/required-env";
-
 type PayPalWebhookEvent = Record<string, unknown>;
 
 function getPayPalApiBaseUrl() {
@@ -26,8 +24,12 @@ async function getPayPalAccessToken(): Promise<string> {
       : process.env.SENDBOX_CLIENT_ID || process.env.PAYPAL_CLIENT_ID || "";
   const clientSecret =
     mode === "live"
-      ? process.env.PAYPAL_CLIENT_SECRET || process.env.SENDBOX_CLIENT_SECRET || ""
-      : process.env.SENDBOX_CLIENT_SECRET || process.env.PAYPAL_CLIENT_SECRET || "";
+      ? process.env.PAYPAL_CLIENT_SECRET ||
+        process.env.SENDBOX_CLIENT_SECRET ||
+        ""
+      : process.env.SENDBOX_CLIENT_SECRET ||
+        process.env.PAYPAL_CLIENT_SECRET ||
+        "";
 
   if (!clientId) throw new Error("PayPal client id is required");
   if (!clientSecret) throw new Error("PayPal client secret is required");
@@ -57,7 +59,7 @@ async function getPayPalAccessToken(): Promise<string> {
 
 export async function verifyPayPalWebhookSignature(
   headers: Headers,
-  event: PayPalWebhookEvent
+  event: PayPalWebhookEvent,
 ): Promise<boolean> {
   const webhookId = getWebhookId();
   if (!webhookId) {
@@ -99,7 +101,7 @@ export async function verifyPayPalWebhookSignature(
         webhook_event: event,
       }),
       cache: "no-store",
-    }
+    },
   );
 
   if (!response.ok) {

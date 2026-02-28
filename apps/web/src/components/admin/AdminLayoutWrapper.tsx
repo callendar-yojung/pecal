@@ -1,16 +1,16 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 import {
-  LayoutDashboard,
-  Users,
   Building2,
   CreditCard,
+  LayoutDashboard,
   Package,
   UserCog,
+  Users,
   Wrench,
 } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 
 interface Admin {
   admin_id: number;
@@ -28,12 +28,7 @@ export default function AdminLayoutWrapper({
   const [admin, setAdmin] = useState<Admin | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    checkAuth();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
       const response = await fetch("/api/admin/me");
       if (!response.ok) {
@@ -48,7 +43,11 @@ export default function AdminLayoutWrapper({
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   const handleLogout = async () => {
     try {

@@ -125,6 +125,14 @@ export function TaskDetailView() {
     }
   }
 
+  const formatReminder = (minutes?: number | null) => {
+    if (minutes === null || minutes === undefined) return '알림 없음'
+    if (minutes <= 0) return '정시'
+    if (minutes % 1440 === 0) return `${minutes / 1440}일 전`
+    if (minutes % 60 === 0) return `${minutes / 60}시간 전`
+    return `${minutes}분 전`
+  }
+
   const selectedTags = useMemo(() => {
     if (!detailTask?.tag_ids?.length) return []
     return tags.filter((tag) => detailTask.tag_ids?.includes(tag.tag_id))
@@ -184,6 +192,15 @@ export function TaskDetailView() {
                   </div>
                 </div>
               )}
+              <div className="flex items-center gap-3">
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0a3 3 0 11-6 0m6 0H9" />
+                </svg>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  알림: {formatReminder(detailTask.reminder_minutes)}
+                  {detailTask.rrule ? ` · 반복: ${detailTask.rrule}` : ''}
+                </span>
+              </div>
             </div>
 
             {detailTask.tag_ids && detailTask.tag_ids.length > 0 && (
@@ -277,4 +294,3 @@ export function TaskDetailView() {
     </div>
   )
 }
-

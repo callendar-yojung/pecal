@@ -1,8 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
-import RichTextEditor from "@/components/editor/RichTextEditor";
 import {
   CalendarClock,
   Clock,
@@ -11,6 +8,9 @@ import {
   Tag as TagIcon,
   Trash2,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
+import RichTextEditor from "@/components/editor/RichTextEditor";
 
 export interface TaskViewData {
   id?: number;
@@ -20,6 +20,8 @@ export interface TaskViewData {
   content: string;
   status?: "TODO" | "IN_PROGRESS" | "DONE";
   color?: string;
+  reminder_minutes?: number | null;
+  rrule?: string | null;
   tag_ids?: number[];
   created_at?: string;
   updated_at?: string;
@@ -87,7 +89,9 @@ export default function TaskViewPanel({
     }
     if (!showTags || !workspaceType || !ownerId) return;
     const fetchTags = async () => {
-      const res = await fetch(`/api/tags?owner_type=${workspaceType}&owner_id=${ownerId}`);
+      const res = await fetch(
+        `/api/tags?owner_type=${workspaceType}&owner_id=${ownerId}`,
+      );
       if (res.ok) {
         const data = await res.json();
         setAvailableTags(data.tags || []);
@@ -101,7 +105,8 @@ export default function TaskViewPanel({
     const fetchAttachments = async () => {
       setLoadingAttachments(true);
       try {
-        const endpoint = attachmentsEndpoint || `/api/tasks/attachments?task_id=${task.id}`;
+        const endpoint =
+          attachmentsEndpoint || `/api/tasks/attachments?task_id=${task.id}`;
         const response = await fetch(endpoint);
         if (response.ok) {
           const data = await response.json();
@@ -126,7 +131,11 @@ export default function TaskViewPanel({
     DONE: "bg-status-done text-status-done-foreground",
   };
 
-  const statusOptions: Array<NonNullable<TaskViewData["status"]>> = ["TODO", "IN_PROGRESS", "DONE"];
+  const statusOptions: Array<NonNullable<TaskViewData["status"]>> = [
+    "TODO",
+    "IN_PROGRESS",
+    "DONE",
+  ];
 
   const formatDateTimeDisplay = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -139,6 +148,14 @@ export default function TaskViewPanel({
     });
   };
 
+  const formatReminder = (minutes?: number | null) => {
+    if (minutes === null || minutes === undefined) return "알림 없음";
+    if (minutes <= 0) return "정시";
+    if (minutes % 1440 === 0) return `${minutes / 1440}일 전`;
+    if (minutes % 60 === 0) return `${minutes / 60}시간 전`;
+    return `${minutes}분 전`;
+  };
+
   const parseContentJson = (value: string) => {
     if (!value) {
       return { type: "doc", content: [{ type: "paragraph" }] };
@@ -148,10 +165,20 @@ export default function TaskViewPanel({
       try {
         return JSON.parse(trimmed);
       } catch {
-        return { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: value }] }] };
+        return {
+          type: "doc",
+          content: [
+            { type: "paragraph", content: [{ type: "text", text: value }] },
+          ],
+        };
       }
     }
-    return { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: value }] }] };
+    return {
+      type: "doc",
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: value }] },
+      ],
+    };
   };
 
   return (
@@ -174,7 +201,9 @@ export default function TaskViewPanel({
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {task.status && (
-              <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${statusColors[task.status]}`}>
+              <span
+                className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${statusColors[task.status]}`}
+              >
                 {statusLabels[task.status]}
               </span>
             )}
@@ -183,7 +212,9 @@ export default function TaskViewPanel({
                 {t("statusChange")}
                 <select
                   value={task.status || "TODO"}
-                  onChange={(e) => onStatusChange(e.target.value as TaskViewData["status"])}
+                  onChange={(e) =>
+                    onStatusChange(e.target.value as TaskViewData["status"])
+                  }
                   className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                 >
                   {statusOptions.map((status) => (
@@ -203,14 +234,21 @@ export default function TaskViewPanel({
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Clock className="w-4 h-4" />
           <span>
-            {formatDateTimeDisplay(task.start_time)} - {formatDateTimeDisplay(task.end_time)}
+            {formatDateTimeDisplay(task.start_time)} -{" "}
+            {formatDateTimeDisplay(task.end_time)}
           </span>
+        </div>
+        <div className="text-sm text-muted-foreground">
+          알림: {formatReminder(task.reminder_minutes)}
+          {task.rrule ? ` · 반복: ${task.rrule}` : ""}
         </div>
 
         {task.created_by_name && (
           <div className="text-xs text-muted-foreground">
             {t("createdBy")}: {task.created_by_name}
-            {task.created_at ? ` · ${formatDateTimeDisplay(task.created_at)}` : ""}
+            {task.created_at
+              ? ` · ${formatDateTimeDisplay(task.created_at)}`
+              : ""}
           </div>
         )}
         {task.updated_by_name &&
@@ -219,19 +257,21 @@ export default function TaskViewPanel({
           task.updated_at !== task.created_at && (
             <div className="text-xs text-muted-foreground">
               {t("updatedBy")}: {task.updated_by_name}
-              {task.updated_at ? ` · ${formatDateTimeDisplay(task.updated_at)}` : ""}
+              {task.updated_at
+                ? ` · ${formatDateTimeDisplay(task.updated_at)}`
+                : ""}
             </div>
           )}
 
         {showTags && task.tag_ids && task.tag_ids.length > 0 && (
           <div>
-          <h3 className="text-sm font-medium text-subtle-foreground mb-2 flex items-center gap-2">
-            <TagIcon className="h-4 w-4" />
-            {t("tags")}
-          </h3>
+            <h3 className="text-sm font-medium text-subtle-foreground mb-2 flex items-center gap-2">
+              <TagIcon className="h-4 w-4" />
+              {t("tags")}
+            </h3>
             <div className="flex flex-wrap gap-2">
-              {task.tag_ids.map(tagId => {
-                const tag = availableTags.find(t => t.tag_id === tagId);
+              {task.tag_ids.map((tagId) => {
+                const tag = availableTags.find((t) => t.tag_id === tagId);
                 if (!tag) return null;
                 return (
                   <span
@@ -267,39 +307,39 @@ export default function TaskViewPanel({
         </div>
 
         {showAttachments && (
-        <div className="mt-4">
-          <h3 className="text-sm font-medium text-subtle-foreground mb-2">
-            {t("attachments")}
-          </h3>
-          {loadingAttachments ? (
-            <p className="text-sm text-muted-foreground">{t("loading")}</p>
-          ) : attachments.length > 0 ? (
-            <div className="space-y-2">
-              {attachments.map((att) => (
-                <div
-                  key={att.attachment_id}
-                  className="flex items-center justify-between p-2 bg-muted/50 rounded-lg"
-                >
-                  <a
-                    href={att.file_path}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex flex-1 items-center gap-2 truncate text-sm text-foreground hover:text-primary"
+          <div className="mt-4">
+            <h3 className="text-sm font-medium text-subtle-foreground mb-2">
+              {t("attachments")}
+            </h3>
+            {loadingAttachments ? (
+              <p className="text-sm text-muted-foreground">{t("loading")}</p>
+            ) : attachments.length > 0 ? (
+              <div className="space-y-2">
+                {attachments.map((att) => (
+                  <div
+                    key={att.attachment_id}
+                    className="flex items-center justify-between p-2 bg-muted/50 rounded-lg"
                   >
-                    <span className="truncate">{att.original_name}</span>
-                    <span className="text-xs text-muted-foreground flex-shrink-0">
-                      ({att.file_size_formatted})
-                    </span>
-                  </a>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground italic">
-              {t("noAttachments")}
-            </p>
-          )}
-        </div>
+                    <a
+                      href={att.file_path}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-1 items-center gap-2 truncate text-sm text-foreground hover:text-primary"
+                    >
+                      <span className="truncate">{att.original_name}</span>
+                      <span className="text-xs text-muted-foreground flex-shrink-0">
+                        ({att.file_size_formatted})
+                      </span>
+                    </a>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">
+                {t("noAttachments")}
+              </p>
+            )}
+          </div>
         )}
       </div>
 

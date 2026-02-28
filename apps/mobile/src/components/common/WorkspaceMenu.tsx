@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import type { TeamItem, Workspace } from '../../lib/types';
 import { useThemeMode } from '../../contexts/ThemeContext';
 import { useI18n } from '../../contexts/I18nContext';
@@ -12,6 +13,8 @@ type Props = {
   onClose: () => void;
   onSelectWorkspace: (workspaceId: number) => void;
   onOpenCreateTeam: () => void;
+  onCreateWorkspace?: (input: { name: string; scope: 'personal' | 'team'; teamId?: number | null }) => Promise<void> | void;
+  creatingWorkspace?: boolean;
   onLogout: () => void;
   workspaces: Workspace[];
   teams: TeamItem[];
@@ -26,6 +29,8 @@ export function WorkspaceMenu({
   onClose,
   onSelectWorkspace,
   onOpenCreateTeam,
+  onCreateWorkspace,
+  creatingWorkspace = false,
   onLogout,
   workspaces,
   teams,
@@ -39,6 +44,7 @@ export function WorkspaceMenu({
   const s = createStyles(colors);
   const [scope, setScope] = useState<'personal' | 'team'>('personal');
   const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
+  const [workspaceName, setWorkspaceName] = useState('');
 
   const personalWorkspaces = useMemo(
     () => workspaces.filter((workspace) => workspace.type === 'personal'),
@@ -73,6 +79,9 @@ export function WorkspaceMenu({
     setSelectedTeamId(teamGroups[0]?.teamId ?? null);
   }, [open, selectedWorkspaceOwnerId, selectedWorkspaceType, teamGroups]);
 
+  const createTargetLabel = scope === 'personal' ? t('workspaceCreatePersonal') : t('workspaceCreateTeamWorkspace');
+  const canCreateWorkspace = !!workspaceName.trim() && (scope === 'personal' || !!selectedTeamId);
+
   if (!open) return null;
 
   return (
@@ -91,8 +100,41 @@ export function WorkspaceMenu({
             if (!selectedTeamId) setSelectedTeamId(teamGroups[0]?.teamId ?? null);
           }}
         >
-          <Text style={[s.modeMenuText, scope === 'team' ? s.modeMenuTextActive : null]}>팀</Text>
+          <Text style={[s.modeMenuText, scope === 'team' ? s.modeMenuTextActive : null]}>{t('workspaceTeam')}</Text>
         </Pressable>
+      </View>
+
+      <View style={{ gap: 6 }}>
+        <TextInput
+          value={workspaceName}
+          onChangeText={setWorkspaceName}
+          placeholder={t('workspaceNamePlaceholder')}
+          placeholderTextColor={colors.textMuted}
+          style={s.input}
+        />
+        <Pressable
+          style={[
+            s.modeMenuCreate,
+            { opacity: canCreateWorkspace && !creatingWorkspace ? 1 : 0.5 },
+          ]}
+          disabled={!canCreateWorkspace || creatingWorkspace}
+          onPress={async () => {
+            if (!onCreateWorkspace) return;
+            await onCreateWorkspace({
+              name: workspaceName.trim(),
+              scope,
+              teamId: scope === 'team' ? selectedTeamId : null,
+            });
+            setWorkspaceName('');
+          }}
+        >
+          <Text style={s.modeMenuCreateText}>
+            {creatingWorkspace ? t('workspaceCreating') : createTargetLabel}
+          </Text>
+        </Pressable>
+        {scope === 'team' && !selectedTeamId ? (
+          <Text style={s.modeMenuText}>{t('workspaceNoTeamSelected')}</Text>
+        ) : null}
       </View>
 
       {scope === 'team' ? (
@@ -127,12 +169,16 @@ export function WorkspaceMenu({
               onClose();
             }}
           >
-            <Text style={[s.modeMenuText, active ? s.modeMenuTextActive : null]}>{workspace.name}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={[s.modeMenuText, active ? s.modeMenuTextActive : null]}>{workspace.name}</Text>
+              {active ? (
+                <Ionicons name="checkmark" size={16} color={colors.primary} />
+              ) : null}
+            </View>
           </Pressable>
         );
       })}
       {!visibleWorkspaces.length ? <Text style={s.modeMenuText}>{t('noWorkspace')}</Text> : null}
-
       <Pressable
         style={s.modeMenuCreate}
         onPress={() => {

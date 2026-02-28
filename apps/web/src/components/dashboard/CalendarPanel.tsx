@@ -1,12 +1,19 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
-import { useTranslations, useLocale } from "next-intl";
-import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Plus, Calendar as CalendarIcon } from "lucide-react"; // 아이콘 라이브러리 추가 권장
+import {
+  Calendar as CalendarIcon,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Plus,
+} from "lucide-react"; // 아이콘 라이브러리 추가 권장
 import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Button from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 interface Tag {
   tag_id: number;
@@ -25,6 +32,19 @@ interface Task {
   workspace_id: number;
   color?: string;
   tags?: Tag[];
+}
+
+function dateKeyFromDateTime(value?: string) {
+  if (!value) return "";
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+  const normalized = value.includes(" ") ? value.replace(" ", "T") : value;
+  const parsed = new Date(normalized);
+  if (Number.isNaN(parsed.getTime())) return "";
+  const y = parsed.getFullYear();
+  const m = String(parsed.getMonth() + 1).padStart(2, "0");
+  const d = String(parsed.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 export default function CalendarPanel() {
@@ -80,7 +100,7 @@ export default function CalendarPanel() {
     };
 
     fetchTasks();
-  }, [currentWorkspace?.workspace_id]);
+  }, [currentWorkspace?.workspace_id, currentWorkspace]);
 
   const firstDayOfMonth = new Date(year, month, 1);
   const lastDayOfMonth = new Date(year, month + 1, 0);
@@ -92,27 +112,36 @@ export default function CalendarPanel() {
   for (let i = 1; i <= totalDays; i++) days.push(i);
 
   const weekDays = [
-    t("calendar.weekDays.sun"), t("calendar.weekDays.mon"), t("calendar.weekDays.tue"),
-    t("calendar.weekDays.wed"), t("calendar.weekDays.thu"), t("calendar.weekDays.fri"),
+    t("calendar.weekDays.sun"),
+    t("calendar.weekDays.mon"),
+    t("calendar.weekDays.tue"),
+    t("calendar.weekDays.wed"),
+    t("calendar.weekDays.thu"),
+    t("calendar.weekDays.fri"),
     t("calendar.weekDays.sat"),
   ];
 
-  const formatLocalDate = (date: Date) => {
+  const formatLocalDate = useCallback((date: Date) => {
     const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
     return `${y}-${m}-${d}`;
-  };
+  }, []);
 
   const isToday = (day: number | null) => {
     if (!day) return false;
     const today = new Date();
-    return today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
+    return (
+      today.getFullYear() === year &&
+      today.getMonth() === month &&
+      today.getDate() === day
+    );
   };
 
   const handlePrevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
   const handleNextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
-  const handleDateClick = (day: number) => setSelectedDate(new Date(year, month, day));
+  const handleDateClick = (day: number) =>
+    setSelectedDate(new Date(year, month, day));
 
   useEffect(() => {
     if (!selectedDate) {
@@ -127,7 +156,8 @@ export default function CalendarPanel() {
     }
   }, [year, month, selectedDate]);
 
-  const getTaskColor = (task: Task) => task.color || task.tags?.[0]?.color || "#3B82F6";
+  const getTaskColor = (task: Task) =>
+    task.color || task.tags?.[0]?.color || "#3B82F6";
 
   const getReadableTextColor = (color: string) => {
     const hex = color.replace("#", "");
@@ -168,7 +198,9 @@ export default function CalendarPanel() {
 
     tasks.forEach((task) => {
       const taskStartDate = formatLocalDate(new Date(task.start_time));
-      const taskEndDate = formatLocalDate(new Date(task.end_time || task.start_time));
+      const taskEndDate = formatLocalDate(
+        new Date(task.end_time || task.start_time),
+      );
       for (let day = 1; day <= totalDays; day++) {
         const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
         if (dateStr >= taskStartDate && dateStr <= taskEndDate) {
@@ -177,202 +209,291 @@ export default function CalendarPanel() {
       }
     });
     return map;
-  }, [tasks, totalDays, year, month]);
+  }, [tasks, totalDays, year, month, formatLocalDate]);
 
   const selectedDateTasks =
     selectedDate &&
     selectedDate.getFullYear() === year &&
     selectedDate.getMonth() === month
-      ? (tasksByDay.get(selectedDate.getDate()) || [])
+      ? tasksByDay.get(selectedDate.getDate()) || []
       : [];
 
   if (isLoading) {
     return (
-        <Card className="flex h-[600px] items-center justify-center rounded-3xl border-border/70 bg-card/70 backdrop-blur-md shadow-[0_14px_32px_rgba(15,23,42,0.08)]">
-          <div className="flex flex-col items-center gap-4">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-            <p className="text-sm font-medium text-muted-foreground">Loading your schedule...</p>
-          </div>
-        </Card>
+      <Card className="flex h-[600px] items-center justify-center rounded-3xl border-border/70 bg-card/70 backdrop-blur-md shadow-[0_14px_32px_rgba(15,23,42,0.08)]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm font-medium text-muted-foreground">
+            Loading your schedule...
+          </p>
+        </div>
+      </Card>
     );
   }
 
   return (
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4 animate-in fade-in duration-700">
-        {/* 캘린더 메인 섹션 */}
-        <div className="lg:col-span-3 space-y-6">
-          <Card className="premium-noise overflow-visible rounded-[2.5rem] border-border/60 bg-card/90 shadow-2xl shadow-foreground/5">
-            {/* 헤더: 글래스모피즘 스타일 */}
-            <div className="relative flex flex-col gap-4 border-b border-border/40 bg-muted/10 px-6 py-5 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-7">
-              <div className="relative space-y-1">
-                <div className="flex items-center gap-2 rounded-2xl border border-border/50 bg-background/50 px-3 py-1">
-                  <h2 className="text-3xl font-bold tracking-tight text-foreground">
-                    {currentDate.toLocaleDateString(locale, { month: "long" })}
-                    <span className="ml-3 font-light text-muted-foreground/60">{year}</span>
-                  </h2>
-                  <div className="flex flex-col gap-1">
-                    <button
-                      type="button"
-                      onClick={handleNextMonth}
-                      className="rounded-md border border-border/60 bg-background/80 p-1 text-muted-foreground transition hover:bg-background hover:text-foreground"
-                      aria-label="Next month"
-                    >
-                      <ChevronUp size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handlePrevMonth}
-                      className="rounded-md border border-border/60 bg-background/80 p-1 text-muted-foreground transition hover:bg-background hover:text-foreground"
-                      aria-label="Previous month"
-                    >
-                      <ChevronDown size={14} />
-                    </button>
-                  </div>
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-4 animate-in fade-in duration-700">
+      {/* 캘린더 메인 섹션 */}
+      <div className="lg:col-span-3 space-y-6">
+        <Card className="premium-noise overflow-visible rounded-[2.5rem] border-border/60 bg-card/90 shadow-2xl shadow-foreground/5">
+          {/* 헤더: 글래스모피즘 스타일 */}
+          <div className="relative flex flex-col gap-4 border-b border-border/40 bg-muted/10 px-6 py-5 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-7">
+            <div className="relative space-y-1">
+              <div className="flex items-center gap-2 rounded-2xl border border-border/50 bg-background/50 px-3 py-1">
+                <h2 className="text-3xl font-bold tracking-tight text-foreground">
+                  {currentDate.toLocaleDateString(locale, { month: "long" })}
+                  <span className="ml-3 font-light text-muted-foreground/60">
+                    {year}
+                  </span>
+                </h2>
+                <div className="flex flex-col gap-1">
+                  <button
+                    type="button"
+                    onClick={handleNextMonth}
+                    className="rounded-md border border-border/60 bg-background/80 p-1 text-muted-foreground transition hover:bg-background hover:text-foreground"
+                    aria-label="Next month"
+                  >
+                    <ChevronUp size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handlePrevMonth}
+                    className="rounded-md border border-border/60 bg-background/80 p-1 text-muted-foreground transition hover:bg-background hover:text-foreground"
+                    aria-label="Previous month"
+                  >
+                    <ChevronDown size={14} />
+                  </button>
                 </div>
-                <p className="text-sm font-medium text-primary/70 italic">
-                  {currentWorkspace?.name || t("calendar.title")}
-                </p>
               </div>
-
-              <div className="flex items-center gap-2 rounded-2xl border border-border/40 bg-background/50 p-1.5 shadow-inner">
-                <Button size="sm" onClick={handlePrevMonth} className="rounded-xl px-2 py-2">
-                  <ChevronLeft size={20} />
-                </Button>
-                <Button size="sm" variant="muted" onClick={() => setCurrentDate(new Date())} className="px-4 py-1.5 text-xs font-bold uppercase tracking-wider">
-                  {t("calendar.today")}
-                </Button>
-                <Button size="sm" onClick={handleNextMonth} className="rounded-xl px-2 py-2">
-                  <ChevronRight size={20} />
-                </Button>
-              </div>
-
+              <p className="text-sm font-medium text-primary/70 italic">
+                {currentWorkspace?.name || t("calendar.title")}
+              </p>
             </div>
 
-            {/* 캘린더 바디 */}
-            <div className="p-5 sm:p-6">
-              <div className="mb-4 grid grid-cols-7 gap-2 text-center sm:gap-4">
-                {weekDays.map((day, i) => (
-                    <div key={day} className={`text-xs font-black uppercase tracking-widest ${i === 0 ? "text-destructive/70" : i === 6 ? "text-primary/70" : "text-muted-foreground/50"}`}>
-                      {day}
-                    </div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-7 gap-2 sm:gap-4">
-                {days.map((day, index) => {
-                  const dayTasks = day ? tasksByDay.get(day) || [] : [];
-                  const isSelected = selectedDate?.getDate() === day && selectedDate?.getMonth() === month;
-
-                  return (
-                      <button
-                          key={index}
-                          disabled={!day}
-                          onClick={() => day && handleDateClick(day)}
-                          className={`group relative flex min-h-[120px] flex-col rounded-[1.5rem] border p-3 transition-all duration-300
-                      ${!day ? "border-transparent opacity-0" :
-                              isSelected ? "border-primary bg-primary/5 shadow-xl shadow-primary/10 ring-2 ring-primary/20 scale-[1.03] z-10" :
-                                  isToday(day) ? "border-primary/30 bg-secondary/30" : "border-border/50 bg-background hover:border-primary/40 hover:shadow-lg hover:shadow-foreground/5"}
-                    `}
-                      >
-                        {day && (
-                            <>
-                        <span className={`text-sm font-bold ${isToday(day) ? "text-primary" : "text-foreground/70"}`}>
-                          {day}
-                        </span>
-                              <div className="mt-3 space-y-1.5">
-                                {dayTasks.slice(0, 2).map((task) => (
-                                  <div
-                                    key={task.id}
-                                    className="truncate rounded-full px-2 py-1 text-[10px] font-semibold cursor-pointer transition-transform hover:scale-[1.02]"
-                                    style={{
-                                      backgroundColor: getTaskColor(task),
-                                      color: getReadableTextColor(getTaskColor(task)),
-                                    }}
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      router.push(`/dashboard/tasks/${task.id}`);
-                                    }}
-                                  >
-                                    {task.title || getContentText(task.content) || "Task"}
-                                  </div>
-                                ))}
-                                {dayTasks.length > 2 && (
-                                  <p className="text-[10px] font-bold text-muted-foreground/60">
-                                    + {dayTasks.length - 2} more
-                                  </p>
-                                )}
-                              </div>
-                            </>
-                        )}
-                      </button>
-                  );
-                })}
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        {/* 우측 사이드바: 벤토 카드 스타일 */}
-        <div className="lg:col-span-1 space-y-6">
-          <Card className="premium-noise rounded-[2.5rem] border-border/60 bg-card/90 p-6 shadow-xl sm:p-8">
-            <div className="mb-6 flex items-center justify-between sm:mb-8">
-              <div className="flex items-center gap-3">
-                <div className="rounded-2xl bg-primary/10 p-2.5 text-primary">
-                  <CalendarIcon size={20} />
-                </div>
-                <h3 className="font-bold text-xl">
-                  {selectedDate?.getDate()} <span className="text-sm font-medium text-muted-foreground">{currentDate.toLocaleDateString(locale, { month: 'short' })}</span>
-                </h3>
-              </div>
+            <div className="flex items-center gap-2 rounded-2xl border border-border/40 bg-background/50 p-1.5 shadow-inner">
               <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => router.push("/dashboard/tasks/new")}
-                  className="h-10 w-10 rounded-2xl p-0 shadow-lg"
+                size="sm"
+                onClick={handlePrevMonth}
+                className="rounded-xl px-2 py-2"
               >
-                <Plus size={20} />
+                <ChevronLeft size={20} />
+              </Button>
+              <Button
+                size="sm"
+                variant="muted"
+                onClick={() => setCurrentDate(new Date())}
+                className="px-4 py-1.5 text-xs font-bold uppercase tracking-wider"
+              >
+                {t("calendar.today")}
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleNextMonth}
+                className="rounded-xl px-2 py-2"
+              >
+                <ChevronRight size={20} />
               </Button>
             </div>
+          </div>
 
-            <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-              {selectedDateTasks.length === 0 ? (
-                  <div className="py-12 text-center space-y-3">
-                    <div className="mx-auto h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground/30">
-                      <Plus size={24} />
-                    </div>
-                    <p className="text-sm font-medium text-muted-foreground/60">No plans for today</p>
-                  </div>
-              ) : (
-                  selectedDateTasks.map((task) => (
-                      <div
-                          key={task.id}
-                          className="group relative overflow-hidden rounded-3xl border border-border/60 bg-background/90 p-5 transition-all hover:border-primary/30 hover:shadow-[0_16px_34px_rgba(15,23,42,0.14)]"
-                          onClick={() => router.push(`/dashboard/tasks/${task.id}`)}
-                      >
-                        <div
-                            className="absolute left-0 top-0 h-full w-1.5"
-                            style={{ backgroundColor: getTaskColor(task) }}
-                        />
-                        <h4 className="font-bold text-foreground group-hover:text-primary transition-colors">
-                          {task.title || getContentText(task.content) || "Untitled Task"}
-                        </h4>
-                        <div className="mt-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/50">
-                    <span className="rounded-lg bg-muted px-2 py-1">
-                      {new Date(task.start_time).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                          <span>→</span>
-                          <span>
-                      {new Date(task.end_time || task.start_time).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                        </div>
-                      </div>
-                  ))
-              )}
+          {/* 캘린더 바디 */}
+          <div className="p-5 sm:p-6">
+            <div className="mb-0 grid grid-cols-7 overflow-hidden rounded-t-2xl border border-b-0 border-border/50 text-center">
+              {weekDays.map((day, i) => (
+                <div
+                  key={day}
+                  className={`border-r border-border/50 py-2 text-xs font-black uppercase tracking-widest last:border-r-0 ${i === 0 ? "text-destructive/70" : i === 6 ? "text-primary/70" : "text-muted-foreground/50"}`}
+                >
+                  {day}
+                </div>
+              ))}
             </div>
-          </Card>
-        </div>
 
+            <div className="grid grid-cols-7 overflow-hidden rounded-b-2xl border border-border/50">
+              {days.map((day, index) => {
+                const dayTasks = day ? tasksByDay.get(day) || [] : [];
+                const isSelected =
+                  selectedDate?.getDate() === day &&
+                  selectedDate?.getMonth() === month;
+
+                return (
+                  <div
+                    key={day ? `day-${year}-${month}-${day}` : `empty-${index}`}
+                    onClick={() => day && handleDateClick(day)}
+                    onKeyDown={(e) => {
+                      if (!day) return;
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleDateClick(day);
+                      }
+                    }}
+                    role={day ? "button" : undefined}
+                    tabIndex={day ? 0 : -1}
+                    className={`group relative flex min-h-[124px] flex-col border-b border-r border-border/50 p-2.5 transition-colors duration-200
+                      ${
+                        !day
+                          ? "bg-muted/20"
+                          : isSelected
+                            ? "bg-primary/8"
+                            : isToday(day)
+                              ? "border-primary/30 bg-secondary/30"
+                              : "bg-background hover:bg-muted/20"
+                      }
+                      [&:nth-child(7n)]:border-r-0
+                      [&:nth-last-child(-n+7)]:border-b-0
+                    `}
+                  >
+                    {day && (
+                      <>
+                        <span
+                          className={`text-sm font-bold ${isToday(day) ? "text-primary" : "text-foreground/70"}`}
+                        >
+                          {day}
+                        </span>
+                        <div className="mt-2 space-y-1">
+                          {dayTasks.slice(0, 2).map((task) => (
+                            (() => {
+                              const cellDate = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                              const startKey = dateKeyFromDateTime(task.start_time);
+                              const endKey = dateKeyFromDateTime(
+                                task.end_time || task.start_time,
+                              );
+                              const isStart = startKey === cellDate;
+                              const isEnd = endKey === cellDate;
+                              const isSingle = isStart && isEnd;
+                              const bgColor = getTaskColor(task);
+                              const markerLabel = isSingle
+                                ? "•"
+                                : isStart
+                                  ? "↘"
+                                  : isEnd
+                                    ? "↗"
+                                    : "━";
+
+                              return (
+                                <button
+                                  type="button"
+                                  key={`${task.id}-${cellDate}`}
+                                  className={`flex w-full max-w-full items-center gap-1 overflow-hidden text-ellipsis whitespace-nowrap px-2 py-1 text-[10px] font-semibold cursor-pointer transition-opacity hover:opacity-90 ${
+                                    isSingle
+                                      ? "rounded-full"
+                                      : isStart
+                                        ? "rounded-l-full rounded-r-md"
+                                        : isEnd
+                                          ? "rounded-r-full rounded-l-md"
+                                          : "rounded-md"
+                                  }`}
+                                  style={{
+                                    backgroundColor: `${bgColor}40`,
+                                    color: getReadableTextColor(bgColor),
+                                    border: `1px solid ${bgColor}80`,
+                                  }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(`/dashboard/tasks/${task.id}`);
+                                  }}
+                                >
+                                  <span className="shrink-0">{markerLabel}</span>
+                                  <span className="truncate">
+                                    {task.title ||
+                                    getContentText(task.content) ||
+                                    "Task"}
+                                  </span>
+                                </button>
+                              );
+                            })()
+                          ))}
+                          {dayTasks.length > 2 && (
+                            <p className="text-[10px] font-bold text-muted-foreground/60">
+                              + {dayTasks.length - 2} more
+                            </p>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </Card>
       </div>
+
+      {/* 우측 사이드바: 벤토 카드 스타일 */}
+      <div className="lg:col-span-1 space-y-6">
+        <Card className="premium-noise rounded-[2.5rem] border-border/60 bg-card/90 p-6 shadow-xl sm:p-8">
+          <div className="mb-6 flex items-center justify-between sm:mb-8">
+            <div className="flex items-center gap-3">
+              <div className="rounded-2xl bg-primary/10 p-2.5 text-primary">
+                <CalendarIcon size={20} />
+              </div>
+              <h3 className="font-bold text-xl">
+                {selectedDate?.getDate()}{" "}
+                <span className="text-sm font-medium text-muted-foreground">
+                  {currentDate.toLocaleDateString(locale, { month: "short" })}
+                </span>
+              </h3>
+            </div>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => router.push("/dashboard/tasks/new")}
+              className="h-10 w-10 rounded-2xl p-0 shadow-lg"
+            >
+              <Plus size={20} />
+            </Button>
+          </div>
+
+          <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+            {selectedDateTasks.length === 0 ? (
+              <div className="py-12 text-center space-y-3">
+                <div className="mx-auto h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground/30">
+                  <Plus size={24} />
+                </div>
+                <p className="text-sm font-medium text-muted-foreground/60">
+                  No plans for today
+                </p>
+              </div>
+            ) : (
+              selectedDateTasks.map((task) => (
+                <button
+                  type="button"
+                  key={task.id}
+                  className="group relative w-full overflow-hidden rounded-3xl border border-border/60 bg-background/90 p-5 text-left transition-all hover:border-primary/30 hover:shadow-[0_16px_34px_rgba(15,23,42,0.14)]"
+                  onClick={() => router.push(`/dashboard/tasks/${task.id}`)}
+                >
+                  <div
+                    className="absolute left-0 top-0 h-full w-1.5"
+                    style={{ backgroundColor: getTaskColor(task) }}
+                  />
+                  <h4 className="font-bold text-foreground group-hover:text-primary transition-colors">
+                    {task.title ||
+                      getContentText(task.content) ||
+                      "Untitled Task"}
+                  </h4>
+                  <div className="mt-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/50">
+                    <span className="rounded-lg bg-muted px-2 py-1">
+                      {new Date(task.start_time).toLocaleTimeString(locale, {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                    <span>→</span>
+                    <span>
+                      {new Date(
+                        task.end_time || task.start_time,
+                      ).toLocaleTimeString(locale, {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </Card>
+      </div>
+    </div>
   );
 }

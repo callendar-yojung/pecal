@@ -1,5 +1,5 @@
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import pool from "./db";
-import type { RowDataPacket, ResultSetHeader } from "mysql2";
 
 export interface Plan {
   id: number;
@@ -22,7 +22,7 @@ export async function getAllPlans(): Promise<Plan[]> {
       plan_type,
       created_at
     FROM plans
-    ORDER BY price ASC`
+    ORDER BY price ASC`,
   );
   return rows as Plan[];
 }
@@ -39,7 +39,7 @@ export async function getPlanById(planId: number): Promise<Plan | null> {
       created_at
     FROM plans
     WHERE plan_id = ?`,
-    [planId]
+    [planId],
   );
   return rows.length > 0 ? (rows[0] as Plan) : null;
 }
@@ -48,12 +48,12 @@ export async function createPlan(
   name: string,
   price: number,
   maxMembers: number,
-  maxStorageMb: number
+  maxStorageMb: number,
 ): Promise<number> {
   const [result] = await pool.execute<ResultSetHeader>(
     `INSERT INTO plans (name, price, max_members, max_storage_mb, plan_type, created_at)
      VALUES (?, ?, ?, ?, 'personal', NOW())`,
-    [name, price, maxMembers, maxStorageMb]
+    [name, price, maxMembers, maxStorageMb],
   );
   return result.insertId;
 }
@@ -63,13 +63,13 @@ export async function updatePlan(
   name: string,
   price: number,
   maxMembers: number,
-  maxStorageMb: number
+  maxStorageMb: number,
 ): Promise<boolean> {
   const [result] = await pool.execute<ResultSetHeader>(
     `UPDATE plans
      SET name = ?, price = ?, max_members = ?, max_storage_mb = ?
      WHERE plan_id = ?`,
-    [name, price, maxMembers, maxStorageMb, planId]
+    [name, price, maxMembers, maxStorageMb, planId],
   );
   return result.affectedRows > 0;
 }
@@ -77,7 +77,7 @@ export async function updatePlan(
 export async function deletePlan(planId: number): Promise<boolean> {
   const [result] = await pool.execute<ResultSetHeader>(
     `DELETE FROM plans WHERE plan_id = ?`,
-    [planId]
+    [planId],
   );
   return result.affectedRows > 0;
 }

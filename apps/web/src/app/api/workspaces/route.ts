@@ -1,11 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
+import { invalidateMemberCaches } from "@/lib/member-cache";
+import { getPermissionsByMember, getTeamById } from "@/lib/team";
 import {
   createPersonalWorkspace,
   createTeamWorkspace,
   getWorkspaceById,
 } from "@/lib/workspace";
-import { getTeamById, getPermissionsByMember } from "@/lib/team";
 
 // POST /api/workspaces - 새 워크스페이스 생성
 export async function POST(request: NextRequest) {
@@ -22,21 +23,21 @@ export async function POST(request: NextRequest) {
     if (!name || typeof name !== "string" || !name.trim()) {
       return NextResponse.json(
         { error: "Workspace name is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!type || !["personal", "team"].includes(type)) {
       return NextResponse.json(
         { error: "Invalid workspace type. Must be 'personal' or 'team'" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!owner_id || typeof owner_id !== "number") {
       return NextResponse.json(
         { error: "Owner ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
       if (owner_id !== user.memberId) {
         return NextResponse.json(
           { error: "Cannot create personal workspace for another user" },
-          { status: 403 }
+          { status: 403 },
         );
       }
 
@@ -59,7 +60,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Team not found" }, { status: 404 });
       }
       if (team.created_by !== user.memberId) {
-        const permissions = await getPermissionsByMember(team.id, user.memberId);
+        const permissions = await getPermissionsByMember(
+          team.id,
+          user.memberId,
+        );
         if (!permissions.includes("WORKSPACE_CREATE")) {
           return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
@@ -67,22 +71,24 @@ export async function POST(request: NextRequest) {
       workspaceId = await createTeamWorkspace(
         owner_id,
         name.trim(),
-        user.memberId
+        user.memberId,
       );
     }
 
     // Fetch the created workspace to return
     const workspace = await getWorkspaceById(workspaceId);
 
+    await invalidateMemberCaches(user.memberId, { meWorkspaces: true });
+
     return NextResponse.json(
       { workspace, message: "Workspace created successfully" },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Failed to create workspace:", error);
     return NextResponse.json(
       { error: "Failed to create workspace" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

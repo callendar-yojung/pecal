@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { useState } from "react";
 
 export default function PrivacyPage() {
   const t = useTranslations("dashboard.settings.privacy");
@@ -24,10 +24,12 @@ export default function PrivacyPage() {
           {/* 분석 데이터 */}
           <div className="flex items-center justify-between border-b border-border pb-4">
             <div>
-              <label className="text-sm font-medium text-card-foreground">
+              <div className="text-sm font-medium text-card-foreground">
                 {t("analytics")}
-              </label>
-              <p className="mt-1 text-sm text-muted-foreground">{t("analyticsDesc")}</p>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t("analyticsDesc")}
+              </p>
             </div>
             <button
               type="button"
@@ -47,10 +49,12 @@ export default function PrivacyPage() {
           {/* 마케팅 */}
           <div className="flex items-center justify-between border-b border-border pb-4">
             <div>
-              <label className="text-sm font-medium text-card-foreground">
+              <div className="text-sm font-medium text-card-foreground">
                 {t("marketing")}
-              </label>
-              <p className="mt-1 text-sm text-muted-foreground">{t("marketingDesc")}</p>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t("marketingDesc")}
+              </p>
             </div>
             <button
               type="button"
@@ -70,10 +74,12 @@ export default function PrivacyPage() {
           {/* 서드파티 */}
           <div className="flex items-center justify-between">
             <div>
-              <label className="text-sm font-medium text-card-foreground">
+              <div className="text-sm font-medium text-card-foreground">
                 {t("thirdParty")}
-              </label>
-              <p className="mt-1 text-sm text-muted-foreground">{t("thirdPartyDesc")}</p>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t("thirdPartyDesc")}
+              </p>
             </div>
             <button
               type="button"
@@ -97,11 +103,10 @@ export default function PrivacyPage() {
         <h2 className="text-lg font-semibold text-card-foreground">
           {t("exportData")}
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">{t("exportDataDesc")}</p>
-        <button
-          type="button"
-          className="ui-button mt-4 px-4 py-2 text-sm"
-        >
+        <p className="mt-1 text-sm text-muted-foreground">
+          {t("exportDataDesc")}
+        </p>
+        <button type="button" className="ui-button mt-4 px-4 py-2 text-sm">
           {t("exportButton")}
         </button>
       </div>

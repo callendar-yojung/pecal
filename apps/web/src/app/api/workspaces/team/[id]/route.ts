@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { RowDataPacket } from "mysql2";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
 import pool from "@/lib/db";
-import type { RowDataPacket } from "mysql2";
 import { checkTeamMembership } from "@/lib/team";
 
 // GET /api/workspaces/team/[id] - 특정 팀의 워크스페이스 목록 조회
 export async function GET(
-    request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getAuthUser(request);
@@ -17,7 +17,7 @@ export async function GET(
 
     const { id } = await params;
     const teamId = Number(id);
-    if (isNaN(teamId)) {
+    if (Number.isNaN(teamId)) {
       return NextResponse.json({ error: "Invalid team ID" }, { status: 400 });
     }
 
@@ -27,7 +27,7 @@ export async function GET(
     }
 
     const [rows] = await pool.execute<RowDataPacket[]>(
-        `SELECT
+      `SELECT
            w.workspace_id,
            w.type,
            w.owner_id,
@@ -38,15 +38,15 @@ export async function GET(
          FROM workspaces w
          WHERE w.type = 'team' AND w.owner_id = ?
          ORDER BY w.created_at ASC`,
-        [teamId]
+      [teamId],
     );
 
     return NextResponse.json({ workspaces: rows });
   } catch (error) {
     console.error("Failed to fetch team workspaces:", error);
     return NextResponse.json(
-        { error: "Failed to fetch team workspaces" },
-        { status: 500 }
+      { error: "Failed to fetch team workspaces" },
+      { status: 500 },
     );
   }
 }

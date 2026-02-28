@@ -1,4 +1,4 @@
-import type { RowDataPacket, ResultSetHeader } from "mysql2";
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import pool from "@/lib/db";
 
 const MAX_FAILED_ATTEMPTS = 5;
@@ -33,13 +33,16 @@ export function normalizeAdminUsername(input: string): string {
   return input.trim().toLowerCase();
 }
 
-export async function checkAdminLoginAllowed(username: string, ipAddress: string) {
+export async function checkAdminLoginAllowed(
+  username: string,
+  ipAddress: string,
+) {
   const [rows] = await pool.execute<AdminLoginAttemptRow[]>(
     `SELECT attempt_id, username, ip_address, fail_count, last_failed_at, locked_until
      FROM admin_login_attempts
      WHERE username = ? AND ip_address = ?
      LIMIT 1`,
-    [username, ipAddress]
+    [username, ipAddress],
   );
 
   if (rows.length === 0) {
@@ -52,7 +55,7 @@ export async function checkAdminLoginAllowed(username: string, ipAddress: string
   if (lockedUntil && lockedUntil > now) {
     const retryAfterSeconds = Math.max(
       1,
-      Math.ceil((lockedUntil.getTime() - now.getTime()) / 1000)
+      Math.ceil((lockedUntil.getTime() - now.getTime()) / 1000),
     );
     return { allowed: false as const, retryAfterSeconds };
   }
@@ -60,13 +63,16 @@ export async function checkAdminLoginAllowed(username: string, ipAddress: string
   return { allowed: true as const, retryAfterSeconds: 0 };
 }
 
-export async function recordAdminLoginFailure(username: string, ipAddress: string) {
+export async function recordAdminLoginFailure(
+  username: string,
+  ipAddress: string,
+) {
   const [rows] = await pool.execute<AdminLoginAttemptRow[]>(
     `SELECT attempt_id, fail_count, last_failed_at
      FROM admin_login_attempts
      WHERE username = ? AND ip_address = ?
      LIMIT 1`,
-    [username, ipAddress]
+    [username, ipAddress],
   );
 
   const now = new Date();
@@ -78,7 +84,7 @@ export async function recordAdminLoginFailure(username: string, ipAddress: strin
       `INSERT INTO admin_login_attempts
         (username, ip_address, fail_count, first_failed_at, last_failed_at, locked_until, updated_at)
        VALUES (?, ?, 1, NOW(), NOW(), NULL, NOW())`,
-      [username, ipAddress]
+      [username, ipAddress],
     );
     return;
   }
@@ -100,13 +106,16 @@ export async function recordAdminLoginFailure(username: string, ipAddress: strin
          locked_until = ?,
          updated_at = NOW()
      WHERE attempt_id = ?`,
-    [nextFailCount, isOutsideWindow ? 1 : 0, nextLockedUntil, row.attempt_id]
+    [nextFailCount, isOutsideWindow ? 1 : 0, nextLockedUntil, row.attempt_id],
   );
 }
 
-export async function clearAdminLoginFailures(username: string, ipAddress: string) {
+export async function clearAdminLoginFailures(
+  username: string,
+  ipAddress: string,
+) {
   await pool.execute<ResultSetHeader>(
     `DELETE FROM admin_login_attempts WHERE username = ? AND ip_address = ?`,
-    [username, ipAddress]
+    [username, ipAddress],
   );
 }

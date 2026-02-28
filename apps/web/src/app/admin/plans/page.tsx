@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 interface Plan {
-  id: number;  // plan_id가 아니라 id로 받음
+  id: number; // plan_id가 아니라 id로 받음
   name: string;
   price: number;
   max_members: number;
@@ -41,11 +41,7 @@ export default function AdminPlansPage() {
     paypal_product_id: "",
   });
 
-  useEffect(() => {
-    fetchPlans();
-  }, []);
-
-  const fetchPlans = async () => {
+  const fetchPlans = useCallback(async () => {
     try {
       const response = await fetch("/api/admin/plans");
       if (response.ok) {
@@ -57,7 +53,11 @@ export default function AdminPlansPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchPlans();
+  }, [fetchPlans]);
 
   const handleCreatePlan = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,7 +133,11 @@ export default function AdminPlansPage() {
   };
 
   const handleDeletePlan = async (planId: number, planName: string) => {
-    if (!confirm(`"${planName}" 플랜을 정말 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
+    if (
+      !confirm(
+        `"${planName}" 플랜을 정말 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`,
+      )
+    ) {
       return;
     }
 
@@ -160,7 +164,7 @@ export default function AdminPlansPage() {
   const openEditModal = (plan: Plan) => {
     setSelectedPlan(plan);
     setEditFormData({
-      plan_id: plan.id,  // plan.plan_id가 아니라 plan.id
+      plan_id: plan.id, // plan.plan_id가 아니라 plan.id
       name: plan.name,
       price: plan.price,
       max_members: plan.max_members,
@@ -352,27 +356,31 @@ export default function AdminPlansPage() {
 
             <form onSubmit={handleCreatePlan} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   플랜명 *
-                </label>
+                </div>
                 <input
                   type="text"
                   required
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="예: Premium Plan"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   설명 *
-                </label>
+                </div>
                 <textarea
                   required
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
                   rows={3}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="플랜에 대한 설명을 입력하세요"
@@ -381,27 +389,34 @@ export default function AdminPlansPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     가격 (USD) *
-                  </label>
+                  </div>
                   <input
                     type="number"
                     required
                     min="0"
                     step="0.01"
                     value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        price: parseFloat(e.target.value),
+                      })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     통화
-                  </label>
+                  </div>
                   <select
                     value={formData.currency}
-                    onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, currency: e.target.value })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   >
                     <option value="USD">USD</option>
@@ -413,29 +428,39 @@ export default function AdminPlansPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     최대 멤버 수 *
-                  </label>
+                  </div>
                   <input
                     type="number"
                     required
                     min="1"
                     value={formData.max_members}
-                    onChange={(e) => setFormData({ ...formData, max_members: parseInt(e.target.value) })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        max_members: parseInt(e.target.value, 10),
+                      })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     저장소 (MB) *
-                  </label>
+                  </div>
                   <input
                     type="number"
                     required
                     min="100"
                     value={formData.max_storage_mb}
-                    onChange={(e) => setFormData({ ...formData, max_storage_mb: parseInt(e.target.value) })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        max_storage_mb: parseInt(e.target.value, 10),
+                      })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
                 </div>
@@ -443,12 +468,17 @@ export default function AdminPlansPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     청구 주기
-                  </label>
+                  </div>
                   <select
                     value={formData.interval_unit}
-                    onChange={(e) => setFormData({ ...formData, interval_unit: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        interval_unit: e.target.value,
+                      })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   >
                     <option value="DAY">일</option>
@@ -459,14 +489,19 @@ export default function AdminPlansPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     주기 수
-                  </label>
+                  </div>
                   <input
                     type="number"
                     min="1"
                     value={formData.interval_count}
-                    onChange={(e) => setFormData({ ...formData, interval_count: parseInt(e.target.value) })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        interval_count: parseInt(e.target.value, 10),
+                      })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
                 </div>
@@ -509,58 +544,75 @@ export default function AdminPlansPage() {
 
             <form onSubmit={handleEditPlan} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   플랜명 *
-                </label>
+                </div>
                 <input
                   type="text"
                   required
                   value={editFormData.name}
-                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, name: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   가격 (USD) *
-                </label>
+                </div>
                 <input
                   type="number"
                   required
                   min="0"
                   step="0.01"
                   value={editFormData.price}
-                  onChange={(e) => setEditFormData({ ...editFormData, price: parseFloat(e.target.value) })}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      price: parseFloat(e.target.value),
+                    })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     최대 멤버 수 *
-                  </label>
+                  </div>
                   <input
                     type="number"
                     required
                     min="1"
                     value={editFormData.max_members}
-                    onChange={(e) => setEditFormData({ ...editFormData, max_members: parseInt(e.target.value) })}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        max_members: parseInt(e.target.value, 10),
+                      })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     저장소 (MB) *
-                  </label>
+                  </div>
                   <input
                     type="number"
                     required
                     min="100"
                     value={editFormData.max_storage_mb}
-                    onChange={(e) => setEditFormData({ ...editFormData, max_storage_mb: parseInt(e.target.value) })}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        max_storage_mb: parseInt(e.target.value, 10),
+                      })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
                 </div>

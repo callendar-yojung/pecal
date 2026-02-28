@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
-import pool from "@/lib/db";
 import type { RowDataPacket } from "mysql2";
+import { type NextRequest, NextResponse } from "next/server";
+import pool from "@/lib/db";
 import { getRequiredEnv } from "@/lib/required-env";
 
 const secret = new TextEncoder().encode(getRequiredEnv("API_SECRET_KEY"));
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     const [rows] = await pool.execute<RowDataPacket[]>(
       `SELECT member_id, email, nickname, provider, created_at, lasted_at 
        FROM members 
-       ORDER BY created_at DESC`
+       ORDER BY created_at DESC`,
     );
 
     return NextResponse.json(rows);
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     console.error("Admin members error:", error);
     return NextResponse.json(
       { error: "회원 조회 중 오류가 발생했습니다." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

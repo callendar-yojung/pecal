@@ -1,5 +1,5 @@
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import pool from "./db";
-import type { RowDataPacket, ResultSetHeader } from "mysql2";
 
 export interface BillingKey {
   billing_key_id: number;
@@ -17,25 +17,25 @@ export async function saveBillingKey(
   bid: string,
   cardCode: string,
   cardName: string,
-  cardNoMasked: string
+  cardNoMasked: string,
 ): Promise<number> {
   // 기존 활성 빌키 비활성화
   await pool.execute(
     `UPDATE billing_keys SET status = 'REMOVED' WHERE member_id = ? AND status = 'ACTIVE'`,
-    [memberId]
+    [memberId],
   );
 
   const [result] = await pool.execute<ResultSetHeader>(
     `INSERT INTO billing_keys (member_id, bid, card_code, card_name, card_no_masked, status, created_at)
      VALUES (?, ?, ?, ?, ?, 'ACTIVE', NOW())`,
-    [memberId, bid, cardCode, cardName, cardNoMasked]
+    [memberId, bid, cardCode, cardName, cardNoMasked],
   );
 
   return result.insertId;
 }
 
 export async function getActiveBillingKey(
-  memberId: number
+  memberId: number,
 ): Promise<BillingKey | null> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT billing_key_id, member_id, bid, card_code, card_name, card_no_masked, status, created_at
@@ -43,29 +43,29 @@ export async function getActiveBillingKey(
      WHERE member_id = ? AND status = 'ACTIVE'
      ORDER BY created_at DESC
      LIMIT 1`,
-    [memberId]
+    [memberId],
   );
 
   return rows.length > 0 ? (rows[0] as BillingKey) : null;
 }
 
 export async function removeBillingKeyById(
-  billingKeyId: number
+  billingKeyId: number,
 ): Promise<boolean> {
   const [result] = await pool.execute<ResultSetHeader>(
     `UPDATE billing_keys SET status = 'REMOVED' WHERE billing_key_id = ?`,
-    [billingKeyId]
+    [billingKeyId],
   );
 
   return result.affectedRows > 0;
 }
 
 export async function removeBillingKeyByMemberId(
-  memberId: number
+  memberId: number,
 ): Promise<boolean> {
   const [result] = await pool.execute<ResultSetHeader>(
     `UPDATE billing_keys SET status = 'REMOVED' WHERE member_id = ? AND status = 'ACTIVE'`,
-    [memberId]
+    [memberId],
   );
 
   return result.affectedRows > 0;

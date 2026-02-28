@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
 import { getTasksWithTitlesByMonth } from "@/lib/task";
 import { checkWorkspaceAccess } from "@/lib/workspace";
@@ -19,14 +19,14 @@ export async function GET(request: NextRequest) {
     if (!workspaceId || !year || !month) {
       return NextResponse.json(
         { error: "workspace_id, year and month are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // 워크스페이스 접근 권한 확인
     const hasAccess = await checkWorkspaceAccess(
       Number(workspaceId),
-      user.memberId
+      user.memberId,
     );
 
     if (!hasAccess) {
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     const tasksByDate = await getTasksWithTitlesByMonth(
       Number(workspaceId),
       Number(year),
-      Number(month)
+      Number(month),
     );
 
     return NextResponse.json({ tasksByDate });
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     console.error("Failed to fetch calendar data:", error);
     return NextResponse.json(
       { error: "Failed to fetch calendar data" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

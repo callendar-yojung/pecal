@@ -13,15 +13,21 @@ import { EMPTY_RICH_CONTENT, serializeRichContent } from '../../utils/richText'
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
 const pad = (n: number) => String(n).padStart(2, '0')
+const parseDateInput = (value: string) => {
+  const [year, month, day] = value.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
 
 export function TaskCreateView() {
   const { t } = useTranslation()
-  const { createTaskDate, closeTaskCreate } = useViewStore()
+  const { createTaskDate, openTaskDetail, closeTaskCreate } = useViewStore()
   const { selectedWorkspaceId, currentMode, selectedTeamId } = useWorkspaceStore()
   const { user } = useAuthStore()
   const { events, setEvents } = useCalendarStore()
 
   const baseDate = createTaskDate ?? new Date()
+  const [startDate, setStartDate] = useState<Date>(baseDate)
+  const [endDate, setEndDate] = useState<Date>(baseDate)
   const [title, setTitle] = useState('')
   const [contentDoc, setContentDoc] = useState<Record<string, unknown>>(EMPTY_RICH_CONTENT)
   const [startHour, setStartHour] = useState(9)
@@ -30,6 +36,7 @@ export function TaskCreateView() {
   const [endMinute, setEndMinute] = useState(30)
   const [status, setStatus] = useState<TaskStatus>('todo')
   const [color, setColor] = useState('#3b82f6')
+  const [reminderMinutes, setReminderMinutes] = useState<number | null>(10)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [tags, setTags] = useState<Tag[]>([])
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
@@ -38,7 +45,10 @@ export function TaskCreateView() {
   const [newTagColor, setNewTagColor] = useState('#6366f1')
   const [isTagCreating, setIsTagCreating] = useState(false)
 
-  const formattedDate = useMemo(() => format(baseDate, 'yyyy-MM-dd'), [baseDate])
+  const formattedDate = useMemo(
+    () => `${format(startDate, 'yyyy-MM-dd')} ~ ${format(endDate, 'yyyy-MM-dd')}`,
+    [startDate, endDate]
+  )
   const ownerType = currentMode === 'TEAM' ? 'team' : 'personal'
   const ownerId = currentMode === 'TEAM' ? selectedTeamId : user?.memberId
 
@@ -59,6 +69,12 @@ export function TaskCreateView() {
     loadTags()
   }, [ownerId, ownerType])
 
+  useEffect(() => {
+    const selectedDate = createTaskDate ?? new Date()
+    setStartDate(selectedDate)
+    setEndDate(selectedDate)
+  }, [createTaskDate])
+
   const buildDatetime = (date: Date, hour: number, minute: number) =>
     setMinutes(setHours(date, hour), minute)
 
@@ -76,8 +92,8 @@ export function TaskCreateView() {
         in_progress: 'IN_PROGRESS',
         done: 'DONE',
       } as const
-      const startDatetime = buildDatetime(baseDate, startHour, startMinute)
-      const endDatetime = buildDatetime(baseDate, endHour, endMinute)
+      const startDatetime = buildDatetime(startDate, startHour, startMinute)
+      const endDatetime = buildDatetime(endDate, endHour, endMinute)
       if (endDatetime.getTime() <= startDatetime.getTime()) {
         alert(t('event.invalidTimeRange'))
         return
@@ -90,30 +106,31 @@ export function TaskCreateView() {
         start_time: toMysqlDatetime(startDatetime),
         end_time: toMysqlDatetime(endDatetime),
         color,
+        reminder_minutes: reminderMinutes,
         tag_ids: selectedTagIds,
         status: backendStatusMap[status],
         workspace_id: selectedWorkspaceId,
       })
 
-      setEvents([
-        ...events,
-        {
-          id: response.taskId,
-          title: title.trim(),
-          content: serializedContent || undefined,
-          color,
-          tag_ids: selectedTagIds,
-          start_time: startDatetime.toISOString(),
-          end_time: endDatetime.toISOString(),
-          status,
-          workspace_id: selectedWorkspaceId,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          created_by: user.memberId,
-          updated_by: user.memberId,
-        },
-      ])
-      closeTaskCreate()
+      const createdTask = {
+        id: response.taskId,
+        title: title.trim(),
+        content: serializedContent || undefined,
+        color,
+        reminder_minutes: reminderMinutes,
+        tag_ids: selectedTagIds,
+        start_time: startDatetime.toISOString(),
+        end_time: endDatetime.toISOString(),
+        status,
+        workspace_id: selectedWorkspaceId,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        created_by: user.memberId,
+        updated_by: user.memberId,
+      }
+
+      setEvents([...events, createdTask])
+      openTaskDetail(createdTask)
     } catch (err: any) {
       const msg = err?.message || String(err)
       alert(`${t('event.createError')}\n\n${msg}`)
@@ -188,6 +205,22 @@ export function TaskCreateView() {
             />
 
             <div className="flex items-center gap-2 flex-wrap">
+              <input
+                type="date"
+                value={format(startDate, 'yyyy-MM-dd')}
+                onChange={(e) => setStartDate(parseDateInput(e.target.value))}
+                className="px-2 py-1.5 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-sm"
+              />
+              <span className="text-gray-400">~</span>
+              <input
+                type="date"
+                value={format(endDate, 'yyyy-MM-dd')}
+                onChange={(e) => setEndDate(parseDateInput(e.target.value))}
+                className="px-2 py-1.5 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-sm"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
               <select value={startHour} onChange={(e) => setStartHour(Number(e.target.value))} className="px-2 py-1.5 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-sm">
                 {HOURS.map((h) => (
                   <option key={h} value={h}>{pad(h)}</option>
@@ -229,6 +262,22 @@ export function TaskCreateView() {
                 <option value="in_progress">{t('status.inProgress')}</option>
                 <option value="done">{t('status.done')}</option>
               </select>
+              <select
+                value={reminderMinutes === null ? '' : String(reminderMinutes)}
+                onChange={(e) =>
+                  setReminderMinutes(e.target.value === '' ? null : Number(e.target.value))
+                }
+                className="px-2 py-1.5 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-sm"
+              >
+                <option value="">알림 없음</option>
+                <option value="0">정시</option>
+                <option value="5">5분 전</option>
+                <option value="10">10분 전</option>
+                <option value="15">15분 전</option>
+                <option value="30">30분 전</option>
+                <option value="60">1시간 전</option>
+                <option value="1440">1일 전</option>
+              </select>
             </div>
 
             <div className="space-y-2">
@@ -238,7 +287,7 @@ export function TaskCreateView() {
               <RichTextEditor
                 initialContent={contentDoc}
                 onChange={setContentDoc}
-                contentKey={`create-page-${baseDate.toISOString()}`}
+                contentKey={`create-page-${format(startDate, 'yyyy-MM-dd')}-${format(endDate, 'yyyy-MM-dd')}`}
                 showToolbar={true}
               />
             </div>

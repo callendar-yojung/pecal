@@ -1,6 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
-import { createPayPalProduct, createPayPalBillingPlan } from "@/lib/paypal-subscription";
+import { type NextRequest, NextResponse } from "next/server";
+import {
+  createPayPalBillingPlan,
+  createPayPalProduct,
+} from "@/lib/paypal-subscription";
 import { createPlan } from "@/lib/plan";
 import { getRequiredEnv } from "@/lib/required-env";
 
@@ -45,10 +48,16 @@ export async function POST(request: NextRequest) {
       interval_count = 1,
     } = body;
 
-    if (!name || !description || price === undefined || !max_members || !max_storage_mb) {
+    if (
+      !name ||
+      !description ||
+      price === undefined ||
+      !max_members ||
+      !max_storage_mb
+    ) {
       return NextResponse.json(
         { error: "필수 항목을 모두 입력해주세요." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -71,12 +80,7 @@ export async function POST(request: NextRequest) {
     });
 
     // 3. 로컬 데이터베이스에 플랜 저장
-    const planId = await createPlan(
-      name,
-      price,
-      max_members,
-      max_storage_mb
-    );
+    const planId = await createPlan(name, price, max_members, max_storage_mb);
 
     return NextResponse.json({
       success: true,
@@ -90,9 +94,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: "PayPal 구독 상품 생성 중 오류가 발생했습니다.",
-        details: error.message
+        details: error.message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

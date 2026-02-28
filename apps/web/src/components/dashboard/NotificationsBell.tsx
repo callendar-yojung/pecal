@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 interface NotificationItem {
   notification_id: number;
@@ -29,7 +29,10 @@ export default function NotificationsBell() {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setOpen(false);
       }
     };
@@ -37,13 +40,13 @@ export default function NotificationsBell() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const fetchCount = async () => {
+  const fetchCount = useCallback(async () => {
     const res = await fetch("/api/notifications/unread");
     const data = await res.json();
     if (res.ok) setCount(Number(data.count || 0));
-  };
+  }, []);
 
-  const fetchList = async () => {
+  const fetchList = useCallback(async () => {
     setLoading(true);
     setListError(null);
     try {
@@ -62,28 +65,33 @@ export default function NotificationsBell() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     fetchCount();
     const id = setInterval(fetchCount, 30000);
     return () => clearInterval(id);
-  }, []);
+  }, [fetchCount]);
 
   useEffect(() => {
     if (open) {
       fetchList();
       fetchCount();
     }
-  }, [open]);
+  }, [open, fetchCount, fetchList]);
 
   const handleMarkRead = async (id: number) => {
     await fetch(`/api/notifications/${id}`, { method: "PATCH" });
-    setItems((prev) => prev.map((n) => (n.notification_id === id ? { ...n, is_read: 1 } : n)));
+    setItems((prev) =>
+      prev.map((n) => (n.notification_id === id ? { ...n, is_read: 1 } : n)),
+    );
     fetchCount();
   };
 
-  const handleRespond = async (invitationId: number, action: "accept" | "decline") => {
+  const handleRespond = async (
+    invitationId: number,
+    action: "accept" | "decline",
+  ) => {
     const res = await fetch(`/api/invitations/${invitationId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -109,7 +117,7 @@ export default function NotificationsBell() {
 
   const empty = useMemo(
     () => !loading && !listError && items.length === 0,
-    [loading, listError, items.length]
+    [loading, listError, items.length],
   );
 
   return (
@@ -120,7 +128,13 @@ export default function NotificationsBell() {
         className="relative rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
         aria-label={t("title")}
       >
-        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg
+          aria-hidden="true"
+          className="h-5 w-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -151,7 +165,9 @@ export default function NotificationsBell() {
           </div>
           <div className="max-h-80 overflow-y-auto">
             {loading && (
-              <div className="p-4 text-sm text-muted-foreground">{t("loading")}</div>
+              <div className="p-4 text-sm text-muted-foreground">
+                {t("loading")}
+              </div>
             )}
             {listError && !loading && (
               <div className="p-4 text-sm text-muted-foreground">
@@ -166,63 +182,81 @@ export default function NotificationsBell() {
               </div>
             )}
             {empty && (
-              <div className="p-4 text-sm text-muted-foreground">{t("empty")}</div>
+              <div className="p-4 text-sm text-muted-foreground">
+                {t("empty")}
+              </div>
             )}
-            {!loading && items.map((n) => (
-              <div key={n.notification_id} className={`px-4 py-3 text-sm border-b border-border ${n.is_read ? "bg-background" : "bg-muted/40"}`}>
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-medium text-foreground">{n.title || t("notification")}</p>
-                    {n.message && <p className="mt-1 text-xs text-muted-foreground">{n.message}</p>}
-                    {n.source_type === "TEAM_INVITE" && (
-                      <div className="mt-2 flex gap-2">
-                        {n.invitation_status === "PENDING" ? (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => handleRespond(Number(n.source_id), "accept")}
-                              className="rounded-md bg-primary px-2 py-1 text-xs text-primary-foreground"
-                            >
-                              {t("accept")}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleRespond(Number(n.source_id), "decline")}
-                              className="rounded-md border border-border px-2 py-1 text-xs"
-                            >
-                              {t("decline")}
-                            </button>
-                          </>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">
-                            {n.invitation_status === "ACCEPTED" ? t("accepted") : t("declined")}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    {!n.is_read && (
+            {!loading &&
+              items.map((n) => (
+                <div
+                  key={n.notification_id}
+                  className={`px-4 py-3 text-sm border-b border-border ${n.is_read ? "bg-background" : "bg-muted/40"}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-medium text-foreground">
+                        {n.title || t("notification")}
+                      </p>
+                      {n.message && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {n.message}
+                        </p>
+                      )}
+                      {n.source_type === "TEAM_INVITE" && (
+                        <div className="mt-2 flex gap-2">
+                          {n.invitation_status === "PENDING" ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleRespond(Number(n.source_id), "accept")
+                                }
+                                className="rounded-md bg-primary px-2 py-1 text-xs text-primary-foreground"
+                              >
+                                {t("accept")}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleRespond(Number(n.source_id), "decline")
+                                }
+                                className="rounded-md border border-border px-2 py-1 text-xs"
+                              >
+                                {t("decline")}
+                              </button>
+                            </>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">
+                              {n.invitation_status === "ACCEPTED"
+                                ? t("accepted")
+                                : t("declined")}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      {!n.is_read && (
+                        <button
+                          type="button"
+                          onClick={() => handleMarkRead(n.notification_id)}
+                          className="text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          {t("markRead")}
+                        </button>
+                      )}
                       <button
                         type="button"
-                        onClick={() => handleMarkRead(n.notification_id)}
-                        className="text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => handleDelete(n.notification_id)}
+                        className="text-xs text-muted-foreground hover:text-destructive"
+                        aria-label={t("delete")}
                       >
-                        {t("markRead")}
+                        ×
                       </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(n.notification_id)}
-                      className="text-xs text-muted-foreground hover:text-destructive"
-                      aria-label={t("delete")}
-                    >
-                      ×
-                    </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
         </div>
       )}

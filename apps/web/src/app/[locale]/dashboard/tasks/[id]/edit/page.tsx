@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
+import TaskFormPanel, {
+  type TaskFormData,
+} from "@/components/dashboard/TaskFormPanel";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import TaskFormPanel, { type TaskFormData } from "@/components/dashboard/TaskFormPanel";
 
 export default function TaskEditPage() {
   const t = useTranslations("dashboard.tasks");
@@ -36,7 +38,7 @@ export default function TaskEditPage() {
     };
 
     fetchTask();
-  }, [currentWorkspace?.workspace_id, taskId]);
+  }, [currentWorkspace?.workspace_id, taskId, router.push]);
 
   const handleSave = async (taskData: TaskFormData) => {
     if (!currentWorkspace?.workspace_id || !taskId) return;
@@ -52,6 +54,8 @@ export default function TaskEditPage() {
         content: taskData.content,
         status: taskData.status,
         color: taskData.color,
+        reminder_minutes: taskData.reminder_minutes ?? null,
+        rrule: taskData.rrule ?? null,
         tag_ids: taskData.tag_ids,
       }),
     });

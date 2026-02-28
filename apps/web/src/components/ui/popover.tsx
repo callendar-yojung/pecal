@@ -1,7 +1,7 @@
 "use client";
 
-import * as React from "react";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
+import * as React from "react";
 
 function cn(...classes: Array<string | undefined | false>) {
   return classes.filter(Boolean).join(" ");
@@ -20,7 +20,7 @@ const PopoverContent = React.forwardRef<
     sideOffset={sideOffset}
     className={cn(
       "z-50 rounded-lg border border-border bg-popover p-3 text-popover-foreground shadow-md outline-none",
-      className
+      className,
     )}
     {...props}
   />

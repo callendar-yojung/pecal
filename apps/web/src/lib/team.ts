@@ -1,5 +1,5 @@
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import pool from "./db";
-import type { RowDataPacket, ResultSetHeader } from "mysql2";
 import { PERMISSION_CODE_SET } from "./permissions";
 import { ensurePermissionsSeeded } from "./permissions-db";
 
@@ -35,11 +35,11 @@ export interface TeamRole {
 
 export async function getPermissionsByMember(
   teamId: number,
-  memberId: number
+  memberId: number,
 ): Promise<string[]> {
   const [teamRows] = await pool.execute<RowDataPacket[]>(
     `SELECT created_by FROM teams WHERE team_id = ? LIMIT 1`,
-    [teamId]
+    [teamId],
   );
   if (teamRows.length > 0 && Number(teamRows[0].created_by) === memberId) {
     return Array.from(PERMISSION_CODE_SET).sort();
@@ -53,15 +53,13 @@ export async function getPermissionsByMember(
      JOIN permissions p ON trp.permission_id = p.permission_id
      WHERE tm.team_id = ? AND tm.member_id = ?
      ORDER BY p.code ASC`,
-    [teamId, memberId]
+    [teamId, memberId],
   );
 
   return rows.map((r: any) => r.code);
 }
 
-export async function getTeamsByMemberId(
-  memberId: number
-): Promise<Team[]> {
+export async function getTeamsByMemberId(memberId: number): Promise<Team[]> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT 
       t.team_id as id, 
@@ -76,7 +74,7 @@ export async function getTeamsByMemberId(
      JOIN team_roles tr ON tm.team_role_id = tr.team_role_id
      WHERE tm.member_id = ?
      ORDER BY t.created_at DESC`,
-    [memberId]
+    [memberId],
   );
   return rows as Team[];
 }
@@ -92,7 +90,7 @@ export async function getTeamById(teamId: number): Promise<Team | null> {
       (SELECT COUNT(*) FROM team_members WHERE team_id = t.team_id) as memberCount
      FROM teams t
      WHERE t.team_id = ?`,
-    [teamId]
+    [teamId],
   );
   return rows.length > 0 ? (rows[0] as Team) : null;
 }
@@ -100,7 +98,7 @@ export async function getTeamById(teamId: number): Promise<Team | null> {
 export async function createTeam(
   name: string,
   description: string | null,
-  memberId: number
+  memberId: number,
 ): Promise<number> {
   const connection = await pool.getConnection();
   try {
@@ -110,7 +108,7 @@ export async function createTeam(
     const [result] = await connection.execute<ResultSetHeader>(
       `INSERT INTO teams (name, description, created_at, created_by)
        VALUES (?, ?, NOW(), ?)`,
-      [name, description, memberId]
+      [name, description, memberId],
     );
 
     const teamId = result.insertId;
@@ -119,7 +117,7 @@ export async function createTeam(
     const [roleResult] = await connection.execute<ResultSetHeader>(
       `INSERT INTO team_roles (team_id, name, created_at, created_by)
        VALUES (?, 'Owner', NOW(), ?)`,
-      [teamId, memberId]
+      [teamId, memberId],
     );
 
     const roleId = roleResult.insertId;
@@ -128,14 +126,14 @@ export async function createTeam(
     await connection.execute(
       `INSERT INTO team_members (team_id, member_id, team_role_id)
        VALUES (?, ?, ?)`,
-      [teamId, memberId, roleId]
+      [teamId, memberId, roleId],
     );
 
     // 4. 팀 워크스페이스 생성 (트랜잭션 커넥션 사용)
     await connection.execute(
       `INSERT INTO workspaces (type, owner_id, name, created_by, created_at)
        VALUES ('team', ?, ?, ?, NOW())`,
-      [teamId, name, memberId]
+      [teamId, name, memberId],
     );
 
     await connection.commit();
@@ -151,13 +149,13 @@ export async function createTeam(
 export async function updateTeam(
   teamId: number,
   name: string,
-  description: string | null
+  description: string | null,
 ): Promise<boolean> {
   const [result] = await pool.execute<ResultSetHeader>(
     `UPDATE teams 
      SET name = ?, description = ?
      WHERE team_id = ?`,
-    [name, description, teamId]
+    [name, description, teamId],
   );
   return result.affectedRows > 0;
 }
@@ -172,31 +170,29 @@ export async function deleteTeam(teamId: number): Promise<boolean> {
       `DELETE trp FROM team_role_permissions trp
        JOIN team_roles tr ON trp.team_role_id = tr.team_role_id
        WHERE tr.team_id = ?`,
-      [teamId]
+      [teamId],
     );
 
     // 2. team_roles 삭제
-    await connection.execute(
-      `DELETE FROM team_roles WHERE team_id = ?`,
-      [teamId]
-    );
+    await connection.execute(`DELETE FROM team_roles WHERE team_id = ?`, [
+      teamId,
+    ]);
 
     // 3. team_members 삭제
-    await connection.execute(
-      `DELETE FROM team_members WHERE team_id = ?`,
-      [teamId]
-    );
+    await connection.execute(`DELETE FROM team_members WHERE team_id = ?`, [
+      teamId,
+    ]);
 
     // 4. workspaces 삭제 (팀 워크스페이스)
     await connection.execute(
       `DELETE FROM workspaces WHERE type = 'team' AND owner_id = ?`,
-      [teamId]
+      [teamId],
     );
 
     // 5. teams 삭제
     const [result] = await connection.execute<ResultSetHeader>(
       `DELETE FROM teams WHERE team_id = ?`,
-      [teamId]
+      [teamId],
     );
 
     await connection.commit();
@@ -214,12 +210,12 @@ export async function deleteTeam(teamId: number): Promise<boolean> {
  */
 export async function checkTeamMembership(
   teamId: number,
-  memberId: number
+  memberId: number,
 ): Promise<boolean> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT 1 FROM team_members 
      WHERE team_id = ? AND member_id = ?`,
-    [teamId, memberId]
+    [teamId, memberId],
   );
   return rows.length > 0;
 }
@@ -237,18 +233,18 @@ export async function getTeamMembers(teamId: number): Promise<TeamMember[]> {
      JOIN team_roles tr ON tm.team_role_id = tr.team_role_id
      WHERE tm.team_id = ?
      ORDER BY tm.member_id ASC`,
-    [teamId]
+    [teamId],
   );
   return rows as TeamMember[];
 }
 
 async function getOrCreateMemberRole(
   teamId: number,
-  createdBy: number
+  createdBy: number,
 ): Promise<number> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT team_role_id FROM team_roles WHERE team_id = ? AND name = 'Member' LIMIT 1`,
-    [teamId]
+    [teamId],
   );
   if (rows.length > 0) {
     return Number(rows[0].team_role_id);
@@ -257,7 +253,7 @@ async function getOrCreateMemberRole(
   const [result] = await pool.execute<ResultSetHeader>(
     `INSERT INTO team_roles (team_id, name, created_at, created_by)
      VALUES (?, 'Member', NOW(), ?)`,
-    [teamId, createdBy]
+    [teamId, createdBy],
   );
   return result.insertId;
 }
@@ -265,11 +261,11 @@ async function getOrCreateMemberRole(
 async function getOrCreateRole(
   teamId: number,
   roleName: string,
-  createdBy: number
+  createdBy: number,
 ): Promise<number> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT team_role_id FROM team_roles WHERE team_id = ? AND name = ? LIMIT 1`,
-    [teamId, roleName]
+    [teamId, roleName],
   );
   if (rows.length > 0) {
     return Number(rows[0].team_role_id);
@@ -278,7 +274,7 @@ async function getOrCreateRole(
   const [result] = await pool.execute<ResultSetHeader>(
     `INSERT INTO team_roles (team_id, name, created_at, created_by)
      VALUES (?, ?, NOW(), ?)`,
-    [teamId, roleName, createdBy]
+    [teamId, roleName, createdBy],
   );
   return result.insertId;
 }
@@ -287,7 +283,7 @@ export async function addTeamMember(
   teamId: number,
   memberId: number,
   createdBy: number,
-  roleId?: number | null
+  roleId?: number | null,
 ): Promise<boolean> {
   let resolvedRoleId = roleId ?? null;
   if (!resolvedRoleId) {
@@ -301,18 +297,18 @@ export async function addTeamMember(
   const [result] = await pool.execute<ResultSetHeader>(
     `INSERT INTO team_members (team_id, member_id, team_role_id)
      VALUES (?, ?, ?)`,
-    [teamId, memberId, resolvedRoleId]
+    [teamId, memberId, resolvedRoleId],
   );
   return result.affectedRows > 0;
 }
 
 export async function removeTeamMember(
   teamId: number,
-  memberId: number
+  memberId: number,
 ): Promise<boolean> {
   const [result] = await pool.execute<ResultSetHeader>(
     `DELETE FROM team_members WHERE team_id = ? AND member_id = ?`,
-    [teamId, memberId]
+    [teamId, memberId],
   );
   return result.affectedRows > 0;
 }
@@ -320,7 +316,7 @@ export async function removeTeamMember(
 export async function updateTeamMemberRole(
   teamId: number,
   memberId: number,
-  roleId: number
+  roleId: number,
 ): Promise<boolean> {
   const role = await getTeamRoleById(teamId, roleId);
   if (!role) {
@@ -329,14 +325,14 @@ export async function updateTeamMemberRole(
 
   const [result] = await pool.execute<ResultSetHeader>(
     `UPDATE team_members SET team_role_id = ? WHERE team_id = ? AND member_id = ?`,
-    [roleId, teamId, memberId]
+    [roleId, teamId, memberId],
   );
   return result.affectedRows > 0;
 }
 
 export async function getPermissionsByRole(
   teamId: number,
-  roleName: string
+  roleName: string,
 ): Promise<TeamPermission[]> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT p.permission_id, p.code, p.description
@@ -345,7 +341,7 @@ export async function getPermissionsByRole(
      JOIN team_roles tr ON trp.team_role_id = tr.team_role_id
      WHERE tr.team_id = ? AND tr.name = ?
      ORDER BY p.code ASC`,
-    [teamId, roleName]
+    [teamId, roleName],
   );
   return rows as TeamPermission[];
 }
@@ -354,8 +350,8 @@ export async function addPermissionToRole(
   teamId: number,
   roleName: string,
   code: string,
-  description: string | null,
-  createdBy: number
+  _description: string | null,
+  createdBy: number,
 ): Promise<boolean> {
   if (!PERMISSION_CODE_SET.has(code)) {
     throw new Error("Invalid permission code");
@@ -370,7 +366,7 @@ export async function addPermissionToRole(
 
     const [permRows] = await connection.execute<RowDataPacket[]>(
       `SELECT permission_id FROM permissions WHERE code = ? LIMIT 1`,
-      [code]
+      [code],
     );
 
     if (permRows.length === 0) {
@@ -381,13 +377,13 @@ export async function addPermissionToRole(
 
     const [existsRows] = await connection.execute<RowDataPacket[]>(
       `SELECT 1 FROM team_role_permissions WHERE team_role_id = ? AND permission_id = ?`,
-      [roleId, permissionId]
+      [roleId, permissionId],
     );
     if (existsRows.length === 0) {
       await connection.execute(
         `INSERT INTO team_role_permissions (permission_id, team_role_id)
          VALUES (?, ?)`,
-        [permissionId, roleId]
+        [permissionId, roleId],
       );
     }
 
@@ -404,7 +400,7 @@ export async function addPermissionToRole(
 export async function removePermissionFromRole(
   teamId: number,
   roleName: string,
-  code: string
+  code: string,
 ): Promise<boolean> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT tr.team_role_id as role_id, p.permission_id as permission_id
@@ -413,7 +409,7 @@ export async function removePermissionFromRole(
      JOIN permissions p ON trp.permission_id = p.permission_id
      WHERE tr.team_id = ? AND tr.name = ? AND p.code = ?
      LIMIT 1`,
-    [teamId, roleName, code]
+    [teamId, roleName, code],
   );
 
   if (rows.length === 0) {
@@ -425,7 +421,7 @@ export async function removePermissionFromRole(
 
   const [result] = await pool.execute<ResultSetHeader>(
     `DELETE FROM team_role_permissions WHERE team_role_id = ? AND permission_id = ?`,
-    [roleId, permissionId]
+    [roleId, permissionId],
   );
 
   return result.affectedRows > 0;
@@ -439,29 +435,29 @@ export async function getTeamRoles(teamId: number): Promise<TeamRole[]> {
      WHERE tr.team_id = ?
      GROUP BY tr.team_role_id
      ORDER BY tr.team_role_id ASC`,
-    [teamId]
+    [teamId],
   );
   return rows as TeamRole[];
 }
 
 export async function getTeamRoleById(
   teamId: number,
-  roleId: number
+  roleId: number,
 ): Promise<TeamRole | null> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT team_role_id, name FROM team_roles WHERE team_id = ? AND team_role_id = ? LIMIT 1`,
-    [teamId, roleId]
+    [teamId, roleId],
   );
   return rows.length > 0 ? (rows[0] as TeamRole) : null;
 }
 
 export async function getTeamRoleByName(
   teamId: number,
-  name: string
+  name: string,
 ): Promise<TeamRole | null> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT team_role_id, name FROM team_roles WHERE team_id = ? AND name = ? LIMIT 1`,
-    [teamId, name]
+    [teamId, name],
   );
   return rows.length > 0 ? (rows[0] as TeamRole) : null;
 }
@@ -469,30 +465,30 @@ export async function getTeamRoleByName(
 export async function createTeamRole(
   teamId: number,
   name: string,
-  createdBy: number
+  createdBy: number,
 ): Promise<number> {
   const [result] = await pool.execute<ResultSetHeader>(
     `INSERT INTO team_roles (team_id, name, created_at, created_by)
      VALUES (?, ?, NOW(), ?)`,
-    [teamId, name, createdBy]
+    [teamId, name, createdBy],
   );
   return result.insertId;
 }
 
 export async function deleteTeamRole(
   teamId: number,
-  roleId: number
+  roleId: number,
 ): Promise<boolean> {
   const [result] = await pool.execute<ResultSetHeader>(
     `DELETE FROM team_roles WHERE team_id = ? AND team_role_id = ?`,
-    [teamId, roleId]
+    [teamId, roleId],
   );
   return result.affectedRows > 0;
 }
 
 export async function getRolePermissionsByRoleId(
   teamId: number,
-  roleId: number
+  roleId: number,
 ): Promise<TeamPermission[]> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT p.permission_id, p.code, p.description
@@ -501,7 +497,7 @@ export async function getRolePermissionsByRoleId(
      JOIN team_roles tr ON trp.team_role_id = tr.team_role_id
      WHERE tr.team_id = ? AND tr.team_role_id = ?
      ORDER BY p.code ASC`,
-    [teamId, roleId]
+    [teamId, roleId],
   );
   return rows as TeamPermission[];
 }
@@ -509,7 +505,7 @@ export async function getRolePermissionsByRoleId(
 export async function setRolePermissions(
   teamId: number,
   roleId: number,
-  codes: string[]
+  codes: string[],
 ): Promise<boolean> {
   if (codes.some((code) => !PERMISSION_CODE_SET.has(code))) {
     throw new Error("Invalid permission code");
@@ -523,7 +519,7 @@ export async function setRolePermissions(
 
     const [roleRows] = await connection.execute<RowDataPacket[]>(
       `SELECT team_role_id FROM team_roles WHERE team_id = ? AND team_role_id = ? LIMIT 1`,
-      [teamId, roleId]
+      [teamId, roleId],
     );
     if (roleRows.length === 0) {
       throw new Error("Role not found");
@@ -531,29 +527,29 @@ export async function setRolePermissions(
 
     await connection.execute(
       `DELETE FROM team_role_permissions WHERE team_role_id = ?`,
-      [roleId]
+      [roleId],
     );
 
     if (codes.length > 0) {
       const placeholders = codes.map(() => "?").join(",");
       const [permRows] = await connection.execute<RowDataPacket[]>(
         `SELECT permission_id, code FROM permissions WHERE code IN (${placeholders})`,
-        codes
+        codes,
       );
-      const permissionIds = permRows.map((row: any) => Number(row.permission_id));
+      const permissionIds = permRows.map((row: any) =>
+        Number(row.permission_id),
+      );
       if (permissionIds.length !== codes.length) {
         throw new Error("Permission not found");
       }
 
-      const insertValues = permissionIds
-        .map(() => "(?, ?)")
-        .join(", ");
+      const insertValues = permissionIds.map(() => "(?, ?)").join(", ");
       const insertParams = permissionIds.flatMap((id) => [id, roleId]);
 
       await connection.execute(
         `INSERT INTO team_role_permissions (permission_id, team_role_id)
          VALUES ${insertValues}`,
-        insertParams
+        insertParams,
       );
     }
 

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
 
 declare global {
   interface Window {
@@ -52,7 +52,7 @@ export default function NicePayButton({
       onError?.(t("sdkLoadError"));
     };
     document.head.appendChild(script);
-  }, []);
+  }, [onError, t]);
 
   const handlePayment = () => {
     if (!window.AUTHNICE) {

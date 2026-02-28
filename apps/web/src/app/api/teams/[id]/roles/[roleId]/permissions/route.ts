@@ -1,12 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
-import { getTeamById } from "@/lib/team";
-import { getRolePermissionsByRoleId, setRolePermissions } from "@/lib/team";
 import { isValidPermissionCode } from "@/lib/permissions";
+import {
+  getRolePermissionsByRoleId,
+  getTeamById,
+  setRolePermissions,
+} from "@/lib/team";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string; roleId: string }> }
+  { params }: { params: Promise<{ id: string; roleId: string }> },
 ) {
   const user = await getAuthUser(request);
   if (!user) {
@@ -35,7 +38,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string; roleId: string }> }
+  { params }: { params: Promise<{ id: string; roleId: string }> },
 ) {
   const user = await getAuthUser(request);
   if (!user) {
@@ -60,26 +63,31 @@ export async function PUT(
 
   const body = await request.json();
   const codes: string[] | null = Array.isArray(body?.codes)
-    ? body.codes.filter((code: unknown): code is string => typeof code === "string")
+    ? body.codes.filter(
+        (code: unknown): code is string => typeof code === "string",
+      )
     : null;
   if (!codes) {
     return NextResponse.json({ error: "codes is required" }, { status: 400 });
   }
 
-  const normalized = Array.from(new Set(codes.map((code: string) => code.trim()))).filter(
-    (code) => code.length > 0
-  );
+  const normalized = Array.from(
+    new Set(codes.map((code: string) => code.trim())),
+  ).filter((code) => code.length > 0);
   if (normalized.some((code) => !isValidPermissionCode(code))) {
     return NextResponse.json(
       { error: "Invalid permission code" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   try {
     const success = await setRolePermissions(teamId, roleIdValue, normalized);
     return NextResponse.json({ success });
-  } catch (error) {
-    return NextResponse.json({ error: "Failed to update permissions" }, { status: 400 });
+  } catch (_error) {
+    return NextResponse.json(
+      { error: "Failed to update permissions" },
+      { status: 400 },
+    );
   }
 }

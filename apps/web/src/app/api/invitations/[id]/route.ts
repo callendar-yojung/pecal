@@ -1,18 +1,19 @@
-import { NextRequest } from "next/server";
-import { getAuthUser } from "@/lib/auth-helper";
-import { respondToInvitation } from "@/lib/invitation";
-import { markNotificationsReadBySource } from "@/lib/notification";
+import type { NextRequest } from "next/server";
 import {
   jsonError,
   jsonServerError,
   jsonSuccess,
   jsonUnauthorized,
 } from "@/lib/api-response";
+import { getAuthUser } from "@/lib/auth-helper";
+import { invalidateMemberCaches } from "@/lib/member-cache";
+import { respondToInvitation } from "@/lib/invitation";
+import { markNotificationsReadBySource } from "@/lib/notification";
 
 // PATCH /api/invitations/{id} { action: 'accept' | 'decline' }
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getAuthUser(request);
@@ -25,7 +26,12 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const action = body?.action === "accept" ? "accept" : body?.action === "decline" ? "decline" : null;
+    const action =
+      body?.action === "accept"
+        ? "accept"
+        : body?.action === "decline"
+          ? "decline"
+          : null;
     if (!action) {
       return jsonError("Invalid action", 400);
     }
@@ -40,7 +46,17 @@ export async function PATCH(
       return jsonError(result.message || "Failed", 400);
     }
 
-    await markNotificationsReadBySource(user.memberId, "TEAM_INVITE", invitationId);
+    await markNotificationsReadBySource(
+      user.memberId,
+      "TEAM_INVITE",
+      invitationId,
+    );
+    await invalidateMemberCaches(user.memberId, {
+      notificationsUnread: true,
+      notificationsList: true,
+      meTeams: action === "accept",
+      meWorkspaces: action === "accept",
+    });
 
     return jsonSuccess();
   } catch (error) {

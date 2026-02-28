@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMobileApp } from '../../../../src/contexts/MobileAppContext';
 import { useThemeMode } from '../../../../src/contexts/ThemeContext';
@@ -14,6 +14,7 @@ export default function TaskDetailPage() {
   const s = createStyles(colors);
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [refreshing, setRefreshing] = useState(false);
 
   const taskId = Number(id);
   const task = useMemo(() => data.tasks.find((item) => item.id === taskId), [data.tasks, taskId]);
@@ -28,9 +29,23 @@ export default function TaskDetailPage() {
     );
   }
 
+  const onRefresh = useCallback(async () => {
+    if (!data.selectedWorkspace) return;
+    setRefreshing(true);
+    try {
+      await data.loadDashboard(data.selectedWorkspace);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [data]);
+
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView style={s.content} contentContainerStyle={[s.contentContainer, { paddingBottom: 170 }]}>
+      <ScrollView
+        style={s.content}
+        contentContainerStyle={[s.contentContainer, { paddingBottom: 170 }]}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+      >
         <View style={[s.panel, { borderRadius: 16, gap: 12 }]}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
             <Text style={s.formTitle}>일정 상세</Text>

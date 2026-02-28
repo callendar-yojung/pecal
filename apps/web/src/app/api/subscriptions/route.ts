@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
 import {
-  getSubscriptionsByOwnerId,
+  cancelSubscription,
+  createSubscription,
   getActiveSubscriptionByOwner,
   getSubscriptionById,
-  createSubscription,
+  getSubscriptionsByOwnerId,
   updateSubscriptionStatus,
-  cancelSubscription,
 } from "@/lib/subscription";
 
 // GET /api/subscriptions?owner_id=1&owner_type=team - 오너의 모든 구독 조회
@@ -25,21 +25,27 @@ export async function GET(request: NextRequest) {
     const active = searchParams.get("active") === "true";
     const id = searchParams.get("id");
 
-    let subscriptions;
+    let subscriptions: unknown;
     if (id) {
       // 특정 구독 조회
       subscriptions = await getSubscriptionById(Number(id));
     } else if (ownerId && ownerType) {
       // 오너의 구독 조회
       if (active) {
-        subscriptions = await getActiveSubscriptionByOwner(Number(ownerId), ownerType);
+        subscriptions = await getActiveSubscriptionByOwner(
+          Number(ownerId),
+          ownerType,
+        );
       } else {
-        subscriptions = await getSubscriptionsByOwnerId(Number(ownerId), ownerType);
+        subscriptions = await getSubscriptionsByOwnerId(
+          Number(ownerId),
+          ownerType,
+        );
       }
     } else {
       return NextResponse.json(
         { error: "오너 ID와 타입 또는 구독 ID가 필요합니다." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -48,7 +54,7 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching subscriptions:", error);
     return NextResponse.json(
       { error: "Failed to fetch subscriptions" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -67,7 +73,7 @@ export async function POST(request: NextRequest) {
     if (!owner_id || !owner_type || !plan_id) {
       return NextResponse.json(
         { error: "owner_id, owner_type, plan_id가 필요합니다." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -75,15 +81,18 @@ export async function POST(request: NextRequest) {
     const newSubscription = await createSubscription(
       Number(owner_id),
       owner_type,
-      Number(plan_id)
+      Number(plan_id),
     );
 
-    return NextResponse.json({ subscription_id: newSubscription }, { status: 201 });
+    return NextResponse.json(
+      { subscription_id: newSubscription },
+      { status: 201 },
+    );
   } catch (error) {
     console.error("Error creating subscription:", error);
     return NextResponse.json(
       { error: "Failed to create subscription" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -112,7 +121,7 @@ export async function PUT(request: NextRequest) {
     console.error("Error updating subscription:", error);
     return NextResponse.json(
       { error: "Failed to update subscription" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -131,7 +140,7 @@ export async function DELETE(request: NextRequest) {
     if (!id) {
       return NextResponse.json(
         { error: "구독 ID가 필요합니다." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -143,7 +152,7 @@ export async function DELETE(request: NextRequest) {
     console.error("Error canceling subscription:", error);
     return NextResponse.json(
       { error: "Failed to cancel subscription" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
+import { requireExportAccessById } from "@/lib/access";
 import { findMemberById } from "@/lib/member";
 import { addExportAccess, removeExportAccess } from "@/lib/task-export";
-import { requireExportAccessById } from "@/lib/access";
 import { checkWorkspaceAccess } from "@/lib/workspace";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ exportId: string }> }
+  { params }: { params: Promise<{ exportId: string }> },
 ) {
   const { exportId } = await params;
   const id = Number(exportId);
@@ -21,7 +21,10 @@ export async function POST(
   const body = await request.json();
   const memberId = Number(body?.member_id);
   if (!memberId || Number.isNaN(memberId)) {
-    return NextResponse.json({ error: "member_id is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "member_id is required" },
+      { status: 400 },
+    );
   }
 
   const member = await findMemberById(memberId);
@@ -33,7 +36,7 @@ export async function POST(
   if (!memberHasAccess) {
     return NextResponse.json(
       { error: "Member is not part of this workspace" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -43,7 +46,7 @@ export async function POST(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ exportId: string }> }
+  { params }: { params: Promise<{ exportId: string }> },
 ) {
   const { exportId } = await params;
   const id = Number(exportId);
@@ -57,7 +60,10 @@ export async function DELETE(
   const memberIdParam = request.nextUrl.searchParams.get("member_id");
   const memberId = Number(memberIdParam);
   if (!memberId || Number.isNaN(memberId)) {
-    return NextResponse.json({ error: "member_id is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "member_id is required" },
+      { status: 400 },
+    );
   }
 
   const removed = await removeExportAccess(id, memberId);

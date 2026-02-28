@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Pecal",
-  "version": "1.2.18",
+  "version": "1.0.1",
   "identifier": "com.deskcal.app",
   "build": {
     "frontendDist": "../dist",

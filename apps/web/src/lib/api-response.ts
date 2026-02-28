@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { isRetryableStatus, mapStatusToApiCode } from "@repo/api-client";
+import { NextResponse } from "next/server";
 
 export type ApiErrorResponse = {
   success: false;
@@ -13,7 +13,7 @@ export type ApiSuccessResponse = {
 
 export function jsonSuccess(
   data: Record<string, unknown> = {},
-  init?: ResponseInit
+  init?: ResponseInit,
 ) {
   return NextResponse.json({ success: true, ...data }, init);
 }
@@ -22,7 +22,7 @@ export function jsonError(
   message: string,
   status = 400,
   code?: string,
-  extra: Record<string, unknown> = {}
+  extra: Record<string, unknown> = {},
 ) {
   const resolvedCode = code ?? mapStatusToApiCode(status);
   return NextResponse.json(
@@ -35,7 +35,7 @@ export function jsonError(
       source: "web",
       ...extra,
     },
-    { status }
+    { status },
   );
 }
 
@@ -57,7 +57,7 @@ export function jsonGone(message = "Gone") {
 
 export function jsonServerError(
   error: unknown,
-  message = "Internal server error"
+  message = "Internal server error",
 ) {
   console.error(message, error);
   return jsonError(message, 500);
