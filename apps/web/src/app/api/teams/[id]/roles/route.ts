@@ -1,5 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { RowDataPacket } from "mysql2";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
+import pool from "@/lib/db";
 import {
   checkTeamMembership,
   createTeamRole,
@@ -8,12 +10,10 @@ import {
   getTeamRoleByName,
   getTeamRoles,
 } from "@/lib/team";
-import pool from "@/lib/db";
-import type { RowDataPacket } from "mysql2";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getAuthUser(request);
   if (!user) {
@@ -37,7 +37,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getAuthUser(request);
   if (!user) {
@@ -79,7 +79,7 @@ export async function POST(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getAuthUser(request);
   if (!user) {
@@ -103,15 +103,12 @@ export async function DELETE(
 
   const roleId = Number(request.nextUrl.searchParams.get("role_id"));
   if (!roleId) {
-    return NextResponse.json(
-      { error: "role_id is required" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "role_id is required" }, { status: 400 });
   }
 
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT name FROM team_roles WHERE team_id = ? AND team_role_id = ? LIMIT 1`,
-    [teamId, roleId]
+    [teamId, roleId],
   );
   if (rows.length === 0) {
     return NextResponse.json({ error: "Role not found" }, { status: 404 });
@@ -119,19 +116,16 @@ export async function DELETE(
   if (rows[0].name === "Owner") {
     return NextResponse.json(
       { error: "Owner role cannot be deleted" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   const [memberRows] = await pool.execute<RowDataPacket[]>(
     `SELECT COUNT(*) as count FROM team_members WHERE team_role_id = ?`,
-    [roleId]
+    [roleId],
   );
   if (Number(memberRows[0]?.count || 0) > 0) {
-    return NextResponse.json(
-      { error: "Role is in use" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Role is in use" }, { status: 400 });
   }
 
   const success = await deleteTeamRole(teamId, roleId);

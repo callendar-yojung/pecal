@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
-  Users,
   Building2,
-  CreditCard,
-  ClipboardList,
-  UserPlus,
   ChartBar,
+  ClipboardList,
+  CreditCard,
   Settings,
+  UserPlus,
+  Users,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface DashboardStats {
   totalMembers: number;
@@ -24,22 +24,21 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch("/api/admin/stats");
+        if (response.ok) {
+          const data = await response.json();
+          setStats(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch stats:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchStats();
   }, []);
-
-  const fetchStats = async () => {
-    try {
-      const response = await fetch("/api/admin/stats");
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch stats:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -91,9 +90,9 @@ export default function AdminDashboardPage() {
 
       {/* 통계 카드 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statCards.map((card, index) => (
+        {statCards.map((card) => (
           <div
-            key={index}
+            key={card.title}
             className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
           >
             <div className="flex items-center justify-between mb-4">
@@ -157,15 +156,23 @@ export default function AdminDashboardPage() {
             빠른 작업
           </h2>
           <div className="space-y-2">
-            <button className="w-full flex items-center gap-2 px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors">
-              <UserPlus className="h-4 w-4" />
-              새 관리자 추가
+            <button
+              type="button"
+              className="w-full flex items-center gap-2 px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <UserPlus className="h-4 w-4" />새 관리자 추가
             </button>
-            <button className="w-full flex items-center gap-2 px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors">
+            <button
+              type="button"
+              className="w-full flex items-center gap-2 px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
               <ChartBar className="h-4 w-4" />
               상세 리포트 보기
             </button>
-            <button className="w-full flex items-center gap-2 px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors">
+            <button
+              type="button"
+              className="w-full flex items-center gap-2 px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
               <Settings className="h-4 w-4" />
               시스템 설정
             </button>

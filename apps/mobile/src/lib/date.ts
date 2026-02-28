@@ -40,11 +40,41 @@ export function defaultTaskRangeByDate(date: Date) {
 
 export function groupTasksByDate(tasks: TaskItem[]) {
   const grouped: Record<string, TaskItem[]> = {};
+
+  const parseDate = (value: string) => {
+    if (!value) return null;
+    const normalized = value.includes(' ') ? value.replace(' ', 'T') : value;
+    const parsed = new Date(normalized);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+    const fallback = value.slice(0, 10);
+    const fallbackParsed = new Date(`${fallback}T00:00:00`);
+    return Number.isNaN(fallbackParsed.getTime()) ? null : fallbackParsed;
+  };
+
+  const atStartOfDay = (date: Date) =>
+    new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
   for (const task of tasks) {
-    const date = new Date(task.start_time);
-    const key = Number.isNaN(date.getTime()) ? task.start_time.slice(0, 10) : toDateKey(date);
-    if (!grouped[key]) grouped[key] = [];
-    grouped[key].push(task);
+    const start = parseDate(task.start_time);
+    const end = parseDate(task.end_time || task.start_time);
+
+    if (!start) {
+      const fallbackKey = task.start_time.slice(0, 10);
+      if (!grouped[fallbackKey]) grouped[fallbackKey] = [];
+      grouped[fallbackKey].push(task);
+      continue;
+    }
+
+    const rangeStart = atStartOfDay(start);
+    const rangeEnd = atStartOfDay(end && end >= start ? end : start);
+    const cursor = new Date(rangeStart);
+
+    while (cursor <= rangeEnd) {
+      const key = toDateKey(cursor);
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(task);
+      cursor.setDate(cursor.getDate() + 1);
+    }
   }
   return grouped;
 }

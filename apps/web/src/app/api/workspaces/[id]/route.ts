@@ -1,17 +1,18 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
+import { invalidateMemberCaches } from "@/lib/member-cache";
+import { getPermissionsByMember, getTeamById } from "@/lib/team";
 import {
+  checkWorkspaceAccess,
+  deleteWorkspace,
   getWorkspaceById,
   updateWorkspaceName,
-  deleteWorkspace,
-  checkWorkspaceAccess,
 } from "@/lib/workspace";
-import { getTeamById, getPermissionsByMember } from "@/lib/team";
 
 // GET /api/workspaces/[id] - 워크스페이스 상세 조회
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getAuthUser(request);
@@ -21,8 +22,11 @@ export async function GET(
 
     const { id } = await params;
     const workspaceId = Number(id);
-    if (isNaN(workspaceId)) {
-      return NextResponse.json({ error: "Invalid workspace ID" }, { status: 400 });
+    if (Number.isNaN(workspaceId)) {
+      return NextResponse.json(
+        { error: "Invalid workspace ID" },
+        { status: 400 },
+      );
     }
 
     // 워크스페이스 접근 권한 확인
@@ -33,7 +37,10 @@ export async function GET(
 
     const workspace = await getWorkspaceById(workspaceId);
     if (!workspace) {
-      return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Workspace not found" },
+        { status: 404 },
+      );
     }
 
     return NextResponse.json({ workspace });
@@ -41,7 +48,7 @@ export async function GET(
     console.error("Failed to fetch workspace:", error);
     return NextResponse.json(
       { error: "Failed to fetch workspace" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -49,7 +56,7 @@ export async function GET(
 // PATCH /api/workspaces/[id] - 워크스페이스 이름 수정
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getAuthUser(request);
@@ -59,8 +66,11 @@ export async function PATCH(
 
     const { id } = await params;
     const workspaceId = Number(id);
-    if (isNaN(workspaceId)) {
-      return NextResponse.json({ error: "Invalid workspace ID" }, { status: 400 });
+    if (Number.isNaN(workspaceId)) {
+      return NextResponse.json(
+        { error: "Invalid workspace ID" },
+        { status: 400 },
+      );
     }
 
     // 워크스페이스 접근 권한 확인
@@ -75,13 +85,16 @@ export async function PATCH(
     if (!name || typeof name !== "string" || name.trim().length === 0) {
       return NextResponse.json(
         { error: "Invalid workspace name" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const workspace = await getWorkspaceById(workspaceId);
     if (!workspace) {
-      return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Workspace not found" },
+        { status: 404 },
+      );
     }
 
     if (workspace.type === "team") {
@@ -90,7 +103,10 @@ export async function PATCH(
         return NextResponse.json({ error: "Team not found" }, { status: 404 });
       }
       if (team.created_by !== user.memberId) {
-        const permissions = await getPermissionsByMember(team.id, user.memberId);
+        const permissions = await getPermissionsByMember(
+          team.id,
+          user.memberId,
+        );
         if (!permissions.includes("WORKSPACE_EDIT")) {
           return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
@@ -102,9 +118,11 @@ export async function PATCH(
     if (!success) {
       return NextResponse.json(
         { error: "Workspace not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
+
+    await invalidateMemberCaches(user.memberId, { meWorkspaces: true });
 
     return NextResponse.json({
       success: true,
@@ -114,7 +132,7 @@ export async function PATCH(
     console.error("Failed to update workspace:", error);
     return NextResponse.json(
       { error: "Failed to update workspace" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -122,7 +140,7 @@ export async function PATCH(
 // DELETE /api/workspaces/[id] - 워크스페이스 삭제
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getAuthUser(request);
@@ -132,8 +150,11 @@ export async function DELETE(
 
     const { id } = await params;
     const workspaceId = Number(id);
-    if (isNaN(workspaceId)) {
-      return NextResponse.json({ error: "Invalid workspace ID" }, { status: 400 });
+    if (Number.isNaN(workspaceId)) {
+      return NextResponse.json(
+        { error: "Invalid workspace ID" },
+        { status: 400 },
+      );
     }
 
     // 워크스페이스 접근 권한 확인
@@ -144,7 +165,10 @@ export async function DELETE(
 
     const workspace = await getWorkspaceById(workspaceId);
     if (!workspace) {
-      return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Workspace not found" },
+        { status: 404 },
+      );
     }
 
     if (workspace.type === "team") {
@@ -153,7 +177,10 @@ export async function DELETE(
         return NextResponse.json({ error: "Team not found" }, { status: 404 });
       }
       if (team.created_by !== user.memberId) {
-        const permissions = await getPermissionsByMember(team.id, user.memberId);
+        const permissions = await getPermissionsByMember(
+          team.id,
+          user.memberId,
+        );
         if (!permissions.includes("WORKSPACE_DELETE")) {
           return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
@@ -164,9 +191,11 @@ export async function DELETE(
     if (!success) {
       return NextResponse.json(
         { error: "Workspace not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
+
+    await invalidateMemberCaches(user.memberId, { meWorkspaces: true });
 
     return NextResponse.json({
       success: true,
@@ -176,7 +205,7 @@ export async function DELETE(
     console.error("Failed to delete workspace:", error);
     return NextResponse.json(
       { error: "Failed to delete workspace" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

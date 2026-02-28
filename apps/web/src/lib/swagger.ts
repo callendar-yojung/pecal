@@ -84,7 +84,8 @@ Authorization: Bearer <access_token>
         type: "http",
         scheme: "bearer",
         bearerFormat: "JWT",
-        description: "JWT Access Token을 Authorization 헤더에 Bearer 형식으로 전달",
+        description:
+          "JWT Access Token을 Authorization 헤더에 Bearer 형식으로 전달",
       },
       CookieAuth: {
         type: "apiKey",
@@ -113,10 +114,24 @@ Authorization: Bearer <access_token>
         properties: {
           id: { type: "integer", description: "태스크 ID" },
           title: { type: "string", description: "태스크 제목" },
-          start_time: { type: "string", description: "시작 시간 (YYYY-MM-DD HH:mm:ss)" },
-          end_time: { type: "string", description: "종료 시간 (YYYY-MM-DD HH:mm:ss)" },
-          content: { type: "string", nullable: true, description: "태스크 내용" },
-          status: { type: "string", enum: ["TODO", "IN_PROGRESS", "DONE"], description: "태스크 상태" },
+          start_time: {
+            type: "string",
+            description: "시작 시간 (YYYY-MM-DD HH:mm:ss)",
+          },
+          end_time: {
+            type: "string",
+            description: "종료 시간 (YYYY-MM-DD HH:mm:ss)",
+          },
+          content: {
+            type: "string",
+            nullable: true,
+            description: "태스크 내용",
+          },
+          status: {
+            type: "string",
+            enum: ["TODO", "IN_PROGRESS", "DONE"],
+            description: "태스크 상태",
+          },
           color: { type: "string", description: "태스크 색상 (HEX 코드)" },
           created_at: { type: "string", description: "생성 시간" },
           updated_at: { type: "string", description: "수정 시간" },
@@ -142,14 +157,36 @@ Authorization: Bearer <access_token>
         required: ["title", "start_time", "end_time", "workspace_id"],
         properties: {
           title: { type: "string", description: "태스크 제목" },
-          start_time: { type: "string", description: "시작 시간 (YYYY-MM-DDTHH:mm 형식)" },
-          end_time: { type: "string", description: "종료 시간 (YYYY-MM-DDTHH:mm 형식)" },
+          start_time: {
+            type: "string",
+            description: "시작 시간 (YYYY-MM-DDTHH:mm 형식)",
+          },
+          end_time: {
+            type: "string",
+            description: "종료 시간 (YYYY-MM-DDTHH:mm 형식)",
+          },
           content: { type: "string", description: "태스크 내용" },
-          status: { type: "string", enum: ["TODO", "IN_PROGRESS", "DONE"], default: "TODO" },
-          color: { type: "string", default: "#3B82F6", description: "태스크 색상" },
+          status: {
+            type: "string",
+            enum: ["TODO", "IN_PROGRESS", "DONE"],
+            default: "TODO",
+          },
+          color: {
+            type: "string",
+            default: "#3B82F6",
+            description: "태스크 색상",
+          },
           workspace_id: { type: "integer", description: "워크스페이스 ID" },
-          tag_ids: { type: "array", items: { type: "integer" }, description: "태그 ID 목록" },
-          file_ids: { type: "array", items: { type: "integer" }, description: "첨부파일 ID 목록" },
+          tag_ids: {
+            type: "array",
+            items: { type: "integer" },
+            description: "태그 ID 목록",
+          },
+          file_ids: {
+            type: "array",
+            items: { type: "integer" },
+            description: "첨부파일 ID 목록",
+          },
         },
       },
       TaskUpdate: {
@@ -163,7 +200,11 @@ Authorization: Bearer <access_token>
           content: { type: "string", description: "태스크 내용" },
           status: { type: "string", enum: ["TODO", "IN_PROGRESS", "DONE"] },
           color: { type: "string", description: "태스크 색상" },
-          tag_ids: { type: "array", items: { type: "integer" }, description: "태그 ID 목록" },
+          tag_ids: {
+            type: "array",
+            items: { type: "integer" },
+            description: "태그 ID 목록",
+          },
         },
       },
       Workspace: {
@@ -171,8 +212,15 @@ Authorization: Bearer <access_token>
         properties: {
           workspace_id: { type: "integer", description: "워크스페이스 ID" },
           name: { type: "string", description: "워크스페이스 이름" },
-          type: { type: "string", enum: ["personal", "team"], description: "워크스페이스 타입" },
-          owner_id: { type: "integer", description: "소유자 ID (member_id 또는 team_id)" },
+          type: {
+            type: "string",
+            enum: ["personal", "team"],
+            description: "워크스페이스 타입",
+          },
+          owner_id: {
+            type: "integer",
+            description: "소유자 ID (member_id 또는 team_id)",
+          },
           created_at: { type: "string" },
           created_by: { type: "integer", description: "생성자 member_id" },
         },
@@ -182,7 +230,11 @@ Authorization: Bearer <access_token>
         properties: {
           team_id: { type: "integer", description: "팀 ID" },
           name: { type: "string", description: "팀 이름" },
-          description: { type: "string", nullable: true, description: "팀 설명" },
+          description: {
+            type: "string",
+            nullable: true,
+            description: "팀 설명",
+          },
           created_at: { type: "string" },
           created_by: { type: "integer", description: "생성자 member_id" },
         },
@@ -193,7 +245,11 @@ Authorization: Bearer <access_token>
           tag_id: { type: "integer", description: "태그 ID" },
           name: { type: "string", description: "태그 이름" },
           color: { type: "string", description: "태그 색상 (HEX 코드)" },
-          owner_type: { type: "string", enum: ["team", "personal"], description: "소유자 타입" },
+          owner_type: {
+            type: "string",
+            enum: ["team", "personal"],
+            description: "소유자 타입",
+          },
           owner_id: { type: "integer", description: "소유자 ID" },
           created_at: { type: "string" },
         },
@@ -205,8 +261,15 @@ Authorization: Bearer <access_token>
           original_name: { type: "string", description: "원본 파일명" },
           file_path: { type: "string", description: "파일 경로 (S3 URL)" },
           file_size: { type: "integer", description: "파일 크기 (bytes)" },
-          file_size_formatted: { type: "string", description: "파일 크기 (포맷팅된 문자열)" },
-          mime_type: { type: "string", nullable: true, description: "MIME 타입" },
+          file_size_formatted: {
+            type: "string",
+            description: "파일 크기 (포맷팅된 문자열)",
+          },
+          mime_type: {
+            type: "string",
+            nullable: true,
+            description: "MIME 타입",
+          },
           owner_type: { type: "string", enum: ["team", "personal"] },
           owner_id: { type: "integer" },
           uploaded_by: { type: "integer", description: "업로더 member_id" },
@@ -234,8 +297,14 @@ Authorization: Bearer <access_token>
           name: { type: "string", description: "플랜 이름" },
           price: { type: "number", description: "가격 (USD)" },
           max_members: { type: "integer", description: "최대 멤버 수" },
-          max_storage_mb: { type: "integer", description: "최대 저장소 용량 (MB)" },
-          max_file_size_mb: { type: "integer", description: "최대 파일 크기 (MB)" },
+          max_storage_mb: {
+            type: "integer",
+            description: "최대 저장소 용량 (MB)",
+          },
+          max_file_size_mb: {
+            type: "integer",
+            description: "최대 파일 크기 (MB)",
+          },
           created_at: { type: "string" },
         },
       },
@@ -246,7 +315,11 @@ Authorization: Bearer <access_token>
           owner_type: { type: "string", enum: ["team", "personal"] },
           owner_id: { type: "integer" },
           plan_id: { type: "integer", description: "플랜 ID" },
-          status: { type: "string", enum: ["ACTIVE", "CANCELED", "EXPIRED"], description: "구독 상태" },
+          status: {
+            type: "string",
+            enum: ["ACTIVE", "CANCELED", "EXPIRED"],
+            description: "구독 상태",
+          },
           started_at: { type: "string" },
           ended_at: { type: "string", nullable: true },
           plan_name: { type: "string", description: "플랜 이름" },
@@ -281,7 +354,11 @@ Authorization: Bearer <access_token>
           member_id: { type: "integer", description: "회원 ID" },
           email: { type: "string", description: "이메일" },
           nickname: { type: "string", description: "닉네임" },
-          provider: { type: "string", enum: ["kakao", "google", "apple"], description: "소셜 로그인 제공자" },
+          provider: {
+            type: "string",
+            enum: ["kakao", "google", "apple"],
+            description: "소셜 로그인 제공자",
+          },
           created_at: { type: "string" },
           lasted_at: { type: "string", description: "마지막 로그인" },
         },
@@ -289,9 +366,18 @@ Authorization: Bearer <access_token>
       AuthTokens: {
         type: "object",
         properties: {
-          accessToken: { type: "string", description: "JWT Access Token (1시간 유효)" },
-          refreshToken: { type: "string", description: "JWT Refresh Token (7일 유효)" },
-          expiresIn: { type: "integer", description: "Access Token 만료 시간 (초)" },
+          accessToken: {
+            type: "string",
+            description: "JWT Access Token (1시간 유효)",
+          },
+          refreshToken: {
+            type: "string",
+            description: "JWT Refresh Token (7일 유효)",
+          },
+          expiresIn: {
+            type: "integer",
+            description: "Access Token 만료 시간 (초)",
+          },
         },
       },
       AuthUser: {
@@ -308,9 +394,17 @@ Authorization: Bearer <access_token>
         properties: {
           id: { type: "integer" },
           version: { type: "string", description: "버전 (예: 1.0.0)" },
-          platform: { type: "string", enum: ["windows", "macos", "linux"], description: "플랫폼" },
+          platform: {
+            type: "string",
+            enum: ["windows", "macos", "linux"],
+            description: "플랫폼",
+          },
           download_url: { type: "string", description: "다운로드 URL" },
-          release_notes: { type: "string", nullable: true, description: "릴리즈 노트" },
+          release_notes: {
+            type: "string",
+            nullable: true,
+            description: "릴리즈 노트",
+          },
           is_latest: { type: "boolean", description: "최신 버전 여부" },
           created_at: { type: "string" },
         },
@@ -332,7 +426,10 @@ Authorization: Bearer <access_token>
                 type: "object",
                 required: ["access_token"],
                 properties: {
-                  access_token: { type: "string", description: "카카오 SDK access_token" },
+                  access_token: {
+                    type: "string",
+                    description: "카카오 SDK access_token",
+                  },
                 },
               },
             },
@@ -374,7 +471,10 @@ Authorization: Bearer <access_token>
                 type: "object",
                 required: ["access_token"],
                 properties: {
-                  access_token: { type: "string", description: "구글 SDK access_token" },
+                  access_token: {
+                    type: "string",
+                    description: "구글 SDK access_token",
+                  },
                 },
               },
             },
@@ -416,7 +516,10 @@ Authorization: Bearer <access_token>
                 type: "object",
                 required: ["refresh_token"],
                 properties: {
-                  refresh_token: { type: "string", description: "Refresh Token" },
+                  refresh_token: {
+                    type: "string",
+                    description: "Refresh Token",
+                  },
                 },
               },
             },
@@ -473,7 +576,8 @@ Authorization: Bearer <access_token>
       get: {
         tags: ["Auth - OAuth"],
         summary: "카카오 OAuth 시작 URL 생성",
-        description: "브라우저 기반 OAuth 흐름 시작을 위한 카카오 로그인 URL 생성",
+        description:
+          "브라우저 기반 OAuth 흐름 시작을 위한 카카오 로그인 URL 생성",
         parameters: [
           {
             name: "callback",
@@ -491,7 +595,10 @@ Authorization: Bearer <access_token>
                 schema: {
                   type: "object",
                   properties: {
-                    authUrl: { type: "string", description: "브라우저에서 열 카카오 로그인 URL" },
+                    authUrl: {
+                      type: "string",
+                      description: "브라우저에서 열 카카오 로그인 URL",
+                    },
                     redirectUri: { type: "string" },
                     state: { type: "string" },
                   },
@@ -507,7 +614,8 @@ Authorization: Bearer <access_token>
       get: {
         tags: ["Auth - OAuth"],
         summary: "구글 OAuth 시작 URL 생성",
-        description: "브라우저 기반 OAuth 흐름 시작을 위한 구글 로그인 URL 생성",
+        description:
+          "브라우저 기반 OAuth 흐름 시작을 위한 구글 로그인 URL 생성",
         parameters: [
           {
             name: "callback",
@@ -525,7 +633,10 @@ Authorization: Bearer <access_token>
                 schema: {
                   type: "object",
                   properties: {
-                    authUrl: { type: "string", description: "브라우저에서 열 구글 로그인 URL" },
+                    authUrl: {
+                      type: "string",
+                      description: "브라우저에서 열 구글 로그인 URL",
+                    },
                     redirectUri: { type: "string" },
                     state: { type: "string" },
                   },
@@ -541,7 +652,8 @@ Authorization: Bearer <access_token>
       get: {
         tags: ["Auth - OAuth"],
         summary: "Apple OAuth 시작 URL 생성",
-        description: "브라우저 기반 OAuth 흐름 시작을 위한 Apple 로그인 URL 생성",
+        description:
+          "브라우저 기반 OAuth 흐름 시작을 위한 Apple 로그인 URL 생성",
         parameters: [
           {
             name: "callback",
@@ -559,7 +671,10 @@ Authorization: Bearer <access_token>
                 schema: {
                   type: "object",
                   properties: {
-                    authUrl: { type: "string", description: "브라우저에서 열 Apple 로그인 URL" },
+                    authUrl: {
+                      type: "string",
+                      description: "브라우저에서 열 Apple 로그인 URL",
+                    },
                     redirectUri: { type: "string" },
                     state: { type: "string" },
                   },
@@ -577,16 +692,64 @@ Authorization: Bearer <access_token>
       get: {
         tags: ["Tasks"],
         summary: "태스크 목록 조회",
-        description: "워크스페이스의 태스크 목록을 페이징, 정렬, 필터링하여 조회",
+        description:
+          "워크스페이스의 태스크 목록을 페이징, 정렬, 필터링하여 조회",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         parameters: [
-          { name: "workspace_id", in: "query", required: true, schema: { type: "integer" }, description: "워크스페이스 ID" },
-          { name: "page", in: "query", schema: { type: "integer", default: 1 }, description: "페이지 번호" },
-          { name: "limit", in: "query", schema: { type: "integer", default: 20, maximum: 100 }, description: "페이지당 항목 수" },
-          { name: "sort_by", in: "query", schema: { type: "string", enum: ["start_time", "end_time", "created_at", "updated_at", "title", "status"], default: "start_time" }, description: "정렬 기준" },
-          { name: "sort_order", in: "query", schema: { type: "string", enum: ["ASC", "DESC"], default: "DESC" }, description: "정렬 순서" },
-          { name: "status", in: "query", schema: { type: "string", enum: ["TODO", "IN_PROGRESS", "DONE"] }, description: "상태 필터" },
-          { name: "search", in: "query", schema: { type: "string" }, description: "제목/내용 검색어" },
+          {
+            name: "workspace_id",
+            in: "query",
+            required: true,
+            schema: { type: "integer" },
+            description: "워크스페이스 ID",
+          },
+          {
+            name: "page",
+            in: "query",
+            schema: { type: "integer", default: 1 },
+            description: "페이지 번호",
+          },
+          {
+            name: "limit",
+            in: "query",
+            schema: { type: "integer", default: 20, maximum: 100 },
+            description: "페이지당 항목 수",
+          },
+          {
+            name: "sort_by",
+            in: "query",
+            schema: {
+              type: "string",
+              enum: [
+                "start_time",
+                "end_time",
+                "created_at",
+                "updated_at",
+                "title",
+                "status",
+              ],
+              default: "start_time",
+            },
+            description: "정렬 기준",
+          },
+          {
+            name: "sort_order",
+            in: "query",
+            schema: { type: "string", enum: ["ASC", "DESC"], default: "DESC" },
+            description: "정렬 순서",
+          },
+          {
+            name: "status",
+            in: "query",
+            schema: { type: "string", enum: ["TODO", "IN_PROGRESS", "DONE"] },
+            description: "상태 필터",
+          },
+          {
+            name: "search",
+            in: "query",
+            schema: { type: "string" },
+            description: "제목/내용 검색어",
+          },
         ],
         responses: {
           "200": {
@@ -596,7 +759,10 @@ Authorization: Bearer <access_token>
                 schema: {
                   type: "object",
                   properties: {
-                    tasks: { type: "array", items: { $ref: "#/components/schemas/Task" } },
+                    tasks: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/Task" },
+                    },
                     total: { type: "integer" },
                     page: { type: "integer" },
                     limit: { type: "integer" },
@@ -676,7 +842,13 @@ Authorization: Bearer <access_token>
         description: "태스크 삭제",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         parameters: [
-          { name: "task_id", in: "query", required: true, schema: { type: "integer" }, description: "삭제할 태스크 ID" },
+          {
+            name: "task_id",
+            in: "query",
+            required: true,
+            schema: { type: "integer" },
+            description: "삭제할 태스크 ID",
+          },
         ],
         responses: {
           "200": {
@@ -699,8 +871,20 @@ Authorization: Bearer <access_token>
         description: "특정 날짜에 해당하는 태스크 목록 조회",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         parameters: [
-          { name: "workspace_id", in: "query", required: true, schema: { type: "integer" }, description: "워크스페이스 ID" },
-          { name: "date", in: "query", required: true, schema: { type: "string", format: "date" }, description: "조회할 날짜 (YYYY-MM-DD)" },
+          {
+            name: "workspace_id",
+            in: "query",
+            required: true,
+            schema: { type: "integer" },
+            description: "워크스페이스 ID",
+          },
+          {
+            name: "date",
+            in: "query",
+            required: true,
+            schema: { type: "string", format: "date" },
+            description: "조회할 날짜 (YYYY-MM-DD)",
+          },
         ],
         responses: {
           "200": {
@@ -710,7 +894,10 @@ Authorization: Bearer <access_token>
                 schema: {
                   type: "object",
                   properties: {
-                    tasks: { type: "array", items: { $ref: "#/components/schemas/Task" } },
+                    tasks: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/Task" },
+                    },
                   },
                 },
               },
@@ -729,7 +916,13 @@ Authorization: Bearer <access_token>
         description: "태스크에 첨부된 파일 목록 조회",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         parameters: [
-          { name: "task_id", in: "query", required: true, schema: { type: "integer" }, description: "태스크 ID" },
+          {
+            name: "task_id",
+            in: "query",
+            required: true,
+            schema: { type: "integer" },
+            description: "태스크 ID",
+          },
         ],
         responses: {
           "200": {
@@ -739,7 +932,10 @@ Authorization: Bearer <access_token>
                 schema: {
                   type: "object",
                   properties: {
-                    attachments: { type: "array", items: { $ref: "#/components/schemas/TaskAttachment" } },
+                    attachments: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/TaskAttachment" },
+                    },
                   },
                 },
               },
@@ -779,8 +975,18 @@ Authorization: Bearer <access_token>
         description: "태스크에서 첨부파일 연결 해제 (옵션으로 파일도 삭제)",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         parameters: [
-          { name: "attachment_id", in: "query", required: true, schema: { type: "integer" } },
-          { name: "delete_file", in: "query", schema: { type: "boolean", default: false }, description: "파일도 함께 삭제할지 여부" },
+          {
+            name: "attachment_id",
+            in: "query",
+            required: true,
+            schema: { type: "integer" },
+          },
+          {
+            name: "delete_file",
+            in: "query",
+            schema: { type: "boolean", default: false },
+            description: "파일도 함께 삭제할지 여부",
+          },
         ],
         responses: {
           "200": { description: "삭제 성공" },
@@ -797,9 +1003,26 @@ Authorization: Bearer <access_token>
         description: "특정 월의 날짜별 태스크 목록 조회 (캘린더 표시용)",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         parameters: [
-          { name: "workspace_id", in: "query", required: true, schema: { type: "integer" } },
-          { name: "year", in: "query", required: true, schema: { type: "integer" }, description: "연도" },
-          { name: "month", in: "query", required: true, schema: { type: "integer", minimum: 1, maximum: 12 }, description: "월 (1-12)" },
+          {
+            name: "workspace_id",
+            in: "query",
+            required: true,
+            schema: { type: "integer" },
+          },
+          {
+            name: "year",
+            in: "query",
+            required: true,
+            schema: { type: "integer" },
+            description: "연도",
+          },
+          {
+            name: "month",
+            in: "query",
+            required: true,
+            schema: { type: "integer", minimum: 1, maximum: 12 },
+            description: "월 (1-12)",
+          },
         ],
         responses: {
           "200": {
@@ -814,7 +1037,10 @@ Authorization: Bearer <access_token>
                       items: {
                         type: "object",
                         properties: {
-                          date: { type: "string", description: "날짜 (YYYY-MM-DD)" },
+                          date: {
+                            type: "string",
+                            description: "날짜 (YYYY-MM-DD)",
+                          },
                           tasks: {
                             type: "array",
                             items: {
@@ -846,7 +1072,8 @@ Authorization: Bearer <access_token>
       get: {
         tags: ["Workspaces"],
         summary: "내 워크스페이스 목록 조회",
-        description: "로그인한 사용자의 개인 워크스페이스 + 소속된 팀 워크스페이스 목록",
+        description:
+          "로그인한 사용자의 개인 워크스페이스 + 소속된 팀 워크스페이스 목록",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         responses: {
           "200": {
@@ -856,7 +1083,10 @@ Authorization: Bearer <access_token>
                 schema: {
                   type: "object",
                   properties: {
-                    workspaces: { type: "array", items: { $ref: "#/components/schemas/Workspace" } },
+                    workspaces: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/Workspace" },
+                    },
                   },
                 },
               },
@@ -913,7 +1143,12 @@ Authorization: Bearer <access_token>
         summary: "워크스페이스 상세 조회",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         parameters: [
-          { name: "id", in: "path", required: true, schema: { type: "integer" } },
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
         ],
         responses: {
           "200": {
@@ -938,7 +1173,12 @@ Authorization: Bearer <access_token>
         summary: "워크스페이스 수정",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         parameters: [
-          { name: "id", in: "path", required: true, schema: { type: "integer" } },
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
         ],
         requestBody: {
           required: true,
@@ -963,7 +1203,12 @@ Authorization: Bearer <access_token>
         summary: "워크스페이스 삭제",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         parameters: [
-          { name: "id", in: "path", required: true, schema: { type: "integer" } },
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
         ],
         responses: {
           "200": { description: "삭제 성공" },
@@ -978,7 +1223,13 @@ Authorization: Bearer <access_token>
         description: "특정 회원의 워크스페이스 목록 조회 (본인만 가능)",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         parameters: [
-          { name: "id", in: "path", required: true, schema: { type: "integer" }, description: "member_id" },
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+            description: "member_id",
+          },
         ],
         responses: {
           "200": {
@@ -988,7 +1239,10 @@ Authorization: Bearer <access_token>
                 schema: {
                   type: "object",
                   properties: {
-                    workspaces: { type: "array", items: { $ref: "#/components/schemas/Workspace" } },
+                    workspaces: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/Workspace" },
+                    },
                   },
                 },
               },
@@ -1006,7 +1260,13 @@ Authorization: Bearer <access_token>
         description: "특정 팀의 워크스페이스 목록 조회 (팀 멤버만 가능)",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         parameters: [
-          { name: "id", in: "path", required: true, schema: { type: "integer" }, description: "team_id" },
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+            description: "team_id",
+          },
         ],
         responses: {
           "200": {
@@ -1016,7 +1276,10 @@ Authorization: Bearer <access_token>
                 schema: {
                   type: "object",
                   properties: {
-                    workspaces: { type: "array", items: { $ref: "#/components/schemas/Workspace" } },
+                    workspaces: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/Workspace" },
+                    },
                   },
                 },
               },
@@ -1043,7 +1306,10 @@ Authorization: Bearer <access_token>
                 schema: {
                   type: "object",
                   properties: {
-                    teams: { type: "array", items: { $ref: "#/components/schemas/Team" } },
+                    teams: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/Team" },
+                    },
                   },
                 },
               },
@@ -1098,7 +1364,12 @@ Authorization: Bearer <access_token>
         summary: "팀 상세 조회",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         parameters: [
-          { name: "id", in: "path", required: true, schema: { type: "integer" } },
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
         ],
         responses: {
           "200": {
@@ -1123,7 +1394,12 @@ Authorization: Bearer <access_token>
         summary: "팀 정보 수정",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         parameters: [
-          { name: "id", in: "path", required: true, schema: { type: "integer" } },
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
         ],
         requestBody: {
           required: true,
@@ -1149,7 +1425,12 @@ Authorization: Bearer <access_token>
         summary: "팀 삭제",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         parameters: [
-          { name: "id", in: "path", required: true, schema: { type: "integer" } },
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
         ],
         responses: {
           "200": { description: "삭제 성공" },
@@ -1166,8 +1447,18 @@ Authorization: Bearer <access_token>
         description: "소유자(팀/개인)의 태그 목록",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         parameters: [
-          { name: "owner_type", in: "query", required: true, schema: { type: "string", enum: ["team", "personal"] } },
-          { name: "owner_id", in: "query", required: true, schema: { type: "integer" } },
+          {
+            name: "owner_type",
+            in: "query",
+            required: true,
+            schema: { type: "string", enum: ["team", "personal"] },
+          },
+          {
+            name: "owner_id",
+            in: "query",
+            required: true,
+            schema: { type: "integer" },
+          },
         ],
         responses: {
           "200": {
@@ -1177,7 +1468,10 @@ Authorization: Bearer <access_token>
                 schema: {
                   type: "object",
                   properties: {
-                    tags: { type: "array", items: { $ref: "#/components/schemas/Tag" } },
+                    tags: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/Tag" },
+                    },
                   },
                 },
               },
@@ -1219,7 +1513,12 @@ Authorization: Bearer <access_token>
         summary: "태그 수정",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         parameters: [
-          { name: "id", in: "path", required: true, schema: { type: "integer" } },
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
         ],
         requestBody: {
           required: true,
@@ -1245,7 +1544,12 @@ Authorization: Bearer <access_token>
         summary: "태그 삭제",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         parameters: [
-          { name: "id", in: "path", required: true, schema: { type: "integer" } },
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
         ],
         responses: {
           "200": { description: "삭제 성공" },
@@ -1262,8 +1566,18 @@ Authorization: Bearer <access_token>
         description: "소유자의 파일 목록 조회",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         parameters: [
-          { name: "owner_type", in: "query", required: true, schema: { type: "string", enum: ["team", "personal"] } },
-          { name: "owner_id", in: "query", required: true, schema: { type: "integer" } },
+          {
+            name: "owner_type",
+            in: "query",
+            required: true,
+            schema: { type: "string", enum: ["team", "personal"] },
+          },
+          {
+            name: "owner_id",
+            in: "query",
+            required: true,
+            schema: { type: "integer" },
+          },
         ],
         responses: {
           "200": {
@@ -1273,7 +1587,10 @@ Authorization: Bearer <access_token>
                 schema: {
                   type: "object",
                   properties: {
-                    files: { type: "array", items: { $ref: "#/components/schemas/File" } },
+                    files: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/File" },
+                    },
                   },
                 },
               },
@@ -1288,7 +1605,13 @@ Authorization: Bearer <access_token>
         description: "파일 삭제 (S3 + DB)",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         parameters: [
-          { name: "id", in: "query", required: true, schema: { type: "integer" }, description: "file_id" },
+          {
+            name: "id",
+            in: "query",
+            required: true,
+            schema: { type: "integer" },
+            description: "file_id",
+          },
         ],
         responses: {
           "200": { description: "삭제 성공" },
@@ -1311,10 +1634,17 @@ Authorization: Bearer <access_token>
                 type: "object",
                 required: ["file", "owner_type", "owner_id"],
                 properties: {
-                  file: { type: "string", format: "binary", description: "업로드할 파일" },
+                  file: {
+                    type: "string",
+                    format: "binary",
+                    description: "업로드할 파일",
+                  },
                   owner_type: { type: "string", enum: ["team", "personal"] },
                   owner_id: { type: "string", description: "소유자 ID" },
-                  task_id: { type: "string", description: "연결할 태스크 ID (옵션)" },
+                  task_id: {
+                    type: "string",
+                    description: "연결할 태스크 ID (옵션)",
+                  },
                 },
               },
             },
@@ -1364,8 +1694,18 @@ Authorization: Bearer <access_token>
         description: "팀/개인의 저장소 사용량 및 한도 조회",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         parameters: [
-          { name: "team_id", in: "query", required: true, schema: { type: "integer" } },
-          { name: "check_limit", in: "query", schema: { type: "number" }, description: "추가하려는 용량(MB) - 한도 체크용" },
+          {
+            name: "team_id",
+            in: "query",
+            required: true,
+            schema: { type: "integer" },
+          },
+          {
+            name: "check_limit",
+            in: "query",
+            schema: { type: "number" },
+            description: "추가하려는 용량(MB) - 한도 체크용",
+          },
         ],
         responses: {
           "200": {
@@ -1411,7 +1751,11 @@ Authorization: Bearer <access_token>
                 required: ["team_id"],
                 properties: {
                   team_id: { type: "integer" },
-                  action: { type: "string", enum: ["recalculate"], description: "recalculate: 실제 파일 크기로 재계산" },
+                  action: {
+                    type: "string",
+                    enum: ["recalculate"],
+                    description: "recalculate: 실제 파일 크기로 재계산",
+                  },
                 },
               },
             },
@@ -1451,7 +1795,12 @@ Authorization: Bearer <access_token>
         summary: "저장소 사용량 삭제",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         parameters: [
-          { name: "team_id", in: "query", required: true, schema: { type: "integer" } },
+          {
+            name: "team_id",
+            in: "query",
+            required: true,
+            schema: { type: "integer" },
+          },
         ],
         responses: {
           "200": { description: "삭제 성공" },
@@ -1467,7 +1816,12 @@ Authorization: Bearer <access_token>
         summary: "플랜 목록 조회",
         description: "모든 구독 플랜 조회 또는 특정 플랜 조회",
         parameters: [
-          { name: "id", in: "query", schema: { type: "integer" }, description: "특정 플랜 ID (없으면 전체)" },
+          {
+            name: "id",
+            in: "query",
+            schema: { type: "integer" },
+            description: "특정 플랜 ID (없으면 전체)",
+          },
         ],
         responses: {
           "200": {
@@ -1476,7 +1830,10 @@ Authorization: Bearer <access_token>
               "application/json": {
                 schema: {
                   oneOf: [
-                    { type: "array", items: { $ref: "#/components/schemas/Plan" } },
+                    {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/Plan" },
+                    },
                     { $ref: "#/components/schemas/Plan" },
                   ],
                 },
@@ -1496,8 +1853,18 @@ Authorization: Bearer <access_token>
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         parameters: [
           { name: "team_id", in: "query", schema: { type: "integer" } },
-          { name: "id", in: "query", schema: { type: "integer" }, description: "특정 구독 ID" },
-          { name: "active", in: "query", schema: { type: "boolean" }, description: "활성 구독만 조회" },
+          {
+            name: "id",
+            in: "query",
+            schema: { type: "integer" },
+            description: "특정 구독 ID",
+          },
+          {
+            name: "active",
+            in: "query",
+            schema: { type: "boolean" },
+            description: "활성 구독만 조회",
+          },
         ],
         responses: {
           "200": {
@@ -1506,7 +1873,10 @@ Authorization: Bearer <access_token>
               "application/json": {
                 schema: {
                   oneOf: [
-                    { type: "array", items: { $ref: "#/components/schemas/Subscription" } },
+                    {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/Subscription" },
+                    },
                     { $ref: "#/components/schemas/Subscription" },
                   ],
                 },
@@ -1554,8 +1924,15 @@ Authorization: Bearer <access_token>
                 required: ["id"],
                 properties: {
                   id: { type: "integer" },
-                  status: { type: "string", enum: ["ACTIVE", "CANCELED", "EXPIRED"] },
-                  action: { type: "string", enum: ["cancel"], description: "cancel로 구독 취소" },
+                  status: {
+                    type: "string",
+                    enum: ["ACTIVE", "CANCELED", "EXPIRED"],
+                  },
+                  action: {
+                    type: "string",
+                    enum: ["cancel"],
+                    description: "cancel로 구독 취소",
+                  },
                 },
               },
             },
@@ -1571,7 +1948,12 @@ Authorization: Bearer <access_token>
         summary: "구독 삭제",
         security: [{ BearerAuth: [] }, { CookieAuth: [] }],
         parameters: [
-          { name: "id", in: "query", required: true, schema: { type: "integer" } },
+          {
+            name: "id",
+            in: "query",
+            required: true,
+            schema: { type: "integer" },
+          },
         ],
         responses: {
           "200": { description: "삭제 성공" },
@@ -1645,7 +2027,11 @@ Authorization: Bearer <access_token>
         summary: "릴리즈 목록 조회",
         description: "앱 릴리즈 목록 (플랫폼별 필터 가능)",
         parameters: [
-          { name: "platform", in: "query", schema: { type: "string", enum: ["windows", "macos", "linux"] } },
+          {
+            name: "platform",
+            in: "query",
+            schema: { type: "string", enum: ["windows", "macos", "linux"] },
+          },
         ],
         responses: {
           "200": {
@@ -1655,7 +2041,10 @@ Authorization: Bearer <access_token>
                 schema: {
                   type: "object",
                   properties: {
-                    releases: { type: "array", items: { $ref: "#/components/schemas/Release" } },
+                    releases: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/Release" },
+                    },
                   },
                 },
               },
@@ -1670,7 +2059,12 @@ Authorization: Bearer <access_token>
         summary: "최신 릴리즈 조회",
         description: "플랫폼별 최신 릴리즈 정보",
         parameters: [
-          { name: "platform", in: "query", required: true, schema: { type: "string", enum: ["windows", "macos", "linux"] } },
+          {
+            name: "platform",
+            in: "query",
+            required: true,
+            schema: { type: "string", enum: ["windows", "macos", "linux"] },
+          },
         ],
         responses: {
           "200": {
@@ -1761,8 +2155,16 @@ Authorization: Bearer <access_token>
         tags: ["Admin"],
         summary: "회원 목록 조회",
         parameters: [
-          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
-          { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
+          {
+            name: "page",
+            in: "query",
+            schema: { type: "integer", default: 1 },
+          },
+          {
+            name: "limit",
+            in: "query",
+            schema: { type: "integer", default: 20 },
+          },
           { name: "search", in: "query", schema: { type: "string" } },
         ],
         responses: {
@@ -1775,8 +2177,16 @@ Authorization: Bearer <access_token>
         tags: ["Admin"],
         summary: "팀 목록 조회",
         parameters: [
-          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
-          { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
+          {
+            name: "page",
+            in: "query",
+            schema: { type: "integer", default: 1 },
+          },
+          {
+            name: "limit",
+            in: "query",
+            schema: { type: "integer", default: 20 },
+          },
           { name: "search", in: "query", schema: { type: "string" } },
         ],
         responses: {
@@ -1847,7 +2257,12 @@ Authorization: Bearer <access_token>
         tags: ["Admin"],
         summary: "플랜 관리 - 플랜 삭제",
         parameters: [
-          { name: "id", in: "query", required: true, schema: { type: "integer" } },
+          {
+            name: "id",
+            in: "query",
+            required: true,
+            schema: { type: "integer" },
+          },
         ],
         responses: {
           "200": { description: "삭제 성공" },
@@ -1859,8 +2274,16 @@ Authorization: Bearer <access_token>
         tags: ["Admin"],
         summary: "구독 관리 - 목록 조회",
         parameters: [
-          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
-          { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
+          {
+            name: "page",
+            in: "query",
+            schema: { type: "integer", default: 1 },
+          },
+          {
+            name: "limit",
+            in: "query",
+            schema: { type: "integer", default: 20 },
+          },
         ],
         responses: {
           "200": { description: "구독 목록" },

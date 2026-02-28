@@ -1,4 +1,4 @@
-import { Redirect, useLocalSearchParams } from 'expo-router';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Text, View } from 'react-native';
 import { useMobileApp } from '../../../../src/contexts/MobileAppContext';
 import { useThemeMode } from '../../../../src/contexts/ThemeContext';
@@ -10,9 +10,11 @@ export default function TaskEditPage() {
   const { auth, data } = useMobileApp();
   const { colors, mode } = useThemeMode();
   const s = createStyles(colors);
+  const router = useRouter();
+  const selectedWorkspace = data.selectedWorkspace;
 
   if (!auth.session) return <Redirect href="/(auth)/login" />;
-  if (!data.selectedWorkspace) {
+  if (!selectedWorkspace) {
     return (
       <View style={s.centerScreen}>
         <Text style={s.emptyText}>워크스페이스를 선택하세요.</Text>
@@ -36,10 +38,27 @@ export default function TaskEditPage() {
         mode: 'edit',
         task_id: taskId,
         token: auth.session.accessToken,
-        workspace_id: data.selectedWorkspace.workspace_id,
-        owner_type: data.selectedWorkspace.type,
-        owner_id: data.selectedWorkspace.owner_id,
+        workspace_id: selectedWorkspace.workspace_id,
+        owner_type: selectedWorkspace.type,
+        owner_id: selectedWorkspace.owner_id,
         theme: mode === 'black' ? 'dark' : 'light',
+      }}
+      onMessage={(message) => {
+        if (message.type === 'task_saved') {
+          const payload = (message.payload ?? {}) as { taskId?: number; task_id?: number; id?: number };
+          const savedTaskId = Number(payload.taskId ?? payload.task_id ?? payload.id ?? taskId);
+          if (!Number.isFinite(savedTaskId) || savedTaskId <= 0) return;
+          data.setActiveScheduleId(savedTaskId);
+          void data.loadDashboard(selectedWorkspace);
+          router.replace(`/tasks/${savedTaskId}`);
+          return;
+        }
+
+        if (message.type === 'task_deleted') {
+          data.setActiveScheduleId(null);
+          void data.loadDashboard(selectedWorkspace);
+          router.replace('/tasks');
+        }
       }}
     />
   );

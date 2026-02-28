@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { requireOwnerAccess } from "@/lib/access";
 import { createMemo, getMemos, type MemoOwnerType } from "@/lib/memo";
 
@@ -8,7 +8,9 @@ function parseOwnerType(value: string | null): MemoOwnerType | null {
 }
 
 export async function GET(request: NextRequest) {
-  const ownerType = parseOwnerType(request.nextUrl.searchParams.get("owner_type"));
+  const ownerType = parseOwnerType(
+    request.nextUrl.searchParams.get("owner_type"),
+  );
   const ownerId = Number(request.nextUrl.searchParams.get("owner_id"));
   const query = request.nextUrl.searchParams.get("query")?.trim() ?? "";
   const sortParam = request.nextUrl.searchParams.get("sort") ?? "latest";
@@ -25,7 +27,11 @@ export async function GET(request: NextRequest) {
   if (!Number.isFinite(pageSize) || pageSize < 1 || pageSize > 50) {
     return NextResponse.json({ error: "Invalid page size" }, { status: 400 });
   }
-  if (sortParam !== "latest" && sortParam !== "oldest" && sortParam !== "favorite") {
+  if (
+    sortParam !== "latest" &&
+    sortParam !== "oldest" &&
+    sortParam !== "favorite"
+  ) {
     return NextResponse.json({ error: "Invalid sort" }, { status: 400 });
   }
 
@@ -41,7 +47,7 @@ export async function GET(request: NextRequest) {
     sortParam as "latest" | "oldest" | "favorite",
     favoriteOnly,
     pageSize,
-    (page - 1) * pageSize
+    (page - 1) * pageSize,
   );
   return NextResponse.json(result);
 }
@@ -72,7 +78,7 @@ export async function POST(request: NextRequest) {
     ownerId,
     user.memberId,
     title,
-    JSON.stringify(content)
+    JSON.stringify(content),
   );
 
   return NextResponse.json({ success: true, memo_id: memoId });

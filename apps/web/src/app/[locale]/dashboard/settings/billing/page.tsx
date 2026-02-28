@@ -1,8 +1,8 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useCallback, useEffect, useState } from "react";
 
 interface Plan {
   id: number;
@@ -80,12 +80,6 @@ export default function BillingPage() {
   const [paymentsLoading, setPaymentsLoading] = useState(false);
 
   useEffect(() => {
-    fetchCurrentSubscription();
-    fetchBillingKey();
-    fetchTeams();
-  }, []);
-
-  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("nicepay") === "success") {
       setShowPaymentSuccess(true);
@@ -97,7 +91,24 @@ export default function BillingPage() {
     }
   }, []);
 
-  const fetchCurrentSubscription = async () => {
+  const fetchPaymentHistory = useCallback(async (ownerId: number) => {
+    setPaymentsLoading(true);
+    try {
+      const res = await fetch(
+        `/api/payments?owner_id=${ownerId}&owner_type=personal`,
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setPayments(data.payments || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch payment history:", error);
+    } finally {
+      setPaymentsLoading(false);
+    }
+  }, []);
+
+  const fetchCurrentSubscription = useCallback(async () => {
     try {
       // 현재 사용자 정보 가져오기
       const meRes = await fetch("/api/me/account");
@@ -107,11 +118,11 @@ export default function BillingPage() {
 
       // 개인 활성 구독 조회
       const personalSubRes = await fetch(
-        `/api/subscriptions?owner_id=${currentMemberId}&owner_type=personal&active=true`
+        `/api/subscriptions?owner_id=${currentMemberId}&owner_type=personal&active=true`,
       );
       const personalSubData = await personalSubRes.json();
 
-      if (personalSubData && personalSubData.plan_id) {
+      if (personalSubData?.plan_id) {
         setPersonalSubscription(personalSubData);
         // 결제 이력 로드
         fetchPaymentHistory(currentMemberId);
@@ -141,9 +152,9 @@ export default function BillingPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchPaymentHistory]);
 
-  const fetchTeams = async () => {
+  const fetchTeams = useCallback(async () => {
     setTeamsLoading(true);
     try {
       const res = await fetch("/api/me/teams");
@@ -158,9 +169,9 @@ export default function BillingPage() {
     } finally {
       setTeamsLoading(false);
     }
-  };
+  }, []);
 
-  const fetchBillingKey = async () => {
+  const fetchBillingKey = useCallback(async () => {
     try {
       const res = await fetch("/api/nicepay/billing/register");
       const data = await res.json();
@@ -170,24 +181,13 @@ export default function BillingPage() {
     } catch (error) {
       console.error("Failed to fetch billing key:", error);
     }
-  };
+  }, []);
 
-  const fetchPaymentHistory = async (ownerId: number) => {
-    setPaymentsLoading(true);
-    try {
-      const res = await fetch(
-        `/api/payments?owner_id=${ownerId}&owner_type=personal`
-      );
-      if (res.ok) {
-        const data = await res.json();
-        setPayments(data.payments || []);
-      }
-    } catch (error) {
-      console.error("Failed to fetch payment history:", error);
-    } finally {
-      setPaymentsLoading(false);
-    }
-  };
+  useEffect(() => {
+    fetchCurrentSubscription();
+    fetchBillingKey();
+    fetchTeams();
+  }, [fetchBillingKey, fetchCurrentSubscription, fetchTeams]);
 
   const handleRemoveCard = async () => {
     if (!canRemoveCard) {
@@ -345,8 +345,12 @@ export default function BillingPage() {
         <div className="dashboard-hero-orb dashboard-hero-orb-right" />
         <div className="dashboard-hero-orb dashboard-hero-orb-left" />
         <div className="relative z-10">
-          <h1 className="text-3xl font-bold text-foreground lg:text-4xl">{t("title")}</h1>
-          <p className="mt-2 text-sm text-muted-foreground">{t("description")}</p>
+          <h1 className="text-3xl font-bold text-foreground lg:text-4xl">
+            {t("title")}
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {t("description")}
+          </p>
         </div>
       </div>
 
@@ -355,6 +359,7 @@ export default function BillingPage() {
         <div className="dashboard-glass-card flex items-center justify-between rounded-2xl border border-status-done-foreground/20 bg-status-done p-4">
           <div className="flex items-center gap-2">
             <svg
+              aria-hidden="true"
               className="h-5 w-5 text-status-done-foreground"
               fill="none"
               stroke="currentColor"
@@ -372,10 +377,12 @@ export default function BillingPage() {
             </p>
           </div>
           <button
+            type="button"
             onClick={() => setShowPaymentSuccess(false)}
             className="text-status-done-foreground/80 hover:text-status-done-foreground"
           >
             <svg
+              aria-hidden="true"
               className="h-5 w-5"
               fill="none"
               stroke="currentColor"
@@ -397,6 +404,7 @@ export default function BillingPage() {
         <div className="dashboard-glass-card flex items-center justify-between rounded-2xl border border-status-progress-foreground/20 bg-status-progress p-4">
           <div className="flex items-center gap-2">
             <svg
+              aria-hidden="true"
               className="h-5 w-5 text-status-progress-foreground"
               fill="none"
               stroke="currentColor"
@@ -414,10 +422,12 @@ export default function BillingPage() {
             </p>
           </div>
           <button
+            type="button"
             onClick={() => setShowPlanChangeScheduled(false)}
             className="text-status-progress-foreground/80 hover:text-status-progress-foreground"
           >
             <svg
+              aria-hidden="true"
               className="h-5 w-5"
               fill="none"
               stroke="currentColor"
@@ -453,10 +463,12 @@ export default function BillingPage() {
             {cancelMessage.text}
           </p>
           <button
+            type="button"
             onClick={() => setCancelMessage(null)}
             className="text-muted-foreground hover:text-foreground"
           >
             <svg
+              aria-hidden="true"
               className="h-5 w-5"
               fill="none"
               stroke="currentColor"
@@ -478,6 +490,7 @@ export default function BillingPage() {
         <div className="mb-2 flex items-center gap-2">
           <div className="rounded-full bg-status-progress p-1.5">
             <svg
+              aria-hidden="true"
               className="h-4 w-4 text-status-progress-foreground"
               fill="none"
               stroke="currentColor"
@@ -540,7 +553,7 @@ export default function BillingPage() {
               onClick={() => {
                 if (!memberId) return;
                 router.push(
-                  `/dashboard/settings/billing/plans/personal?owner_id=${memberId}`
+                  `/dashboard/settings/billing/plans/personal?owner_id=${memberId}`,
                 );
               }}
               className="ui-button-primary px-4 py-2 text-sm"
@@ -586,6 +599,7 @@ export default function BillingPage() {
         <div className="mb-2 flex items-center gap-2">
           <div className="rounded-full bg-primary/15 p-1.5">
             <svg
+              aria-hidden="true"
               className="h-4 w-4 text-primary"
               fill="none"
               stroke="currentColor"
@@ -617,9 +631,9 @@ export default function BillingPage() {
           </div>
         ) : (
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            <label className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground">
               {t("teamSelectLabel")}
-            </label>
+            </div>
             <select
               value={selectedTeamId ?? ""}
               onChange={(e) => setSelectedTeamId(Number(e.target.value))}
@@ -636,7 +650,7 @@ export default function BillingPage() {
               onClick={() => {
                 if (!selectedTeamId) return;
                 router.push(
-                  `/dashboard/settings/billing/plans/team?owner_id=${selectedTeamId}`
+                  `/dashboard/settings/billing/plans/team?owner_id=${selectedTeamId}`,
                 );
               }}
               className="ui-button px-3 py-2 text-sm"
@@ -662,6 +676,7 @@ export default function BillingPage() {
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-status-progress">
                   <svg
+                    aria-hidden="true"
                     className="h-5 w-5 text-status-progress-foreground"
                     fill="none"
                     stroke="currentColor"
@@ -734,9 +749,7 @@ export default function BillingPage() {
         <h2 className="text-lg font-semibold text-card-foreground">
           {t("history")}
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t("historyDesc")}
-        </p>
+        <p className="mt-1 text-sm text-muted-foreground">{t("historyDesc")}</p>
 
         {paymentsLoading ? (
           <div className="mt-6 flex items-center justify-center rounded-2xl border-2 border-dashed border-border p-8">

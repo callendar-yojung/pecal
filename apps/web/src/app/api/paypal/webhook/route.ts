@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { verifyPayPalWebhookSignature } from "@/lib/paypal-webhook";
 import {
   claimPayPalWebhookEvent,
@@ -12,21 +12,34 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const isVerified = await verifyPayPalWebhookSignature(request.headers, body);
+    const isVerified = await verifyPayPalWebhookSignature(
+      request.headers,
+      body,
+    );
     if (!isVerified) {
-      return NextResponse.json({ error: "Invalid webhook signature" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Invalid webhook signature" },
+        { status: 401 },
+      );
     }
 
     eventId = typeof body?.id === "string" ? body.id : null;
-    const eventType = typeof body?.event_type === "string" ? body.event_type : "UNKNOWN";
+    const eventType =
+      typeof body?.event_type === "string" ? body.event_type : "UNKNOWN";
 
     if (!eventId) {
-      return NextResponse.json({ error: "Missing webhook event id" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing webhook event id" },
+        { status: 400 },
+      );
     }
 
     const claimed = await claimPayPalWebhookEvent(eventId, eventType, body);
     if (!claimed) {
-      return NextResponse.json({ received: true, duplicate: true }, { status: 200 });
+      return NextResponse.json(
+        { received: true, duplicate: true },
+        { status: 200 },
+      );
     }
 
     console.log("PayPal Webhook Event:", eventType);
@@ -63,7 +76,7 @@ export async function POST(request: NextRequest) {
     console.error("Error processing PayPal webhook:", error);
     return NextResponse.json(
       { error: "Failed to process webhook" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

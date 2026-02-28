@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
 import { createSubscription } from "@/lib/subscription";
 
@@ -15,8 +15,10 @@ export async function POST(request: NextRequest) {
 
     if (!subscription_id || !owner_id || !owner_type || !plan_id) {
       return NextResponse.json(
-        { error: "subscription_id, owner_id, owner_type, plan_id가 필요합니다." },
-        { status: 400 }
+        {
+          error: "subscription_id, owner_id, owner_type, plan_id가 필요합니다.",
+        },
+        { status: 400 },
       );
     }
 
@@ -25,7 +27,7 @@ export async function POST(request: NextRequest) {
       Number(owner_id),
       owner_type,
       Number(plan_id),
-      user.memberId
+      user.memberId,
     );
 
     return NextResponse.json({
@@ -39,9 +41,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: "PayPal 구독 활성화 중 오류가 발생했습니다.",
-        details: error.message
+        details: error.message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

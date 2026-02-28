@@ -106,6 +106,23 @@ CREATE TABLE IF NOT EXISTS notifications (
 CREATE INDEX idx_notifications_member ON notifications(member_id, is_read, created_at);
 CREATE INDEX idx_notifications_source ON notifications(source_type, source_id);
 
+-- 6.7 푸시 토큰 테이블 (모바일 푸시 알림)
+CREATE TABLE IF NOT EXISTS member_push_tokens (
+  push_token_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  member_id BIGINT NOT NULL,
+  token VARCHAR(255) NOT NULL,
+  platform ENUM('ios','android') NOT NULL,
+  device_id VARCHAR(191) NULL,
+  app_build VARCHAR(64) NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  last_seen_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_push_token (token),
+  INDEX idx_push_member_active (member_id, is_active),
+  FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- 7. 워크스페이스 테이블
 CREATE TABLE IF NOT EXISTS workspaces (
   workspace_id  BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -130,6 +147,8 @@ CREATE TABLE IF NOT EXISTS tasks (
   content       TEXT,
   status        VARCHAR(50) DEFAULT 'TODO',  -- TODO, IN_PROGRESS, DONE 등
   color         VARCHAR(20) DEFAULT '#3B82F6',  -- 태스크 색상
+  reminder_minutes INT NULL,                 -- 시작 몇 분 전 알림
+  rrule         VARCHAR(255) NULL,           -- 반복 규칙 (RRULE)
   created_at    DATETIME NOT NULL,
   updated_at    DATETIME NOT NULL,
   created_by    BIGINT NOT NULL,           -- member_id

@@ -1,5 +1,9 @@
 import WidgetKit
 import SwiftUI
+import AppIntents
+
+let pecalWidgetSuiteName = "group.site.pecal.app"
+let pecalWidgetStorageKey = "pecal_widget_payload"
 
 struct PecalWidgetTask: Decodable {
   let id: Int
@@ -10,16 +14,56 @@ struct PecalWidgetTask: Decodable {
   let color: String
 }
 
+struct PecalWidgetWorkspace: Decodable {
+  let workspace_id: Int
+  let workspace_name: String
+  let tasks: [PecalWidgetTask]
+}
+
 struct PecalWidgetPayload: Decodable {
   let generated_at: String
-  let workspace_name: String
   let nickname: String
-  let tasks: [PecalWidgetTask]
+  let workspace_name: String?
+  let tasks: [PecalWidgetTask]?
+  let workspaces: [PecalWidgetWorkspace]
+
+  private enum CodingKeys: String, CodingKey {
+    case generated_at
+    case nickname
+    case workspaces
+    case workspace_name
+    case tasks
+  }
+
+  init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    generated_at = try container.decodeIfPresent(String.self, forKey: .generated_at) ?? ""
+    nickname = try container.decodeIfPresent(String.self, forKey: .nickname) ?? "Pecal"
+    let legacyWorkspaceName = try container.decodeIfPresent(String.self, forKey: .workspace_name)
+    let legacyTasks = try container.decodeIfPresent([PecalWidgetTask].self, forKey: .tasks)
+    workspace_name = legacyWorkspaceName
+    tasks = legacyTasks
+
+    if let workspaces = try container.decodeIfPresent([PecalWidgetWorkspace].self, forKey: .workspaces),
+       !workspaces.isEmpty {
+      self.workspaces = workspaces
+      return
+    }
+
+    self.workspaces = [
+      PecalWidgetWorkspace(
+        workspace_id: 0,
+        workspace_name: legacyWorkspaceName ?? "Workspace",
+        tasks: legacyTasks ?? []
+      ),
+    ]
+  }
 }
 
 struct PecalWidgetEntry: TimelineEntry {
   let date: Date
   let payload: PecalWidgetPayload?
+  let selectedWorkspaceId: Int?
 }
 
 private struct MonthDayCell: Identifiable {
@@ -28,32 +72,29 @@ private struct MonthDayCell: Identifiable {
   let inCurrentMonth: Bool
 }
 
-struct PecalWidgetProvider: TimelineProvider {
-  private let suiteName = "group.site.pecal.app"
-  private let storageKey = "pecal_widget_payload"
+struct PecalWidgetProvider: AppIntentTimelineProvider {
+  typealias Intent = ConfigurationAppIntent
 
   func placeholder(in context: Context) -> PecalWidgetEntry {
-    PecalWidgetEntry(date: .now, payload: nil)
+    PecalWidgetEntry(date: .now, payload: nil, selectedWorkspaceId: nil)
   }
 
-  func getSnapshot(in context: Context, completion: @escaping (PecalWidgetEntry) -> Void) {
-    completion(PecalWidgetEntry(date: .now, payload: loadPayload()))
+  func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async -> PecalWidgetEntry {
+    PecalWidgetEntry(
+      date: .now,
+      payload: loadPecalWidgetPayload(),
+      selectedWorkspaceId: configuration.workspace?.id
+    )
   }
 
-  func getTimeline(in context: Context, completion: @escaping (Timeline<PecalWidgetEntry>) -> Void) {
-    let entry = PecalWidgetEntry(date: .now, payload: loadPayload())
+  func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<PecalWidgetEntry> {
+    let entry = PecalWidgetEntry(
+      date: .now,
+      payload: loadPecalWidgetPayload(),
+      selectedWorkspaceId: configuration.workspace?.id
+    )
     let next = Calendar.current.date(byAdding: .minute, value: 15, to: .now) ?? .now.addingTimeInterval(900)
-    completion(Timeline(entries: [entry], policy: .after(next)))
-  }
-
-  private func loadPayload() -> PecalWidgetPayload? {
-    guard
-      let defaults = UserDefaults(suiteName: suiteName),
-      let raw = defaults.string(forKey: storageKey),
-      let data = raw.data(using: .utf8)
-    else { return nil }
-
-    return try? JSONDecoder().decode(PecalWidgetPayload.self, from: data)
+    return Timeline(entries: [entry], policy: .after(next))
   }
 }
 
@@ -66,6 +107,41 @@ struct PecalWidgetEntryView: View {
     cal.locale = Locale(identifier: "ko_KR")
     cal.timeZone = TimeZone.current
     return cal
+  }
+
+  private var displayedWorkspaces: [PecalWidgetWorkspace] {
+    entry.payload?.workspaces ?? []
+  }
+
+  private var activeWorkspace: PecalWidgetWorkspace? {
+    guard let payload = entry.payload else { return nil }
+    if let selectedWorkspaceId = entry.selectedWorkspaceId,
+       let matched = payload.workspaces.first(where: { $0.workspace_id == selectedWorkspaceId }) {
+      return matched
+    }
+    if let legacyName = payload.workspaces.first(where: { $0.workspace_id == 0 })?.workspace_name {
+      // Backward-compatible fallback for payloads that may include synthetic workspace_id = 0.
+      return PecalWidgetWorkspace(
+        workspace_id: 0,
+        workspace_name: legacyName,
+        tasks: payload.workspaces.first(where: { $0.workspace_id == 0 })?.tasks ?? []
+      )
+    }
+    if let legacyWorkspaceName = payload.workspace_name {
+      return PecalWidgetWorkspace(
+        workspace_id: 0,
+        workspace_name: legacyWorkspaceName,
+        tasks: payload.tasks ?? []
+      )
+    }
+    if payload.workspaces.count >= 1 {
+      return payload.workspaces.first
+    }
+    return nil
+  }
+
+  private var workspaceName: String {
+    activeWorkspace?.workspace_name ?? "Workspace"
   }
 
   private var monthTitle: String {
@@ -116,17 +192,26 @@ struct PecalWidgetEntryView: View {
     return cells
   }
 
-  private var tasksByDayKey: [String: [PecalWidgetTask]] {
-    let tasks = entry.payload?.tasks ?? []
+  private func tasksByDayKey(for workspace: PecalWidgetWorkspace?) -> [String: [PecalWidgetTask]] {
+    let tasks = workspace?.tasks ?? []
     var grouped: [String: [PecalWidgetTask]] = [:]
 
     for task in tasks {
-      let key = rawDayKey(task.start_time) ?? {
-        guard let start = parseISO(task.start_time) else { return nil }
-        return dayKey(start)
-      }()
-      guard let key else { continue }
-      grouped[key, default: []].append(task)
+      guard let startDate = parseISO(task.start_time) else { continue }
+      let rawEndDate = parseISO(task.end_time) ?? startDate
+
+      let startDay = calendar.startOfDay(for: startDate)
+      let endDay = calendar.startOfDay(for: rawEndDate)
+      let rangeEnd = endDay >= startDay ? endDay : startDay
+
+      var cursor = startDay
+      while cursor <= rangeEnd {
+        grouped[dayKey(cursor), default: []].append(task)
+        guard let next = calendar.date(byAdding: .day, value: 1, to: cursor) else {
+          break
+        }
+        cursor = next
+      }
     }
 
     return grouped.mapValues { tasksInDay in
@@ -138,8 +223,8 @@ struct PecalWidgetEntryView: View {
     }
   }
 
-  private var todayTasks: [PecalWidgetTask] {
-    let tasks = tasksByDayKey[todayKey] ?? []
+  private func todayTasks(for workspace: PecalWidgetWorkspace?) -> [PecalWidgetTask] {
+    let tasks = tasksByDayKey(for: workspace)[todayKey] ?? []
     return tasks.sorted { lhs, rhs in
       let l = parseISO(lhs.start_time) ?? .distantPast
       let r = parseISO(rhs.start_time) ?? .distantPast
@@ -147,88 +232,117 @@ struct PecalWidgetEntryView: View {
     }
   }
 
+  @ViewBuilder
+  private func mediumWorkspacePage(_ workspace: PecalWidgetWorkspace) -> some View {
+    let currentDayTasks = todayTasks(for: workspace)
+    VStack(alignment: .leading, spacing: 8) {
+      HStack {
+        Text("TODAY")
+          .font(.system(size: 12, weight: .bold))
+          .foregroundStyle(.gray)
+        Spacer()
+        VStack(alignment: .trailing, spacing: 2) {
+          Text(workspace.workspace_name)
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundStyle(Color.gray.opacity(0.9))
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+          Text(monthTitle)
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(Color.black.opacity(0.65))
+        }
+      }
+
+      if currentDayTasks.isEmpty {
+        Text("오늘 일정이 없습니다.")
+          .font(.system(size: 12, weight: .semibold))
+          .foregroundStyle(.gray)
+      } else {
+        VStack(alignment: .leading, spacing: 6) {
+          ForEach(Array(currentDayTasks.prefix(5)), id: \.id) { task in
+            HStack(spacing: 8) {
+              Circle()
+                .fill(colorFromHex(task.color))
+                .frame(width: 7, height: 7)
+              Text(timeLabel(task))
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Color.black.opacity(0.7))
+                .frame(width: 68, alignment: .leading)
+              Text(task.title)
+                .font(.system(size: 12, weight: .bold))
+                .lineLimit(1)
+                .foregroundStyle(Color.black.opacity(0.85))
+            }
+          }
+        }
+      }
+      Spacer(minLength: 0)
+    }
+    .padding(12)
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+  }
+
   var body: some View {
     if family == .systemLarge {
       ZStack {
         Color.white
 
-        VStack(alignment: .leading, spacing: 8) {
-          VStack(alignment: .leading, spacing: 2) {
+        if displayedWorkspaces.isEmpty {
+          VStack(alignment: .leading, spacing: 8) {
             Text(monthTitle)
               .font(.system(size: 19, weight: .bold))
               .foregroundStyle(Color.black.opacity(0.72))
               .lineLimit(1)
               .minimumScaleFactor(0.8)
-            Text("TODAY")
-              .font(.system(size: 9, weight: .semibold))
+            Text("워크스페이스 데이터를 불러오는 중입니다.")
+              .font(.system(size: 12, weight: .semibold))
               .foregroundStyle(.gray)
+            Spacer(minLength: 0)
           }
-
-          HStack(spacing: 0) {
-            ForEach(weekdayLabels, id: \.self) { day in
-              Text(day)
-                .font(.system(size: 8.5, weight: .bold))
-                .foregroundStyle(.gray)
-                .frame(maxWidth: .infinity)
-            }
+          .padding(10)
+          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        } else if activeWorkspace == nil {
+          VStack(alignment: .leading, spacing: 8) {
+            Text(monthTitle)
+              .font(.system(size: 19, weight: .bold))
+              .foregroundStyle(Color.black.opacity(0.72))
+            Text("위젯 편집에서 워크스페이스를 선택하세요.")
+              .font(.system(size: 12, weight: .semibold))
+              .foregroundStyle(.gray)
+            Spacer(minLength: 0)
           }
-
-          VStack(spacing: 0) {
-            ForEach(Array(dayRows.enumerated()), id: \.offset) { _, row in
-              HStack(spacing: 0) {
-                ForEach(row) { cell in
-                  dayCellView(cell)
-                }
-              }
-            }
-          }
+          .padding(10)
+          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        } else if let workspace = activeWorkspace {
+          workspacePage(workspace)
         }
-        .padding(8)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
       }
       .containerBackground(for: .widget) {
         Color.white
       }
     } else if family == .systemMedium {
-      VStack(alignment: .leading, spacing: 8) {
-        HStack {
+      if displayedWorkspaces.isEmpty {
+        mediumWorkspacePage(
+          PecalWidgetWorkspace(workspace_id: 0, workspace_name: workspaceName, tasks: todayTasks(for: activeWorkspace))
+        )
+        .containerBackground(for: .widget) { Color.white }
+      } else if activeWorkspace == nil {
+        VStack(alignment: .leading, spacing: 8) {
           Text("TODAY")
             .font(.system(size: 12, weight: .bold))
             .foregroundStyle(.gray)
-          Spacer()
-          Text(monthTitle)
-            .font(.system(size: 12, weight: .semibold))
-            .foregroundStyle(Color.black.opacity(0.65))
-        }
-
-        if todayTasks.isEmpty {
-          Text("오늘 일정이 없습니다.")
+          Text("위젯 편집에서 워크스페이스를 선택하세요.")
             .font(.system(size: 12, weight: .semibold))
             .foregroundStyle(.gray)
-        } else {
-          VStack(alignment: .leading, spacing: 6) {
-            ForEach(Array(todayTasks.prefix(5)), id: \.id) { task in
-              HStack(spacing: 8) {
-                Circle()
-                  .fill(colorFromHex(task.color))
-                  .frame(width: 7, height: 7)
-                Text(timeLabel(task))
-                  .font(.system(size: 11, weight: .semibold))
-                  .foregroundStyle(Color.black.opacity(0.7))
-                  .frame(width: 68, alignment: .leading)
-                Text(task.title)
-                  .font(.system(size: 12, weight: .bold))
-                  .lineLimit(1)
-                  .foregroundStyle(Color.black.opacity(0.85))
-              }
-            }
-          }
+          Spacer(minLength: 0)
         }
-        Spacer(minLength: 0)
+        .padding(12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .containerBackground(for: .widget) { Color.white }
+      } else if let workspace = activeWorkspace {
+        mediumWorkspacePage(workspace)
+        .containerBackground(for: .widget) { Color.white }
       }
-      .padding(12)
-      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-      .containerBackground(for: .widget) { Color.white }
     } else {
       VStack(alignment: .leading, spacing: 8) {
         Text(monthTitle)
@@ -242,17 +356,61 @@ struct PecalWidgetEntryView: View {
     }
   }
 
+  private func workspacePage(_ workspace: PecalWidgetWorkspace) -> some View {
+    VStack(alignment: .leading, spacing: 8) {
+      HStack(alignment: .top) {
+        VStack(alignment: .leading, spacing: 2) {
+          Text(monthTitle)
+            .font(.system(size: 19, weight: .bold))
+            .foregroundStyle(Color.black.opacity(0.72))
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+          Text("TODAY")
+            .font(.system(size: 9, weight: .semibold))
+            .foregroundStyle(.gray)
+        }
+        Spacer()
+        Text(workspace.workspace_name)
+          .font(.system(size: 10, weight: .semibold))
+          .foregroundStyle(Color.gray.opacity(0.9))
+          .lineLimit(1)
+          .minimumScaleFactor(0.7)
+      }
+
+      HStack(spacing: 0) {
+        ForEach(weekdayLabels, id: \.self) { day in
+          Text(day)
+            .font(.system(size: 8.5, weight: .bold))
+            .foregroundStyle(.gray)
+            .frame(maxWidth: .infinity)
+        }
+      }
+
+      VStack(spacing: 0) {
+        ForEach(Array(dayRows.enumerated()), id: \.offset) { _, row in
+          HStack(spacing: 0) {
+            ForEach(row) { cell in
+              dayCellView(cell, workspace: workspace)
+            }
+          }
+        }
+      }
+    }
+    .padding(8)
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+  }
+
   @ViewBuilder
-  private func dayCellView(_ cell: MonthDayCell) -> some View {
+  private func dayCellView(_ cell: MonthDayCell, workspace: PecalWidgetWorkspace?) -> some View {
     VStack(alignment: .leading, spacing: 2) {
       if let date = cell.date {
         let key = dayKey(date)
         let isToday = key == todayKey
 
         dayNumberBadge(day: calendar.component(.day, from: date), isToday: isToday)
-        let dayTasks = tasksByDayKey[key] ?? []
+        let dayTasks = tasksByDayKey(for: workspace)[key] ?? []
         if let firstTask = dayTasks.first {
-          dayTaskChip(firstTask)
+          dayTaskChip(firstTask, cellDateKey: key)
         }
         if dayTasks.count > 1 {
           Text("+\(dayTasks.count - 1) more")
@@ -295,8 +453,14 @@ struct PecalWidgetEntryView: View {
       )
   }
 
-  private func dayTaskChip(_ task: PecalWidgetTask) -> some View {
-    Text(task.title)
+  private func dayTaskChip(_ task: PecalWidgetTask, cellDateKey: String) -> some View {
+    let startKey = rawDayKey(task.start_time) ?? parseISO(task.start_time).map(dayKey) ?? ""
+    let endKey = rawDayKey(task.end_time) ?? parseISO(task.end_time).map(dayKey) ?? ""
+    let isStart = startKey == cellDateKey
+    let isEnd = endKey == cellDateKey
+    let isSingle = isStart && isEnd
+
+    return Text(task.title)
       .font(.system(size: 7.6, weight: .bold))
       .lineLimit(1)
       .minimumScaleFactor(0.6)
@@ -305,7 +469,13 @@ struct PecalWidgetEntryView: View {
       .padding(.horizontal, 4)
       .padding(.vertical, 2)
       .background(
-        RoundedRectangle(cornerRadius: 6, style: .continuous)
+        RoundedRectangle(
+          cornerSize: CGSize(
+            width: isSingle ? 999 : (isStart || isEnd ? 10 : 6),
+            height: isSingle ? 999 : (isStart || isEnd ? 10 : 6)
+          ),
+          style: .continuous
+        )
           .fill(colorFromHex(task.color).opacity(0.38))
       )
   }
@@ -373,11 +543,21 @@ struct PecalWidgetExtension: Widget {
   let kind = "PecalWidget"
 
   var body: some WidgetConfiguration {
-    StaticConfiguration(kind: kind, provider: PecalWidgetProvider()) { entry in
+    AppIntentConfiguration(kind: kind, intent: ConfigurationAppIntent.self, provider: PecalWidgetProvider()) { entry in
       PecalWidgetEntryView(entry: entry)
     }
     .configurationDisplayName("Pecal 일정")
     .description("현재 달 캘린더와 일정 제목을 색상과 함께 보여줍니다.")
     .supportedFamilies([.systemMedium, .systemLarge])
   }
+}
+
+func loadPecalWidgetPayload() -> PecalWidgetPayload? {
+  guard
+    let defaults = UserDefaults(suiteName: pecalWidgetSuiteName),
+    let raw = defaults.string(forKey: pecalWidgetStorageKey),
+    let data = raw.data(using: .utf8)
+  else { return nil }
+
+  return try? JSONDecoder().decode(PecalWidgetPayload.self, from: data)
 }

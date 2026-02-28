@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { requireTaskAccess } from "@/lib/access";
 import { createTaskExport, type TaskExportVisibility } from "@/lib/task-export";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
   const taskId = Number(id);
@@ -18,7 +18,8 @@ export async function POST(
 
   const body = await request.json();
   const visibility = body?.visibility as TaskExportVisibility;
-  const expiresAt = typeof body?.expires_at === "string" ? body.expires_at : null;
+  const expiresAt =
+    typeof body?.expires_at === "string" ? body.expires_at : null;
 
   if (visibility !== "public" && visibility !== "restricted") {
     return NextResponse.json({ error: "Invalid visibility" }, { status: 400 });
@@ -32,7 +33,8 @@ export async function POST(
   });
 
   const cookieLocale = request.cookies.get("NEXT_LOCALE")?.value;
-  const locale = cookieLocale === "ko" || cookieLocale === "en" ? cookieLocale : "en";
+  const locale =
+    cookieLocale === "ko" || cookieLocale === "en" ? cookieLocale : "en";
   const path = `/${locale}/export/tasks/${record.token}`;
   const url = `${request.nextUrl.origin}${path}`;
 

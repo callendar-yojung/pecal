@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import RichTextEditor from "@/components/editor/RichTextEditor";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 type MemoOwnerType = "personal" | "team";
 type MemoSort = "latest" | "oldest" | "favorite";
@@ -39,64 +39,67 @@ export default function MemoPage() {
   const pageSize = 10;
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(total / pageSize)),
-    [total]
+    [total],
   );
 
-  const loadList = async (showLoading = true) => {
-    if (!ownerType || !ownerId) return;
-    try {
-      if (showLoading) setIsListLoading(true);
-      setListError(null);
-      const params = new URLSearchParams({
-        owner_type: ownerType,
-        owner_id: String(ownerId),
-        page: String(page),
-        page_size: String(pageSize),
-        sort,
-      });
-      if (query.trim()) params.set("query", query.trim());
-      if (favoriteOnly) params.set("favorite", "1");
+  const loadList = useCallback(
+    async (showLoading = true) => {
+      if (!ownerType || !ownerId) return;
+      try {
+        if (showLoading) setIsListLoading(true);
+        setListError(null);
+        const params = new URLSearchParams({
+          owner_type: ownerType,
+          owner_id: String(ownerId),
+          page: String(page),
+          page_size: String(pageSize),
+          sort,
+        });
+        if (query.trim()) params.set("query", query.trim());
+        if (favoriteOnly) params.set("favorite", "1");
 
-      const res = await fetch(`/api/memos?${params.toString()}`);
-      const data = await res.json();
-      const list = data?.memos ?? [];
-      setMemos(list);
-      setTotal(Number(data?.total || 0));
+        const res = await fetch(`/api/memos?${params.toString()}`);
+        const data = await res.json();
+        const list = data?.memos ?? [];
+        setMemos(list);
+        setTotal(Number(data?.total || 0));
 
-      if (!selectedMemoId && list.length > 0) {
-        setSelectedMemoId(list[0].memo_id);
+        if (!selectedMemoId && list.length > 0) {
+          setSelectedMemoId(list[0].memo_id);
+        }
+
+        if (list.length === 0) {
+          setSelectedMemoId(null);
+          setContent(null);
+          setTitle("");
+        }
+      } catch {
+        setMemos([]);
+        setTotal(0);
+        setListError(t("loadError"));
+      } finally {
+        if (showLoading) setIsListLoading(false);
       }
-
-      if (list.length === 0) {
-        setSelectedMemoId(null);
-        setContent(null);
-        setTitle("");
-      }
-    } catch {
-      setMemos([]);
-      setTotal(0);
-      setListError(t("loadError"));
-    } finally {
-      if (showLoading) setIsListLoading(false);
-    }
-  };
+    },
+    [favoriteOnly, ownerId, ownerType, page, query, selectedMemoId, sort, t],
+  );
 
   useEffect(() => {
     if (!ownerType || !ownerId) return;
     loadList();
-  }, [ownerType, ownerId, page, sort, favoriteOnly, query]);
+  }, [ownerType, ownerId, loadList]);
 
   useEffect(() => {
     setPage(1);
-  }, [query, favoriteOnly, sort]);
+  }, []);
 
-  const loadDetail = async () => {
+  const loadDetail = useCallback(async () => {
     if (!ownerType || !ownerId || !selectedMemoId) return;
     try {
       setIsDetailLoading(true);
       setDetailError(null);
       const res = await fetch(
-        `/api/memos/${selectedMemoId}?owner_type=${ownerType}&owner_id=${ownerId}`
+        `/api/memos/${selectedMemoId}?owner_type=${ownerType}&owner_id=${ownerId}`,
       );
       const data = await res.json();
       if (data?.memo?.content_json) {
@@ -113,12 +116,12 @@ export default function MemoPage() {
     } finally {
       setIsDetailLoading(false);
     }
-  };
+  }, [ownerId, ownerType, selectedMemoId, t]);
 
   useEffect(() => {
     if (!ownerType || !ownerId || !selectedMemoId) return;
     loadDetail();
-  }, [ownerType, ownerId, selectedMemoId, t]);
+  }, [ownerType, ownerId, selectedMemoId, loadDetail]);
 
   useEffect(() => {
     return () => {
@@ -156,9 +159,9 @@ export default function MemoPage() {
     }, 600);
   };
 
-  const refreshList = async () => {
+  const refreshList = useCallback(async () => {
     await loadList(false);
-  };
+  }, [loadList]);
 
   const handleCreateMemo = async () => {
     if (!ownerType || !ownerId) return;
@@ -190,9 +193,12 @@ export default function MemoPage() {
 
   const handleDeleteMemo = async (memoId: number) => {
     if (!ownerType || !ownerId) return;
-    await fetch(`/api/memos/${memoId}?owner_type=${ownerType}&owner_id=${ownerId}`, {
-      method: "DELETE",
-    });
+    await fetch(
+      `/api/memos/${memoId}?owner_type=${ownerType}&owner_id=${ownerId}`,
+      {
+        method: "DELETE",
+      },
+    );
     if (selectedMemoId === memoId) {
       setSelectedMemoId(null);
       setContent(null);
@@ -297,7 +303,9 @@ export default function MemoPage() {
                   type="button"
                   onClick={() => setFavoriteOnly((prev) => !prev)}
                   className={`rounded-xl border border-border/70 px-3 py-2 text-sm ${
-                    favoriteOnly ? "bg-primary text-primary-foreground" : "bg-background"
+                    favoriteOnly
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-background"
                   }`}
                 >
                   {t("favorites")}
@@ -306,7 +314,9 @@ export default function MemoPage() {
 
               <div className="mt-4 space-y-2">
                 {isListLoading ? (
-                  <p className="text-sm text-muted-foreground">{t("loading")}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("loading")}
+                  </p>
                 ) : listError ? (
                   <div className="rounded border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
                     {listError}
@@ -319,7 +329,9 @@ export default function MemoPage() {
                     </button>
                   </div>
                 ) : memos.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">{t("noMemos")}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("noMemos")}
+                  </p>
                 ) : (
                   memos.map((memo) => (
                     <div
@@ -348,7 +360,7 @@ export default function MemoPage() {
                           onClick={() =>
                             handleToggleFavorite(
                               memo.memo_id,
-                              memo.is_favorite !== 1
+                              memo.is_favorite !== 1,
                             )
                           }
                           className="text-xs text-muted-foreground hover:text-foreground"
@@ -386,7 +398,9 @@ export default function MemoPage() {
                 <button
                   type="button"
                   disabled={page >= totalPages}
-                  onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                  onClick={() =>
+                    setPage((prev) => Math.min(totalPages, prev + 1))
+                  }
                   className="ui-button px-2 py-1 text-xs disabled:opacity-40"
                 >
                   {t("next")}

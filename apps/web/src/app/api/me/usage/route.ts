@@ -1,11 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth-helper";
-import { getWorkspaceById, checkWorkspaceAccess } from "@/lib/workspace";
-import { getStorageLimitInfo, formatBytes, type OwnerType } from "@/lib/storage";
-import { getTaskStatsByWorkspace, getTotalTaskCount } from "@/lib/task";
-import { getActivePlanForOwner } from "@/lib/storage";
-import pool from "@/lib/db";
 import type { RowDataPacket } from "mysql2";
+import { type NextRequest, NextResponse } from "next/server";
+import { getAuthUser } from "@/lib/auth-helper";
+import pool from "@/lib/db";
+import {
+  formatBytes,
+  getActivePlanForOwner,
+  getStorageLimitInfo,
+  type OwnerType,
+} from "@/lib/storage";
+import { getTaskStatsByWorkspace, getTotalTaskCount } from "@/lib/task";
+import { checkWorkspaceAccess, getWorkspaceById } from "@/lib/workspace";
 
 // GET /api/me/usage?workspace_id={id}
 export async function GET(request: NextRequest) {
@@ -21,14 +25,14 @@ export async function GET(request: NextRequest) {
     if (!workspaceId) {
       return NextResponse.json(
         { error: "workspace_id is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // 워크스페이스 접근 권한 확인
     const hasAccess = await checkWorkspaceAccess(
       Number(workspaceId),
-      user.memberId
+      user.memberId,
     );
 
     if (!hasAccess) {
@@ -40,7 +44,7 @@ export async function GET(request: NextRequest) {
     if (!workspace) {
       return NextResponse.json(
         { error: "Workspace not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -59,12 +63,12 @@ export async function GET(request: NextRequest) {
 
     // 팀 멤버 수 조회 (팀 워크스페이스인 경우)
     let memberCount = 1;
-    let maxMembers = planInfo.max_members;
+    const maxMembers = planInfo.max_members;
 
     if (workspace.type === "team") {
       const [memberRows] = await pool.execute<RowDataPacket[]>(
         `SELECT COUNT(*) as count FROM team_members WHERE team_id = ?`,
-        [ownerId]
+        [ownerId],
       );
       memberCount = Number(memberRows[0]?.count || 1);
     }
@@ -72,18 +76,18 @@ export async function GET(request: NextRequest) {
     // 파일 수 조회
     const [fileRows] = await pool.execute<RowDataPacket[]>(
       `SELECT COUNT(*) as count FROM files WHERE owner_type = ? AND owner_id = ?`,
-      [ownerType, ownerId]
+      [ownerType, ownerId],
     );
     const fileCount = Number(fileRows[0]?.count || 0);
 
     // 사용률 계산
-    const storagePercentage = storageInfo.limit_bytes > 0
-      ? Math.round((storageInfo.used_bytes / storageInfo.limit_bytes) * 100)
-      : 0;
+    const storagePercentage =
+      storageInfo.limit_bytes > 0
+        ? Math.round((storageInfo.used_bytes / storageInfo.limit_bytes) * 100)
+        : 0;
 
-    const memberPercentage = maxMembers > 0
-      ? Math.round((memberCount / maxMembers) * 100)
-      : 0;
+    const memberPercentage =
+      maxMembers > 0 ? Math.round((memberCount / maxMembers) * 100) : 0;
 
     return NextResponse.json({
       workspace: {
@@ -124,7 +128,7 @@ export async function GET(request: NextRequest) {
     console.error("Failed to fetch usage data:", error);
     return NextResponse.json(
       { error: "Failed to fetch usage data" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

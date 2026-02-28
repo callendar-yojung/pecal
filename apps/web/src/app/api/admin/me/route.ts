@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
+import { type NextRequest, NextResponse } from "next/server";
 import { getRequiredEnv } from "@/lib/required-env";
 
 const secret = new TextEncoder().encode(getRequiredEnv("API_SECRET_KEY"));

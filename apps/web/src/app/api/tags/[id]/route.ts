@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
-import { updateTag, deleteTag } from "@/lib/tag";
+import { deleteTag, updateTag } from "@/lib/tag";
 
 // PATCH /api/tags/[id]
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getAuthUser(request);
@@ -25,16 +25,21 @@ export async function PATCH(
   } catch (error: unknown) {
     console.error("Failed to update tag:", error);
 
-    if (error && typeof error === "object" && "code" in error && error.code === "ER_DUP_ENTRY") {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "ER_DUP_ENTRY"
+    ) {
       return NextResponse.json(
         { error: "Tag with this name already exists" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -42,7 +47,7 @@ export async function PATCH(
 // DELETE /api/tags/[id]
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getAuthUser(request);
@@ -62,8 +67,7 @@ export async function DELETE(
     console.error("Failed to delete tag:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

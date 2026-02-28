@@ -9,9 +9,10 @@ import { createStyles } from '../../styles/createStyles';
 type Props = {
   path: string;
   query?: Record<string, string | number | undefined | null>;
+  onMessage?: (message: { type: string; payload?: unknown; raw: string }) => void;
 };
 
-export function FullPageWebView({ path, query }: Props) {
+export function FullPageWebView({ path, query, onMessage }: Props) {
   const { locale } = useI18n();
   const { colors } = useThemeMode();
   const s = createStyles(colors);
@@ -36,12 +37,28 @@ export function FullPageWebView({ path, query }: Props) {
         originWhitelist={['*']}
         javaScriptEnabled
         domStorageEnabled
+        pullToRefreshEnabled
         sharedCookiesEnabled
         thirdPartyCookiesEnabled
         startInLoadingState
         style={{ flex: 1, backgroundColor: colors.bg }}
         onHttpError={(event) => setError(`WebView HTTP ${event.nativeEvent.statusCode}`)}
         onError={(event) => setError(event.nativeEvent.description || 'WebView load error')}
+        onMessage={(event) => {
+          if (!onMessage) return;
+          const raw = event.nativeEvent.data ?? '';
+          if (!raw) return;
+          try {
+            const parsed = JSON.parse(raw) as { type?: string; payload?: unknown };
+            if (typeof parsed?.type === 'string') {
+              onMessage({ type: parsed.type, payload: parsed.payload, raw });
+              return;
+            }
+          } catch {
+            // no-op: raw text fallback below
+          }
+          onMessage({ type: 'raw', payload: raw, raw });
+        }}
       />
       {error ? (
         <View style={s.webViewErrorBanner}>

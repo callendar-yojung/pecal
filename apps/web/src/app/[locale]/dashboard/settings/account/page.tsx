@@ -1,20 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
 import { useSession } from "next-auth/react";
+import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
 
 export default function AccountPage() {
   const t = useTranslations("dashboard.settings.account");
   const { data: session, update: updateSession } = useSession();
   const [nickname, setNickname] = useState(session?.user?.nickname || "");
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(
-    session?.user?.profileImageUrl || null
+    session?.user?.profileImageUrl || null,
   );
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [checkResult, setCheckResult] = useState<"ok" | "taken" | "idle">("idle");
+  const [checkResult, setCheckResult] = useState<"ok" | "taken" | "idle">(
+    "idle",
+  );
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -28,7 +30,7 @@ export default function AccountPage() {
 
   useEffect(() => {
     setCheckResult("idle");
-  }, [nickname]);
+  }, []);
 
   const handleSave = async () => {
     if (!nickname.trim()) return;
@@ -65,7 +67,7 @@ export default function AccountPage() {
     setCheckResult("idle");
     try {
       const res = await fetch(
-        `/api/me/account/nickname-check?nickname=${encodeURIComponent(nickname.trim())}`
+        `/api/me/account/nickname-check?nickname=${encodeURIComponent(nickname.trim())}`,
       );
       const data = await res.json();
       if (res.ok && data?.available === true) {
@@ -154,15 +156,13 @@ export default function AccountPage() {
         <h2 className="text-lg font-semibold text-card-foreground">
           {t("profile")}
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t("profileDesc")}
-        </p>
+        <p className="mt-1 text-sm text-muted-foreground">{t("profileDesc")}</p>
 
         <div className="mt-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-subtle-foreground">
+            <div className="block text-sm font-medium text-subtle-foreground">
               {t("profileImage")}
-            </label>
+            </div>
             <p className="mt-1 text-sm text-muted-foreground">
               {t("profileImageDesc")}
             </p>
@@ -181,7 +181,7 @@ export default function AccountPage() {
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <label className="ui-button cursor-pointer px-3 py-2 text-sm">
+                <div className="ui-button cursor-pointer px-3 py-2 text-sm">
                   {uploading ? t("uploading") : t("uploadImage")}
                   <input
                     type="file"
@@ -193,7 +193,7 @@ export default function AccountPage() {
                     }}
                     disabled={uploading}
                   />
-                </label>
+                </div>
                 {profileImageUrl && (
                   <button
                     type="button"
@@ -207,9 +207,9 @@ export default function AccountPage() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-subtle-foreground">
+            <div className="block text-sm font-medium text-subtle-foreground">
               {t("name")}
-            </label>
+            </div>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <input
                 type="text"
@@ -227,23 +227,29 @@ export default function AccountPage() {
               </button>
             </div>
             {checkResult === "ok" && (
-              <p className="mt-1 text-xs text-status-done-foreground">{t("nicknameAvailable")}</p>
+              <p className="mt-1 text-xs text-status-done-foreground">
+                {t("nicknameAvailable")}
+              </p>
             )}
             {checkResult === "taken" && (
-              <p className="mt-1 text-xs text-destructive">{t("nicknameTaken")}</p>
+              <p className="mt-1 text-xs text-destructive">
+                {t("nicknameTaken")}
+              </p>
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-subtle-foreground">
+            <div className="block text-sm font-medium text-subtle-foreground">
               {t("email")}
-            </label>
+            </div>
             <input
               type="email"
               defaultValue={session?.user?.email || ""}
               disabled
               className="mt-1 w-full rounded-xl border border-input/80 bg-muted px-3 py-2 text-sm text-muted-foreground"
             />
-            <p className="mt-1 text-xs text-muted-foreground">{t("emailDesc")}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("emailDesc")}
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <button

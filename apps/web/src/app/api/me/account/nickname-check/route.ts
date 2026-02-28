@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
 import { isNicknameReserved, isNicknameTaken } from "@/lib/member";
 
@@ -12,7 +12,10 @@ export async function GET(request: NextRequest) {
 
     const nickname = request.nextUrl.searchParams.get("nickname")?.trim() || "";
     if (!nickname) {
-      return NextResponse.json({ error: "Nickname is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Nickname is required" },
+        { status: 400 },
+      );
     }
 
     if (isNicknameReserved(nickname)) {
@@ -23,6 +26,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ available: !taken });
   } catch (error) {
     console.error("Failed to check nickname:", error);
-    return NextResponse.json({ error: "Failed to check nickname" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to check nickname" },
+      { status: 500 },
+    );
   }
 }

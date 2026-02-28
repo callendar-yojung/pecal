@@ -310,7 +310,7 @@
     "loginProvider": "로그인: {provider}",
     "loading": "로딩 중..."
   },
-  
+
   "dashboard": {
     "welcome": "안녕하세요, {name}님!",
     "overview": {
@@ -323,15 +323,15 @@
       "teamWorkspaces": "팀 워크스페이스",
       "createWorkspace": "워크스페이스 만들기",
       "members": "명",
-        "createTeam": "새 팀 만들기",
-        "useFreeTeamPlan": "무료 팀 플랜 사용",
-        "usePaidTeamPlan": "유료 팀 플랜 사용",
+      "createTeam": "새 팀 만들기",
+      "useFreeTeamPlan": "무료 팀 플랜 사용",
+      "usePaidTeamPlan": "유료 팀 플랜 사용",
       "enterWorkspaceName": "이름을 입력하세요",
       "creating": "생성 중...",
       "createWorkSpaceError": "워크스페이스 생성에 실패했습니다",
       "personalWorkspace": "개인 워크스페이스",
-    "teamWorkspace": "팀 워크스페이스",
-    "memberRole": "멤버",
+      "teamWorkspace": "팀 워크스페이스",
+      "memberRole": "멤버",
       "noTeams": "아직 팀이 없습니다",
       "createNewTeam": "새 팀 만들기",
       "createTeamDescription": "팀 워크스페이스를 만들어 다른 사람들과 협업하세요",
@@ -353,9 +353,9 @@
     "nav": {
       "overview": "개요",
       "tasks": "태스크",
-    "calendar": "캘린더",
-    "memo": "메모",
-    "files": "파일",
+      "calendar": "캘린더",
+      "memo": "메모",
+      "files": "파일",
       "teamAdmin": "팀 관리자",
       "teams": "팀",
       "settings": "설정",
@@ -459,12 +459,12 @@
       "totalTasks": "전체",
       "loading": "로딩중...",
       "viewList": "목록",
-    "viewTimeline": "타임라인",
-    "selectWorkspace": "워크스페이스를 선택해주세요.",
-    "errorCreate": "태스크 생성에 실패했습니다.",
-    "errorUpdate": "태스크 수정에 실패했습니다.",
-    "errorDelete": "태스크 삭제에 실패했습니다.",
-    "status": {
+      "viewTimeline": "타임라인",
+      "selectWorkspace": "워크스페이스를 선택해주세요.",
+      "errorCreate": "태스크 생성에 실패했습니다.",
+      "errorUpdate": "태스크 수정에 실패했습니다.",
+      "errorDelete": "태스크 삭제에 실패했습니다.",
+      "status": {
         "pending": "대기중",
         "in_progress": "진행중",
         "completed": "완료"
@@ -865,10 +865,7 @@
         "thisMonth": "이번 달",
         "loadError": "사용량 데이터를 불러오는데 실패했습니다"
       }
-
-
     }
-
   },
 
   "termsOfService": {
@@ -1003,6 +1000,4 @@
       "content": "본 약관은 2026년 2월 12일부터 시행합니다."
     }
   }
-
-
 }

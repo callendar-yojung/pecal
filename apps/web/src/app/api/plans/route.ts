@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
 import {
+  createPlan,
+  deletePlan,
   getAllPlans,
   getPlanById,
-  createPlan,
   updatePlan,
-  deletePlan,
 } from "@/lib/plan";
 
 // GET /api/plans - 모든 플랜 조회
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching plans:", error);
     return NextResponse.json(
       { error: "Failed to fetch plans" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     if (!name || price === undefined || !max_members || !max_storage_mb) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     console.error("Error creating plan:", error);
     return NextResponse.json(
       { error: "Failed to create plan" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -81,14 +81,26 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { id, name, price, max_members, max_storage_mb } = body;
 
-    if (!id || !name || price === undefined || !max_members || !max_storage_mb) {
+    if (
+      !id ||
+      !name ||
+      price === undefined ||
+      !max_members ||
+      !max_storage_mb
+    ) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const success = await updatePlan(id, name, price, max_members, max_storage_mb);
+    const success = await updatePlan(
+      id,
+      name,
+      price,
+      max_members,
+      max_storage_mb,
+    );
     if (!success) {
       return NextResponse.json({ error: "Plan not found" }, { status: 404 });
     }
@@ -99,7 +111,7 @@ export async function PUT(request: NextRequest) {
     console.error("Error updating plan:", error);
     return NextResponse.json(
       { error: "Failed to update plan" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -118,7 +130,7 @@ export async function DELETE(request: NextRequest) {
     if (!planId) {
       return NextResponse.json(
         { error: "Plan ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -132,7 +144,7 @@ export async function DELETE(request: NextRequest) {
     console.error("Error deleting plan:", error);
     return NextResponse.json(
       { error: "Failed to delete plan" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

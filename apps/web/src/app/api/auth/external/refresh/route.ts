@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { verifyToken, generateTokenPair } from "@/lib/jwt";
+import { type NextRequest, NextResponse } from "next/server";
+import { generateTokenPair, verifyToken } from "@/lib/jwt";
 
 /**
  * POST /api/auth/external/refresh
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     if (!refresh_token) {
       return NextResponse.json(
         { error: "refresh_token is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     if (!payload || payload.type !== "refresh") {
       return NextResponse.json(
         { error: "Invalid refresh token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     console.error("Token refresh error:", error);
     return NextResponse.json(
       { error: "Token refresh failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

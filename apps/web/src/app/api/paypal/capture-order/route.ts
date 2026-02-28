@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
 import { captureOrder } from "@/lib/paypal";
 import { createSubscription, type OwnerType } from "@/lib/subscription";
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     if (!order_id || !owner_id || !owner_type || !plan_id) {
       return NextResponse.json(
         { error: "order_id, owner_id, owner_type, plan_id가 필요합니다." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     if (capture.status !== "COMPLETED") {
       return NextResponse.json(
         { error: "결제가 완료되지 않았습니다." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     const subscriptionId = await createSubscription(
       Number(owner_id),
       owner_type as OwnerType,
-      Number(plan_id)
+      Number(plan_id),
     );
 
     return NextResponse.json({
@@ -51,8 +51,7 @@ export async function POST(request: NextRequest) {
     console.error("Error capturing PayPal order:", error);
     return NextResponse.json(
       { error: "Failed to capture PayPal order" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

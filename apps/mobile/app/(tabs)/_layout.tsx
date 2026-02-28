@@ -125,6 +125,8 @@ export default function TabsLayout() {
           data.setTeamCreateOpen(true);
           data.setTeamCreateStep('details');
         }}
+        onCreateWorkspace={data.createWorkspace}
+        creatingWorkspace={data.creatingWorkspace}
         onLogout={auth.logout}
         workspaces={data.workspaces}
         teams={data.teams}

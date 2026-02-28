@@ -1,8 +1,8 @@
 "use client";
 
-import { signIn, getProviders } from "next-auth/react";
-import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
+import { getProviders, signIn } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
 export default function LoginPage() {
@@ -10,7 +10,9 @@ export default function LoginPage() {
   const params = useParams<{ locale: string }>();
   const locale = params?.locale || "en";
   const successCallbackUrl = `/${locale}/login/success`;
-  const [enabledProviders, setEnabledProviders] = useState<Set<string> | null>(null);
+  const [enabledProviders, setEnabledProviders] = useState<Set<string> | null>(
+    null,
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -36,22 +38,21 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-muted">
       <div className="w-full max-w-md space-y-8 rounded-2xl bg-background p-8 shadow-lg">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground">
-            {t("title")}
-          </h1>
-          <p className="mt-2 text-muted-foreground">
-            {t("description")}
-          </p>
+          <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
+          <p className="mt-2 text-muted-foreground">{t("description")}</p>
         </div>
 
         <div className="space-y-4">
           {hasProvider("kakao") ? (
             <button
               type="button"
-              onClick={() => signIn("kakao", { callbackUrl: successCallbackUrl })}
+              onClick={() =>
+                signIn("kakao", { callbackUrl: successCallbackUrl })
+              }
               className="flex w-full items-center justify-center gap-3 rounded-xl bg-[#FEE500] px-4 py-3 font-medium text-[#191919] transition-all duration-200 hover:bg-[#FDD800] hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
             >
               <svg
+                aria-hidden="true"
                 width="20"
                 height="20"
                 viewBox="0 0 20 20"
@@ -72,10 +73,13 @@ export default function LoginPage() {
           {hasProvider("google") ? (
             <button
               type="button"
-              onClick={() => signIn("google", { callbackUrl: successCallbackUrl })}
+              onClick={() =>
+                signIn("google", { callbackUrl: successCallbackUrl })
+              }
               className="flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-background px-4 py-3 font-medium text-foreground transition-all duration-200 hover:bg-muted hover:scale-[1.02] hover:shadow-lg hover:border-foreground/20 active:scale-[0.98]"
             >
               <svg
+                aria-hidden="true"
                 width="20"
                 height="20"
                 viewBox="0 0 24 24"
@@ -105,10 +109,13 @@ export default function LoginPage() {
           {hasProvider("apple") ? (
             <button
               type="button"
-              onClick={() => signIn("apple", { callbackUrl: successCallbackUrl })}
+              onClick={() =>
+                signIn("apple", { callbackUrl: successCallbackUrl })
+              }
               className="flex w-full items-center justify-center gap-3 rounded-xl bg-black px-4 py-3 font-medium text-white transition-all duration-200 hover:bg-black/90 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
             >
               <svg
+                aria-hidden="true"
                 width="20"
                 height="20"
                 viewBox="0 0 24 24"

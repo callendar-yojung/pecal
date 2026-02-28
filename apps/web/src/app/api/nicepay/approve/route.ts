@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createHash } from "crypto";
-import { createSubscription } from "@/lib/subscription";
-import { getPlanById } from "@/lib/plan";
+import { createHash } from "node:crypto";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
+import { getPlanById } from "@/lib/plan";
+import { createSubscription } from "@/lib/subscription";
 
 async function parseBody(
-  request: NextRequest
+  request: NextRequest,
 ): Promise<Record<string, string>> {
   const contentType = request.headers.get("content-type") || "";
   console.log("[NicePay] Content-Type:", contentType);
@@ -71,11 +71,13 @@ export async function POST(request: NextRequest) {
     const secretKey = process.env.NICEPAY_SECRET_KEY;
 
     if (!clientId || !secretKey) {
-      console.error("[NicePay] Missing NEXT_PUBLIC_NICEPAY_CLIENT_KEY or NICEPAY_SECRET_KEY");
+      console.error(
+        "[NicePay] Missing NEXT_PUBLIC_NICEPAY_CLIENT_KEY or NICEPAY_SECRET_KEY",
+      );
       return redirectToCheckout(
         request,
         "failed",
-        "서버 결제 설정이 올바르지 않습니다."
+        "서버 결제 설정이 올바르지 않습니다.",
       );
     }
 
@@ -83,7 +85,7 @@ export async function POST(request: NextRequest) {
       return redirectToCheckout(
         request,
         "failed",
-        "결제 파라미터가 올바르지 않습니다."
+        "결제 파라미터가 올바르지 않습니다.",
       );
     }
 
@@ -94,7 +96,7 @@ export async function POST(request: NextRequest) {
       return redirectToCheckout(
         request,
         "failed",
-        authResultMsg || "결제 인증에 실패했습니다."
+        authResultMsg || "결제 인증에 실패했습니다.",
       );
     }
 
@@ -110,7 +112,7 @@ export async function POST(request: NextRequest) {
       return redirectToCheckout(
         request,
         "failed",
-        "결제 서명 검증에 실패했습니다."
+        "결제 서명 검증에 실패했습니다.",
       );
     }
 
@@ -120,7 +122,7 @@ export async function POST(request: NextRequest) {
       return redirectToCheckout(
         request,
         "failed",
-        "플랜 정보를 찾을 수 없습니다."
+        "플랜 정보를 찾을 수 없습니다.",
       );
     }
 
@@ -129,18 +131,18 @@ export async function POST(request: NextRequest) {
         "[NicePay] Amount mismatch:",
         amount,
         "vs plan price:",
-        plan.price
+        plan.price,
       );
       return redirectToCheckout(
         request,
         "failed",
-        "결제 금액이 일치하지 않습니다."
+        "결제 금액이 일치하지 않습니다.",
       );
     }
 
     // 4. NicePay 승인 API 호출
     const authHeader = Buffer.from(`${clientId}:${secretKey}`).toString(
-      "base64"
+      "base64",
     );
 
     console.log("[NicePay] Calling approval API for tid:", tid);
@@ -157,7 +159,7 @@ export async function POST(request: NextRequest) {
           amount: Number(amount),
           orderId,
         }),
-      }
+      },
     );
 
     const approvalResult = await approvalResponse.json();
@@ -167,7 +169,7 @@ export async function POST(request: NextRequest) {
       return redirectToCheckout(
         request,
         "failed",
-        approvalResult.resultMsg || "결제 승인에 실패했습니다."
+        approvalResult.resultMsg || "결제 승인에 실패했습니다.",
       );
     }
 
@@ -184,14 +186,14 @@ export async function POST(request: NextRequest) {
       Number(ownerId),
       ownerType,
       Number(planId),
-      createdBy
+      createdBy,
     );
 
     // 6. 성공 리다이렉트
     const locale = detectLocale(request);
     const successUrl = new URL(
       `/${locale}/dashboard/settings/billing`,
-      request.nextUrl.origin
+      request.nextUrl.origin,
     );
     successUrl.searchParams.set("nicepay", "success");
 
@@ -203,7 +205,7 @@ export async function POST(request: NextRequest) {
     return redirectToCheckout(
       request,
       "failed",
-      "결제 처리 중 서버 오류가 발생했습니다."
+      "결제 처리 중 서버 오류가 발생했습니다.",
     );
   }
 }
@@ -217,7 +219,7 @@ function detectLocale(request: NextRequest): string {
 function redirectToCheckout(
   request: NextRequest,
   status: string,
-  message: string
+  message: string,
 ) {
   const locale = detectLocale(request);
   const searchParams = request.nextUrl.searchParams;
@@ -227,7 +229,7 @@ function redirectToCheckout(
 
   const url = new URL(
     `/${locale}/dashboard/settings/billing/checkout`,
-    request.nextUrl.origin
+    request.nextUrl.origin,
   );
   url.searchParams.set("plan_id", planId);
   url.searchParams.set("owner_id", ownerId);

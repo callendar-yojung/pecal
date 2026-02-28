@@ -1,31 +1,44 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import TaskViewPanel, { type TaskViewData } from "@/components/dashboard/TaskViewPanel";
+import TaskViewPanel, {
+  type TaskViewData,
+} from "@/components/dashboard/TaskViewPanel";
 
 type BridgeInbound =
   | {
       channel?: string;
       type?: "set-task";
       payload?: {
-        task?: (Partial<TaskViewData> & {
+        task?: Partial<TaskViewData> & {
           is_all_day?: boolean;
           reminder_minutes?: number | null;
           rrule?: string | null;
           theme?: "light" | "dark";
-        });
+        };
       };
     }
   | Record<string, unknown>;
 
 type BridgeOutbound =
   | { channel: "pecal-task-detail"; type: "ready" }
-  | { channel: "pecal-task-detail"; type: "height"; payload: { height: number } }
-  | { channel: "pecal-task-detail"; type: "error"; payload: { message: string } };
+  | {
+      channel: "pecal-task-detail";
+      type: "height";
+      payload: { height: number };
+    }
+  | {
+      channel: "pecal-task-detail";
+      type: "error";
+      payload: { message: string };
+    };
 
 function postToNative(message: BridgeOutbound) {
   const serialized = JSON.stringify(message);
-  if (typeof window !== "undefined" && (window as any).ReactNativeWebView?.postMessage) {
+  if (
+    typeof window !== "undefined" &&
+    (window as any).ReactNativeWebView?.postMessage
+  ) {
     (window as any).ReactNativeWebView.postMessage(serialized);
   }
 }
@@ -90,7 +103,9 @@ function applyTheme(theme: "light" | "dark") {
           "--hover": "#E8ECF8",
           "--active": "#DCE3F5",
         };
-  Object.entries(palette).forEach(([key, value]) => root.style.setProperty(key, value));
+  Object.entries(palette).forEach(([key, value]) => {
+    root.style.setProperty(key, value);
+  });
 }
 
 export default function MobileTaskDetailPage() {
@@ -100,7 +115,10 @@ export default function MobileTaskDetailPage() {
 
   const handleInbound = useCallback((raw: unknown) => {
     try {
-      const parsed = typeof raw === "string" ? (JSON.parse(raw) as BridgeInbound) : (raw as BridgeInbound);
+      const parsed =
+        typeof raw === "string"
+          ? (JSON.parse(raw) as BridgeInbound)
+          : (raw as BridgeInbound);
       if (!parsed || (parsed as any).channel !== "pecal-task-detail") return;
       if ((parsed as any).type !== "set-task") return;
 
@@ -126,19 +144,25 @@ export default function MobileTaskDetailPage() {
         content: String(payload.task.content ?? ""),
         status: (payload.task.status as TaskViewData["status"]) ?? "TODO",
         color: payload.task.color,
+        reminder_minutes: payload.task.reminder_minutes ?? null,
+        rrule: payload.task.rrule ?? null,
         tag_ids: payload.task.tag_ids ?? [],
       });
     } catch (error) {
       postToNative({
         channel: "pecal-task-detail",
         type: "error",
-        payload: { message: error instanceof Error ? error.message : String(error) },
+        payload: {
+          message: error instanceof Error ? error.message : String(error),
+        },
       });
     }
   }, []);
 
   useEffect(() => {
-    const rootTheme = document.documentElement.classList.contains("dark") ? "dark" : "light";
+    const rootTheme = document.documentElement.classList.contains("dark")
+      ? "dark"
+      : "light";
     setTheme(rootTheme);
   }, []);
 
@@ -177,18 +201,37 @@ export default function MobileTaskDetailPage() {
   }, [handleInbound]);
 
   useEffect(() => {
-    if (!rootRef.current || typeof window === "undefined" || typeof document === "undefined") return;
+    if (
+      !rootRef.current ||
+      typeof window === "undefined" ||
+      typeof document === "undefined"
+    )
+      return;
 
     const emitHeight = () => {
       const root = rootRef.current;
       if (!root) return;
 
-      const rootRectHeight = Math.ceil(root.getBoundingClientRect().height || 0);
+      const rootRectHeight = Math.ceil(
+        root.getBoundingClientRect().height || 0,
+      );
       const rootScrollHeight = Math.ceil(root.scrollHeight || 0);
       const bodyScrollHeight = Math.ceil(document.body?.scrollHeight || 0);
-      const docScrollHeight = Math.ceil(document.documentElement?.scrollHeight || 0);
-      const height = Math.max(300, rootRectHeight, rootScrollHeight, bodyScrollHeight, docScrollHeight);
-      postToNative({ channel: "pecal-task-detail", type: "height", payload: { height } });
+      const docScrollHeight = Math.ceil(
+        document.documentElement?.scrollHeight || 0,
+      );
+      const height = Math.max(
+        300,
+        rootRectHeight,
+        rootScrollHeight,
+        bodyScrollHeight,
+        docScrollHeight,
+      );
+      postToNative({
+        channel: "pecal-task-detail",
+        type: "height",
+        payload: { height },
+      });
     };
 
     emitHeight();
@@ -213,7 +256,7 @@ export default function MobileTaskDetailPage() {
       window.removeEventListener("load", emitHeight);
       window.removeEventListener("resize", emitHeight);
     };
-  }, [task, theme]);
+  }, []);
 
   if (!theme) return <div className="min-h-screen bg-transparent p-0" />;
 

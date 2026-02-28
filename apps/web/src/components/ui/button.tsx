@@ -1,5 +1,5 @@
-import { forwardRef } from "react";
 import type React from "react";
+import { forwardRef } from "react";
 
 type ButtonVariant = "default" | "muted" | "primary" | "danger";
 type ButtonSize = "sm" | "md" | "lg";
@@ -28,7 +28,7 @@ const sizeClasses: Record<ButtonSize, string> = {
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   { className, variant = "default", size = "md", type = "button", ...props },
-  ref
+  ref,
 ) {
   return (
     <button

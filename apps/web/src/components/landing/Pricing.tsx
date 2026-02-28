@@ -1,7 +1,7 @@
 "use client";
 
-import { Link } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/routing";
 
 const planKeys = ["free", "team", "enterprise"] as const;
 
@@ -15,9 +15,7 @@ export default function Pricing() {
           <h2 className="mb-4 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
             {t("title")}
           </h2>
-          <p className="text-lg text-muted-foreground">
-            {t("description")}
-          </p>
+          <p className="text-lg text-muted-foreground">{t("description")}</p>
         </div>
 
         <div className="mt-16 grid gap-8 lg:grid-cols-3">
@@ -48,7 +46,9 @@ export default function Pricing() {
                     <span className="text-4xl font-bold text-foreground">
                       {t(`${planKey}.price`)}
                     </span>
-                    <span className="text-muted-foreground">{t(`${planKey}.period`)}</span>
+                    <span className="text-muted-foreground">
+                      {t(`${planKey}.period`)}
+                    </span>
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">
                     {t(`${planKey}.description`)}
@@ -62,6 +62,7 @@ export default function Pricing() {
                       className="flex items-start gap-3 text-sm text-muted-foreground"
                     >
                       <svg
+                        aria-hidden="true"
                         className="mt-0.5 h-4 w-4 flex-shrink-0 text-accent"
                         fill="none"
                         stroke="currentColor"

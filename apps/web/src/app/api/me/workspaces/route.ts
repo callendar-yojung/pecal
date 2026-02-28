@@ -1,5 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
+import {
+  meWorkspacesCacheKey,
+  meWorkspacesTtlSeconds,
+} from "@/lib/member-cache";
+import { readThroughCache } from "@/lib/redis-cache";
 import { getWorkspacesPersonalAndTeamByMemberId } from "@/lib/workspace";
 
 // GET /api/me/workspaces - 내 워크스페이스 목록 조회 (개인 + 소속 팀)
@@ -10,20 +15,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const workspaces = await getWorkspacesPersonalAndTeamByMemberId(user.memberId);
+    const workspaces = await readThroughCache(
+      meWorkspacesCacheKey(user.memberId),
+      meWorkspacesTtlSeconds,
+      () => getWorkspacesPersonalAndTeamByMemberId(user.memberId),
+    );
 
     // personal workspace를 먼저, 그 다음 team workspaces
-    const personals = workspaces.filter(w => w.type === "personal");
-    const teams = workspaces.filter(w => w.type === "team");
+    const personals = workspaces.filter((w) => w.type === "personal");
+    const teams = workspaces.filter((w) => w.type === "team");
 
     return NextResponse.json({
-      workspaces: [...personals, ...teams]
+      workspaces: [...personals, ...teams],
     });
   } catch (error) {
     console.error("Failed to fetch workspaces:", error);
     return NextResponse.json(
       { error: "Failed to fetch workspaces" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

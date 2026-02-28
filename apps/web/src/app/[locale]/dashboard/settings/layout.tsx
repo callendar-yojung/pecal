@@ -1,8 +1,8 @@
 "use client";
 
-import { Link, usePathname } from "@/i18n/routing";
+import { ChartBar, CreditCard, Settings, Shield, User } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Settings, User, Shield, CreditCard, ChartBar } from "lucide-react";
+import { Link, usePathname } from "@/i18n/routing";
 
 export default function SettingsLayout({
   children,
@@ -28,9 +28,7 @@ export default function SettingsLayout({
           <h1 className="text-3xl font-bold text-foreground lg:text-4xl">
             {t("title")}
           </h1>
-          <p className="mt-2 text-muted-foreground">
-            {t("subtitle")}
-          </p>
+          <p className="mt-2 text-muted-foreground">{t("subtitle")}</p>
         </div>
       </div>
 

@@ -1,9 +1,8 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import PayPalButton from "@/components/dashboard/PayPalButton";
 
 interface Plan {
@@ -22,7 +21,10 @@ function CheckoutContent() {
   const searchParams = useSearchParams();
   const locale = useLocale();
   const planId = searchParams.get("plan_id");
-  const ownerType = searchParams.get("owner_type") as "team" | "personal" | null;
+  const ownerType = searchParams.get("owner_type") as
+    | "team"
+    | "personal"
+    | null;
   const ownerId = searchParams.get("owner_id");
   const nicepayStatus = searchParams.get("nicepay");
   const nicepayMessage = searchParams.get("message");
@@ -44,16 +46,7 @@ function CheckoutContent() {
 
   const isKorean = locale === "ko";
 
-  useEffect(() => {
-    if (planId && ownerType && ownerId) {
-      fetchPlan(Number(planId));
-      fetchOwnerInfo(ownerType, Number(ownerId));
-      fetchCurrentPlan(ownerType, Number(ownerId));
-      fetchSavedCard();
-    }
-  }, [planId, ownerType, ownerId]);
-
-  const fetchPlan = async (id: number) => {
+  const fetchPlan = useCallback(async (id: number) => {
     try {
       const res = await fetch(`/api/plans?id=${id}`);
       const data = await res.json();
@@ -63,44 +56,50 @@ function CheckoutContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchOwnerInfo = async (type: "team" | "personal", id: number) => {
-    try {
-      const meRes = await fetch("/api/me/account");
-      const meData = await meRes.json();
+  const fetchOwnerInfo = useCallback(
+    async (type: "team" | "personal", id: number) => {
+      try {
+        const meRes = await fetch("/api/me/account");
+        const meData = await meRes.json();
 
-      if (type === "personal") {
-        setOwnerName(meData.nickname || t("checkout.personal"));
-        return;
+        if (type === "personal") {
+          setOwnerName(meData.nickname || t("checkout.personal"));
+          return;
+        }
+
+        const teamsRes = await fetch("/api/me/teams");
+        const teamsData = await teamsRes.json();
+        const team = teamsData.teams?.find((t: any) => t.id === id);
+        setOwnerName(team?.name || t("checkout.team"));
+      } catch (error) {
+        console.error("Failed to fetch owner info:", error);
       }
+    },
+    [t],
+  );
 
-      const teamsRes = await fetch("/api/me/teams");
-      const teamsData = await teamsRes.json();
-      const team = teamsData.teams?.find((t: any) => t.id === id);
-      setOwnerName(team?.name || t("checkout.team"));
-    } catch (error) {
-      console.error("Failed to fetch owner info:", error);
-    }
-  };
-
-  const fetchCurrentPlan = async (type: "team" | "personal", id: number) => {
-    try {
-      const res = await fetch(
-        `/api/subscriptions?owner_id=${id}&owner_type=${type}&active=true`
-      );
-      const subData = await res.json();
-      if (subData?.plan_id) {
-        const planRes = await fetch(`/api/plans?id=${subData.plan_id}`);
-        const planData = await planRes.json();
-        setCurrentPlan(planData);
+  const fetchCurrentPlan = useCallback(
+    async (type: "team" | "personal", id: number) => {
+      try {
+        const res = await fetch(
+          `/api/subscriptions?owner_id=${id}&owner_type=${type}&active=true`,
+        );
+        const subData = await res.json();
+        if (subData?.plan_id) {
+          const planRes = await fetch(`/api/plans?id=${subData.plan_id}`);
+          const planData = await planRes.json();
+          setCurrentPlan(planData);
+        }
+      } catch (error) {
+        console.error("Failed to fetch current plan:", error);
       }
-    } catch (error) {
-      console.error("Failed to fetch current plan:", error);
-    }
-  };
+    },
+    [],
+  );
 
-  const fetchSavedCard = async () => {
+  const fetchSavedCard = useCallback(async () => {
     try {
       const res = await fetch("/api/nicepay/billing/register");
       const data = await res.json();
@@ -110,7 +109,24 @@ function CheckoutContent() {
     } catch (error) {
       console.error("Failed to fetch saved card:", error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (planId && ownerType && ownerId) {
+      fetchPlan(Number(planId));
+      fetchOwnerInfo(ownerType, Number(ownerId));
+      fetchCurrentPlan(ownerType, Number(ownerId));
+      fetchSavedCard();
+    }
+  }, [
+    planId,
+    ownerType,
+    ownerId,
+    fetchCurrentPlan,
+    fetchOwnerInfo,
+    fetchPlan,
+    fetchSavedCard,
+  ]);
 
   useEffect(() => {
     if (plan && currentPlan) {
@@ -154,7 +170,9 @@ function CheckoutContent() {
       }
 
       if (data?.scheduled) {
-        router.push(`/${locale}/dashboard/settings/billing?plan_change=scheduled`);
+        router.push(
+          `/${locale}/dashboard/settings/billing?plan_change=scheduled`,
+        );
         return;
       }
 
@@ -194,6 +212,7 @@ function CheckoutContent() {
           <div className="dashboard-hero-orb dashboard-hero-orb-left" />
           <div className="relative z-10">
             <button
+              type="button"
               onClick={() => router.back()}
               className="mb-4 text-sm text-muted-foreground hover:text-foreground"
             >
@@ -211,9 +230,7 @@ function CheckoutContent() {
         {/* NicePay 결제 실패 메시지 */}
         {nicepayStatus === "failed" && nicepayMessage && (
           <div className="dashboard-glass-card mb-6 rounded-2xl border border-destructive/25 bg-destructive/10 p-4">
-            <p className="text-sm text-destructive">
-              {nicepayMessage}
-            </p>
+            <p className="text-sm text-destructive">{nicepayMessage}</p>
           </div>
         )}
 
@@ -309,14 +326,14 @@ function CheckoutContent() {
 
                     {hasSavedCard && !isDowngrade && (
                       <div className="mb-4 rounded-2xl border border-border/70 bg-background/90 p-3 text-sm text-foreground">
-                        <label className="flex items-center gap-2">
+                        <div className="flex items-center gap-2">
                           <input
                             type="checkbox"
                             checked={useSavedCard}
                             onChange={(e) => setUseSavedCard(e.target.checked)}
                           />
                           저장된 결제수단으로 결제하기
-                        </label>
+                        </div>
                       </div>
                     )}
 
@@ -339,9 +356,9 @@ function CheckoutContent() {
 
                         <div className="space-y-4">
                           <div>
-                            <label className="block text-sm font-medium text-foreground mb-1">
+                            <div className="block text-sm font-medium text-foreground mb-1">
                               카드번호
-                            </label>
+                            </div>
                             <input
                               value={formatCardNo(cardNo)}
                               onChange={(e) => setCardNo(e.target.value)}
@@ -353,9 +370,9 @@ function CheckoutContent() {
 
                           <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-sm font-medium text-foreground mb-1">
+                              <div className="block text-sm font-medium text-foreground mb-1">
                                 유효기간(월)
-                              </label>
+                              </div>
                               <input
                                 value={formatTwoDigits(expMonth)}
                                 onChange={(e) => setExpMonth(e.target.value)}
@@ -365,9 +382,9 @@ function CheckoutContent() {
                               />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-foreground mb-1">
+                              <div className="block text-sm font-medium text-foreground mb-1">
                                 유효기간(년)
-                              </label>
+                              </div>
                               <input
                                 value={formatTwoDigits(expYear)}
                                 onChange={(e) => setExpYear(e.target.value)}
@@ -379,9 +396,9 @@ function CheckoutContent() {
                           </div>
 
                           <div>
-                            <label className="block text-sm font-medium text-foreground mb-1">
+                            <div className="block text-sm font-medium text-foreground mb-1">
                               생년월일(YYMMDD) 또는 사업자번호
-                            </label>
+                            </div>
                             <input
                               value={formatIdNo(idNo)}
                               onChange={(e) => setIdNo(e.target.value)}
@@ -392,9 +409,9 @@ function CheckoutContent() {
                           </div>
 
                           <div>
-                            <label className="block text-sm font-medium text-foreground mb-1">
+                            <div className="block text-sm font-medium text-foreground mb-1">
                               카드 비밀번호 앞 2자리
-                            </label>
+                            </div>
                             <input
                               value={formatTwoDigits(cardPw)}
                               onChange={(e) => setCardPw(e.target.value)}
@@ -489,7 +506,11 @@ function CheckoutContent() {
 
 export default function CheckoutPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center p-12">Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center p-12">Loading...</div>
+      }
+    >
       <CheckoutContent />
     </Suspense>
   );

@@ -1,23 +1,23 @@
-import { NextRequest } from "next/server";
-import { getAuthUser } from "@/lib/auth-helper";
-import { checkTeamMembership, getTeamById } from "@/lib/team";
-import { findMemberByEmailOrNickname, findMemberById } from "@/lib/member";
-import { getActivePlanForOwner } from "@/lib/storage";
-import pool from "@/lib/db";
 import type { RowDataPacket } from "mysql2";
-import { upsertTeamInvitation } from "@/lib/invitation";
-import { createNotification } from "@/lib/notification";
+import type { NextRequest } from "next/server";
 import {
   jsonError,
   jsonServerError,
   jsonSuccess,
   jsonUnauthorized,
 } from "@/lib/api-response";
+import { getAuthUser } from "@/lib/auth-helper";
+import pool from "@/lib/db";
+import { upsertTeamInvitation } from "@/lib/invitation";
+import { findMemberByEmailOrNickname, findMemberById } from "@/lib/member";
+import { createNotification } from "@/lib/notification";
+import { getActivePlanForOwner } from "@/lib/storage";
+import { checkTeamMembership, getTeamById } from "@/lib/team";
 
 // POST /api/teams/{id}/invitations
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getAuthUser(request);
@@ -39,7 +39,8 @@ export async function POST(
 
     const body = await request.json();
     const invitedMemberId = Number(body?.invited_member_id);
-    const identifier = typeof body?.identifier === "string" ? body.identifier.trim() : "";
+    const identifier =
+      typeof body?.identifier === "string" ? body.identifier.trim() : "";
     if (!identifier && Number.isNaN(invitedMemberId)) {
       return jsonError("identifier is required", 400);
     }
@@ -59,7 +60,7 @@ export async function POST(
     const planInfo = await getActivePlanForOwner("team", teamId);
     const [rows] = await pool.execute<RowDataPacket[]>(
       `SELECT COUNT(*) as count FROM team_members WHERE team_id = ?`,
-      [teamId]
+      [teamId],
     );
     const currentCount = Number(rows[0]?.count || 0);
     if (currentCount >= planInfo.max_members) {

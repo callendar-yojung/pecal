@@ -1,14 +1,34 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, requireTaskAccess, requireWorkspaceAccess } from "@/lib/access";
+import { type NextRequest, NextResponse } from "next/server";
+import {
+  requireAuth,
+  requireTaskAccess,
+  requireWorkspaceAccess,
+} from "@/lib/access";
 import {
   createTask,
+  deleteTask,
+  getTaskById,
   getTasksByWorkspaceIdPaginated,
   updateTask,
-  deleteTask
 } from "@/lib/task";
 import { attachFileToTask } from "@/lib/task-attachment";
+import { enqueueTaskReminderEvent } from "@/lib/task-reminder-stream";
+import { getPermissionsByMember, getTeamById } from "@/lib/team";
 import { getWorkspaceById } from "@/lib/workspace";
-import { getTeamById, getPermissionsByMember } from "@/lib/team";
+
+function parseReminderMinutes(value: unknown): {
+  valid: boolean;
+  value: number | null;
+} {
+  if (value === undefined || value === null || value === "") {
+    return { valid: true, value: null };
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return { valid: false, value: null };
+  const minutes = Math.trunc(parsed);
+  if (minutes < 0 || minutes > 10080) return { valid: false, value: null };
+  return { valid: true, value: minutes };
+}
 
 // GET /api/tasks?workspace_id={id}&page=1&limit=20&sort_by=start_time&sort_order=DESC&status=TODO&search=keyword
 export async function GET(request: NextRequest) {
@@ -23,7 +43,7 @@ export async function GET(request: NextRequest) {
     if (!workspaceId) {
       return NextResponse.json(
         { error: "workspace_id is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -42,7 +62,8 @@ export async function GET(request: NextRequest) {
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
       sort_by: sort_by || undefined,
-      sort_order: (sort_order === "ASC" || sort_order === "DESC") ? sort_order : undefined,
+      sort_order:
+        sort_order === "ASC" || sort_order === "DESC" ? sort_order : undefined,
       status: status || undefined,
       search: search || undefined,
     });
@@ -52,7 +73,7 @@ export async function GET(request: NextRequest) {
     console.error("Failed to fetch tasks:", error);
     return NextResponse.json(
       { error: "Failed to fetch tasks" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -65,13 +86,28 @@ export async function POST(request: NextRequest) {
     const { user } = auth;
 
     const body = await request.json();
-    const { title, start_time, end_time, content, status, workspace_id, color, tag_ids, file_ids } = body;
+    const {
+      title,
+      start_time,
+      end_time,
+      content,
+      status,
+      workspace_id,
+      color,
+      tag_ids,
+      file_ids,
+      reminder_minutes,
+      rrule,
+    } = body;
 
     // 유효성 검사
     if (!title || !start_time || !end_time || !workspace_id) {
       return NextResponse.json(
-        { error: "Missing required fields: title, start_time, end_time, workspace_id" },
-        { status: 400 }
+        {
+          error:
+            "Missing required fields: title, start_time, end_time, workspace_id",
+        },
+        { status: 400 },
       );
     }
 
@@ -81,7 +117,10 @@ export async function POST(request: NextRequest) {
 
     const workspace = await getWorkspaceById(Number(workspace_id));
     if (!workspace) {
-      return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Workspace not found" },
+        { status: 404 },
+      );
     }
 
     if (workspace.type === "team") {
@@ -91,7 +130,10 @@ export async function POST(request: NextRequest) {
       }
 
       if (team.created_by !== user.memberId) {
-        const permissions = await getPermissionsByMember(team.id, user.memberId);
+        const permissions = await getPermissionsByMember(
+          team.id,
+          user.memberId,
+        );
         if (!permissions.includes("TASK_CREATE")) {
           return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
@@ -102,7 +144,15 @@ export async function POST(request: NextRequest) {
     if (new Date(start_time) >= new Date(end_time)) {
       return NextResponse.json(
         { error: "End time must be after start time" },
-        { status: 400 }
+        { status: 400 },
+      );
+    }
+
+    const reminderParsed = parseReminderMinutes(reminder_minutes);
+    if (!reminderParsed.valid) {
+      return NextResponse.json(
+        { error: "reminder_minutes must be an integer between 0 and 10080" },
+        { status: 400 },
       );
     }
 
@@ -115,6 +165,8 @@ export async function POST(request: NextRequest) {
       status: status || "TODO",
       color: color || "#3B82F6",
       tag_ids: tag_ids || [],
+      reminder_minutes: reminderParsed.value,
+      rrule: typeof rrule === "string" && rrule.trim() ? rrule.trim() : null,
       member_id: user.memberId,
       workspace_id: Number(workspace_id),
     });
@@ -126,15 +178,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json(
-      { success: true, taskId },
-      { status: 201 }
-    );
+    await enqueueTaskReminderEvent({
+      action: "upsert",
+      taskId,
+      workspaceId: Number(workspace_id),
+      title: title,
+      color: color || "#3B82F6",
+      startTime: start_time,
+      reminderMinutes: reminderParsed.value,
+    });
+
+    return NextResponse.json({ success: true, taskId }, { status: 201 });
   } catch (error) {
     console.error("Failed to create task:", error);
     return NextResponse.json(
       { error: "Failed to create task" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -147,12 +206,23 @@ export async function PATCH(request: NextRequest) {
     const { user } = auth;
 
     const body = await request.json();
-    const { task_id, title, start_time, end_time, content, status, color, tag_ids } = body;
+    const {
+      task_id,
+      title,
+      start_time,
+      end_time,
+      content,
+      status,
+      color,
+      tag_ids,
+      reminder_minutes,
+      rrule,
+    } = body;
 
     if (!task_id) {
       return NextResponse.json(
         { error: "task_id is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -162,7 +232,10 @@ export async function PATCH(request: NextRequest) {
 
     const workspace = await getWorkspaceById(task.workspace_id);
     if (!workspace) {
-      return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Workspace not found" },
+        { status: 404 },
+      );
     }
 
     if (workspace.type === "team") {
@@ -172,28 +245,70 @@ export async function PATCH(request: NextRequest) {
       }
 
       if (team.created_by !== user.memberId) {
-        const permissions = await getPermissionsByMember(team.id, user.memberId);
+        const permissions = await getPermissionsByMember(
+          team.id,
+          user.memberId,
+        );
         const canEditAll = permissions.includes("TASK_EDIT_ALL");
         const canEditOwn = permissions.includes("TASK_EDIT_OWN");
 
-        if (!(canEditAll || (canEditOwn && task.created_by === user.memberId))) {
+        if (
+          !(canEditAll || (canEditOwn && task.created_by === user.memberId))
+        ) {
           return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
       }
     }
 
+    const hasReminderMinutes = Object.prototype.hasOwnProperty.call(
+      body,
+      "reminder_minutes",
+    );
+    const reminderParsed = hasReminderMinutes
+      ? parseReminderMinutes(reminder_minutes)
+      : { valid: true, value: null };
+    if (!reminderParsed.valid) {
+      return NextResponse.json(
+        { error: "reminder_minutes must be an integer between 0 and 10080" },
+        { status: 400 },
+      );
+    }
+
     await updateTask(
       Number(task_id),
-      { title, start_time, end_time, content, status, color, tag_ids },
-      user.memberId
+      {
+        title,
+        start_time,
+        end_time,
+        content,
+        status,
+        color,
+        tag_ids,
+        reminder_minutes: hasReminderMinutes ? reminderParsed.value : undefined,
+        rrule: typeof rrule === "string" ? rrule.trim() || null : undefined,
+      },
+      user.memberId,
     );
+
+    const updatedTask = await getTaskById(Number(task_id));
+    if (updatedTask) {
+      await enqueueTaskReminderEvent({
+        action: "upsert",
+        taskId: updatedTask.id,
+        workspaceId: updatedTask.workspace_id,
+        title: updatedTask.title,
+        color: updatedTask.color ?? null,
+        startTime: updatedTask.start_time,
+        reminderMinutes: updatedTask.reminder_minutes ?? null,
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to update task:", error);
     return NextResponse.json(
       { error: "Failed to update task" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -211,7 +326,7 @@ export async function DELETE(request: NextRequest) {
     if (!taskId) {
       return NextResponse.json(
         { error: "task_id is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -221,7 +336,10 @@ export async function DELETE(request: NextRequest) {
 
     const workspace = await getWorkspaceById(task.workspace_id);
     if (!workspace) {
-      return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Workspace not found" },
+        { status: 404 },
+      );
     }
 
     if (workspace.type === "team") {
@@ -231,24 +349,34 @@ export async function DELETE(request: NextRequest) {
       }
 
       if (team.created_by !== user.memberId) {
-        const permissions = await getPermissionsByMember(team.id, user.memberId);
+        const permissions = await getPermissionsByMember(
+          team.id,
+          user.memberId,
+        );
         const canDeleteAll = permissions.includes("TASK_DELETE_ALL");
         const canDeleteOwn = permissions.includes("TASK_DELETE_OWN");
 
-        if (!(canDeleteAll || (canDeleteOwn && task.created_by === user.memberId))) {
+        if (
+          !(canDeleteAll || (canDeleteOwn && task.created_by === user.memberId))
+        ) {
           return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
       }
     }
 
     await deleteTask(Number(taskId));
+    await enqueueTaskReminderEvent({
+      action: "delete",
+      taskId: Number(taskId),
+      workspaceId: task.workspace_id,
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to delete task:", error);
     return NextResponse.json(
       { error: "Failed to delete task" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

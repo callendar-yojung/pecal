@@ -31,7 +31,7 @@ export function isS3Configured(): boolean {
 export async function uploadToS3(
   key: string,
   body: Buffer,
-  contentType: string
+  contentType: string,
 ): Promise<string> {
   if (!isS3Configured()) {
     throw new Error("S3 is not configured");
@@ -87,7 +87,7 @@ export async function deleteFromS3(key: string): Promise<void> {
 export function generateS3Key(
   ownerType: "team" | "personal",
   ownerId: number,
-  storedName: string
+  storedName: string,
 ): string {
   const folder = ownerType === "team" ? "teams" : "personal";
   return `uploads/${folder}/${ownerId}/${storedName}`;

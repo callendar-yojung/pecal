@@ -1,12 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, requireOwnerAccess, requireTeamMembership } from "@/lib/access";
+import { type NextRequest, NextResponse } from "next/server";
 import {
-  getFilesByTeamId,
-  getFileById,
+  requireAuth,
+  requireOwnerAccess,
+  requireTeamMembership,
+} from "@/lib/access";
+import {
   createFile,
-  updateFile,
   deleteFile,
+  getFileById,
+  getFilesByTeamId,
   getTotalFileSizeByTeamId,
+  updateFile,
 } from "@/lib/file";
 import { checkStorageLimit } from "@/lib/storage";
 
@@ -37,13 +41,20 @@ export async function GET(request: NextRequest) {
       if (!file) {
         return NextResponse.json({ error: "File not found" }, { status: 404 });
       }
-      const access = await requireOwnerAccess(request, file.owner_type, file.owner_id);
+      const access = await requireOwnerAccess(
+        request,
+        file.owner_type,
+        file.owner_id,
+      );
       if (access instanceof NextResponse) return access;
       return NextResponse.json(file);
     }
 
     if (!teamIdParam) {
-      return NextResponse.json({ error: "team_id is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "team_id is required" },
+        { status: 400 },
+      );
     }
 
     const access = await requireTeamMembership(request, Number(teamIdParam));
@@ -56,7 +67,7 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching files:", error);
     return NextResponse.json(
       { error: "Failed to fetch files" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -73,32 +84,42 @@ export async function POST(request: NextRequest) {
     if (!team_id || !file_name || file_size_mb === undefined) {
       return NextResponse.json(
         { error: "team_id, file_name, file_size_mb are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // 스토리지 용량 초과 체크
-    const storageCheck = await checkStorageLimit(Number(team_id), Number(file_size_mb));
+    const storageCheck = await checkStorageLimit(
+      Number(team_id),
+      Number(file_size_mb),
+    );
     if (!storageCheck.allowed) {
       return NextResponse.json(
         {
           error: "Storage limit exceeded",
           current: storageCheck.current,
           limit: storageCheck.limit,
-          required: Number(file_size_mb)
+          required: Number(file_size_mb),
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     // 파일 생성
-    const fileId = await createFile(Number(team_id), file_name, Number(file_size_mb));
-    return NextResponse.json({ id: fileId, message: "File created successfully" }, { status: 201 });
+    const fileId = await createFile(
+      Number(team_id),
+      file_name,
+      Number(file_size_mb),
+    );
+    return NextResponse.json(
+      { id: fileId, message: "File created successfully" },
+      { status: 201 },
+    );
   } catch (error) {
     console.error("Error creating file:", error);
     return NextResponse.json(
       { error: "Failed to create file" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -115,7 +136,7 @@ export async function PUT(request: NextRequest) {
     if (!id || !file_name) {
       return NextResponse.json(
         { error: "id and file_name are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -124,7 +145,11 @@ export async function PUT(request: NextRequest) {
     if (!file) {
       return NextResponse.json({ error: "File not found" }, { status: 404 });
     }
-    const access = await requireOwnerAccess(request, file.owner_type, file.owner_id);
+    const access = await requireOwnerAccess(
+      request,
+      file.owner_type,
+      file.owner_id,
+    );
     if (access instanceof NextResponse) return access;
 
     const success = await updateFile(Number(id), file_name);
@@ -137,7 +162,7 @@ export async function PUT(request: NextRequest) {
     console.error("Error updating file:", error);
     return NextResponse.json(
       { error: "Failed to update file" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -159,7 +184,11 @@ export async function DELETE(request: NextRequest) {
     if (!file) {
       return NextResponse.json({ error: "File not found" }, { status: 404 });
     }
-    const access = await requireOwnerAccess(request, file.owner_type, file.owner_id);
+    const access = await requireOwnerAccess(
+      request,
+      file.owner_type,
+      file.owner_id,
+    );
     if (access instanceof NextResponse) return access;
 
     // 파일 삭제
@@ -173,7 +202,7 @@ export async function DELETE(request: NextRequest) {
     console.error("Error deleting file:", error);
     return NextResponse.json(
       { error: "Failed to delete file" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

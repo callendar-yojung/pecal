@@ -1,5 +1,6 @@
+import { useCallback, useState } from 'react';
 import { Redirect } from 'expo-router';
-import { ScrollView, Text } from 'react-native';
+import { RefreshControl, ScrollView, Text } from 'react-native';
 import { useMobileApp } from '../../src/contexts/MobileAppContext';
 import { useThemeMode } from '../../src/contexts/ThemeContext';
 import { createStyles } from '../../src/styles/createStyles';
@@ -9,11 +10,26 @@ export default function OverviewTab() {
   const { auth, data } = useMobileApp();
   const { colors } = useThemeMode();
   const s = createStyles(colors);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    if (!data.selectedWorkspace) return;
+    setRefreshing(true);
+    try {
+      await data.loadDashboard(data.selectedWorkspace);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [data]);
 
   if (!auth.session) return <Redirect href="/(auth)/login" />;
 
   return (
-    <ScrollView style={s.content} contentContainerStyle={s.contentContainer}>
+    <ScrollView
+      style={s.content}
+      contentContainerStyle={s.contentContainer}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+    >
       {data.dashboardLoading ? null : null}
       {data.error || auth.error ? <Text style={s.errorText}>{data.error || auth.error}</Text> : null}
       {!data.selectedWorkspace ? <Text style={s.emptyText}>워크스페이스를 선택하세요.</Text> : null}

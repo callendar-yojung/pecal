@@ -1,5 +1,5 @@
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import pool from "./db";
-import type { RowDataPacket, ResultSetHeader } from "mysql2";
 
 export interface Member {
   member_id: number;
@@ -15,28 +15,92 @@ export interface Member {
 
 function generateRandomNickname(locale: "ko" | "en"): string {
   const koAdjectives = [
-    "행복한", "즐거운", "신나는", "귀여운", "멋진",
-    "활발한", "용감한", "친절한", "빠른", "똑똑한",
-    "따뜻한", "차분한", "유쾌한", "빛나는", "성실한",
-    "포근한", "당당한", "날렵한", "정직한", "상냥한",
+    "행복한",
+    "즐거운",
+    "신나는",
+    "귀여운",
+    "멋진",
+    "활발한",
+    "용감한",
+    "친절한",
+    "빠른",
+    "똑똑한",
+    "따뜻한",
+    "차분한",
+    "유쾌한",
+    "빛나는",
+    "성실한",
+    "포근한",
+    "당당한",
+    "날렵한",
+    "정직한",
+    "상냥한",
   ];
   const koNouns = [
-    "고양이", "강아지", "토끼", "판다", "호랑이",
-    "사자", "여우", "곰", "펭귄", "코알라",
-    "독수리", "다람쥐", "고래", "돌고래", "사슴",
-    "부엉이", "햄스터", "라쿤", "늑대", "수달",
+    "고양이",
+    "강아지",
+    "토끼",
+    "판다",
+    "호랑이",
+    "사자",
+    "여우",
+    "곰",
+    "펭귄",
+    "코알라",
+    "독수리",
+    "다람쥐",
+    "고래",
+    "돌고래",
+    "사슴",
+    "부엉이",
+    "햄스터",
+    "라쿤",
+    "늑대",
+    "수달",
   ];
   const enAdjectives = [
-    "Bright", "Happy", "Swift", "Brave", "Kind",
-    "Calm", "Clever", "Gentle", "Bold", "Witty",
-    "Sunny", "Mighty", "Lucky", "Charming", "Nimble",
-    "Curious", "Quiet", "Fierce", "Glowing", "Warm",
+    "Bright",
+    "Happy",
+    "Swift",
+    "Brave",
+    "Kind",
+    "Calm",
+    "Clever",
+    "Gentle",
+    "Bold",
+    "Witty",
+    "Sunny",
+    "Mighty",
+    "Lucky",
+    "Charming",
+    "Nimble",
+    "Curious",
+    "Quiet",
+    "Fierce",
+    "Glowing",
+    "Warm",
   ];
   const enNouns = [
-    "Fox", "Otter", "Tiger", "Panda", "Falcon",
-    "Wolf", "Bear", "Rabbit", "Dolphin", "Hawk",
-    "Lion", "Koala", "Penguin", "Sparrow", "Owl",
-    "Deer", "Whale", "Lynx", "Raccoon", "Hedgehog",
+    "Fox",
+    "Otter",
+    "Tiger",
+    "Panda",
+    "Falcon",
+    "Wolf",
+    "Bear",
+    "Rabbit",
+    "Dolphin",
+    "Hawk",
+    "Lion",
+    "Koala",
+    "Penguin",
+    "Sparrow",
+    "Owl",
+    "Deer",
+    "Whale",
+    "Lynx",
+    "Raccoon",
+    "Hedgehog",
   ];
 
   const isKo = locale === "ko";
@@ -50,11 +114,11 @@ function generateRandomNickname(locale: "ko" | "en"): string {
 
 export async function findMemberByProvider(
   provider: string,
-  providerId: string
+  providerId: string,
 ): Promise<Member | null> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     "SELECT * FROM members WHERE provider = ? AND provider_id = ?",
-    [provider, providerId]
+    [provider, providerId],
   );
   return (rows[0] as Member) || null;
 }
@@ -64,7 +128,7 @@ export async function createMember(
   providerId: string,
   email: string | null,
   profileImageUrl?: string | null,
-  locale: "ko" | "en" = "en"
+  locale: "ko" | "en" = "en",
 ): Promise<Member> {
   const connection = await pool.getConnection();
   try {
@@ -81,7 +145,15 @@ export async function createMember(
         const [insertResult] = await connection.execute<ResultSetHeader>(
           `INSERT INTO members (provider, provider_id, email, nickname, profile_image_url, created_at, lasted_at)
            VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [provider, providerId, email, nickname, profileImageUrl ?? null, now, now]
+          [
+            provider,
+            providerId,
+            email,
+            nickname,
+            profileImageUrl ?? null,
+            now,
+            now,
+          ],
         );
         result = insertResult;
         finalNickname = nickname;
@@ -101,7 +173,15 @@ export async function createMember(
           const [insertResult] = await connection.execute<ResultSetHeader>(
             `INSERT INTO members (provider, provider_id, email, nickname, profile_image_url, created_at, lasted_at)
              VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [provider, providerId, email, fallback, profileImageUrl ?? null, now, now]
+            [
+              provider,
+              providerId,
+              email,
+              fallback,
+              profileImageUrl ?? null,
+              now,
+              now,
+            ],
           );
           result = insertResult;
           finalNickname = fallback;
@@ -124,7 +204,7 @@ export async function createMember(
     await connection.execute(
       `INSERT INTO workspaces (type, owner_id, name, created_by, created_at)
        VALUES ('personal', ?, ?, ?, NOW())`,
-      [insertId, `${finalNickname ?? "My"}의 워크스페이스`, insertId]
+      [insertId, `${finalNickname ?? "My"}의 워크스페이스`, insertId],
     );
 
     await connection.commit();
@@ -157,12 +237,12 @@ export async function updateMemberLastLogin(memberId: number): Promise<void> {
 
 export async function updateMemberNickname(
   memberId: number,
-  nickname: string
+  nickname: string,
 ): Promise<void> {
-  await pool.execute(
-    "UPDATE members SET nickname = ? WHERE member_id = ?",
-    [nickname, memberId]
-  );
+  await pool.execute("UPDATE members SET nickname = ? WHERE member_id = ?", [
+    nickname,
+    memberId,
+  ]);
 }
 
 export async function findOrCreateMember(
@@ -170,7 +250,7 @@ export async function findOrCreateMember(
   providerId: string,
   email: string | null,
   profileImageUrl?: string | null,
-  locale: "ko" | "en" = "en"
+  locale: "ko" | "en" = "en",
 ): Promise<Member> {
   const existingMember = await findMemberByProvider(provider, providerId);
 
@@ -187,23 +267,23 @@ export async function findOrCreateMember(
 
 export async function updateMemberProfileImage(
   memberId: number,
-  profileImageUrl: string | null
+  profileImageUrl: string | null,
 ): Promise<void> {
   await pool.execute(
     "UPDATE members SET profile_image_url = ? WHERE member_id = ?",
-    [profileImageUrl, memberId]
+    [profileImageUrl, memberId],
   );
 }
 
 export async function isNicknameTaken(
   nickname: string,
-  excludeMemberId?: number
+  excludeMemberId?: number,
 ): Promise<boolean> {
   const trimmed = nickname.trim();
   if (!trimmed) return false;
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT member_id FROM members WHERE nickname = ? LIMIT 1`,
-    [trimmed]
+    [trimmed],
   );
   if (rows.length === 0) return false;
   if (excludeMemberId && rows[0].member_id === excludeMemberId) return false;
@@ -248,14 +328,14 @@ export function isNicknameReserved(nickname: string): boolean {
 }
 
 export async function findMemberByEmailOrNickname(
-  identifier: string
+  identifier: string,
 ): Promise<Member | null> {
   const trimmed = identifier.trim();
   if (!trimmed) return null;
 
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT * FROM members WHERE email = ? OR nickname = ? LIMIT 1`,
-    [trimmed, trimmed]
+    [trimmed, trimmed],
   );
 
   return (rows[0] as Member) || null;
@@ -264,7 +344,7 @@ export async function findMemberByEmailOrNickname(
 export async function findMemberById(memberId: number): Promise<Member | null> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT * FROM members WHERE member_id = ? LIMIT 1`,
-    [memberId]
+    [memberId],
   );
   return (rows[0] as Member) || null;
 }

@@ -1,5 +1,5 @@
-import { SignJWT, jwtVerify } from "jose";
 import { randomBytes } from "node:crypto";
+import { jwtVerify, SignJWT } from "jose";
 import { getRequiredEnv } from "@/lib/required-env";
 
 type OAuthProvider = "google" | "kakao" | "apple";
@@ -87,7 +87,7 @@ export function getOAuthStateCookieOptions(provider: OAuthProvider) {
 
 export async function createOAuthState(
   provider: OAuthProvider,
-  callback: string
+  callback: string,
 ): Promise<{ state: string }> {
   const normalized = normalizeCallbackUrl(callback);
   if (!normalized || !isAllowedOAuthCallback(normalized)) {
@@ -112,7 +112,7 @@ export async function createOAuthState(
 
 export async function verifyOAuthState(
   provider: OAuthProvider,
-  state: string | null
+  state: string | null,
 ): Promise<string | null> {
   if (!state) {
     return null;

@@ -305,6 +305,7 @@ export function useDashboardData(session: AuthSession | null) {
   const [teamName, setTeamName] = useState('');
   const [teamDescription, setTeamDescription] = useState('');
   const [creatingTeam, setCreatingTeam] = useState(false);
+  const [creatingWorkspace, setCreatingWorkspace] = useState(false);
   const [createdTeamId, setCreatedTeamId] = useState<number | null>(null);
 
   const [tasks, setTasks] = useState<TaskItem[]>([]);
@@ -432,14 +433,36 @@ export function useDashboardData(session: AuthSession | null) {
     if (!session) return;
     setDashboardLoading(true);
     try {
-      const results = await Promise.allSettled([
-        cachedApiFetch<{ tasks: TaskItem[] }>(
-          `tasks:${workspace.workspace_id}:limit60`,
-          `/api/tasks?workspace_id=${workspace.workspace_id}&limit=60`,
+      const loadAllTasks = async () => {
+        const limit = 100;
+        const first = await cachedApiFetch<{ tasks?: TaskItem[]; totalPages?: number }>(
+          `tasks:${workspace.workspace_id}:page1:limit${limit}`,
+          `/api/tasks?workspace_id=${workspace.workspace_id}&page=1&limit=${limit}&sort_by=start_time&sort_order=ASC`,
           session,
           {},
           { cacheMs: 8_000, dedupe: true, retries: 1 }
-        ),
+        );
+
+        const all = [...(first.tasks ?? [])];
+        const totalPages = Math.max(1, Number(first.totalPages ?? 1));
+        if (totalPages <= 1) return all;
+
+        for (let page = 2; page <= totalPages; page += 1) {
+          const pageRes = await cachedApiFetch<{ tasks?: TaskItem[] }>(
+            `tasks:${workspace.workspace_id}:page${page}:limit${limit}`,
+            `/api/tasks?workspace_id=${workspace.workspace_id}&page=${page}&limit=${limit}&sort_by=start_time&sort_order=ASC`,
+            session,
+            {},
+            { cacheMs: 8_000, dedupe: true, retries: 1 }
+          );
+          all.push(...(pageRes.tasks ?? []));
+        }
+
+        return all;
+      };
+
+      const results = await Promise.allSettled([
+        loadAllTasks(),
         // Server validates page_size in range 1..50.
         cachedApiFetch<{ memos: MemoItem[] }>(
           `memos:${workspace.type}:${workspace.owner_id}:page1:size50`,
@@ -483,7 +506,7 @@ export function useDashboardData(session: AuthSession | null) {
       const errors: string[] = [];
 
       if (taskRes.status === 'fulfilled') {
-        setTasks(taskRes.value.tasks ?? []);
+        setTasks(taskRes.value ?? []);
       } else {
         errors.push(taskRes.reason instanceof Error ? taskRes.reason.message : String(taskRes.reason));
         setTasks([]);
@@ -556,6 +579,7 @@ export function useDashboardData(session: AuthSession | null) {
     setOfflineQueueCount(result.remaining);
     if (result.processed > 0 && selectedWorkspace) {
       invalidateApiCache(`tasks:${selectedWorkspace.workspace_id}`);
+      invalidateApiCache(`calendar:${selectedWorkspace.workspace_id}`);
       invalidateApiCache(`memos:${selectedWorkspace.type}:${selectedWorkspace.owner_id}`);
       await loadDashboard(selectedWorkspace);
     }
@@ -593,6 +617,7 @@ export function useDashboardData(session: AuthSession | null) {
         body: JSON.stringify(payload),
       });
       invalidateApiCache(`tasks:${selectedWorkspace.workspace_id}`);
+      invalidateApiCache(`calendar:${selectedWorkspace.workspace_id}`);
       await loadDashboard(selectedWorkspace);
       return true;
     } catch (error) {
@@ -629,6 +654,7 @@ export function useDashboardData(session: AuthSession | null) {
   const refreshCurrentWorkspace = async () => {
     if (!selectedWorkspace) return;
     invalidateApiCache(`tasks:${selectedWorkspace.workspace_id}`);
+    invalidateApiCache(`calendar:${selectedWorkspace.workspace_id}`);
     await loadDashboard(selectedWorkspace);
   };
 
@@ -937,6 +963,53 @@ export function useDashboardData(session: AuthSession | null) {
     setWorkspacePickerOpen(false);
   };
 
+  const createWorkspace = async (input: {
+    name: string;
+    scope: 'personal' | 'team';
+    teamId?: number | null;
+  }) => {
+    if (!session) return;
+    const name = input.name.trim();
+    if (!name) {
+      setError('워크스페이스 이름을 입력하세요.');
+      return;
+    }
+
+    const ownerId = input.scope === 'personal' ? session.memberId : Number(input.teamId ?? 0);
+    if (input.scope === 'team' && (!Number.isFinite(ownerId) || ownerId <= 0)) {
+      setError('팀을 먼저 선택하세요.');
+      return;
+    }
+
+    setCreatingWorkspace(true);
+    try {
+      const result = await apiFetch<{ workspace?: Workspace }>('/api/workspaces', session, {
+        method: 'POST',
+        body: JSON.stringify({
+          name,
+          type: input.scope,
+          owner_id: ownerId,
+        }),
+      });
+
+      invalidateApiCache('workspaces:');
+      invalidateApiCache('teams:');
+      await loadWorkspaces();
+
+      const createdWorkspaceId = result.workspace?.workspace_id;
+      if (Number.isFinite(createdWorkspaceId) && (createdWorkspaceId ?? 0) > 0) {
+        setSelectedWorkspaceId(createdWorkspaceId ?? null);
+      }
+      setWorkspacePickerOpen(false);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      throw e;
+    } finally {
+      setCreatingWorkspace(false);
+    }
+  };
+
   useEffect(() => {
     const workspaceId = selectedWorkspace?.workspace_id;
     if (!workspaceId) return;
@@ -1055,6 +1128,7 @@ export function useDashboardData(session: AuthSession | null) {
     teamDescription,
     setTeamDescription,
     creatingTeam,
+    creatingWorkspace,
     createdTeamId,
     tasks,
     memos,
@@ -1119,5 +1193,6 @@ export function useDashboardData(session: AuthSession | null) {
     selectPlan,
     selectPersonal,
     selectTeamWorkspace,
+    createWorkspace,
   };
 }

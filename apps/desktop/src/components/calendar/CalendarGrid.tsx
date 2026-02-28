@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
+  addDays,
   format,
   startOfMonth,
   endOfMonth,
@@ -16,9 +17,10 @@ import { parseApiDateTime } from '../../utils/datetime'
 
 interface CalendarGridProps {
   onOpenMore?: (date: Date) => void
+  onOpenTaskDetail?: (task: Task) => void
 }
 
-export function CalendarGrid({ onOpenMore }: CalendarGridProps) {
+export function CalendarGrid({ onOpenMore, onOpenTaskDetail }: CalendarGridProps) {
   const MAX_VISIBLE_TASKS_PER_DAY = 5
   const MIN_VISIBLE_TASKS_PER_DAY = 1
   const EVENT_ROW_HEIGHT = 24
@@ -50,16 +52,38 @@ export function CalendarGrid({ onOpenMore }: CalendarGridProps) {
 
   const eventsByDate = useMemo(() => {
     const map = new Map<string, Task[]>()
+    if (!days.length) return map
+
+    const visibleStart = days[0]
+    const visibleEnd = days[days.length - 1]
+
+    const toStartOfDay = (date: Date) => {
+      const d = new Date(date)
+      d.setHours(0, 0, 0, 0)
+      return d
+    }
+
     for (const event of events) {
-      const eventDate = parseApiDateTime(event.start_time)
-      const dateKey = format(eventDate, 'yyyy-MM-dd')
-      const existing = map.get(dateKey)
-      if (existing) {
-        existing.push(event)
-      } else {
-        map.set(dateKey, [event])
+      const eventStartRaw = parseApiDateTime(event.start_time)
+      const eventEndRaw = parseApiDateTime(event.end_time || event.start_time)
+      const eventStart = toStartOfDay(eventStartRaw)
+      const eventEnd = toStartOfDay(eventEndRaw)
+      const rangeStart = eventStart > visibleStart ? eventStart : visibleStart
+      const rangeEnd = eventEnd < visibleEnd ? eventEnd : visibleEnd
+
+      if (rangeStart > rangeEnd) continue
+
+      for (let cursor = new Date(rangeStart); cursor <= rangeEnd; cursor = addDays(cursor, 1)) {
+        const dateKey = format(cursor, 'yyyy-MM-dd')
+        const existing = map.get(dateKey)
+        if (existing) {
+          existing.push(event)
+        } else {
+          map.set(dateKey, [event])
+        }
       }
     }
+
     for (const [dateKey, list] of map.entries()) {
       map.set(
         dateKey,
@@ -68,8 +92,48 @@ export function CalendarGrid({ onOpenMore }: CalendarGridProps) {
         }),
       )
     }
+
     return map
-  }, [events])
+  }, [events, days])
+
+  const getEventMarkerState = (event: Task, day: Date) => {
+    const eventStart = format(parseApiDateTime(event.start_time), 'yyyy-MM-dd')
+    const eventEnd = format(parseApiDateTime(event.end_time || event.start_time), 'yyyy-MM-dd')
+    const cell = format(day, 'yyyy-MM-dd')
+    const isStart = eventStart === cell
+    const isEnd = eventEnd === cell
+    const isSingle = isStart && isEnd
+    return { isStart, isEnd, isSingle }
+  }
+
+  const markerLabel = (event: Task, day: Date) => {
+    const state = getEventMarkerState(event, day)
+    if (state.isSingle) return '•'
+    if (state.isStart) return '↘'
+    if (state.isEnd) return '↗'
+    return '━'
+  }
+
+  const eventShapeClass = (event: Task, day: Date) => {
+    const state = getEventMarkerState(event, day)
+    if (state.isSingle) return 'rounded-full'
+    if (state.isStart) return 'rounded-l-full rounded-r-md'
+    if (state.isEnd) return 'rounded-r-full rounded-l-md'
+    return 'rounded-md'
+  }
+
+  const getEventStyle = (event: Task) => {
+    const color = event.color || '#93c5fd'
+    return {
+      backgroundColor: `${color}40`,
+      borderColor: `${color}88`,
+      color: getReadableTextColor(color),
+    }
+  }
+
+  const getEventTitle = (event: Task, day: Date) => {
+    return `${markerLabel(event, day)} ${event.title}`
+  }
 
   const getReadableTextColor = (hexColor?: string) => {
     if (!hexColor || !hexColor.startsWith('#')) return '#1f2937'
@@ -186,15 +250,16 @@ export function CalendarGrid({ onOpenMore }: CalendarGridProps) {
                     key={event.id}
                     onClick={(e) => {
                       e.stopPropagation()
+                      if (onOpenTaskDetail) {
+                        void onOpenTaskDetail(event)
+                        return
+                      }
                       openTaskDetail(event)
                     }}
-                    className="w-full text-left px-2 py-1 text-xs rounded truncate transition-opacity hover:opacity-90"
-                    style={{
-                      backgroundColor: event.color || '#93c5fd',
-                      color: getReadableTextColor(event.color),
-                    }}
+                    className={`w-full text-left px-2 py-1 text-xs truncate border transition-opacity hover:opacity-90 ${eventShapeClass(event, day)}`}
+                    style={getEventStyle(event)}
                   >
-                    {event.title}
+                    {getEventTitle(event, day)}
                   </button>
                 ))}
                 {hiddenCount > 0 && (

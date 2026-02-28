@@ -1,5 +1,5 @@
-import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { CalendarPanel } from "@/components/dashboard";
 
 export async function generateMetadata({
@@ -24,7 +24,9 @@ export default async function CalendarPage() {
         <div className="dashboard-hero-orb dashboard-hero-orb-right" />
         <div className="dashboard-hero-orb dashboard-hero-orb-left" />
         <div className="relative z-10">
-          <h1 className="text-3xl font-bold text-foreground lg:text-4xl">{t("title")}</h1>
+          <h1 className="text-3xl font-bold text-foreground lg:text-4xl">
+            {t("title")}
+          </h1>
           <p className="mt-2 text-muted-foreground">
             월별 태스크를 한눈에 확인하고 일정을 관리하세요
           </p>

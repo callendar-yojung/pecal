@@ -1,5 +1,5 @@
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import pool from "./db";
-import type { RowDataPacket, ResultSetHeader } from "mysql2";
 
 export type PaymentStatus = "SUCCESS" | "FAILED" | "REFUNDED";
 export type PaymentType = "FIRST" | "RECURRING" | "RETRY";
@@ -58,7 +58,7 @@ export async function createPaymentRecord(data: {
       data.resultCode,
       data.resultMsg,
       data.paymentType,
-    ]
+    ],
   );
 
   return result.insertId;
@@ -68,10 +68,14 @@ export async function getPaymentsByOwner(
   ownerId: number,
   ownerType: OwnerType,
   limit = 50,
-  offset = 0
+  offset = 0,
 ): Promise<PaymentRecord[]> {
-  const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.min(200, Math.trunc(limit))) : 50;
-  const safeOffset = Number.isFinite(offset) ? Math.max(0, Math.trunc(offset)) : 0;
+  const safeLimit = Number.isFinite(limit)
+    ? Math.max(1, Math.min(200, Math.trunc(limit)))
+    : 50;
+  const safeOffset = Number.isFinite(offset)
+    ? Math.max(0, Math.trunc(offset))
+    : 0;
 
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT
@@ -84,14 +88,14 @@ export async function getPaymentsByOwner(
      WHERE ph.owner_id = ? AND ph.owner_type = ?
      ORDER BY ph.created_at DESC
      LIMIT ${safeLimit} OFFSET ${safeOffset}`,
-    [ownerId, ownerType]
+    [ownerId, ownerType],
   );
 
   return rows as PaymentRecord[];
 }
 
 export async function getPaymentsBySubscription(
-  subscriptionId: number
+  subscriptionId: number,
 ): Promise<PaymentRecord[]> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT
@@ -103,7 +107,7 @@ export async function getPaymentsBySubscription(
      LEFT JOIN plans p ON ph.plan_id = p.plan_id
      WHERE ph.subscription_id = ?
      ORDER BY ph.created_at DESC`,
-    [subscriptionId]
+    [subscriptionId],
   );
 
   return rows as PaymentRecord[];

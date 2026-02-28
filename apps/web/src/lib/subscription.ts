@@ -1,5 +1,5 @@
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import pool from "./db";
-import type { RowDataPacket, ResultSetHeader } from "mysql2";
 
 export type SubscriptionStatus = "ACTIVE" | "CANCELED" | "EXPIRED";
 export type OwnerType = "team" | "personal";
@@ -42,7 +42,7 @@ const SELECT_COLUMNS = `
 
 export async function getSubscriptionsByOwnerId(
   ownerId: number,
-  ownerType: OwnerType
+  ownerType: OwnerType,
 ): Promise<Subscription[]> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT ${SELECT_COLUMNS}
@@ -50,14 +50,14 @@ export async function getSubscriptionsByOwnerId(
     LEFT JOIN plans p ON s.plan_id = p.plan_id
     WHERE s.owner_id = ? AND s.owner_type = ?
     ORDER BY s.started_at DESC`,
-    [ownerId, ownerType]
+    [ownerId, ownerType],
   );
   return rows as Subscription[];
 }
 
 export async function getActiveSubscriptionByOwner(
   ownerId: number,
-  ownerType: OwnerType
+  ownerType: OwnerType,
 ): Promise<Subscription | null> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT ${SELECT_COLUMNS}
@@ -66,20 +66,20 @@ export async function getActiveSubscriptionByOwner(
     WHERE s.owner_id = ? AND s.owner_type = ? AND s.status = 'ACTIVE'
     ORDER BY s.started_at DESC
     LIMIT 1`,
-    [ownerId, ownerType]
+    [ownerId, ownerType],
   );
   return rows.length > 0 ? (rows[0] as Subscription) : null;
 }
 
 export async function getSubscriptionById(
-  subscriptionId: number
+  subscriptionId: number,
 ): Promise<Subscription | null> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT ${SELECT_COLUMNS}
     FROM subscriptions s
     LEFT JOIN plans p ON s.plan_id = p.plan_id
     WHERE s.subscription_id = ?`,
-    [subscriptionId]
+    [subscriptionId],
   );
   return rows.length > 0 ? (rows[0] as Subscription) : null;
 }
@@ -89,7 +89,7 @@ export async function createSubscription(
   ownerType: OwnerType,
   planId: number,
   createdBy?: number,
-  billingKeyMemberId?: number
+  billingKeyMemberId?: number,
 ): Promise<number> {
   const connection = await pool.getConnection();
   try {
@@ -97,7 +97,7 @@ export async function createSubscription(
 
     const [planRows] = await connection.execute<RowDataPacket[]>(
       `SELECT price FROM plans WHERE plan_id = ?`,
-      [planId]
+      [planId],
     );
     if (planRows.length === 0) {
       throw new Error("Plan not found");
@@ -112,7 +112,7 @@ export async function createSubscription(
        ORDER BY s.started_at DESC
        LIMIT 1
        FOR UPDATE`,
-      [ownerId, ownerType]
+      [ownerId, ownerType],
     );
 
     if (currentRows.length > 0) {
@@ -141,7 +141,7 @@ export async function createSubscription(
                pending_plan_id = NULL,
                pending_change_date = NULL
            WHERE subscription_id = ?`,
-          [current.subscription_id]
+          [current.subscription_id],
         );
       } else {
         // 다운그레이드/동일: 다음 결제일에 변경 예약
@@ -150,7 +150,7 @@ export async function createSubscription(
            SET pending_plan_id = ?,
                pending_change_date = next_payment_date
            WHERE subscription_id = ?`,
-          [planId, current.subscription_id]
+          [planId, current.subscription_id],
         );
         await connection.commit();
         return current.subscription_id;
@@ -169,7 +169,7 @@ export async function createSubscription(
         planId,
         createdBy ?? ownerId,
         billingKeyMemberId ?? createdBy ?? ownerId,
-      ]
+      ],
     );
 
     await connection.commit();
@@ -185,20 +185,20 @@ export async function createSubscription(
 export async function schedulePlanChange(
   ownerId: number,
   ownerType: OwnerType,
-  planId: number
+  planId: number,
 ): Promise<boolean> {
   const [result] = await pool.execute<ResultSetHeader>(
     `UPDATE subscriptions
      SET pending_plan_id = ?, pending_change_date = next_payment_date
      WHERE owner_id = ? AND owner_type = ? AND status = 'ACTIVE'`,
-    [planId, ownerId, ownerType]
+    [planId, ownerId, ownerType],
   );
 
   return result.affectedRows > 0;
 }
 
 export async function applyPendingPlanChange(
-  subscriptionId: number
+  subscriptionId: number,
 ): Promise<boolean> {
   const [result] = await pool.execute<ResultSetHeader>(
     `UPDATE subscriptions
@@ -209,7 +209,7 @@ export async function applyPendingPlanChange(
        AND pending_plan_id IS NOT NULL
        AND pending_change_date IS NOT NULL
        AND pending_change_date <= NOW()`,
-    [subscriptionId]
+    [subscriptionId],
   );
 
   return result.affectedRows > 0;
@@ -217,39 +217,40 @@ export async function applyPendingPlanChange(
 
 export async function updateSubscriptionStatus(
   subscriptionId: number,
-  status: SubscriptionStatus
+  status: SubscriptionStatus,
 ): Promise<boolean> {
-  const endedAt = status === "CANCELED" || status === "EXPIRED" ? "NOW()" : "NULL";
+  const endedAt =
+    status === "CANCELED" || status === "EXPIRED" ? "NOW()" : "NULL";
 
   const [result] = await pool.execute<ResultSetHeader>(
     `UPDATE subscriptions
      SET status = ?, ended_at = ${endedAt}
      WHERE subscription_id = ?`,
-    [status, subscriptionId]
+    [status, subscriptionId],
   );
 
   return result.affectedRows > 0;
 }
 
 export async function cancelSubscription(
-  subscriptionId: number
+  subscriptionId: number,
 ): Promise<boolean> {
   const [result] = await pool.execute<ResultSetHeader>(
     `UPDATE subscriptions
      SET status = 'CANCELED', ended_at = NOW(), next_payment_date = NULL
      WHERE subscription_id = ?`,
-    [subscriptionId]
+    [subscriptionId],
   );
 
   return result.affectedRows > 0;
 }
 
 export async function deleteSubscription(
-  subscriptionId: number
+  subscriptionId: number,
 ): Promise<boolean> {
   const [result] = await pool.execute<ResultSetHeader>(
     `DELETE FROM subscriptions WHERE subscription_id = ?`,
-    [subscriptionId]
+    [subscriptionId],
   );
 
   return result.affectedRows > 0;
@@ -267,7 +268,7 @@ export async function getDueSubscriptions(): Promise<Subscription[]> {
     WHERE s.status = 'ACTIVE'
       AND s.next_payment_date IS NOT NULL
       AND s.next_payment_date <= NOW()
-    ORDER BY s.next_payment_date ASC`
+    ORDER BY s.next_payment_date ASC`,
   );
   return rows as Subscription[];
 }
@@ -276,14 +277,14 @@ export async function getDueSubscriptions(): Promise<Subscription[]> {
  * 다음 결제일을 1개월 연장 + retry_count 리셋
  */
 export async function advancePaymentDate(
-  subscriptionId: number
+  subscriptionId: number,
 ): Promise<boolean> {
   const [result] = await pool.execute<ResultSetHeader>(
     `UPDATE subscriptions
      SET next_payment_date = DATE_ADD(next_payment_date, INTERVAL 1 MONTH),
          retry_count = 0
      WHERE subscription_id = ?`,
-    [subscriptionId]
+    [subscriptionId],
   );
 
   return result.affectedRows > 0;
@@ -293,18 +294,18 @@ export async function advancePaymentDate(
  * 재시도 횟수 증가
  */
 export async function incrementRetryCount(
-  subscriptionId: number
+  subscriptionId: number,
 ): Promise<number> {
   await pool.execute<ResultSetHeader>(
     `UPDATE subscriptions
      SET retry_count = retry_count + 1
      WHERE subscription_id = ?`,
-    [subscriptionId]
+    [subscriptionId],
   );
 
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT retry_count FROM subscriptions WHERE subscription_id = ?`,
-    [subscriptionId]
+    [subscriptionId],
   );
 
   return rows.length > 0 ? (rows[0] as { retry_count: number }).retry_count : 0;

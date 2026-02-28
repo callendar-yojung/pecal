@@ -1,4 +1,4 @@
-import { createCipheriv } from "crypto";
+import { createCipheriv } from "node:crypto";
 
 const NICEPAY_API_URL =
   process.env.NODE_ENV === "production"
@@ -92,7 +92,7 @@ export async function registerBillingKey(
   orderId: string,
   amount: number,
   goodsName: string,
-  cardQuota?: number
+  cardQuota?: number,
 ): Promise<BillingKeyResult> {
   const response = await fetch(`${NICEPAY_API_URL}/v1/billing/${tid}`, {
     method: "POST",
@@ -130,7 +130,7 @@ export async function registerBillingKey(
  * POST /v1/subscribe/regist
  */
 export async function registerBillingKeyByCard(
-  params: CardRegisterParams
+  params: CardRegisterParams,
 ): Promise<BillingKeyResult> {
   const { orderId, buyerName, buyerEmail, buyerTel } = params;
   const encData = encryptCardData(params);
@@ -190,7 +190,7 @@ interface BillingApproveByBidParams {
  * POST /v1/subscribe/{bid}/payments
  */
 export async function approveBillingByBid(
-  params: BillingApproveByBidParams
+  params: BillingApproveByBidParams,
 ): Promise<BillingApproveResult> {
   const { bid, orderId, amount, goodsName, buyerName, buyerEmail, buyerTel } =
     params;
@@ -212,7 +212,7 @@ export async function approveBillingByBid(
         buyerEmail,
         buyerTel,
       }),
-    }
+    },
   );
 
   const result = await response.json();
@@ -240,7 +240,7 @@ export async function approveBilling(
   orderId: string,
   amount: number,
   goodsName: string,
-  cardQuota?: number
+  cardQuota?: number,
 ): Promise<BillingApproveResult> {
   const response = await fetch(`${NICEPAY_API_URL}/v1/billing/re-pay`, {
     method: "POST",
@@ -284,7 +284,7 @@ interface ExpireBillingKeyResult {
  */
 export async function expireBillingKey(
   bid: string,
-  orderId: string
+  orderId: string,
 ): Promise<ExpireBillingKeyResult> {
   const response = await fetch(
     `${NICEPAY_API_URL}/v1/subscribe/${bid}/expire`,
@@ -295,7 +295,7 @@ export async function expireBillingKey(
         Authorization: `Basic ${getAuthHeader()}`,
       },
       body: JSON.stringify({ orderId }),
-    }
+    },
   );
 
   const result = await response.json();

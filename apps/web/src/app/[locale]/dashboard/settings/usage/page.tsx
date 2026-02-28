@@ -1,8 +1,8 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useEffect, useState } from "react";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 interface UsageData {
   workspace: {
@@ -55,7 +55,7 @@ export default function UsagePage() {
         setLoading(true);
         setError(null);
         const response = await fetch(
-          `/api/me/usage?workspace_id=${currentWorkspace.workspace_id}`
+          `/api/me/usage?workspace_id=${currentWorkspace.workspace_id}`,
         );
         if (!response.ok) {
           throw new Error("Failed to fetch usage data");
@@ -79,7 +79,10 @@ export default function UsagePage() {
         {/* Loading skeleton */}
         <div className="animate-pulse space-y-6">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="dashboard-glass-card p-6">
+            <div
+              key={`usage-skeleton-${i}`}
+              className="dashboard-glass-card p-6"
+            >
               <div className="h-6 w-32 rounded bg-muted" />
               <div className="mt-2 h-4 w-48 rounded bg-muted" />
               <div className="mt-6 h-2 w-full rounded bg-muted" />
@@ -132,14 +135,13 @@ export default function UsagePage() {
         <h2 className="text-lg font-semibold text-card-foreground">
           {t("storage")}
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t("storageDesc")}
-        </p>
+        <p className="mt-1 text-sm text-muted-foreground">{t("storageDesc")}</p>
 
         <div className="mt-6">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">
-              {usageData.storage.used_formatted} / {usageData.storage.limit_formatted}
+              {usageData.storage.used_formatted} /{" "}
+              {usageData.storage.limit_formatted}
             </span>
             <span className="text-muted-foreground">
               {usageData.storage.percentage}%
@@ -148,7 +150,9 @@ export default function UsagePage() {
           <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
             <div
               className={`h-full rounded-full transition-all ${getProgressColor(usageData.storage.percentage)}`}
-              style={{ width: `${Math.min(usageData.storage.percentage, 100)}%` }}
+              style={{
+                width: `${Math.min(usageData.storage.percentage, 100)}%`,
+              }}
             />
           </div>
           <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
@@ -181,7 +185,8 @@ export default function UsagePage() {
           <div className="mt-6">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">
-                {usageData.members.current} / {usageData.members.max} {t("members")}
+                {usageData.members.current} / {usageData.members.max}{" "}
+                {t("members")}
               </span>
               <span className="text-muted-foreground">
                 {usageData.members.percentage}%
@@ -190,7 +195,9 @@ export default function UsagePage() {
             <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
               <div
                 className={`h-full rounded-full transition-all ${getProgressColor(usageData.members.percentage)}`}
-                style={{ width: `${Math.min(usageData.members.percentage, 100)}%` }}
+                style={{
+                  width: `${Math.min(usageData.members.percentage, 100)}%`,
+                }}
               />
             </div>
             <div className="mt-4 flex items-center justify-between">
@@ -231,7 +238,9 @@ export default function UsagePage() {
             <p className="text-xs text-muted-foreground">{t("thisMonth")}</p>
           </div>
           <div className="rounded-xl bg-subtle p-4">
-            <p className="text-sm text-muted-foreground">{t("tasksCompleted")}</p>
+            <p className="text-sm text-muted-foreground">
+              {t("tasksCompleted")}
+            </p>
             <p className="mt-1 text-2xl font-bold text-status-done-foreground">
               {usageData.tasks.thisMonth.completed}
             </p>
@@ -245,7 +254,9 @@ export default function UsagePage() {
             <p className="text-xs text-muted-foreground">{t("thisMonth")}</p>
           </div>
           <div className="rounded-xl bg-subtle p-4">
-            <p className="text-sm text-muted-foreground">{t("tasksInProgress")}</p>
+            <p className="text-sm text-muted-foreground">
+              {t("tasksInProgress")}
+            </p>
             <p className="mt-1 text-2xl font-bold text-status-progress-foreground">
               {usageData.tasks.thisMonth.inProgress}
             </p>

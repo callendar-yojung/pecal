@@ -1,15 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
-import {
-  getDueSubscriptions,
-  applyPendingPlanChange,
-  advancePaymentDate,
-  incrementRetryCount,
-  updateSubscriptionStatus,
-} from "@/lib/subscription";
-import { getPlanById } from "@/lib/plan";
+import { type NextRequest, NextResponse } from "next/server";
 import { getActiveBillingKey } from "@/lib/billing-key";
 import { approveBilling, generateMoid } from "@/lib/nicepay";
 import { createPaymentRecord } from "@/lib/payment-history";
+import { getPlanById } from "@/lib/plan";
+import {
+  advancePaymentDate,
+  applyPendingPlanChange,
+  getDueSubscriptions,
+  incrementRetryCount,
+  updateSubscriptionStatus,
+} from "@/lib/subscription";
 
 const MAX_RETRY_COUNT = 3;
 
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     console.error("[Cron Billing] CRON_SECRET is not configured");
     return NextResponse.json(
       { error: "Server configuration error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
   try {
     const dueSubscriptions = await getDueSubscriptions();
     console.log(
-      `[Cron Billing] Found ${dueSubscriptions.length} due subscriptions`
+      `[Cron Billing] Found ${dueSubscriptions.length} due subscriptions`,
     );
 
     for (const sub of dueSubscriptions) {
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
         const billingKeyMemberId = sub.billing_key_member_id;
         if (!billingKeyMemberId) {
           console.warn(
-            `[Cron Billing] No billing_key_member_id for subscription ${sub.id}`
+            `[Cron Billing] No billing_key_member_id for subscription ${sub.id}`,
           );
           await updateSubscriptionStatus(sub.id, "EXPIRED");
           results.push({
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
         const billingKey = await getActiveBillingKey(billingKeyMemberId);
         if (!billingKey) {
           console.warn(
-            `[Cron Billing] No active billing key for member ${billingKeyMemberId}`
+            `[Cron Billing] No active billing key for member ${billingKeyMemberId}`,
           );
           await updateSubscriptionStatus(sub.id, "EXPIRED");
           results.push({
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
             billingKey.bid,
             orderId,
             sub.plan_price,
-            `Pecal ${planName}`
+            `Pecal ${planName}`,
           );
 
           // 성공: 이력 기록 + 날짜 연장
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
           // 결제 실패
           console.error(
             `[Cron Billing] Payment failed for subscription ${sub.id}:`,
-            payError.message
+            payError.message,
           );
 
           await createPaymentRecord({
@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
       } catch (subError: any) {
         console.error(
           `[Cron Billing] Error processing subscription ${sub.id}:`,
-          subError.message
+          subError.message,
         );
         results.push({
           subscriptionId: sub.id,
@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(
-      `[Cron Billing] Completed. Processed ${results.length} subscriptions`
+      `[Cron Billing] Completed. Processed ${results.length} subscriptions`,
     );
 
     return NextResponse.json({
@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
     console.error("[Cron Billing] Fatal error:", error.message);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

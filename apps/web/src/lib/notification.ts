@@ -1,5 +1,5 @@
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import pool from "./db";
-import type { RowDataPacket, ResultSetHeader } from "mysql2";
 
 export interface NotificationRecord {
   notification_id: number;
@@ -36,15 +36,56 @@ export async function createNotification(params: {
       params.payload ? JSON.stringify(params.payload) : null,
       params.source_type ?? null,
       params.source_id ?? null,
-    ]
+    ],
   );
   return result.insertId;
 }
 
+export async function createNotificationsBulk(
+  rows: Array<{
+    member_id: number;
+    type: string;
+    title?: string | null;
+    message?: string | null;
+    payload?: Record<string, unknown> | null;
+    source_type?: string | null;
+    source_id?: number | null;
+  }>,
+): Promise<number> {
+  if (rows.length === 0) return 0;
+
+  const placeholders = rows
+    .map(() => "(?, ?, ?, ?, ?, ?, ?, 0, NOW())")
+    .join(", ");
+  const values = rows.flatMap((row) => [
+    row.member_id,
+    row.type,
+    row.title ?? null,
+    row.message ?? null,
+    row.payload ? JSON.stringify(row.payload) : null,
+    row.source_type ?? null,
+    row.source_id ?? null,
+  ]);
+
+  const [result] = await pool.execute<ResultSetHeader>(
+    `INSERT INTO notifications
+     (member_id, type, title, message, payload_json, source_type, source_id, is_read, created_at)
+     VALUES ${placeholders}`,
+    values,
+  );
+  return Number(result.affectedRows || 0);
+}
+
 export async function getNotificationsForMember(
   memberId: number,
-  limit = 20
-): Promise<(NotificationRecord & { invitation_status?: string | null; team_name?: string | null; inviter_name?: string | null })[]> {
+  limit = 20,
+): Promise<
+  (NotificationRecord & {
+    invitation_status?: string | null;
+    team_name?: string | null;
+    inviter_name?: string | null;
+  })[]
+> {
   const safeLimit = Math.max(1, Math.min(50, Math.trunc(limit)));
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT
@@ -60,23 +101,30 @@ export async function getNotificationsForMember(
      WHERE n.member_id = ?
      ORDER BY n.created_at DESC
      LIMIT ${safeLimit}`,
-    [memberId]
+    [memberId],
   );
-  return rows as (NotificationRecord & { invitation_status?: string | null; team_name?: string | null; inviter_name?: string | null })[];
+  return rows as (NotificationRecord & {
+    invitation_status?: string | null;
+    team_name?: string | null;
+    inviter_name?: string | null;
+  })[];
 }
 
 export async function getUnreadCount(memberId: number): Promise<number> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT COUNT(*) as count FROM notifications WHERE member_id = ? AND is_read = 0`,
-    [memberId]
+    [memberId],
   );
   return Number(rows[0]?.count || 0);
 }
 
-export async function markNotificationRead(notificationId: number, memberId: number): Promise<boolean> {
+export async function markNotificationRead(
+  notificationId: number,
+  memberId: number,
+): Promise<boolean> {
   const [result] = await pool.execute<ResultSetHeader>(
     `UPDATE notifications SET is_read = 1, read_at = NOW() WHERE notification_id = ? AND member_id = ?`,
-    [notificationId, memberId]
+    [notificationId, memberId],
   );
   return result.affectedRows > 0;
 }
@@ -84,22 +132,22 @@ export async function markNotificationRead(notificationId: number, memberId: num
 export async function markNotificationsReadBySource(
   memberId: number,
   sourceType: string,
-  sourceId: number
+  sourceId: number,
 ): Promise<void> {
   await pool.execute(
     `UPDATE notifications SET is_read = 1, read_at = NOW()
      WHERE member_id = ? AND source_type = ? AND source_id = ?`,
-    [memberId, sourceType, sourceId]
+    [memberId, sourceType, sourceId],
   );
 }
 
 export async function deleteNotification(
   notificationId: number,
-  memberId: number
+  memberId: number,
 ): Promise<boolean> {
   const [result] = await pool.execute<ResultSetHeader>(
     `DELETE FROM notifications WHERE notification_id = ? AND member_id = ?`,
-    [notificationId, memberId]
+    [notificationId, memberId],
   );
   return result.affectedRows > 0;
 }
@@ -107,7 +155,7 @@ export async function deleteNotification(
 export async function clearNotifications(memberId: number): Promise<number> {
   const [result] = await pool.execute<ResultSetHeader>(
     `DELETE FROM notifications WHERE member_id = ?`,
-    [memberId]
+    [memberId],
   );
   return result.affectedRows;
 }

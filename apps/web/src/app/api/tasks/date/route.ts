@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
 import { getTasksByDate } from "@/lib/task";
 import { checkWorkspaceAccess } from "@/lib/workspace";
@@ -18,14 +18,14 @@ export async function GET(request: NextRequest) {
     if (!workspaceId || !date) {
       return NextResponse.json(
         { error: "workspace_id and date are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // 워크스페이스 접근 권한 확인
     const hasAccess = await checkWorkspaceAccess(
       Number(workspaceId),
-      user.memberId
+      user.memberId,
     );
 
     if (!hasAccess) {
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     console.error("Failed to fetch tasks by date:", error);
     return NextResponse.json(
       { error: "Failed to fetch tasks by date" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { RowDataPacket } from "mysql2";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
 import pool from "@/lib/db";
-import type { RowDataPacket } from "mysql2";
 
 // GET /api/members/search?q=...&type=nickname|email
 export async function GET(request: NextRequest) {
@@ -36,12 +36,15 @@ export async function GET(request: NextRequest) {
        WHERE ${where}
        ORDER BY nickname ASC
        LIMIT 10`,
-      params
+      params,
     );
 
     return NextResponse.json({ results: rows });
   } catch (error) {
     console.error("Failed to search members:", error);
-    return NextResponse.json({ error: "Failed to search members" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to search members" },
+      { status: 500 },
+    );
   }
 }

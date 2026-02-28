@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
+import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import pool from "./db";
-import type { RowDataPacket, ResultSetHeader } from "mysql2/promise";
 
 export type TaskExportVisibility = "public" | "restricted";
 
@@ -26,14 +26,20 @@ export async function createTaskExport(params: {
   const [result] = await pool.execute<ResultSetHeader>(
     `INSERT INTO task_exports (task_id, token, visibility, created_by, created_at, expires_at)
      VALUES (?, ?, ?, ?, NOW(), ?)`,
-    [params.taskId, token, params.visibility, params.createdBy, params.expiresAt ?? null]
+    [
+      params.taskId,
+      token,
+      params.visibility,
+      params.createdBy,
+      params.expiresAt ?? null,
+    ],
   );
 
   await pool.execute(
     `INSERT INTO task_export_access (export_id, member_id)
      VALUES (?, ?)
      ON DUPLICATE KEY UPDATE export_id = export_id`,
-    [result.insertId, params.createdBy]
+    [result.insertId, params.createdBy],
   );
 
   return {
@@ -49,14 +55,14 @@ export async function createTaskExport(params: {
 }
 
 export async function getTaskExportByToken(
-  token: string
+  token: string,
 ): Promise<TaskExportRecord | null> {
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT *
      FROM task_exports
      WHERE token = ?
      LIMIT 1`,
-    [token]
+    [token],
   );
 
   return rows.length > 0 ? (rows[0] as TaskExportRecord) : null;
@@ -72,7 +78,7 @@ export interface TaskExportWithAccess extends TaskExportRecord {
 }
 
 export async function getTaskExportsForTask(
-  taskId: number
+  taskId: number,
 ): Promise<TaskExportWithAccess[]> {
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT
@@ -86,7 +92,7 @@ export async function getTaskExportsForTask(
      LEFT JOIN members m ON a.member_id = m.member_id
      WHERE e.task_id = ?
      ORDER BY e.created_at DESC`,
-    [taskId]
+    [taskId],
   );
 
   const map = new Map<number, TaskExportWithAccess>();
@@ -105,7 +111,7 @@ export async function getTaskExportsForTask(
       });
     }
     if (row.member_id) {
-      map.get(row.export_id)!.access_members.push({
+      map.get(row.export_id)?.access_members.push({
         member_id: row.member_id,
         nickname: row.nickname ?? null,
         email: row.email ?? null,
@@ -130,7 +136,7 @@ export async function getTaskExportWithTask(exportId: number): Promise<{
      JOIN tasks t ON e.task_id = t.id
      WHERE e.export_id = ?
      LIMIT 1`,
-    [exportId]
+    [exportId],
   );
   if (rows.length === 0) return null;
   const row: any = rows[0];
@@ -143,34 +149,34 @@ export async function getTaskExportWithTask(exportId: number): Promise<{
 
 export async function addExportAccess(
   exportId: number,
-  memberId: number
+  memberId: number,
 ): Promise<void> {
   await pool.execute(
     `INSERT INTO task_export_access (export_id, member_id)
      VALUES (?, ?)
      ON DUPLICATE KEY UPDATE export_id = export_id`,
-    [exportId, memberId]
+    [exportId, memberId],
   );
 }
 
 export async function removeExportAccess(
   exportId: number,
-  memberId: number
+  memberId: number,
 ): Promise<boolean> {
   const [result] = await pool.execute<ResultSetHeader>(
     `DELETE FROM task_export_access WHERE export_id = ? AND member_id = ?`,
-    [exportId, memberId]
+    [exportId, memberId],
   );
   return result.affectedRows > 0;
 }
 
 export async function hasExportAccess(
   exportId: number,
-  memberId: number
+  memberId: number,
 ): Promise<boolean> {
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT 1 FROM task_export_access WHERE export_id = ? AND member_id = ? LIMIT 1`,
-    [exportId, memberId]
+    [exportId, memberId],
   );
   return rows.length > 0;
 }
@@ -178,29 +184,29 @@ export async function hasExportAccess(
 export async function revokeExport(exportId: number): Promise<boolean> {
   const [result] = await pool.execute<ResultSetHeader>(
     `UPDATE task_exports SET revoked_at = NOW() WHERE export_id = ?`,
-    [exportId]
+    [exportId],
   );
   return result.affectedRows > 0;
 }
 
 export async function updateExportVisibility(
   exportId: number,
-  visibility: TaskExportVisibility
+  visibility: TaskExportVisibility,
 ): Promise<boolean> {
   const [result] = await pool.execute<ResultSetHeader>(
     `UPDATE task_exports SET visibility = ? WHERE export_id = ?`,
-    [visibility, exportId]
+    [visibility, exportId],
   );
   return result.affectedRows > 0;
 }
 
 export async function updateExportExpiry(
   exportId: number,
-  expiresAt: string | null
+  expiresAt: string | null,
 ): Promise<boolean> {
   const [result] = await pool.execute<ResultSetHeader>(
     `UPDATE task_exports SET expires_at = ? WHERE export_id = ?`,
-    [expiresAt, exportId]
+    [expiresAt, exportId],
   );
   return result.affectedRows > 0;
 }

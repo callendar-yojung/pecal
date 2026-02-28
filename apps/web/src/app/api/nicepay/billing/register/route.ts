@@ -1,11 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createHash } from "crypto";
+import { createHash } from "node:crypto";
+import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
-import { getPlanById } from "@/lib/plan";
-import { registerBillingKey, approveBilling, generateMoid } from "@/lib/nicepay";
-import { saveBillingKey, getActiveBillingKey } from "@/lib/billing-key";
-import { createSubscription } from "@/lib/subscription";
+import { getActiveBillingKey, saveBillingKey } from "@/lib/billing-key";
+import {
+  approveBilling,
+  generateMoid,
+  registerBillingKey,
+} from "@/lib/nicepay";
 import { createPaymentRecord } from "@/lib/payment-history";
+import { getPlanById } from "@/lib/plan";
+import { createSubscription } from "@/lib/subscription";
 
 /** GET - 현재 사용자의 활성 빌키(저장된 카드) 정보 반환 */
 export async function GET(request: NextRequest) {
@@ -32,7 +36,7 @@ export async function GET(request: NextRequest) {
 }
 
 async function parseBody(
-  request: NextRequest
+  request: NextRequest,
 ): Promise<Record<string, string>> {
   const contentType = request.headers.get("content-type") || "";
 
@@ -70,7 +74,7 @@ function detectLocale(request: NextRequest): string {
 function redirectToCheckout(
   request: NextRequest,
   status: string,
-  message: string
+  message: string,
 ) {
   const locale = detectLocale(request);
   const searchParams = request.nextUrl.searchParams;
@@ -80,7 +84,7 @@ function redirectToCheckout(
 
   const url = new URL(
     `/${locale}/dashboard/settings/billing/checkout`,
-    request.nextUrl.origin
+    request.nextUrl.origin,
   );
   url.searchParams.set("plan_id", planId);
   url.searchParams.set("owner_id", ownerId);
@@ -112,7 +116,11 @@ export async function POST(request: NextRequest) {
 
   try {
     console.log("[NicePay Billing] Callback received");
-    console.log("[NicePay Billing] Query params:", { planId, ownerId, ownerType });
+    console.log("[NicePay Billing] Query params:", {
+      planId,
+      ownerId,
+      ownerType,
+    });
 
     const body = await parseBody(request);
     console.log("[NicePay Billing] Parsed body keys:", Object.keys(body));
@@ -132,7 +140,7 @@ export async function POST(request: NextRequest) {
       return redirectToCheckout(
         request,
         "failed",
-        "서버 결제 설정이 올바르지 않습니다."
+        "서버 결제 설정이 올바르지 않습니다.",
       );
     }
 
@@ -140,18 +148,22 @@ export async function POST(request: NextRequest) {
       return redirectToCheckout(
         request,
         "failed",
-        "결제 파라미터가 올바르지 않습니다."
+        "결제 파라미터가 올바르지 않습니다.",
       );
     }
 
     // 1. 인증 결과 확인
     if (authResultCode !== "0000") {
       const authResultMsg = body.authResultMsg;
-      console.log("[NicePay Billing] Auth failed:", authResultCode, authResultMsg);
+      console.log(
+        "[NicePay Billing] Auth failed:",
+        authResultCode,
+        authResultMsg,
+      );
       return redirectToCheckout(
         request,
         "failed",
-        authResultMsg || "결제 인증에 실패했습니다."
+        authResultMsg || "결제 인증에 실패했습니다.",
       );
     }
 
@@ -165,19 +177,32 @@ export async function POST(request: NextRequest) {
       return redirectToCheckout(
         request,
         "failed",
-        "결제 서명 검증에 실패했습니다."
+        "결제 서명 검증에 실패했습니다.",
       );
     }
 
     // 3. 금액 일치 확인
     const plan = await getPlanById(Number(planId));
     if (!plan) {
-      return redirectToCheckout(request, "failed", "플랜 정보를 찾을 수 없습니다.");
+      return redirectToCheckout(
+        request,
+        "failed",
+        "플랜 정보를 찾을 수 없습니다.",
+      );
     }
 
     if (Number(amount) !== plan.price) {
-      console.error("[NicePay Billing] Amount mismatch:", amount, "vs", plan.price);
-      return redirectToCheckout(request, "failed", "결제 금액이 일치하지 않습니다.");
+      console.error(
+        "[NicePay Billing] Amount mismatch:",
+        amount,
+        "vs",
+        plan.price,
+      );
+      return redirectToCheckout(
+        request,
+        "failed",
+        "결제 금액이 일치하지 않습니다.",
+      );
     }
 
     // 4. 빌키(BID) 발급: POST /v1/billing/{tid}
@@ -186,7 +211,7 @@ export async function POST(request: NextRequest) {
       tid,
       orderId,
       Number(amount),
-      `Pecal ${plan.name}`
+      `Pecal ${plan.name}`,
     );
 
     // 5. 첫 결제 승인: POST /v1/billing/re-pay
@@ -196,7 +221,7 @@ export async function POST(request: NextRequest) {
       billingResult.bid,
       payOrderId,
       plan.price,
-      `Pecal ${plan.name}`
+      `Pecal ${plan.name}`,
     );
 
     // 6. DB에 빌키 저장
@@ -208,7 +233,7 @@ export async function POST(request: NextRequest) {
       billingResult.bid,
       billingResult.cardCode,
       billingResult.cardName,
-      billingResult.cardNo
+      billingResult.cardNo,
     );
 
     // 7. 구독 생성 (billingKeyMemberId 전달)
@@ -217,7 +242,7 @@ export async function POST(request: NextRequest) {
       ownerType,
       Number(planId),
       memberId,
-      memberId
+      memberId,
     );
 
     // 8. 첫 결제 이력 기록
@@ -243,7 +268,7 @@ export async function POST(request: NextRequest) {
     const locale = detectLocale(request);
     const successUrl = new URL(
       `/${locale}/dashboard/settings/billing`,
-      request.nextUrl.origin
+      request.nextUrl.origin,
     );
     successUrl.searchParams.set("nicepay", "success");
 
@@ -253,7 +278,7 @@ export async function POST(request: NextRequest) {
     return redirectToCheckout(
       request,
       "failed",
-      error.message || "결제 처리 중 서버 오류가 발생했습니다."
+      error.message || "결제 처리 중 서버 오류가 발생했습니다.",
     );
   }
 }

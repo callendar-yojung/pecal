@@ -1,7 +1,7 @@
+import type { Metadata } from "next";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
-import Link from "next/link";
-import type { Metadata } from "next";
 
 export async function generateMetadata({
   params,
@@ -38,9 +38,7 @@ export default function PrivacyPolicyPage() {
         <div className="space-y-8">
           {/* Title */}
           <div className="space-y-4">
-            <h1 className="text-4xl font-bold text-foreground">
-              {t("title")}
-            </h1>
+            <h1 className="text-4xl font-bold text-foreground">{t("title")}</h1>
             <p className="text-sm text-muted-foreground">{t("lastUpdated")}</p>
           </div>
 
@@ -62,9 +60,11 @@ export default function PrivacyPolicyPage() {
                   {t("section1.required.title")}
                 </h3>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-4">
-                  {(t.raw("section1.required.items") as string[]).map((item, i) => (
-                    <li key={i}>{item}</li>
-                  ))}
+                  {(t.raw("section1.required.items") as string[]).map(
+                    (item) => (
+                      <li key={item}>{item}</li>
+                    ),
+                  )}
                 </ul>
               </div>
 
@@ -73,9 +73,11 @@ export default function PrivacyPolicyPage() {
                   {t("section1.optional.title")}
                 </h3>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-4">
-                  {(t.raw("section1.optional.items") as string[]).map((item, i) => (
-                    <li key={i}>{item}</li>
-                  ))}
+                  {(t.raw("section1.optional.items") as string[]).map(
+                    (item) => (
+                      <li key={item}>{item}</li>
+                    ),
+                  )}
                 </ul>
               </div>
             </div>
@@ -88,8 +90,8 @@ export default function PrivacyPolicyPage() {
             </h2>
             <p className="text-muted-foreground">{t("section2.content")}</p>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section2.purposes") as string[]).map((purpose, i) => (
-                <li key={i}>{purpose}</li>
+              {(t.raw("section2.purposes") as string[]).map((purpose) => (
+                <li key={purpose}>{purpose}</li>
               ))}
             </ul>
           </section>
@@ -101,8 +103,8 @@ export default function PrivacyPolicyPage() {
             </h2>
             <p className="text-muted-foreground">{t("section3.content")}</p>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section3.retention") as string[]).map((item, i) => (
-                <li key={i}>{item}</li>
+              {(t.raw("section3.retention") as string[]).map((item) => (
+                <li key={item}>{item}</li>
               ))}
             </ul>
           </section>
@@ -114,8 +116,8 @@ export default function PrivacyPolicyPage() {
             </h2>
             <p className="text-muted-foreground">{t("section4.content")}</p>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section4.exceptions") as string[]).map((exception, i) => (
-                <li key={i}>{exception}</li>
+              {(t.raw("section4.exceptions") as string[]).map((exception) => (
+                <li key={exception}>{exception}</li>
               ))}
             </ul>
           </section>
@@ -138,8 +140,8 @@ export default function PrivacyPolicyPage() {
             </h2>
             <p className="text-muted-foreground">{t("section6.content")}</p>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section6.rights") as string[]).map((right, i) => (
-                <li key={i}>{right}</li>
+              {(t.raw("section6.rights") as string[]).map((right) => (
+                <li key={right}>{right}</li>
               ))}
             </ul>
             <p className="text-sm text-muted-foreground italic">
@@ -173,8 +175,8 @@ export default function PrivacyPolicyPage() {
             </h2>
             <p className="text-muted-foreground">{t("section8.content")}</p>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section8.measures") as string[]).map((measure, i) => (
-                <li key={i}>{measure}</li>
+              {(t.raw("section8.measures") as string[]).map((measure) => (
+                <li key={measure}>{measure}</li>
               ))}
             </ul>
           </section>
@@ -202,9 +204,11 @@ export default function PrivacyPolicyPage() {
                   {t("section9.contact.note")}
                 </p>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  {(t.raw("section9.contact.agencies") as string[]).map((agency, i) => (
-                    <li key={i}>• {agency}</li>
-                  ))}
+                  {(t.raw("section9.contact.agencies") as string[]).map(
+                    (agency) => (
+                      <li key={agency}>• {agency}</li>
+                    ),
+                  )}
                 </ul>
               </div>
             </div>

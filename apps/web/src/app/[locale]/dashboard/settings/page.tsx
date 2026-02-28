@@ -1,11 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useTranslations, useLocale } from "next-intl";
-import { useRouter, usePathname } from "@/i18n/routing";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useLocale, useTranslations } from "next-intl";
+import { useCallback, useEffect, useState } from "react";
 import Button from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useTheme } from "@/contexts/ThemeContext";
+import { usePathname, useRouter } from "@/i18n/routing";
 
 export default function SettingsPage() {
   const t = useTranslations("dashboard.settings");
@@ -20,14 +26,29 @@ export default function SettingsPage() {
   const [detectedTimezone, setDetectedTimezone] = useState("UTC");
   const [notifications, setNotifications] = useState(true);
 
+  // 쿠키 가져오기
+  const getCookie = useCallback((name: string): string | null => {
+    if (typeof document === "undefined") return null;
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
+    return null;
+  }, []);
+
+  // 쿠키 설정
+  const setCookie = useCallback((name: string, value: string, days = 365) => {
+    const expires = new Date();
+    expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+    document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
+  }, []);
+
   // 쿠키에서 설정 불러오기
   useEffect(() => {
     const savedTimezone = getCookie("timezone");
     const savedTimezoneAuto = getCookie("timezone_auto");
     const savedNotifications = getCookie("notifications");
 
-    const browserTz =
-      Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
     setDetectedTimezone(browserTz);
 
     if (savedTimezoneAuto) {
@@ -43,23 +64,7 @@ export default function SettingsPage() {
       setCookie("timezone", browserTz);
     }
     if (savedNotifications) setNotifications(savedNotifications === "true");
-  }, []);
-
-  // 쿠키 가져오기
-  const getCookie = (name: string): string | null => {
-    if (typeof document === "undefined") return null;
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
-    return null;
-  };
-
-  // 쿠키 설정
-  const setCookie = (name: string, value: string, days = 365) => {
-    const expires = new Date();
-    expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
-    document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
-  };
+  }, [getCookie, setCookie]);
 
   // 언어 변경
   const handleLanguageChange = (newLanguage: string) => {
@@ -87,8 +92,7 @@ export default function SettingsPage() {
   };
 
   const handleUseCurrentTimezone = () => {
-    const browserTz =
-      Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
     setDetectedTimezone(browserTz);
     handleTimezoneChange(browserTz);
   };
@@ -107,7 +111,7 @@ export default function SettingsPage() {
 
   // 저장 (모든 설정 확인)
   const handleSave = () => {
-    alert(t("general.save") + " " + "✓");
+    alert(`${t("general.save")} ✓`);
   };
 
   return (
@@ -121,9 +125,9 @@ export default function SettingsPage() {
           {/* 언어 설정 */}
           <div className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <label className="text-sm font-medium text-card-foreground">
+              <div className="text-sm font-medium text-card-foreground">
                 {t("general.language")}
-              </label>
+              </div>
               <p className="mt-1 text-sm text-muted-foreground">
                 {t("general.languageDesc")}
               </p>
@@ -142,9 +146,9 @@ export default function SettingsPage() {
           <div className="border-b border-border pb-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <label className="text-sm font-medium text-card-foreground">
+                <div className="text-sm font-medium text-card-foreground">
                   {t("general.timezone")}
-                </label>
+                </div>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {t("general.timezoneDesc")}
                 </p>
@@ -166,13 +170,13 @@ export default function SettingsPage() {
                   {t("general.timezoneAutoDesc")}
                 </p>
               </div>
-                <button
-                  type="button"
-                  onClick={handleAutoTimezoneToggle}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
-                    autoTimezone ? "bg-primary" : "bg-muted"
-                  }`}
-                >
+              <button
+                type="button"
+                onClick={handleAutoTimezoneToggle}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+                  autoTimezone ? "bg-primary" : "bg-muted"
+                }`}
+              >
                 <span
                   className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                     autoTimezone ? "translate-x-6" : "translate-x-1"
@@ -217,16 +221,18 @@ export default function SettingsPage() {
           {/* 테마 */}
           <div className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <label className="text-sm font-medium text-card-foreground">
+              <div className="text-sm font-medium text-card-foreground">
                 {t("general.theme")}
-              </label>
+              </div>
               <p className="mt-1 text-sm text-muted-foreground">
                 {t("general.themeDesc")}
               </p>
             </div>
             <select
               value={theme}
-              onChange={(e) => handleThemeChange(e.target.value as "light" | "dark" | "system")}
+              onChange={(e) =>
+                handleThemeChange(e.target.value as "light" | "dark" | "system")
+              }
               className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="light">light</option>
@@ -238,9 +244,9 @@ export default function SettingsPage() {
           {/* 알림 */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <label className="text-sm font-medium text-card-foreground">
+              <div className="text-sm font-medium text-card-foreground">
                 {t("general.notifications")}
-              </label>
+              </div>
               <p className="mt-1 text-sm text-muted-foreground">
                 {t("general.notificationsDesc")}
               </p>

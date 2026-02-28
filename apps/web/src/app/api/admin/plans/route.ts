@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
-import { getAllPlans, updatePlan, deletePlan } from "@/lib/plan";
+import { type NextRequest, NextResponse } from "next/server";
+import { deletePlan, getAllPlans, updatePlan } from "@/lib/plan";
 import { getRequiredEnv } from "@/lib/required-env";
 
 const secret = new TextEncoder().encode(getRequiredEnv("API_SECRET_KEY"));
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     console.error("Admin plans error:", error);
     return NextResponse.json(
       { error: "플랜 조회 중 오류가 발생했습니다." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -63,10 +63,16 @@ export async function PUT(request: NextRequest) {
       paypal_product_id,
     } = body;
 
-    if (!plan_id || !name || price === undefined || !max_members || !max_storage_mb) {
+    if (
+      !plan_id ||
+      !name ||
+      price === undefined ||
+      !max_members ||
+      !max_storage_mb
+    ) {
       return NextResponse.json(
         { error: "필수 항목을 모두 입력해주세요." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -75,13 +81,13 @@ export async function PUT(request: NextRequest) {
       name,
       price,
       max_members,
-      max_storage_mb
+      max_storage_mb,
     );
 
     if (!success) {
       return NextResponse.json(
         { error: "플랜 수정에 실패했습니다." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -93,7 +99,7 @@ export async function PUT(request: NextRequest) {
     console.error("Admin plan update error:", error);
     return NextResponse.json(
       { error: "플랜 수정 중 오류가 발생했습니다." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -113,7 +119,7 @@ export async function DELETE(request: NextRequest) {
     if (!planId) {
       return NextResponse.json(
         { error: "플랜 ID가 필요합니다." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -122,7 +128,7 @@ export async function DELETE(request: NextRequest) {
     if (!success) {
       return NextResponse.json(
         { error: "플랜 삭제에 실패했습니다." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -134,7 +140,7 @@ export async function DELETE(request: NextRequest) {
     console.error("Admin plan delete error:", error);
     return NextResponse.json(
       { error: "플랜 삭제 중 오류가 발생했습니다." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

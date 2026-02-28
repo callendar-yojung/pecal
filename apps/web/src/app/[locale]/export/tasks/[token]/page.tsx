@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import TaskViewPanel, { type TaskViewData } from "@/components/dashboard/TaskViewPanel";
+import { useEffect, useState } from "react";
+import TaskViewPanel, {
+  type TaskViewData,
+} from "@/components/dashboard/TaskViewPanel";
 
 type ExportError = "unauthorized" | "notFound" | "expired" | "unknown";
 
@@ -12,10 +14,13 @@ export default function TaskExportViewPage() {
   const params = useParams();
   const token = String(params?.token || "");
   const [task, setTask] = useState<TaskViewData | null>(null);
-  const [workspaceInfo, setWorkspaceInfo] = useState<{ type: "team" | "personal"; owner_id: number } | null>(
-    null
-  );
-  const [availableTags, setAvailableTags] = useState<Array<{ tag_id: number; name: string; color: string }>>([]);
+  const [workspaceInfo, setWorkspaceInfo] = useState<{
+    type: "team" | "personal";
+    owner_id: number;
+  } | null>(null);
+  const [availableTags, setAvailableTags] = useState<
+    Array<{ tag_id: number; name: string; color: string }>
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ExportError | null>(null);
 
@@ -64,9 +69,9 @@ export default function TaskExportViewPage() {
         ? t("unauthorized")
         : error === "expired"
           ? t("expired")
-        : error === "notFound"
-          ? t("notFound")
-          : t("unknownError");
+          : error === "notFound"
+            ? t("notFound")
+            : t("unknownError");
     return (
       <div className="mx-auto max-w-4xl px-4 py-10 text-sm text-muted-foreground">
         {message}

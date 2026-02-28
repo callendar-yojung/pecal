@@ -1,5 +1,5 @@
 import { fetch } from '@tauri-apps/plugin-http'
-import { ApiError, isRetryableStatus, mapStatusToApiCode, toApiError } from '@repo/api-client'
+import { ApiError, createRequestCoordinator, isRetryableStatus, mapStatusToApiCode, toApiError } from '@repo/api-client'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://pecal.site'
 const IS_DEV = import.meta.env.DEV
@@ -31,6 +31,7 @@ class ApiClient {
   private baseUrl: string
   private accessToken: string | null = null
   private refreshHandler: (() => Promise<{ accessToken: string; refreshToken?: string }>) | null = null
+  private coordinator = createRequestCoordinator()
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl
@@ -156,6 +157,22 @@ class ApiClient {
     return this.request<T>(endpoint, { method: 'GET' })
   }
 
+  getCached<T>(
+    cacheKey: string,
+    endpoint: string,
+    opts?: { cacheMs?: number; dedupe?: boolean; retries?: number },
+  ): Promise<T> {
+    return this.coordinator.run(
+      cacheKey,
+      () => this.get<T>(endpoint),
+      {
+        cacheMs: opts?.cacheMs ?? 0,
+        dedupe: opts?.dedupe ?? true,
+        retries: opts?.retries ?? 1,
+      },
+    )
+  }
+
   post<T>(endpoint: string, body?: unknown): Promise<T> {
     return this.request<T>(endpoint, { method: 'POST', body })
   }
@@ -170,6 +187,10 @@ class ApiClient {
 
   delete<T>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint, { method: 'DELETE' })
+  }
+
+  invalidateCache(prefix?: string) {
+    this.coordinator.invalidate(prefix)
   }
 
   async upload<T>(endpoint: string, file: File, fields: Record<string, string>, isRetry = false): Promise<T> {

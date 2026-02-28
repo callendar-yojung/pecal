@@ -35,9 +35,7 @@ export default function StatsCard({
       </div>
       <div className="mt-4">
         <p className="text-sm text-muted-foreground">{title}</p>
-        <p className="mt-1 text-3xl font-bold text-foreground">
-          {value}
-        </p>
+        <p className="mt-1 text-3xl font-bold text-foreground">{value}</p>
       </div>
     </div>
   );

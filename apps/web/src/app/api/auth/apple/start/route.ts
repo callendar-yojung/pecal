@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createOAuthState, isAllowedOAuthCallback } from "@/lib/oauth-state";
+import { type NextRequest, NextResponse } from "next/server";
 import { getOAuthRedirectUri } from "@/lib/oauth-redirect-uri";
+import { createOAuthState, isAllowedOAuthCallback } from "@/lib/oauth-state";
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     if (!APPLE_CLIENT_ID) {
       return NextResponse.json(
         { error: "Apple client ID not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -20,14 +20,14 @@ export async function GET(request: NextRequest) {
     if (!appCallback) {
       return NextResponse.json(
         { error: "callback parameter is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!isAllowedOAuthCallback(appCallback)) {
       return NextResponse.json(
         { error: "Invalid callback URL" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     console.error("Apple start error:", error);
     return NextResponse.json(
       { error: "Failed to start Apple OAuth", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

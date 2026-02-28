@@ -1,6 +1,6 @@
-import { NextRequest } from "next/server";
-import { verifyToken, type TokenPayload } from "./jwt";
+import type { NextRequest } from "next/server";
 import { auth } from "@/auth";
+import { verifyToken } from "./jwt";
 
 export interface AuthUser {
   memberId: number;
@@ -14,7 +14,9 @@ export interface AuthUser {
  * 1. Authorization 헤더의 Bearer 토큰 (JWT) 확인
  * 2. 없으면 NextAuth 세션 확인 (웹 브라우저용)
  */
-export async function getAuthUser(request?: NextRequest): Promise<AuthUser | null> {
+export async function getAuthUser(
+  request?: NextRequest,
+): Promise<AuthUser | null> {
   // 1. Authorization 헤더에서 JWT 확인
   if (request) {
     const authHeader = request.headers.get("authorization");
@@ -51,6 +53,8 @@ export async function getAuthUser(request?: NextRequest): Promise<AuthUser | nul
  * 인증 필수 API용 헬퍼
  * 인증되지 않으면 null 반환
  */
-export async function requireAuth(request?: NextRequest): Promise<AuthUser | null> {
+export async function requireAuth(
+  request?: NextRequest,
+): Promise<AuthUser | null> {
   return getAuthUser(request);
 }

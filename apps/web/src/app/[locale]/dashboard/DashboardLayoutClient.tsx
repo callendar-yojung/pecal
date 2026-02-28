@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sidebar, NotificationsBell } from "@/components/dashboard";
+import { NotificationsBell, Sidebar } from "@/components/dashboard";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 
 const DEFAULT_SIDEBAR_WIDTH = 256;
@@ -29,7 +29,10 @@ export default function DashboardLayoutClient({
 
     window.addEventListener("sidebarResize", handleResize as EventListener);
     return () => {
-      window.removeEventListener("sidebarResize", handleResize as EventListener);
+      window.removeEventListener(
+        "sidebarResize",
+        handleResize as EventListener,
+      );
     };
   }, []);
 
@@ -72,7 +75,9 @@ export default function DashboardLayoutClient({
             >
               Menu
             </button>
-            <span className="text-sm font-semibold text-foreground">Dashboard</span>
+            <span className="text-sm font-semibold text-foreground">
+              Dashboard
+            </span>
             <div className="ml-auto">
               <NotificationsBell />
             </div>
@@ -80,7 +85,9 @@ export default function DashboardLayoutClient({
         )}
         <main
           style={{
-            paddingLeft: isMobile ? "0px" : `${sidebarWidth + SIDEBAR_GUTTER}px`,
+            paddingLeft: isMobile
+              ? "0px"
+              : `${sidebarWidth + SIDEBAR_GUTTER}px`,
           }}
           className="dashboard-content transition-[padding-left] duration-0"
         >

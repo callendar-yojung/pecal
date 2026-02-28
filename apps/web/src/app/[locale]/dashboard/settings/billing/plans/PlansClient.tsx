@@ -1,8 +1,8 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useCallback, useEffect, useState } from "react";
 
 interface Plan {
   id: number;
@@ -29,14 +29,18 @@ interface Team {
   name: string;
 }
 
-export default function PlansClient({ mode = "combined" }: { mode?: "personal" | "team" | "combined" }) {
+export default function PlansClient({
+  mode = "combined",
+}: {
+  mode?: "personal" | "team" | "combined";
+}) {
   const t = useTranslations("dashboard.settings.billing.plans");
   const tPricing = useTranslations("pricing");
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectionOwnerType =
     mode === "combined"
-      ? ((searchParams.get("owner_type") as "team" | "personal") || "personal")
+      ? (searchParams.get("owner_type") as "team" | "personal") || "personal"
       : mode;
   const selectionOwnerId = searchParams.get("owner_id");
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -50,38 +54,7 @@ export default function PlansClient({ mode = "combined" }: { mode?: "personal" |
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    const fetchTeams = async () => {
-      try {
-        const res = await fetch("/api/me/teams");
-        const data = await res.json();
-        const list: Team[] = data?.teams || [];
-        setTeams(list);
-        if (!selectedTeamId && list.length > 0) {
-          setSelectedTeamId(list[0].id);
-        }
-      } catch {
-        setTeams([]);
-      }
-    };
-    if (mode !== "personal") {
-      fetchTeams();
-    }
-  }, [selectedTeamId, mode]);
-
-  useEffect(() => {
-    if (selectionOwnerType !== "team" || selectionOwnerId) return;
-    const pendingTeamId = sessionStorage.getItem("pending_team_id");
-    if (pendingTeamId) {
-      setCurrentOwnerId(Number(pendingTeamId));
-    }
-  }, [selectionOwnerType, selectionOwnerId]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const plansRes = await fetch("/api/plans");
       if (!plansRes.ok) {
@@ -113,11 +86,11 @@ export default function PlansClient({ mode = "combined" }: { mode?: "personal" |
 
       if (selectionOwnerType === "personal" && ownerId) {
         const currentSubRes = await fetch(
-          `/api/subscriptions?owner_id=${ownerId}&owner_type=personal&active=true`
+          `/api/subscriptions?owner_id=${ownerId}&owner_type=personal&active=true`,
         );
         const currentSubData = await currentSubRes.json();
 
-        if (currentSubData && currentSubData.plan_id) {
+        if (currentSubData?.plan_id) {
           setCurrentSubscription(currentSubData);
         } else {
           const basicPlan = plansData.find((p: Plan) => p.name === "Basic");
@@ -139,7 +112,38 @@ export default function PlansClient({ mode = "combined" }: { mode?: "personal" |
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectionOwnerId, selectionOwnerType]);
+
+  useEffect(() => {
+    const fetchTeams = async () => {
+      try {
+        const res = await fetch("/api/me/teams");
+        const data = await res.json();
+        const list: Team[] = data?.teams || [];
+        setTeams(list);
+        if (!selectedTeamId && list.length > 0) {
+          setSelectedTeamId(list[0].id);
+        }
+      } catch {
+        setTeams([]);
+      }
+    };
+    if (mode !== "personal") {
+      fetchTeams();
+    }
+  }, [selectedTeamId, mode]);
+
+  useEffect(() => {
+    if (selectionOwnerType !== "team" || selectionOwnerId) return;
+    const pendingTeamId = sessionStorage.getItem("pending_team_id");
+    if (pendingTeamId) {
+      setCurrentOwnerId(Number(pendingTeamId));
+    }
+  }, [selectionOwnerType, selectionOwnerId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleSelectPlan = async (plan: Plan) => {
     const ownerId =
@@ -155,7 +159,7 @@ export default function PlansClient({ mode = "combined" }: { mode?: "personal" |
     setSelectedPlanId(plan.id);
 
     router.push(
-      `/dashboard/settings/billing/checkout?plan_id=${plan.id}&owner_type=${selectionOwnerType}&owner_id=${ownerId}`
+      `/dashboard/settings/billing/checkout?plan_id=${plan.id}&owner_type=${selectionOwnerType}&owner_id=${ownerId}`,
     );
   };
 
@@ -169,9 +173,10 @@ export default function PlansClient({ mode = "combined" }: { mode?: "personal" |
     return name.includes("team") || name.includes("enterprise");
   };
 
-  const visiblePlans = selectionOwnerType === "team"
-    ? plans.filter(isTeamPlan)
-    : plans.filter((plan) => !isTeamPlan(plan));
+  const visiblePlans =
+    selectionOwnerType === "team"
+      ? plans.filter(isTeamPlan)
+      : plans.filter((plan) => !isTeamPlan(plan));
 
   if (loading) {
     return (
@@ -187,6 +192,7 @@ export default function PlansClient({ mode = "combined" }: { mode?: "personal" |
         <div className="text-center">
           <p className="text-muted-foreground">{t("loadError")}</p>
           <button
+            type="button"
             onClick={fetchData}
             className="ui-button-primary mt-4 px-4 py-2 text-sm"
           >
@@ -202,6 +208,7 @@ export default function PlansClient({ mode = "combined" }: { mode?: "personal" |
       <div className="mx-auto max-w-7xl">
         <div className="dashboard-hero-card premium-noise mb-8 p-8 text-center">
           <button
+            type="button"
             onClick={() => router.back()}
             className="mb-4 text-sm text-muted-foreground hover:text-foreground"
           >
@@ -216,114 +223,14 @@ export default function PlansClient({ mode = "combined" }: { mode?: "personal" |
         </div>
 
         {selectionOwnerType !== "team" && (
-        <div className="mb-12">
-          <div className="mb-6 flex items-center gap-3">
-            <h2 className="text-2xl font-bold">{t("personalTitle")}</h2>
-            <span className="text-sm text-muted-foreground">
-              {t("personalSubtitle")}
-            </span>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {visiblePlans.map((plan) => {
-              const isCurrent = isCurrentPlan(plan.id);
-              const isSelected = selectedPlanId === plan.id;
-
-              return (
-                <div
-                  key={plan.id}
-                  className={`dashboard-glass-card p-6 transition-all ${
-                    isCurrent ? "border-primary bg-primary/5" : "border-border/70"
-                  }`}
-                >
-                  <div className="mb-4">
-                    <h3 className="text-xl font-semibold">{plan.name}</h3>
-                    <div className="mt-2 flex items-baseline gap-2">
-                      <span className="text-3xl font-bold">
-                        {plan.price === 0 ? "무료" : `₩${plan.price.toLocaleString()}`}
-                      </span>
-                      {plan.price > 0 && (
-                        <span className="text-sm text-muted-foreground">/월</span>
-                      )}
-                    </div>
-                  </div>
-
-                  <ul className="mb-6 space-y-2 text-sm text-muted-foreground">
-                    <li>멤버 {plan.max_members}명</li>
-                    <li>스토리지 {plan.max_storage_mb}MB</li>
-                  </ul>
-
-                  <button
-                    onClick={() => handleSelectPlan(plan)}
-                    disabled={isCurrent || plan.price === 0}
-                    className={`w-full rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
-                      isCurrent
-                        ? "bg-primary text-white"
-                        : plan.price === 0
-                        ? "bg-muted text-muted-foreground"
-                        : "bg-primary text-primary-foreground shadow-[0_10px_24px_rgba(59,130,246,0.34)] hover:bg-primary/90"
-                    }`}
-                  >
-                    {isCurrent
-                      ? t("currentPlan")
-                      : plan.price === 0
-                      ? t("freePlan")
-                      : isSelected
-                      ? t("processing")
-                      : t("select")}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-        )}
-
-        {selectionOwnerType === "team" && (
-        <div className="mb-12">
-          <div className="mb-6 flex items-center gap-3">
-            <h2 className="text-2xl font-bold">{t("teamSection")}</h2>
-            <span className="text-sm text-muted-foreground">
-              {t("teamDesc")}
-            </span>
-          </div>
-
-          {teams.length === 0 ? (
-            <div className="dashboard-glass-card rounded-2xl p-6 text-sm text-muted-foreground">
-              {t("teamNoTeams")}
+          <div className="mb-12">
+            <div className="mb-6 flex items-center gap-3">
+              <h2 className="text-2xl font-bold">{t("personalTitle")}</h2>
+              <span className="text-sm text-muted-foreground">
+                {t("personalSubtitle")}
+              </span>
             </div>
-          ) : (
-            <div className="mb-6 flex flex-wrap items-center gap-3">
-              <label className="text-sm text-muted-foreground">
-                {t("teamSelectLabel")}
-              </label>
-              <select
-                value={selectedTeamId ?? ""}
-                onChange={(e) => setSelectedTeamId(Number(e.target.value))}
-                className="rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
-              >
-                {teams.map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!selectedTeamId) return;
-                  router.push(
-                    `/dashboard/settings/billing/plans?owner_type=team&owner_id=${selectedTeamId}`
-                  );
-                }}
-                className="ui-button px-3 py-2 text-sm"
-              >
-                {t("teamGo")}
-              </button>
-            </div>
-          )}
 
-          {selectionOwnerType === "team" && selectedTeamId ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {visiblePlans.map((plan) => {
                 const isCurrent = isCurrentPlan(plan.id);
@@ -333,17 +240,23 @@ export default function PlansClient({ mode = "combined" }: { mode?: "personal" |
                   <div
                     key={plan.id}
                     className={`dashboard-glass-card p-6 transition-all ${
-                      isCurrent ? "border-primary bg-primary/5" : "border-border/70"
+                      isCurrent
+                        ? "border-primary bg-primary/5"
+                        : "border-border/70"
                     }`}
                   >
                     <div className="mb-4">
                       <h3 className="text-xl font-semibold">{plan.name}</h3>
                       <div className="mt-2 flex items-baseline gap-2">
                         <span className="text-3xl font-bold">
-                          {plan.price === 0 ? "무료" : `₩${plan.price.toLocaleString()}`}
+                          {plan.price === 0
+                            ? "무료"
+                            : `₩${plan.price.toLocaleString()}`}
                         </span>
                         {plan.price > 0 && (
-                          <span className="text-sm text-muted-foreground">/월</span>
+                          <span className="text-sm text-muted-foreground">
+                            /월
+                          </span>
                         )}
                       </div>
                     </div>
@@ -354,34 +267,142 @@ export default function PlansClient({ mode = "combined" }: { mode?: "personal" |
                     </ul>
 
                     <button
+                      type="button"
                       onClick={() => handleSelectPlan(plan)}
                       disabled={isCurrent || plan.price === 0}
                       className={`w-full rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
                         isCurrent
                           ? "bg-primary text-white"
                           : plan.price === 0
-                          ? "bg-muted text-muted-foreground"
-                          : "bg-primary text-primary-foreground shadow-[0_10px_24px_rgba(59,130,246,0.34)] hover:bg-primary/90"
+                            ? "bg-muted text-muted-foreground"
+                            : "bg-primary text-primary-foreground shadow-[0_10px_24px_rgba(59,130,246,0.34)] hover:bg-primary/90"
                       }`}
                     >
                       {isCurrent
                         ? t("currentPlan")
                         : plan.price === 0
-                        ? t("freePlan")
-                        : isSelected
-                        ? t("processing")
-                        : t("select")}
+                          ? t("freePlan")
+                          : isSelected
+                            ? t("processing")
+                            : t("select")}
                     </button>
                   </div>
                 );
               })}
             </div>
-          ) : (
-            <div className="dashboard-glass-card rounded-2xl p-6 text-sm text-muted-foreground">
-              {t("teamGuide")}
+          </div>
+        )}
+
+        {selectionOwnerType === "team" && (
+          <div className="mb-12">
+            <div className="mb-6 flex items-center gap-3">
+              <h2 className="text-2xl font-bold">{t("teamSection")}</h2>
+              <span className="text-sm text-muted-foreground">
+                {t("teamDesc")}
+              </span>
             </div>
-          )}
-        </div>
+
+            {teams.length === 0 ? (
+              <div className="dashboard-glass-card rounded-2xl p-6 text-sm text-muted-foreground">
+                {t("teamNoTeams")}
+              </div>
+            ) : (
+              <div className="mb-6 flex flex-wrap items-center gap-3">
+                <div className="text-sm text-muted-foreground">
+                  {t("teamSelectLabel")}
+                </div>
+                <select
+                  value={selectedTeamId ?? ""}
+                  onChange={(e) => setSelectedTeamId(Number(e.target.value))}
+                  className="rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-sm"
+                >
+                  {teams.map((team) => (
+                    <option key={team.id} value={team.id}>
+                      {team.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!selectedTeamId) return;
+                    router.push(
+                      `/dashboard/settings/billing/plans?owner_type=team&owner_id=${selectedTeamId}`,
+                    );
+                  }}
+                  className="ui-button px-3 py-2 text-sm"
+                >
+                  {t("teamGo")}
+                </button>
+              </div>
+            )}
+
+            {selectionOwnerType === "team" && selectedTeamId ? (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {visiblePlans.map((plan) => {
+                  const isCurrent = isCurrentPlan(plan.id);
+                  const isSelected = selectedPlanId === plan.id;
+
+                  return (
+                    <div
+                      key={plan.id}
+                      className={`dashboard-glass-card p-6 transition-all ${
+                        isCurrent
+                          ? "border-primary bg-primary/5"
+                          : "border-border/70"
+                      }`}
+                    >
+                      <div className="mb-4">
+                        <h3 className="text-xl font-semibold">{plan.name}</h3>
+                        <div className="mt-2 flex items-baseline gap-2">
+                          <span className="text-3xl font-bold">
+                            {plan.price === 0
+                              ? "무료"
+                              : `₩${plan.price.toLocaleString()}`}
+                          </span>
+                          {plan.price > 0 && (
+                            <span className="text-sm text-muted-foreground">
+                              /월
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <ul className="mb-6 space-y-2 text-sm text-muted-foreground">
+                        <li>멤버 {plan.max_members}명</li>
+                        <li>스토리지 {plan.max_storage_mb}MB</li>
+                      </ul>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSelectPlan(plan)}
+                        disabled={isCurrent || plan.price === 0}
+                        className={`w-full rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
+                          isCurrent
+                            ? "bg-primary text-white"
+                            : plan.price === 0
+                              ? "bg-muted text-muted-foreground"
+                              : "bg-primary text-primary-foreground shadow-[0_10px_24px_rgba(59,130,246,0.34)] hover:bg-primary/90"
+                        }`}
+                      >
+                        {isCurrent
+                          ? t("currentPlan")
+                          : plan.price === 0
+                            ? t("freePlan")
+                            : isSelected
+                              ? t("processing")
+                              : t("select")}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="dashboard-glass-card rounded-2xl p-6 text-sm text-muted-foreground">
+                {t("teamGuide")}
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>

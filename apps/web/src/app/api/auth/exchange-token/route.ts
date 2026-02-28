@@ -13,10 +13,7 @@ export async function POST() {
     const session = await auth();
 
     if (!session?.user?.memberId) {
-      return NextResponse.json(
-        { error: "Not authenticated" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     // JWT 토큰 생성
@@ -44,7 +41,7 @@ export async function POST() {
     console.error("Token exchange error:", error);
     return NextResponse.json(
       { error: "Failed to exchange token" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

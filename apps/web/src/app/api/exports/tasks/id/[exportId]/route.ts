@@ -1,15 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
+import { requireExportAccessById } from "@/lib/access";
 import {
   revokeExport,
+  type TaskExportVisibility,
   updateExportExpiry,
   updateExportVisibility,
-  type TaskExportVisibility,
 } from "@/lib/task-export";
-import { requireExportAccessById } from "@/lib/access";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ exportId: string }> }
+  { params }: { params: Promise<{ exportId: string }> },
 ) {
   const { exportId } = await params;
   const id = Number(exportId);

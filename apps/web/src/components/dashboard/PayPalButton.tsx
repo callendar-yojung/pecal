@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 declare global {
   interface Window {
@@ -39,14 +39,14 @@ export default function PayPalButton({
     }
 
     // 이미 로드된 스크립트가 있으면 제거
-    const existingScript = document.querySelector('script[data-paypal-sdk]');
+    const existingScript = document.querySelector("script[data-paypal-sdk]");
     if (existingScript) {
       existingScript.remove();
     }
 
     const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
 
-    if (!clientId || clientId === 'sb') {
+    if (!clientId || clientId === "sb") {
       setLoading(false);
       setError("PayPal Client ID가 설정되지 않았습니다.");
       return;
@@ -54,7 +54,7 @@ export default function PayPalButton({
 
     // PayPal SDK 스크립트 로드
     const script = document.createElement("script");
-    script.setAttribute('data-paypal-sdk', 'true');
+    script.setAttribute("data-paypal-sdk", "true");
     // 구독 기능을 위한 파라미터
     script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&vault=true&intent=subscription&currency=USD`;
     script.async = true;
@@ -81,27 +81,14 @@ export default function PayPalButton({
     };
   }, [paypalPlanId, onError]);
 
-  useEffect(() => {
-    if (sdkReady && window.paypal && paypalRef.current && paypalPlanId) {
-      console.log("PayPal 버튼 렌더링 시작", {
-        paypalPlanId,
-        planId,
-        ownerId,
-        ownerType
-      });
-      renderPayPalButton();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sdkReady, paypalPlanId]);
-
-  const renderPayPalButton = () => {
+  const renderPayPalButton = useCallback(() => {
     if (!window.paypal || !paypalRef.current || !paypalPlanId) {
       console.error("PayPal SDK 또는 ref가 준비되지 않음");
       return;
     }
 
     // 기존 버튼 제거
-    paypalRef.current.innerHTML = '';
+    paypalRef.current.innerHTML = "";
 
     try {
       console.log("구독 버튼 생성 중, Plan ID:", paypalPlanId);
@@ -113,29 +100,32 @@ export default function PayPalButton({
             color: "gold",
             shape: "rect",
             label: "subscribe",
-            height: 40
+            height: 40,
           },
-          createSubscription: function(data: any, actions: any) {
+          createSubscription: (data: any, actions: any) => {
             console.log("구독 생성 중, Plan ID:", paypalPlanId);
             return actions.subscription.create({
               plan_id: paypalPlanId,
             });
           },
-          onApprove: async function(data: any) {
+          onApprove: async (data: any) => {
             console.log("구독 승인됨:", data);
             try {
-              const response = await fetch("/api/paypal/subscription/activate", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
+              const response = await fetch(
+                "/api/paypal/subscription/activate",
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    subscription_id: data.subscriptionID,
+                    owner_id: ownerId,
+                    owner_type: ownerType,
+                    plan_id: planId,
+                  }),
                 },
-                body: JSON.stringify({
-                  subscription_id: data.subscriptionID,
-                  owner_id: ownerId,
-                  owner_type: ownerType,
-                  plan_id: planId,
-                }),
-              });
+              );
 
               const result = await response.json();
 
@@ -152,14 +142,14 @@ export default function PayPalButton({
               onError?.(error);
             }
           },
-          onError: function(error: any) {
+          onError: (error: any) => {
             console.error("PayPal 버튼 오류:", error);
             setError("PayPal 결제 처리 중 오류가 발생했습니다.");
             onError?.(error);
           },
-          onCancel: function(data: any) {
+          onCancel: (data: any) => {
             console.log("사용자가 결제를 취소함:", data);
-          }
+          },
         })
         .render(paypalRef.current)
         .then(() => {
@@ -174,7 +164,19 @@ export default function PayPalButton({
       console.error("PayPal 버튼 생성 실패:", err);
       setError("PayPal 버튼 생성 중 오류가 발생했습니다.");
     }
-  };
+  }, [onError, onSuccess, ownerId, ownerType, paypalPlanId, planId]);
+
+  useEffect(() => {
+    if (sdkReady && window.paypal && paypalRef.current && paypalPlanId) {
+      console.log("PayPal 버튼 렌더링 시작", {
+        paypalPlanId,
+        planId,
+        ownerId,
+        ownerType,
+      });
+      renderPayPalButton();
+    }
+  }, [sdkReady, paypalPlanId, planId, ownerId, ownerType, renderPayPalButton]);
 
   if (loading) {
     return (
@@ -187,9 +189,7 @@ export default function PayPalButton({
   if (error) {
     return (
       <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4">
-        <p className="text-sm text-destructive">
-          ⚠️ {error}
-        </p>
+        <p className="text-sm text-destructive">⚠️ {error}</p>
       </div>
     );
   }

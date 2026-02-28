@@ -1,33 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Extension } from "@tiptap/core";
+import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+import Color from "@tiptap/extension-color";
+import Highlight from "@tiptap/extension-highlight";
+import Link from "@tiptap/extension-link";
+import TaskItem from "@tiptap/extension-task-item";
+import TaskList from "@tiptap/extension-task-list";
+import TextAlign from "@tiptap/extension-text-align";
+import TextStyle from "@tiptap/extension-text-style";
+import Underline from "@tiptap/extension-underline";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import Underline from "@tiptap/extension-underline";
-import TextStyle from "@tiptap/extension-text-style";
-import Color from "@tiptap/extension-color";
-import Link from "@tiptap/extension-link";
-import TaskList from "@tiptap/extension-task-list";
-import TaskItem from "@tiptap/extension-task-item";
-import TextAlign from "@tiptap/extension-text-align";
-import Highlight from "@tiptap/extension-highlight";
-import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
-import { lowlight } from "lowlight/lib/core";
-import javascript from "highlight.js/lib/languages/javascript";
-import typescript from "highlight.js/lib/languages/typescript";
-import python from "highlight.js/lib/languages/python";
-import go from "highlight.js/lib/languages/go";
-import java from "highlight.js/lib/languages/java";
-import json from "highlight.js/lib/languages/json";
 import bash from "highlight.js/lib/languages/bash";
 import css from "highlight.js/lib/languages/css";
-import xml from "highlight.js/lib/languages/xml";
+import go from "highlight.js/lib/languages/go";
+import java from "highlight.js/lib/languages/java";
+import javascript from "highlight.js/lib/languages/javascript";
+import json from "highlight.js/lib/languages/json";
 import markdown from "highlight.js/lib/languages/markdown";
+import python from "highlight.js/lib/languages/python";
 import sql from "highlight.js/lib/languages/sql";
+import typescript from "highlight.js/lib/languages/typescript";
+import xml from "highlight.js/lib/languages/xml";
 import yaml from "highlight.js/lib/languages/yaml";
-import { Extension } from "@tiptap/core";
-import RichTextToolbar from "./RichTextToolbar";
+import { lowlight } from "lowlight/lib/core";
+import { useEffect, useState } from "react";
 import { FontSize } from "./FontSize";
+import RichTextToolbar from "./RichTextToolbar";
 
 const registerLanguages = () => {
   lowlight.registerLanguage("javascript", javascript);
@@ -135,7 +135,10 @@ export default function RichTextEditor({
         types: ["heading", "paragraph"],
       }),
     ],
-    content: initialContent ?? { type: "doc", content: [{ type: "paragraph" }] },
+    content: initialContent ?? {
+      type: "doc",
+      content: [{ type: "paragraph" }],
+    },
     editable: !readOnly,
     editorProps: {
       attributes: {
@@ -156,7 +159,7 @@ export default function RichTextEditor({
     if (!editor || !initialContent) return;
     editor.commands.setContent(initialContent, false);
     setIsEmpty(editor.isEmpty);
-  }, [editor, contentKey]);
+  }, [editor, initialContent]);
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">

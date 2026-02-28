@@ -2,8 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import TaskFormPanel, {
+  type TaskFormData,
+} from "@/components/dashboard/TaskFormPanel";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import TaskFormPanel, { type TaskFormData } from "@/components/dashboard/TaskFormPanel";
 
 export default function TaskCreatePage() {
   const t = useTranslations("dashboard.tasks");
@@ -22,6 +24,8 @@ export default function TaskCreatePage() {
         end_time: taskData.end_time,
         content: taskData.content,
         color: taskData.color,
+        reminder_minutes: taskData.reminder_minutes ?? null,
+        rrule: taskData.rrule ?? null,
         tag_ids: taskData.tag_ids,
         file_ids: taskData.file_ids,
         workspace_id: currentWorkspace.workspace_id,

@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
-import { useTranslations } from "next-intl";
-import { Plus, UserCircle2, UsersRound, Check, X } from "lucide-react";
-import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { Check, Plus, UserCircle2, UsersRound, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 export interface Workspace {
   workspace_id: number;
@@ -56,7 +56,7 @@ export default function WorkspaceList() {
     } finally {
       setLoading(false);
     }
-  }, [currentWorkspace?.type, currentWorkspace?.owner_id]);
+  }, [currentWorkspace?.type, currentWorkspace?.owner_id, currentWorkspace]);
 
   // Fetch workspaces when current workspace changes
   useEffect(() => {
@@ -175,7 +175,7 @@ export default function WorkspaceList() {
         // 삭제한 워크스페이스가 현재 선택된 것이면 다른 워크스페이스로 전환
         if (currentWorkspace?.workspace_id === deleteTargetId) {
           const remaining = workspaces.filter(
-            (w) => w.workspace_id !== deleteTargetId
+            (w) => w.workspace_id !== deleteTargetId,
           );
           if (remaining.length > 0) {
             setCurrentWorkspace(remaining[0]);
@@ -251,7 +251,11 @@ export default function WorkspaceList() {
               >
                 {isSaving ? (
                   <span className="flex items-center justify-center gap-1">
-                    <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24">
+                    <svg
+                      aria-hidden="true"
+                      className="h-3 w-3 animate-spin"
+                      viewBox="0 0 24 24"
+                    >
                       <circle
                         className="opacity-25"
                         cx="12"
@@ -378,9 +382,13 @@ export default function WorkspaceList() {
                         )}
                       </div>
 
-                      <span className="truncate flex-1 text-left">{ws.name}</span>
+                      <span className="truncate flex-1 text-left">
+                        {ws.name}
+                      </span>
 
-                      {isActive && <Check className="h-4 w-4 flex-shrink-0 text-primary" />}
+                      {isActive && (
+                        <Check className="h-4 w-4 flex-shrink-0 text-primary" />
+                      )}
                     </button>
 
                     {/* 삭제 버튼 (hover 시 표시) */}
@@ -432,6 +440,7 @@ export default function WorkspaceList() {
                 {isDeleting ? (
                   <span className="flex items-center justify-center gap-1">
                     <svg
+                      aria-hidden="true"
                       className="h-3.5 w-3.5 animate-spin"
                       fill="none"
                       viewBox="0 0 24 24"

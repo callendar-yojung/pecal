@@ -57,7 +57,10 @@ export const useViewStore = create<ViewState>((set) => ({
     })),
   openTaskDetail: (task) =>
     set((state) => ({
-      previousView: state.activeView,
+      previousView:
+        state.activeView === 'task_create'
+          ? state.previousView ?? 'overview'
+          : state.activeView,
       activeView: 'task_detail',
       detailTask: task,
     })),

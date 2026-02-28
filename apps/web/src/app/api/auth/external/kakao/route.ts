@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { findOrCreateMember } from "@/lib/member";
+import { type NextRequest, NextResponse } from "next/server";
 import { generateTokenPair } from "@/lib/jwt";
+import { findOrCreateMember } from "@/lib/member";
 
 interface KakaoUserResponse {
   id: number;
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     if (!access_token) {
       return NextResponse.json(
         { error: "access_token is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     if (!kakaoResponse.ok) {
       return NextResponse.json(
         { error: "Invalid kakao access token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     if (!kakaoUser.id) {
       return NextResponse.json(
         { error: "Failed to get kakao user info" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     const member = await findOrCreateMember(
       "kakao",
       String(kakaoUser.id),
-      kakaoUser.kakao_account?.email || null
+      kakaoUser.kakao_account?.email || null,
     );
 
     // JWT 토큰 발급
@@ -80,9 +80,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("External kakao login error:", error);
-    return NextResponse.json(
-      { error: "Login failed" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Login failed" }, { status: 500 });
   }
 }

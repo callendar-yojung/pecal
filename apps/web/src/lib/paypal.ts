@@ -78,7 +78,11 @@ export async function getOrder(orderId: string) {
 }
 
 // 환불 처리
-export async function refundCapture(captureId: string, amount?: number, currency = "USD") {
+export async function refundCapture(
+  captureId: string,
+  amount?: number,
+  currency = "USD",
+) {
   const request = new paypal.payments.CapturesRefundRequest(captureId);
   request.requestBody(
     amount
@@ -88,7 +92,7 @@ export async function refundCapture(captureId: string, amount?: number, currency
             value: amount.toFixed(2),
           },
         }
-      : {}
+      : {},
   );
 
   try {

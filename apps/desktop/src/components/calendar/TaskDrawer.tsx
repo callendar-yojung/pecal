@@ -3,12 +3,13 @@ import { useTranslation } from 'react-i18next'
 import { format, isSameDay } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { useCalendarStore, useViewStore } from '../../stores'
-import type { TaskStatus } from '../../types'
+import type { Task, TaskStatus } from '../../types'
 import { parseApiDateTime } from '../../utils/datetime'
 
 interface TaskDrawerProps {
   isOpen: boolean
   onClose: () => void
+  onOpenTaskDetail?: (task: Task) => void
 }
 
 const statusConfig: Record<
@@ -32,7 +33,7 @@ const statusConfig: Record<
   },
 }
 
-export function TaskDrawer({ isOpen, onClose }: TaskDrawerProps) {
+export function TaskDrawer({ isOpen, onClose, onOpenTaskDetail }: TaskDrawerProps) {
   const { t, i18n } = useTranslation()
   const { selectedDate, events } = useCalendarStore()
   const { openTaskDetail } = useViewStore()
@@ -121,7 +122,11 @@ export function TaskDrawer({ isOpen, onClose }: TaskDrawerProps) {
                 <button
                   key={task.id}
                   onClick={() => {
-                    openTaskDetail(task)
+                    if (onOpenTaskDetail) {
+                      void onOpenTaskDetail(task)
+                    } else {
+                      openTaskDetail(task)
+                    }
                     onClose()
                   }}
                   className="w-full text-left p-3 rounded-lg border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group"

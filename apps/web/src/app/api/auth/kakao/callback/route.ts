@@ -1,10 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { findOrCreateMember } from "@/lib/member";
+import { type NextRequest, NextResponse } from "next/server";
 import { generateAccessToken, generateRefreshToken } from "@/lib/jwt";
-import {
-  verifyOAuthState,
-} from "@/lib/oauth-state";
+import { findOrCreateMember } from "@/lib/member";
 import { getOAuthRedirectUri } from "@/lib/oauth-redirect-uri";
+import { verifyOAuthState } from "@/lib/oauth-state";
 
 /**
  * GET /api/auth/kakao/callback?code=XXX&state=deskcal://auth/callback
@@ -49,13 +47,12 @@ export async function GET(request: NextRequest) {
 
   try {
     console.log("🔑 카카오 OAuth 콜백 처리 시작:", {
-      code: code.substring(0, 10) + "...",
-      appCallback: appCallback
+      code: `${code.substring(0, 10)}...`,
+      appCallback: appCallback,
     });
 
     // redirect_uri는 반드시 카카오에 등록된 URL을 사용해야 함
     const redirectUri = getOAuthRedirectUri(request, "kakao");
-
 
     // 1. 카카오 액세스 토큰 받기
     const tokenResponse = await fetch("https://kauth.kakao.com/oauth/token", {
@@ -128,17 +125,17 @@ export async function GET(request: NextRequest) {
       const callbackUrl = new URL(desktopCallback);
 
       // ⚠️ 가능하면 토큰 말고 1회용 code 추천
-      callbackUrl.searchParams.set('accessToken', accessToken);
-      callbackUrl.searchParams.set('refreshToken', refreshToken);
-      callbackUrl.searchParams.set('memberId', String(member.member_id));
-      callbackUrl.searchParams.set('nickname', memberNickname);
-      callbackUrl.searchParams.set('provider', 'kakao');
+      callbackUrl.searchParams.set("accessToken", accessToken);
+      callbackUrl.searchParams.set("refreshToken", refreshToken);
+      callbackUrl.searchParams.set("memberId", String(member.member_id));
+      callbackUrl.searchParams.set("nickname", memberNickname);
+      callbackUrl.searchParams.set("provider", "kakao");
 
       if (member.email) {
-        callbackUrl.searchParams.set('email', member.email);
+        callbackUrl.searchParams.set("email", member.email);
       }
 
-      console.log('✅ 데스크톱 앱으로 리다이렉트:', callbackUrl.toString());
+      console.log("✅ 데스크톱 앱으로 리다이렉트:", callbackUrl.toString());
 
       return NextResponse.redirect(callbackUrl.toString(), 307);
     }
@@ -154,12 +151,11 @@ export async function GET(request: NextRequest) {
         provider: "kakao",
       },
     });
-
   } catch (error) {
     console.error("❌ 카카오 콜백 처리 에러:", error);
     return handleError(
       error instanceof Error ? error.message : "Authentication failed",
-      500
+      500,
     );
   }
 }

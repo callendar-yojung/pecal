@@ -1,10 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { findOrCreateMember } from "@/lib/member";
+import { type NextRequest, NextResponse } from "next/server";
 import { generateAccessToken, generateRefreshToken } from "@/lib/jwt";
-import {
-  verifyOAuthState,
-} from "@/lib/oauth-state";
+import { findOrCreateMember } from "@/lib/member";
 import { getOAuthRedirectUri } from "@/lib/oauth-redirect-uri";
+import { verifyOAuthState } from "@/lib/oauth-state";
 
 interface GoogleTokenResponse {
   access_token: string;
@@ -68,8 +66,8 @@ export async function GET(request: NextRequest) {
 
   try {
     console.log("🔑 구글 OAuth 콜백 처리 시작:", {
-      code: code.substring(0, 10) + "...",
-      appCallback: appCallback
+      code: `${code.substring(0, 10)}...`,
+      appCallback: appCallback,
     });
 
     // redirect_uri는 반드시 구글에 등록된 URL을 사용해야 함
@@ -101,11 +99,14 @@ export async function GET(request: NextRequest) {
     console.log("✅ 구글 액세스 토큰 획득");
 
     // 2. 구글 사용자 정보 가져오기
-    const userResponse = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
-      headers: {
-        Authorization: `Bearer ${googleAccessToken}`,
+    const userResponse = await fetch(
+      "https://www.googleapis.com/oauth2/v2/userinfo",
+      {
+        headers: {
+          Authorization: `Bearer ${googleAccessToken}`,
+        },
       },
-    });
+    );
 
     if (!userResponse.ok) {
       console.error("❌ 구글 사용자 정보 가져오기 실패");
@@ -145,17 +146,17 @@ export async function GET(request: NextRequest) {
     if (accessToken && refreshToken) {
       const callbackUrl = new URL(desktopCallback);
 
-      callbackUrl.searchParams.set('accessToken', accessToken);
-      callbackUrl.searchParams.set('refreshToken', refreshToken);
-      callbackUrl.searchParams.set('memberId', String(member.member_id));
-      callbackUrl.searchParams.set('nickname', memberNickname);
-      callbackUrl.searchParams.set('provider', 'google');
+      callbackUrl.searchParams.set("accessToken", accessToken);
+      callbackUrl.searchParams.set("refreshToken", refreshToken);
+      callbackUrl.searchParams.set("memberId", String(member.member_id));
+      callbackUrl.searchParams.set("nickname", memberNickname);
+      callbackUrl.searchParams.set("provider", "google");
 
       if (member.email) {
-        callbackUrl.searchParams.set('email', member.email);
+        callbackUrl.searchParams.set("email", member.email);
       }
 
-      console.log('✅ 데스크톱 앱으로 리다이렉트:', callbackUrl.toString());
+      console.log("✅ 데스크톱 앱으로 리다이렉트:", callbackUrl.toString());
 
       return NextResponse.redirect(callbackUrl.toString(), 307);
     }
@@ -171,12 +172,11 @@ export async function GET(request: NextRequest) {
         provider: "google",
       },
     });
-
   } catch (error) {
     console.error("❌ 구글 콜백 처리 에러:", error);
     return handleError(
       error instanceof Error ? error.message : "Authentication failed",
-      500
+      500,
     );
   }
 }

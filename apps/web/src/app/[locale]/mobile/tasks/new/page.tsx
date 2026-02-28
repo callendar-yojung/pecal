@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import RichTextEditor from "@/components/editor/RichTextEditor";
 
 type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE";
@@ -8,7 +8,16 @@ type OwnerType = "personal" | "team";
 type TagItem = { tag_id: number; name: string; color?: string };
 
 const EMPTY_DOC = { type: "doc", content: [{ type: "paragraph" }] };
-const TASK_COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#14B8A6", "#F43F5E", "#6B7280"];
+const TASK_COLORS = [
+  "#3B82F6",
+  "#10B981",
+  "#F59E0B",
+  "#EF4444",
+  "#8B5CF6",
+  "#14B8A6",
+  "#F43F5E",
+  "#6B7280",
+];
 
 function defaultDateTime(offsetMinutes: number) {
   const date = new Date(Date.now() + offsetMinutes * 60_000);
@@ -20,6 +29,32 @@ function defaultDateTime(offsetMinutes: number) {
   return `${y}-${m}-${d}T${hh}:${mm}`;
 }
 
+function normalizeDateTimeLocal(raw: string | undefined) {
+  if (!raw) return defaultDateTime(0);
+  const match = raw.match(
+    /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/,
+  );
+  if (match) {
+    const [, year, month, day, hour, minute] = match;
+    return `${year}-${month}-${day}T${hour}:${minute}`;
+  }
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return defaultDateTime(0);
+  const y = parsed.getFullYear();
+  const m = String(parsed.getMonth() + 1).padStart(2, "0");
+  const d = String(parsed.getDate()).padStart(2, "0");
+  const hh = String(parsed.getHours()).padStart(2, "0");
+  const mm = String(parsed.getMinutes()).padStart(2, "0");
+  return `${y}-${m}-${d}T${hh}:${mm}`;
+}
+
+function buildDateTimeFromDateOnly(dateOnly: string, hour: number, minute: number) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) return defaultDateTime(0);
+  const hh = String(hour).padStart(2, "0");
+  const mm = String(minute).padStart(2, "0");
+  return `${dateOnly}T${hh}:${mm}`;
+}
+
 function parseTaskContent(raw: unknown) {
   if (typeof raw !== "string" || !raw.trim()) return EMPTY_DOC;
   try {
@@ -29,10 +64,20 @@ function parseTaskContent(raw: unknown) {
   }
 }
 
+function postToNative(message: { type: string; payload?: Record<string, unknown> }) {
+  if (typeof window === "undefined") return;
+  const bridge = (window as { ReactNativeWebView?: { postMessage?: (value: string) => void } }).ReactNativeWebView;
+  if (!bridge?.postMessage) return;
+  bridge.postMessage(JSON.stringify(message));
+}
+
 export default function MobileTaskEditorPage() {
   const search = useMemo(
-    () => new URLSearchParams(typeof window === "undefined" ? "" : window.location.search),
-    []
+    () =>
+      new URLSearchParams(
+        typeof window === "undefined" ? "" : window.location.search,
+      ),
+    [],
   );
   const token = search.get("token") ?? "";
   const mode = search.get("mode") === "edit" ? "edit" : "create";
@@ -41,12 +86,15 @@ export default function MobileTaskEditorPage() {
   const ownerType = (search.get("owner_type") ?? "") as OwnerType;
   const ownerId = Number(search.get("owner_id") ?? "0");
   const theme = search.get("theme") === "dark" ? "dark" : "light";
+  const initialDate = search.get("initial_date") ?? "";
 
   const [title, setTitle] = useState("");
   const [startTime, setStartTime] = useState(defaultDateTime(0));
   const [endTime, setEndTime] = useState(defaultDateTime(30));
   const [status, setStatus] = useState<TaskStatus>("TODO");
   const [color, setColor] = useState("#3B82F6");
+  const [reminderMinutes, setReminderMinutes] = useState<number | null>(10);
+  const [rrule, setRrule] = useState("");
   const [tagIds, setTagIds] = useState<number[]>([]);
   const [tags, setTags] = useState<TagItem[]>([]);
   const [content, setContent] = useState<Record<string, unknown>>(EMPTY_DOC);
@@ -56,7 +104,10 @@ export default function MobileTaskEditorPage() {
   const [message, setMessage] = useState("");
 
   const canCreate = !!token && workspaceId > 0;
-  const canLoadTags = !!token && ownerId > 0 && (ownerType === "team" || ownerType === "personal");
+  const canLoadTags =
+    !!token &&
+    ownerId > 0 &&
+    (ownerType === "team" || ownerType === "personal");
   const canEdit = !!token && mode === "edit" && taskId > 0;
 
   useEffect(() => {
@@ -69,9 +120,12 @@ export default function MobileTaskEditorPage() {
   useEffect(() => {
     if (!canLoadTags) return;
     void (async () => {
-      const res = await fetch(`/api/tags?owner_type=${ownerType}&owner_id=${ownerId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(
+        `/api/tags?owner_type=${ownerType}&owner_id=${ownerId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       if (!res.ok) return;
       const data = (await res.json()) as { tags?: TagItem[] };
       setTags(data.tags ?? []);
@@ -89,7 +143,10 @@ export default function MobileTaskEditorPage() {
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          setMessage((data as { error?: string }).error ?? "일정 정보를 불러오지 못했습니다.");
+          setMessage(
+            (data as { error?: string }).error ??
+              "일정 정보를 불러오지 못했습니다.",
+          );
           return;
         }
         const data = (await res.json()) as {
@@ -99,6 +156,8 @@ export default function MobileTaskEditorPage() {
             end_time?: string;
             status?: TaskStatus;
             color?: string;
+            reminder_minutes?: number | null;
+            rrule?: string | null;
             tag_ids?: number[];
             content?: string | null;
           };
@@ -109,10 +168,16 @@ export default function MobileTaskEditorPage() {
           return;
         }
         setTitle(task.title ?? "");
-        setStartTime(task.start_time ?? defaultDateTime(0));
-        setEndTime(task.end_time ?? defaultDateTime(30));
+        setStartTime(normalizeDateTimeLocal(task.start_time));
+        setEndTime(normalizeDateTimeLocal(task.end_time));
         setStatus(task.status ?? "TODO");
         setColor(task.color ?? "#3B82F6");
+        setReminderMinutes(
+          typeof task.reminder_minutes === "number"
+            ? task.reminder_minutes
+            : null,
+        );
+        setRrule(task.rrule ?? "");
         setTagIds(Array.isArray(task.tag_ids) ? task.tag_ids : []);
         setContent(parseTaskContent(task.content));
         setEditorKey((prev) => prev + 1);
@@ -121,6 +186,13 @@ export default function MobileTaskEditorPage() {
       }
     })();
   }, [canEdit, taskId, token]);
+
+  useEffect(() => {
+    if (mode !== "create") return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(initialDate)) return;
+    setStartTime(buildDateTimeFromDateOnly(initialDate, 9, 0));
+    setEndTime(buildDateTimeFromDateOnly(initialDate, 9, 30));
+  }, [initialDate, mode]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -162,6 +234,8 @@ export default function MobileTaskEditorPage() {
                 end_time: endTime,
                 status,
                 color,
+                reminder_minutes: reminderMinutes,
+                rrule: rrule.trim() || null,
                 tag_ids: tagIds,
                 content: JSON.stringify(content),
               }
@@ -172,16 +246,33 @@ export default function MobileTaskEditorPage() {
                 end_time: endTime,
                 status,
                 color,
+                reminder_minutes: reminderMinutes,
+                rrule: rrule.trim() || null,
                 tag_ids: tagIds,
                 content: JSON.stringify(content),
-              }
+              },
         ),
       });
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setMessage((data as { error?: string }).error ?? (isEdit ? "수정에 실패했습니다." : "등록에 실패했습니다."));
+        setMessage(
+          (data as { error?: string }).error ??
+            (isEdit ? "수정에 실패했습니다." : "등록에 실패했습니다."),
+        );
         return;
+      }
+
+      const responseData = (await res.json().catch(() => ({}))) as { taskId?: number };
+      const savedTaskId = isEdit ? taskId : Number(responseData.taskId ?? 0);
+      if (Number.isFinite(savedTaskId) && savedTaskId > 0) {
+        postToNative({
+          type: "task_saved",
+          payload: {
+            mode: isEdit ? "edit" : "create",
+            taskId: savedTaskId,
+          },
+        });
       }
 
       if (isEdit) {
@@ -193,6 +284,8 @@ export default function MobileTaskEditorPage() {
         setEndTime(defaultDateTime(30));
         setStatus("TODO");
         setColor("#3B82F6");
+        setReminderMinutes(10);
+        setRrule("");
         setTagIds([]);
         setContent(EMPTY_DOC);
         setEditorKey((prev) => prev + 1);
@@ -204,15 +297,60 @@ export default function MobileTaskEditorPage() {
     }
   };
 
+  const removeTask = async () => {
+    if (!canEdit) {
+      setMessage("삭제할 일정 정보를 찾을 수 없습니다.");
+      return;
+    }
+    const ok = typeof window === "undefined" ? true : window.confirm("정말 삭제할까요?");
+    if (!ok) return;
+
+    try {
+      setSaving(true);
+      setMessage("");
+      const res = await fetch(`/api/tasks?task_id=${taskId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setMessage((data as { error?: string }).error ?? "삭제에 실패했습니다.");
+        return;
+      }
+
+      postToNative({
+        type: "task_deleted",
+        payload: { taskId },
+      });
+      setMessage("일정이 삭제되었습니다.");
+    } catch {
+      setMessage("네트워크 오류가 발생했습니다.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-background p-4 text-foreground">
       <section className="mx-auto max-w-3xl rounded-2xl border border-border bg-card p-4 shadow-sm">
-        <h1 className="text-2xl font-bold">{mode === "edit" ? "일정 수정" : "새 일정 등록"}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">모바일 WebView 전체 페이지 모드</p>
+        <h1 className="text-2xl font-bold">
+          {mode === "edit" ? "일정 수정" : "새 일정 등록"}
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          모바일 WebView 전체 페이지 모드
+        </p>
       </section>
 
-      <form onSubmit={submit} className="mx-auto mt-4 max-w-3xl rounded-2xl border border-border bg-card p-4 shadow-sm">
-        {loading ? <p className="mb-3 text-sm text-muted-foreground">불러오는 중...</p> : null}
+      <form
+        onSubmit={submit}
+        className="mx-auto mt-4 max-w-3xl rounded-2xl border border-border bg-card p-4 shadow-sm"
+      >
+        {loading ? (
+          <p className="mb-3 text-sm text-muted-foreground">불러오는 중...</p>
+        ) : null}
 
         <div className="space-y-3">
           <input
@@ -276,9 +414,43 @@ export default function MobileTaskEditorPage() {
           </div>
 
           <div className="rounded-xl border border-border bg-background p-3">
+            <p className="text-sm font-semibold">알림</p>
+            <select
+              value={reminderMinutes === null ? "" : String(reminderMinutes)}
+              onChange={(e) =>
+                setReminderMinutes(
+                  e.target.value === "" ? null : Number(e.target.value),
+                )
+              }
+              className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-3 outline-none focus:border-primary"
+            >
+              <option value="">알림 없음</option>
+              <option value="0">정시</option>
+              <option value="5">5분 전</option>
+              <option value="10">10분 전</option>
+              <option value="15">15분 전</option>
+              <option value="30">30분 전</option>
+              <option value="60">1시간 전</option>
+              <option value="1440">1일 전</option>
+            </select>
+          </div>
+
+          <div className="rounded-xl border border-border bg-background p-3">
+            <p className="text-sm font-semibold">반복 규칙</p>
+            <input
+              value={rrule}
+              onChange={(e) => setRrule(e.target.value)}
+              placeholder="예: FREQ=WEEKLY;INTERVAL=1"
+              className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-3 text-base outline-none focus:border-primary"
+            />
+          </div>
+
+          <div className="rounded-xl border border-border bg-background p-3">
             <p className="text-sm font-semibold">태그</p>
             {!tags.length ? (
-              <p className="mt-2 text-sm text-muted-foreground">사용 가능한 태그가 없습니다.</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                사용 가능한 태그가 없습니다.
+              </p>
             ) : (
               <div className="mt-2 flex flex-wrap gap-2">
                 {tags.map((tag) => {
@@ -289,13 +461,21 @@ export default function MobileTaskEditorPage() {
                       type="button"
                       onClick={() =>
                         setTagIds((prev) =>
-                          selected ? prev.filter((id) => id !== tag.tag_id) : [...prev, tag.tag_id]
+                          selected
+                            ? prev.filter((id) => id !== tag.tag_id)
+                            : [...prev, tag.tag_id],
                         )
                       }
                       className={`rounded-full border px-3 py-1 text-sm font-semibold ${
-                        selected ? "border-primary bg-primary/15 text-foreground" : "border-border bg-card text-muted-foreground"
+                        selected
+                          ? "border-primary bg-primary/15 text-foreground"
+                          : "border-border bg-card text-muted-foreground"
                       }`}
-                      style={selected ? { borderColor: tag.color ?? undefined } : undefined}
+                      style={
+                        selected
+                          ? { borderColor: tag.color ?? undefined }
+                          : undefined
+                      }
                     >
                       {tag.name}
                     </button>
@@ -313,15 +493,35 @@ export default function MobileTaskEditorPage() {
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={saving || loading}
-          className="mt-4 w-full rounded-xl bg-primary px-4 py-3 font-semibold text-primary-foreground disabled:opacity-60"
-        >
-          {saving ? (mode === "edit" ? "저장 중..." : "등록 중...") : mode === "edit" ? "일정 저장" : "일정 등록"}
-        </button>
+        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <button
+            type="submit"
+            disabled={saving || loading}
+            className="w-full rounded-xl bg-primary px-4 py-3 font-semibold text-primary-foreground disabled:opacity-60"
+          >
+            {saving
+              ? mode === "edit"
+                ? "저장 중..."
+                : "등록 중..."
+              : mode === "edit"
+                ? "일정 저장"
+                : "일정 등록"}
+          </button>
+          {mode === "edit" ? (
+            <button
+              type="button"
+              disabled={saving || loading}
+              onClick={removeTask}
+              className="w-full rounded-xl border border-red-300 bg-red-50 px-4 py-3 font-semibold text-red-700 disabled:opacity-60"
+            >
+              삭제
+            </button>
+          ) : null}
+        </div>
 
-        {message ? <p className="mt-3 text-sm text-muted-foreground">{message}</p> : null}
+        {message ? (
+          <p className="mt-3 text-sm text-muted-foreground">{message}</p>
+        ) : null}
       </form>
     </main>
   );

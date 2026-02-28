@@ -114,6 +114,81 @@ You can start editing the page by modifying `src/app/[locale]/page.tsx`. The pag
 - Shared editor: `src/components/editor/*`
 - Data access: `src/lib/*`
 
+### Redis Cache (Local + Server)
+- This project now supports Redis read-through cache in `src/lib/redis-cache.ts`.
+- If Redis is not configured, it automatically falls back to DB-only mode.
+- Local Redis example:
+```bash
+docker run --name pecal-redis -p 6379:6379 -d redis:7
+```
+- Recommended env:
+```bash
+REDIS_URL=redis://127.0.0.1:6379/0
+REDIS_TASK_DETAIL_TTL_SEC=30
+REDIS_TASK_LIST_TTL_SEC=20
+REDIS_TASK_DATE_TTL_SEC=20
+REDIS_TAG_LIST_TTL_SEC=120
+REDIS_MEMO_LIST_TTL_SEC=20
+REDIS_MEMO_DETAIL_TTL_SEC=20
+REDIS_FILE_DETAIL_TTL_SEC=60
+REDIS_FILE_LIST_TTL_SEC=30
+REDIS_FILE_TOTAL_SIZE_TTL_SEC=20
+REDIS_ME_WORKSPACES_TTL_SEC=30
+REDIS_ME_TEAMS_TTL_SEC=30
+REDIS_NOTIFICATIONS_UNREAD_TTL_SEC=10
+REDIS_NOTIFICATIONS_LIST_TTL_SEC=10
+REMINDER_STREAM_BATCH_SIZE=200
+REMINDER_STREAM_MAX_LOOPS=10
+REMINDER_SEND_BATCH_SIZE=100
+REMINDER_SENT_DEDUPE_TTL_SEC=604800
+REMINDER_STREAM_MAXLEN=100000
+REMINDER_DEFAULT_TZ_OFFSET_MINUTES=540
+EXPO_ACCESS_TOKEN=
+```
+
+### Task Reminder Cron
+- Endpoint: `POST /api/cron/task-reminders`
+- Header: `Authorization: Bearer {CRON_SECRET}`
+- Recommended schedule: every 1 minute
+- Status check endpoint: `GET /api/cron/task-reminders` (same auth header)
+
+#### Cron health check example
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" \
+  https://pecal.site/api/cron/task-reminders
+```
+
+#### Dev / Prod TTL Recommendation
+- Dev:
+  - task/list/date: `10~30s`
+  - notifications: `5~10s`
+  - tags/files: `30~120s`
+- Prod:
+  - task/detail: `30~60s`
+  - task/list/date: `20~45s`
+  - notifications: `10~20s`
+  - tags/files: `60~300s`
+
+#### Reminder timezone policy
+- Reminder scheduler interprets `tasks.start_time` using
+  `REMINDER_DEFAULT_TZ_OFFSET_MINUTES` (default `540`, KST).
+- Keep this value aligned with your primary user timezone until per-user timezone scheduling is introduced.
+
+#### RRULE scope
+- `rrule` is currently persisted only.
+- Recurring instance expansion / recurring reminder fan-out is not enabled yet.
+
+#### Reminder E2E checklist
+- create (with reminder) -> cron -> `/api/notifications/unread` count 증가
+- update reminder -> 이전 트리거 무효화되고 새 시각에만 알림
+- delete task -> 해당 task reminder job 삭제
+- status DONE -> due 시점에도 reminder 미발송
+
+#### iPhone push reminder
+- Mobile app registers Expo push token via `POST /api/me/push-tokens`.
+- Cron reminder dispatch writes in-app notifications and also sends Expo push.
+- Set `EXPO_ACCESS_TOKEN` in production for higher Expo push throughput and reliability.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
