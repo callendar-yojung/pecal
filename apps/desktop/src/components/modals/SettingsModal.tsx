@@ -351,6 +351,8 @@ function SystemTab() {
   const { theme, setTheme } = useThemeStore()
   const [autostart, setAutostart] = useState(false)
   const [preferences, setPreferences] = useState<UserPreferences | null>(null)
+  const [privacyConsent, setPrivacyConsent] = useState(false)
+  const [marketingConsent, setMarketingConsent] = useState(false)
   const [latestVersion, setLatestVersion] = useState('')
   const [whatsNew, setWhatsNew] = useState<string[]>([])
   const [isLoadingWhatsNew, setIsLoadingWhatsNew] = useState(false)
@@ -362,6 +364,14 @@ function SystemTab() {
 
     invoke<UserPreferences>('get_user_preferences')
       .then(setPreferences)
+      .catch(console.error)
+
+    authApi
+      .getAccount()
+      .then((account) => {
+        setPrivacyConsent(Boolean(account.privacy_consent))
+        setMarketingConsent(Boolean(account.marketing_consent))
+      })
       .catch(console.error)
 
     setIsLoadingWhatsNew(true)
@@ -405,6 +415,28 @@ function SystemTab() {
       await invoke('set_alarm_notifications_enabled', { enabled: saved.notifications_enabled })
     } catch (error) {
       console.error('Failed to update notification preference:', error)
+    }
+  }
+
+  const togglePrivacyConsent = async () => {
+    const next = !privacyConsent
+    setPrivacyConsent(next)
+    try {
+      await authApi.updateAccount({ privacy_consent: next })
+    } catch (error) {
+      console.error('Failed to update privacy consent:', error)
+      setPrivacyConsent(!next)
+    }
+  }
+
+  const toggleMarketingConsent = async () => {
+    const next = !marketingConsent
+    setMarketingConsent(next)
+    try {
+      await authApi.updateAccount({ marketing_consent: next })
+    } catch (error) {
+      console.error('Failed to update marketing consent:', error)
+      setMarketingConsent(!next)
     }
   }
 
@@ -507,6 +539,54 @@ function SystemTab() {
                 preferences?.notifications_enabled
                   ? 'translate-x-5'
                   : 'translate-x-0.5'
+              }`}
+            />
+          </button>
+        }
+      />
+
+      <SettingRow
+        icon={
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M12 11c1.657 0 3-1.567 3-3.5S13.657 4 12 4s-3 1.567-3 3.5 1.343 3.5 3 3.5zM5 20a7 7 0 0114 0" />
+          </svg>
+        }
+        label={t('settings.privacyConsent')}
+        action={
+          <button
+            onClick={togglePrivacyConsent}
+            className={`relative w-10 h-5 rounded-full transition-colors ${
+              privacyConsent ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'
+            }`}
+          >
+            <div
+              className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                privacyConsent ? 'translate-x-5' : 'translate-x-0.5'
+              }`}
+            />
+          </button>
+        }
+      />
+
+      <SettingRow
+        icon={
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M11 5h2m-1 0v14m-7-7h14" />
+          </svg>
+        }
+        label={t('settings.marketingConsent')}
+        action={
+          <button
+            onClick={toggleMarketingConsent}
+            className={`relative w-10 h-5 rounded-full transition-colors ${
+              marketingConsent ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'
+            }`}
+          >
+            <div
+              className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                marketingConsent ? 'translate-x-5' : 'translate-x-0.5'
               }`}
             />
           </button>

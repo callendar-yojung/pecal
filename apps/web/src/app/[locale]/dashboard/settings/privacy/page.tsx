@@ -1,17 +1,57 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function PrivacyPage() {
   const t = useTranslations("dashboard.settings.privacy");
-  const [analytics, setAnalytics] = useState(true);
+  const [privacyConsent, setPrivacyConsent] = useState(false);
   const [marketing, setMarketing] = useState(false);
-  const [thirdParty, setThirdParty] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [savingKey, setSavingKey] = useState<"privacy" | "marketing" | null>(
+    null,
+  );
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/me/account", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          privacy_consent?: boolean;
+          marketing_consent?: boolean;
+        };
+        if (!active) return;
+        setPrivacyConsent(Boolean(data.privacy_consent));
+        setMarketing(Boolean(data.marketing_consent));
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const updateConsent = async (
+    key: "privacy_consent" | "marketing_consent",
+    value: boolean,
+  ) => {
+    setSavingKey(key === "privacy_consent" ? "privacy" : "marketing");
+    try {
+      await fetch("/api/me/account", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [key]: value }),
+      });
+    } finally {
+      setSavingKey(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
-      {/* 데이터 공유 설정 */}
       <div className="dashboard-glass-card premium-noise p-6">
         <h2 className="text-lg font-semibold text-card-foreground">
           {t("dataSharing")}
@@ -21,33 +61,36 @@ export default function PrivacyPage() {
         </p>
 
         <div className="mt-6 space-y-4">
-          {/* 분석 데이터 */}
           <div className="flex items-center justify-between border-b border-border pb-4">
             <div>
               <div className="text-sm font-medium text-card-foreground">
-                {t("analytics")}
+                {t("privacyConsent")}
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
-                {t("analyticsDesc")}
+                {t("privacyConsentDesc")}
               </p>
             </div>
             <button
               type="button"
-              onClick={() => setAnalytics(!analytics)}
+              onClick={() => {
+                const next = !privacyConsent;
+                setPrivacyConsent(next);
+                void updateConsent("privacy_consent", next);
+              }}
+              disabled={loading || savingKey === "privacy"}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                analytics ? "bg-accent" : "bg-muted"
+                privacyConsent ? "bg-accent" : "bg-muted"
               }`}
             >
               <span
                 className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${
-                  analytics ? "translate-x-6" : "translate-x-1"
+                  privacyConsent ? "translate-x-6" : "translate-x-1"
                 }`}
               />
             </button>
           </div>
 
-          {/* 마케팅 */}
-          <div className="flex items-center justify-between border-b border-border pb-4">
+          <div className="flex items-center justify-between">
             <div>
               <div className="text-sm font-medium text-card-foreground">
                 {t("marketing")}
@@ -58,7 +101,12 @@ export default function PrivacyPage() {
             </div>
             <button
               type="button"
-              onClick={() => setMarketing(!marketing)}
+              onClick={() => {
+                const next = !marketing;
+                setMarketing(next);
+                void updateConsent("marketing_consent", next);
+              }}
+              disabled={loading || savingKey === "marketing"}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                 marketing ? "bg-accent" : "bg-muted"
               }`}
@@ -70,46 +118,9 @@ export default function PrivacyPage() {
               />
             </button>
           </div>
-
-          {/* 서드파티 */}
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm font-medium text-card-foreground">
-                {t("thirdParty")}
-              </div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {t("thirdPartyDesc")}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setThirdParty(!thirdParty)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                thirdParty ? "bg-accent" : "bg-muted"
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${
-                  thirdParty ? "translate-x-6" : "translate-x-1"
-                }`}
-              />
-            </button>
-          </div>
         </div>
       </div>
 
-      {/* 데이터 내보내기 */}
-      <div className="dashboard-glass-card premium-noise p-6">
-        <h2 className="text-lg font-semibold text-card-foreground">
-          {t("exportData")}
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t("exportDataDesc")}
-        </p>
-        <button type="button" className="ui-button mt-4 px-4 py-2 text-sm">
-          {t("exportButton")}
-        </button>
-      </div>
     </div>
   );
 }

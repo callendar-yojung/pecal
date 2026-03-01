@@ -106,6 +106,15 @@ CREATE TABLE IF NOT EXISTS notifications (
 CREATE INDEX idx_notifications_member ON notifications(member_id, is_read, created_at);
 CREATE INDEX idx_notifications_source ON notifications(source_type, source_id);
 
+-- 6.65 회원 동의 설정 테이블
+CREATE TABLE IF NOT EXISTS member_settings (
+  member_id BIGINT NOT NULL PRIMARY KEY,
+  privacy_consent TINYINT(1) NOT NULL DEFAULT 0,
+  marketing_consent TINYINT(1) NOT NULL DEFAULT 0,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- 6.7 푸시 토큰 테이블 (모바일 푸시 알림)
 CREATE TABLE IF NOT EXISTS member_push_tokens (
   push_token_id BIGINT AUTO_INCREMENT PRIMARY KEY,

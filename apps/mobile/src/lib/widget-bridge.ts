@@ -19,6 +19,7 @@ type WidgetWorkspace = {
 type WidgetPayload = {
   generated_at: string;
   nickname: string;
+  theme?: 'light' | 'dark';
   workspace_name?: string;
   tasks?: WidgetTask[];
   workspaces?: WidgetWorkspace[];
@@ -84,6 +85,7 @@ export async function syncWidgetData(params: {
   tasks: TaskItem[];
   workspaceName?: string;
   nickname: string;
+  themeMode?: 'light' | 'black';
   maxItems?: number;
   workspaces?: Array<{
     workspaceId: number;
@@ -97,6 +99,7 @@ export async function syncWidgetData(params: {
   const payload: WidgetPayload = {
     generated_at: new Date().toISOString(),
     nickname: params.nickname,
+    theme: params.themeMode === 'black' ? 'dark' : 'light',
     workspace_name: params.workspaceName,
     tasks: pickTasksForWidget(params.tasks ?? [], Math.max(1, params.maxItems ?? 180)),
     workspaces: (params.workspaces ?? [])

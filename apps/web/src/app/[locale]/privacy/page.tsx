@@ -16,22 +16,33 @@ export async function generateMetadata({
   };
 }
 
-export default function PrivacyPolicyPage() {
+type SearchParams = {
+  embedded?: string | string[];
+};
+
+export default async function PrivacyPolicyPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const query = await searchParams;
+  const embedded = query?.embedded === "mobile" || query?.embedded === "true";
   const t = useTranslations("privacyPolicy");
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
-          <Link
-            href="/"
-            className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground"
-          >
-            ← {t("title")}
-          </Link>
-        </div>
-      </header>
+      {!embedded ? (
+        <header className="border-b border-border bg-card">
+          <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
+            <Link
+              href="/"
+              className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              ← {t("title")}
+            </Link>
+          </div>
+        </header>
+      ) : null}
 
       {/* Content */}
       <main className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
@@ -223,15 +234,16 @@ export default function PrivacyPolicyPage() {
           </section>
         </div>
 
-        {/* Back to Home */}
-        <div className="mt-12 pt-8 border-t border-border">
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center rounded-lg bg-accent px-6 py-3 text-sm font-medium text-accent-foreground hover:bg-accent/90 transition-colors"
-          >
-            {t("backToHome")}
-          </Link>
-        </div>
+        {!embedded ? (
+          <div className="mt-12 pt-8 border-t border-border">
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center rounded-lg bg-accent px-6 py-3 text-sm font-medium text-accent-foreground hover:bg-accent/90 transition-colors"
+            >
+              {t("backToHome")}
+            </Link>
+          </div>
+        ) : null}
       </main>
     </div>
   );

@@ -18,6 +18,15 @@ export default function TaskDetailPage() {
 
   const taskId = Number(id);
   const task = useMemo(() => data.tasks.find((item) => item.id === taskId), [data.tasks, taskId]);
+  const onRefresh = useCallback(async () => {
+    if (!data.selectedWorkspace) return;
+    setRefreshing(true);
+    try {
+      await data.loadDashboard(data.selectedWorkspace);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [data]);
 
   if (!auth.session) return <Redirect href="/(auth)/login" />;
 
@@ -29,21 +38,11 @@ export default function TaskDetailPage() {
     );
   }
 
-  const onRefresh = useCallback(async () => {
-    if (!data.selectedWorkspace) return;
-    setRefreshing(true);
-    try {
-      await data.loadDashboard(data.selectedWorkspace);
-    } finally {
-      setRefreshing(false);
-    }
-  }, [data]);
-
   return (
     <View style={{ flex: 1 }}>
       <ScrollView
         style={s.content}
-        contentContainerStyle={[s.contentContainer, { paddingBottom: 170 }]}
+        contentContainerStyle={[s.contentContainer, { paddingBottom: 12 }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         <View style={[s.panel, { borderRadius: 16, gap: 12 }]}>
@@ -53,20 +52,11 @@ export default function TaskDetailPage() {
               <Text style={s.headerActionText}>수정</Text>
             </Pressable>
           </View>
-          <TaskDetailWebView task={task} minHeight={320} />
+          <TaskDetailWebView task={task} minHeight={500} />
         </View>
       </ScrollView>
 
-      <View
-        style={{
-          position: 'absolute',
-          left: 12,
-          right: 12,
-          bottom: 76 + Math.max(8, insets.bottom),
-          flexDirection: 'row',
-          gap: 8,
-        }}
-      >
+      <View style={{ flexDirection: 'row', paddingHorizontal: 12, paddingBottom: Math.max(8, insets.bottom), paddingTop: 8, gap: 8 }}>
         <Pressable
           style={s.secondaryButtonHalf}
           onPress={() => router.replace('/tasks')}

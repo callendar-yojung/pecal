@@ -1,6 +1,17 @@
 import { apiClient } from './client'
 import type { AuthResponse, RefreshTokenResponse, MeResponse } from '../types'
 
+type AccountResponse = {
+  member_id: number
+  provider: string
+  email: string | null
+  phone_number: string | null
+  nickname: string | null
+  profile_image_url: string | null
+  privacy_consent?: boolean
+  marketing_consent?: boolean
+}
+
 export const authApi = {
   loginWithKakao: (accessToken: string) => {
     console.log('🔑 Kakao Login API Call:', {
@@ -19,8 +30,14 @@ export const authApi = {
     }),
 
   getMe: () => apiClient.get<MeResponse>('/api/auth/external/me'),
+  getAccount: () => apiClient.get<AccountResponse>('/api/me/account'),
 
-  updateAccount: (data: { nickname?: string; profile_image_url?: string | null }) =>
+  updateAccount: (data: {
+    nickname?: string
+    profile_image_url?: string | null
+    privacy_consent?: boolean
+    marketing_consent?: boolean
+  }) =>
     apiClient.patch<{ success: boolean }>('/api/me/account', data),
 
   checkNickname: (nickname: string) =>
