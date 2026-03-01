@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 
 export async function generateMetadata({
@@ -21,13 +20,20 @@ type SearchParams = {
 };
 
 export default async function TermsOfServicePage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<SearchParams>;
 }) {
+  const { locale } = await params;
   const query = await searchParams;
   const embedded = query?.embedded === "mobile" || query?.embedded === "true";
-  const t = useTranslations("termsOfService");
+  const t = await getTranslations({ locale, namespace: "termsOfService" });
+  const toStringList = (key: string): string[] => {
+    const value = t.raw(key);
+    return Array.isArray(value) ? value : [];
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -72,7 +78,7 @@ export default async function TermsOfServicePage({
               {t("section2.title")}
             </h2>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section2.items") as string[]).map((item) => (
+              {toStringList("section2.items").map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
@@ -84,7 +90,7 @@ export default async function TermsOfServicePage({
               {t("section3.title")}
             </h2>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section3.items") as string[]).map((item) => (
+              {toStringList("section3.items").map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
@@ -96,7 +102,7 @@ export default async function TermsOfServicePage({
               {t("section4.title")}
             </h2>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section4.items") as string[]).map((item) => (
+              {toStringList("section4.items").map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
@@ -109,7 +115,7 @@ export default async function TermsOfServicePage({
             </h2>
             <p className="text-muted-foreground">{t("section5.content")}</p>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section5.items") as string[]).map((item) => (
+              {toStringList("section5.items").map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
@@ -121,7 +127,7 @@ export default async function TermsOfServicePage({
               {t("section6.title")}
             </h2>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section6.items") as string[]).map((item) => (
+              {toStringList("section6.items").map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
@@ -133,7 +139,7 @@ export default async function TermsOfServicePage({
               {t("section7.title")}
             </h2>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section7.items") as string[]).map((item) => (
+              {toStringList("section7.items").map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
@@ -145,7 +151,7 @@ export default async function TermsOfServicePage({
               {t("section8.title")}
             </h2>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section8.items") as string[]).map((item) => (
+              {toStringList("section8.items").map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
@@ -157,7 +163,7 @@ export default async function TermsOfServicePage({
               {t("section9.title")}
             </h2>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section9.items") as string[]).map((item) => (
+              {toStringList("section9.items").map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
@@ -177,7 +183,7 @@ export default async function TermsOfServicePage({
               {t("section11.title")}
             </h2>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section11.items") as string[]).map((item) => (
+              {toStringList("section11.items").map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
@@ -189,7 +195,7 @@ export default async function TermsOfServicePage({
               {t("section12.title")}
             </h2>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section12.items") as string[]).map((item) => (
+              {toStringList("section12.items").map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
@@ -201,7 +207,7 @@ export default async function TermsOfServicePage({
               {t("section13.title")}
             </h2>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section13.items") as string[]).map((item) => (
+              {toStringList("section13.items").map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
