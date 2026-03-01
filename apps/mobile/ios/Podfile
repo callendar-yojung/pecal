@@ -135,5 +135,27 @@ target 'PecalMobile' do
       file_ref = group.new_file(compat_file)
       expo_head.source_build_phase.add_file_reference(file_ref)
     end
+
+    # Patch Expo Router LinkPreview to add forward declarations for removed RNS types.
+    link_preview = File.expand_path("../node_modules/expo-router/ios/LinkPreview/LinkPreviewNativeNavigation.mm", __dir__)
+    if File.exist?(link_preview)
+      content = File.read(link_preview)
+      unless content.include?("PECAL_RNS_COMPAT")
+        compat = <<~'COMPAT'
+        // PECAL_RNS_COMPAT
+        #ifndef PECAL_RNS_COMPAT
+        #define PECAL_RNS_COMPAT
+        @class RNSBottomTabsScreenComponentView;
+        @class RNSBottomTabsHostComponentView;
+        @class RNSTabBarController;
+        @interface RNSScreenView (PecalCompat)
+        @property(nonatomic, copy) NSString *screenId;
+        @end
+        #endif
+        COMPAT
+        patched = content.sub('#import <RNScreens/RNSScreenStack.h>', "#import <RNScreens/RNSScreenStack.h>\n#{compat}")
+        File.write(link_preview, patched)
+      end
+    end
   end
 end
