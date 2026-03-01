@@ -75,7 +75,7 @@ jobs:
       - name: Select Xcode 16
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: "latest-stable"
+          xcode-version: "16.4"
 
       - name: Ensure iOS platform SDK is installed
         run: |
