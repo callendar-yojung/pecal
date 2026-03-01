@@ -258,10 +258,10 @@ export default function MobileTaskDetailPage() {
     };
   }, []);
 
-  if (!theme) return <div className="min-h-screen bg-transparent p-0" />;
+  if (!theme) return <div className="bg-transparent p-0" />;
 
   return (
-    <div ref={rootRef} className="min-h-screen bg-transparent p-0">
+    <div ref={rootRef} className="bg-transparent p-0">
       {task ? (
         <TaskViewPanel
           task={task}

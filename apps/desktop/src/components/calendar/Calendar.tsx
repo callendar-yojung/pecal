@@ -15,18 +15,11 @@ export function Calendar() {
   const { t } = useTranslation()
   const { selectedWorkspaceId } = useWorkspaceStore()
   const { openTaskDetail } = useViewStore()
-  const { selectedDate, setEvents, setLoading, setError, clearEvents, setSelectedDate, error } = useCalendarStore()
+  const { selectedDate, setEvents, setLoading, setError, clearEvents, error } = useCalendarStore()
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
   const toggleDrawer = useCallback(() => setIsDrawerOpen((prev) => !prev), [])
   const closeDrawer = useCallback(() => setIsDrawerOpen(false), [])
-  const openDrawerForDate = useCallback(
-    (date: Date) => {
-      setSelectedDate(date)
-      setIsDrawerOpen(true)
-    },
-    [setSelectedDate],
-  )
   const openTaskDetailWithRefresh = useCallback(
     async (task: Task) => {
       try {
@@ -130,7 +123,7 @@ export function Calendar() {
         </div>
       )}
       <CalendarHeader onToggleDrawer={toggleDrawer} />
-      <CalendarGrid onOpenMore={openDrawerForDate} onOpenTaskDetail={openTaskDetailWithRefresh} />
+      <CalendarGrid onOpenTaskDetail={openTaskDetailWithRefresh} />
       <TaskDrawer isOpen={isDrawerOpen} onClose={closeDrawer} onOpenTaskDetail={openTaskDetailWithRefresh} />
     </div>
   )

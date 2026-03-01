@@ -43,6 +43,15 @@ const getSystemTheme = (): "light" | "dark" => {
     : "light";
 };
 
+const getQueryTheme = (): "light" | "dark" | null => {
+  if (typeof window === "undefined") return null;
+  const raw = new URLSearchParams(window.location.search).get("theme");
+  if (!raw) return null;
+  if (raw === "dark" || raw === "black") return "dark";
+  if (raw === "light") return "light";
+  return null;
+};
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("system");
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
@@ -63,9 +72,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     const applyTheme = () => {
       const root = document.documentElement;
+      const queryTheme = getQueryTheme();
       let effectiveTheme: "light" | "dark";
 
-      if (theme === "system") {
+      if (queryTheme) {
+        effectiveTheme = queryTheme;
+      } else if (theme === "system") {
         effectiveTheme = getSystemTheme();
       } else {
         effectiveTheme = theme;
@@ -79,7 +91,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     applyTheme();
 
     // 시스템 테마 변경 감지
-    if (theme === "system") {
+    if (theme === "system" && !getQueryTheme()) {
       const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
       const handleChange = () => applyTheme();
       mediaQuery.addEventListener("change", handleChange);

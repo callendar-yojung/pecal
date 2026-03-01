@@ -23,7 +23,7 @@ function taskContentText(content: string | null | undefined) {
   return trimmed;
 }
 
-export function TaskDetailWebView({ task, minHeight = 260 }: Props) {
+export function TaskDetailWebView({ task, minHeight = 460 }: Props) {
   const ref = useRef<WebView>(null);
   const readyRef = useRef(false);
   const { locale } = useI18n();
@@ -111,14 +111,18 @@ export function TaskDetailWebView({ task, minHeight = 260 }: Props) {
   }
 
   return (
-    <View style={{ minHeight, borderRadius: 12, overflow: 'hidden' }}>
+    <View style={{ minHeight: Math.max(webHeight, minHeight), borderRadius: 12 }}>
       <WebView
         ref={ref}
         originWhitelist={['*']}
         source={{ uri: remoteUri }}
-        scrollEnabled={false}
+        scrollEnabled
+        nestedScrollEnabled
         javaScriptEnabled
+        scalesPageToFit={false}
         automaticallyAdjustContentInsets={false}
+        contentInset={{ top: 0, bottom: 0, left: 0, right: 0 }}
+        contentInsetAdjustmentBehavior="never"
         style={{ height: Math.max(minHeight, webHeight), backgroundColor: 'transparent' }}
         onError={handleRemoteFailure}
         onHttpError={handleRemoteFailure}

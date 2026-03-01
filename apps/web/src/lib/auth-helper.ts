@@ -33,6 +33,20 @@ export async function getAuthUser(
         };
       }
     }
+
+    const cookieToken = request.cookies.get("PECAL_ACCESS_TOKEN")?.value;
+    if (cookieToken) {
+      const payload = await verifyToken(cookieToken);
+
+      if (payload && payload.type === "access") {
+        return {
+          memberId: payload.memberId,
+          nickname: payload.nickname,
+          provider: payload.provider,
+          email: payload.email,
+        };
+      }
+    }
   }
 
   // 2. NextAuth 세션 확인 (웹 브라우저용 폴백)

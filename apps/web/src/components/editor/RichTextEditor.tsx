@@ -25,7 +25,7 @@ import typescript from "highlight.js/lib/languages/typescript";
 import xml from "highlight.js/lib/languages/xml";
 import yaml from "highlight.js/lib/languages/yaml";
 import { lowlight } from "lowlight/lib/core";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FontSize } from "./FontSize";
 import RichTextToolbar from "./RichTextToolbar";
 
@@ -78,12 +78,23 @@ const CodeBlockTab = Extension.create({
 });
 
 interface RichTextEditorProps {
-  initialContent?: Record<string, any>;
-  onChange?: (content: Record<string, any>) => void;
+  initialContent?: Record<string, unknown>;
+  onChange?: (content: Record<string, unknown>) => void;
   contentKey?: string | number;
   readOnly?: boolean;
   showToolbar?: boolean;
   placeholder?: string;
+}
+function serializeDocument(
+  content: Record<string, unknown> | null | undefined,
+): string {
+  try {
+    return JSON.stringify(
+      content ?? { type: "doc", content: [{ type: "paragraph" }] },
+    );
+  } catch {
+    return "";
+  }
 }
 
 export default function RichTextEditor({
@@ -94,6 +105,7 @@ export default function RichTextEditor({
   showToolbar = true,
   placeholder = "내용을 입력하세요.",
 }: RichTextEditorProps) {
+  const lastAppliedDocRef = useRef<string>("");
   const [isEmpty, setIsEmpty] = useState(true);
   const editor = useEditor({
     extensions: [
@@ -148,16 +160,23 @@ export default function RichTextEditor({
     },
     onUpdate: ({ editor }) => {
       setIsEmpty(editor.isEmpty);
-      onChange?.(editor.getJSON());
+      const nextContent = editor.getJSON() as Record<string, unknown>;
+      lastAppliedDocRef.current = serializeDocument(nextContent);
+      onChange?.(nextContent);
     },
     onCreate: ({ editor }) => {
+      const initial = editor.getJSON() as Record<string, unknown>;
+      lastAppliedDocRef.current = serializeDocument(initial);
       setIsEmpty(editor.isEmpty);
     },
   });
 
   useEffect(() => {
     if (!editor || !initialContent) return;
+    const nextSerialized = serializeDocument(initialContent);
+    if (!nextSerialized || nextSerialized === lastAppliedDocRef.current) return;
     editor.commands.setContent(initialContent, false);
+    lastAppliedDocRef.current = nextSerialized;
     setIsEmpty(editor.isEmpty);
   }, [editor, initialContent]);
 
@@ -170,7 +189,7 @@ export default function RichTextEditor({
             {placeholder}
           </div>
         ) : null}
-        <EditorContent editor={editor} />
+        <EditorContent editor={editor} key={contentKey} />
       </div>
     </div>
   );

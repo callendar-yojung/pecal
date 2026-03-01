@@ -5,6 +5,7 @@ import { clearWidgetData, syncWidgetData } from '../lib/widget-bridge';
 import { apiFetch } from '../lib/api';
 import { registerDevicePushToken } from '../lib/push-notifications';
 import type { TaskItem } from '../lib/types';
+import { useThemeMode } from './ThemeContext';
 
 type MobileAppContextValue = {
   auth: ReturnType<typeof useAuth>;
@@ -16,6 +17,7 @@ const MobileAppContext = createContext<MobileAppContextValue | null>(null);
 export function MobileAppProvider({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   const data = useDashboardData(auth.session);
+  const { mode } = useThemeMode();
   const pushRegisteredMemberRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -103,6 +105,7 @@ export function MobileAppProvider({ children }: { children: React.ReactNode }) {
         tasks: workspaceTasksMap.get(selectedWorkspace.workspace_id) ?? [],
         workspaceName: selectedWorkspace.name,
         nickname: session.nickname,
+        themeMode: mode,
         maxItems,
         workspaces: allWorkspaces.map((workspace) => ({
           workspaceId: workspace.workspace_id,
@@ -111,7 +114,7 @@ export function MobileAppProvider({ children }: { children: React.ReactNode }) {
         })),
       });
     })();
-  }, [auth.session, data.selectedWorkspace, data.tasks, data.workspaces, data.teamWorkspaces, data.dashboardLoading]);
+  }, [auth.session, data.selectedWorkspace, data.tasks, data.workspaces, data.teamWorkspaces, data.dashboardLoading, mode]);
 
   const value = useMemo<MobileAppContextValue>(() => ({ auth, data }), [auth, data]);
 

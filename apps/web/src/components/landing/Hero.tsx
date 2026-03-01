@@ -1,6 +1,5 @@
 "use client";
 
-import { LayoutDashboard } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 
@@ -38,10 +37,12 @@ export default function Hero() {
               href="/dashboard"
               className="w-full rounded-xl bg-primary px-8 py-4 text-base font-medium text-primary-foreground transition-all hover:opacity-90 hover:shadow-lg sm:w-auto"
             >
-              {t("cta")}
+              {t("webCta")}
             </Link>
-            <Link
-              href="/download"
+            <a
+              href="https://apps.microsoft.com/detail/xpdm17p9fk4bjf?hl=ko-KR&gl=KR"
+              target="_blank"
+              rel="noopener noreferrer"
               className="group flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-8 py-4 text-base font-medium text-foreground transition-all hover:bg-hover hover:shadow-lg sm:w-auto"
             >
               <svg
@@ -58,35 +59,13 @@ export default function Hero() {
                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                 />
               </svg>
-              {t("download")}
-            </Link>
+              {t("windowsCta")}
+            </a>
           </div>
 
           <p className="mt-6 text-sm text-muted-foreground">
             {t("noCreditCard")}
           </p>
-        </div>
-
-        <div className="relative mx-auto mt-16 max-w-5xl">
-          <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
-            <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-              <div className="h-3 w-3 rounded-full bg-red-500" />
-              <div className="h-3 w-3 rounded-full bg-yellow-500" />
-              <div className="h-3 w-3 rounded-full bg-green-500" />
-            </div>
-            <div className="aspect-[16/9] bg-gradient-to-br from-muted to-secondary">
-              <div className="flex h-full items-center justify-center">
-                <div className="text-center">
-                  <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
-                    <LayoutDashboard className="h-8 w-8 text-foreground" />
-                  </div>
-                  <p className="text-muted-foreground">{t("preview")}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="absolute -bottom-6 -left-6 -z-10 h-full w-full rounded-2xl bg-gradient-to-br from-muted to-secondary" />
         </div>
       </div>
     </section>

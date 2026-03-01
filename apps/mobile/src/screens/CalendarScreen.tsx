@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, PanResponder, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { Animated, Modal, PanResponder, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { TagItem, TaskItem } from '../lib/types';
 import { getTaskAccentColor, getTaskStatusColor } from '../lib/task-colors';
@@ -76,6 +76,7 @@ export function CalendarScreen({
   const [month, setMonth] = useState(selectedDate.getMonth());
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'day'>('month');
   const [showSwipeHint, setShowSwipeHint] = useState(false);
+  const [openMoreDateKey, setOpenMoreDateKey] = useState<string | null>(null);
   const monthSlideX = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -210,6 +211,13 @@ export function CalendarScreen({
     .sort((a, b) => a.start_time.localeCompare(b.start_time));
   const selectedDateKey = `${selectedDate.getFullYear()}-${pad2(selectedDate.getMonth() + 1)}-${pad2(selectedDate.getDate())}`;
   const selectedDayTasks = (schedulesByDate[selectedDateKey] ?? []).sort((a, b) => a.start_time.localeCompare(b.start_time));
+  const moreSheetTasks = useMemo(() => {
+    if (!openMoreDateKey) return [];
+    const daySchedules = (schedulesByDate[openMoreDateKey] ?? [])
+      .slice()
+      .sort((a, b) => a.start_time.localeCompare(b.start_time));
+    return daySchedules.slice(2);
+  }, [openMoreDateKey, schedulesByDate]);
 
   const weekDates = useMemo(() => {
     const base = new Date(selectedDate);
@@ -388,7 +396,15 @@ export function CalendarScreen({
                     })()
                   ))}
                   {hiddenCount > 0 ? (
-                    <Text style={{ fontSize: 9, color: colors.textMuted, fontWeight: '700' }}>+{hiddenCount} more</Text>
+                    <Pressable
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setOpenMoreDateKey(cell.dateStr);
+                      }}
+                      style={{ alignSelf: 'flex-start', paddingHorizontal: 2, paddingVertical: 2 }}
+                    >
+                      <Text style={{ fontSize: 9, color: colors.textMuted, fontWeight: '700' }}>+{hiddenCount} more</Text>
+                    </Pressable>
                   ) : null}
                 </Pressable>
               );
@@ -451,6 +467,66 @@ export function CalendarScreen({
           {!selectedDayTasks.length ? <Text style={s.emptyText}>선택한 날짜 일정이 없습니다.</Text> : null}
         </View>
       ) : null}
+
+      <Modal
+        transparent
+        visible={!!openMoreDateKey}
+        animationType="fade"
+        onRequestClose={() => setOpenMoreDateKey(null)}
+      >
+        <Pressable
+          onPress={() => setOpenMoreDateKey(null)}
+          style={{ flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.38)', justifyContent: 'flex-end' }}
+        >
+          <Pressable
+            onPress={(e) => e.stopPropagation()}
+            style={{
+              borderTopLeftRadius: 18,
+              borderTopRightRadius: 18,
+              backgroundColor: colors.card,
+              borderWidth: 1,
+              borderColor: colors.border,
+              maxHeight: '52%',
+              paddingHorizontal: 14,
+              paddingTop: 12,
+              paddingBottom: 20,
+              gap: 10,
+            }}
+          >
+            <Text style={{ fontSize: 14, fontWeight: '800', color: colors.text }}>
+              {openMoreDateKey} · {moreSheetTasks.length}
+            </Text>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+              {moreSheetTasks.map((task) => (
+                <Pressable
+                  key={`${task.id}-more-sheet`}
+                  onPress={() => {
+                    setOpenMoreDateKey(null);
+                    onSelectTask(task.id);
+                    onOpenTask?.(task.id);
+                  }}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: `${getTaskAccentColor(task)}66`,
+                    backgroundColor: `${getTaskAccentColor(task)}30`,
+                    borderRadius: 10,
+                    paddingHorizontal: 10,
+                    paddingVertical: 8,
+                    gap: 3,
+                  }}
+                >
+                  <Text style={{ fontSize: 12, lineHeight: 15, color: colors.text, fontWeight: '700' }} numberOfLines={1}>
+                    {task.title}
+                  </Text>
+                  <Text style={{ fontSize: 10, color: colors.textMuted, fontWeight: '600' }}>
+                    {task.start_time.slice(11, 16)} - {task.end_time.slice(11, 16)}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
     </ScrollView>
   );

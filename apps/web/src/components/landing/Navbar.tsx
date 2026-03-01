@@ -1,6 +1,7 @@
 "use client";
 
 import { signOut, useSession } from "next-auth/react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Link } from "@/i18n/routing";
@@ -16,34 +17,17 @@ export default function Navbar() {
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <span className="text-sm font-bold text-primary-foreground">
-                Pc
-              </span>
-            </div>
+            <Image
+              src="/desktop-icon.png"
+              alt="Pecal icon"
+              width={32}
+              height={32}
+              className="h-8 w-8 rounded-lg"
+            />
             <span className="text-lg font-semibold text-foreground">Pecal</span>
           </Link>
 
-          <div className="hidden items-center gap-6 md:flex">
-            <Link
-              href="#features"
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {t("features")}
-            </Link>
-            <Link
-              href="#pricing"
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {t("pricing")}
-            </Link>
-            <Link
-              href="#customers"
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {t("customers")}
-            </Link>
-          </div>
+          <div className="hidden items-center gap-6 md:flex" />
         </div>
 
         <div className="hidden items-center gap-4 md:flex">
@@ -120,15 +104,6 @@ export default function Navbar() {
       {mobileMenuOpen && (
         <div className="border-t border-border bg-background px-6 py-4 md:hidden">
           <div className="flex flex-col gap-4">
-            <Link href="#features" className="text-sm text-muted-foreground">
-              {t("features")}
-            </Link>
-            <Link href="#pricing" className="text-sm text-muted-foreground">
-              {t("pricing")}
-            </Link>
-            <Link href="#customers" className="text-sm text-muted-foreground">
-              {t("customers")}
-            </Link>
             <LanguageSwitcher />
             <hr className="border-border" />
             {session ? (

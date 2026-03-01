@@ -16,11 +16,10 @@ import type { Task } from '../../types'
 import { parseApiDateTime } from '../../utils/datetime'
 
 interface CalendarGridProps {
-  onOpenMore?: (date: Date) => void
   onOpenTaskDetail?: (task: Task) => void
 }
 
-export function CalendarGrid({ onOpenMore, onOpenTaskDetail }: CalendarGridProps) {
+export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
   const MAX_VISIBLE_TASKS_PER_DAY = 5
   const MIN_VISIBLE_TASKS_PER_DAY = 1
   const EVENT_ROW_HEIGHT = 24
@@ -30,7 +29,9 @@ export function CalendarGrid({ onOpenMore, onOpenTaskDetail }: CalendarGridProps
   const { selectedDate, events } = useCalendarStore()
   const { openTaskCreate, openTaskDetail } = useViewStore()
   const gridRef = useRef<HTMLDivElement>(null)
+  const morePopoverRef = useRef<HTMLDivElement | null>(null)
   const [visibleTaskLimit, setVisibleTaskLimit] = useState(MAX_VISIBLE_TASKS_PER_DAY)
+  const [openMoreDateKey, setOpenMoreDateKey] = useState<string | null>(null)
 
   const days = useMemo(() => {
     const monthStart = startOfMonth(selectedDate)
@@ -184,6 +185,33 @@ export function CalendarGrid({ onOpenMore, onOpenTaskDetail }: CalendarGridProps
     return () => observer.disconnect()
   }, [])
 
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null
+      if (!target) return
+      if (target.closest('[data-more-trigger="true"]')) return
+      if (morePopoverRef.current?.contains(target)) return
+      setOpenMoreDateKey(null)
+    }
+
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpenMoreDateKey(null)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('keydown', handleEsc)
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleEsc)
+    }
+  }, [])
+
+  useEffect(() => {
+    setOpenMoreDateKey(null)
+  }, [selectedDate])
+
   return (
     <div className="flex-1 flex flex-col">
       <div className="grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-700">
@@ -205,9 +233,12 @@ export function CalendarGrid({ onOpenMore, onOpenTaskDetail }: CalendarGridProps
 
       <div ref={gridRef} className="flex-1 grid grid-cols-7 grid-rows-6 gap-px bg-gray-200 dark:bg-gray-700">
         {days.map((day) => {
-          const dayEvents = eventsByDate.get(format(day, 'yyyy-MM-dd')) ?? []
+          const dayDateKey = format(day, 'yyyy-MM-dd')
+          const dayEvents = eventsByDate.get(dayDateKey) ?? []
           const visibleEvents = dayEvents.slice(0, visibleTaskLimit)
+          const hiddenEvents = dayEvents.slice(visibleTaskLimit)
           const hiddenCount = Math.max(0, dayEvents.length - visibleTaskLimit)
+          const isMoreOpen = openMoreDateKey === dayDateKey
           const isCurrentMonth = isSameMonth(day, selectedDate)
           const dayOfWeek = day.getDay()
 
@@ -215,7 +246,7 @@ export function CalendarGrid({ onOpenMore, onOpenTaskDetail }: CalendarGridProps
             <div
               key={day.toISOString()}
               onClick={() => isCurrentMonth && openTaskCreate(day)}
-              className={`group min-h-[100px] p-2 transition-colors flex flex-col overflow-hidden ${
+              className={`group relative min-h-[100px] p-2 transition-colors flex flex-col overflow-visible ${
                 isCurrentMonth
                   ? 'bg-white dark:bg-gray-900 hover:bg-blue-50 dark:hover:bg-blue-950/30 cursor-pointer'
                   : 'bg-white dark:bg-gray-900 opacity-40'
@@ -266,14 +297,44 @@ export function CalendarGrid({ onOpenMore, onOpenTaskDetail }: CalendarGridProps
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      onOpenMore?.(day)
+                      setOpenMoreDateKey((prev) => (prev === dayDateKey ? null : dayDateKey))
                     }}
+                    data-more-trigger="true"
                     className="px-1 text-[11px] font-medium text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 text-left"
                   >
                     +{hiddenCount} more
                   </button>
                 )}
               </div>
+
+              {isCurrentMonth && isMoreOpen && hiddenEvents.length > 0 && (
+                <div
+                  ref={morePopoverRef}
+                  className="absolute left-1 right-1 top-[72px] z-30 max-h-40 overflow-y-auto rounded-lg border border-gray-200 bg-white/95 p-1.5 shadow-xl backdrop-blur dark:border-gray-700 dark:bg-gray-900/95"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="space-y-1">
+                    {hiddenEvents.map((event) => (
+                      <button
+                        key={`${event.id}-more-${dayDateKey}`}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setOpenMoreDateKey(null)
+                          if (onOpenTaskDetail) {
+                            void onOpenTaskDetail(event)
+                            return
+                          }
+                          openTaskDetail(event)
+                        }}
+                        className={`w-full text-left px-2 py-1 text-xs truncate border transition-opacity hover:opacity-90 ${eventShapeClass(event, day)}`}
+                        style={getEventStyle(event)}
+                      >
+                        {getEventTitle(event, day)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )
         })}

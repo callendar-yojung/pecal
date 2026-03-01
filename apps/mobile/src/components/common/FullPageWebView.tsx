@@ -10,9 +10,10 @@ type Props = {
   path: string;
   query?: Record<string, string | number | undefined | null>;
   onMessage?: (message: { type: string; payload?: unknown; raw: string }) => void;
+  onNavigationStateChange?: (url: string) => void;
 };
 
-export function FullPageWebView({ path, query, onMessage }: Props) {
+export function FullPageWebView({ path, query, onMessage, onNavigationStateChange }: Props) {
   const { locale } = useI18n();
   const { colors, mode } = useThemeMode();
   const s = createStyles(colors);
@@ -48,6 +49,12 @@ export function FullPageWebView({ path, query, onMessage }: Props) {
         style={{ flex: 1, backgroundColor: colors.bg }}
         onHttpError={(event) => setError(`WebView HTTP ${event.nativeEvent.statusCode}`)}
         onError={(event) => setError(event.nativeEvent.description || 'WebView load error')}
+        onNavigationStateChange={(nav) => {
+          if (nav.url) {
+            setError(null);
+          }
+          onNavigationStateChange?.(nav.url);
+        }}
         onMessage={(event) => {
           if (!onMessage) return;
           const raw = event.nativeEvent.data ?? '';

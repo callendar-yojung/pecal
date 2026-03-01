@@ -2,8 +2,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
+import { useMobileApp } from '../../src/contexts/MobileAppContext';
 import { useI18n } from '../../src/contexts/I18nContext';
 import { useThemeMode } from '../../src/contexts/ThemeContext';
+import { apiFetch } from '../../src/lib/api';
 import { createStyles } from '../../src/styles/createStyles';
 
 const ALARM_ENABLED_KEY = 'mobile_settings_alarm_enabled';
@@ -11,7 +13,8 @@ const MARKETING_CONSENT_KEY = 'mobile_settings_marketing_consent';
 
 export default function SettingsAlarmPage() {
   const router = useRouter();
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
+  const { auth } = useMobileApp();
   const { colors } = useThemeMode();
   const s = createStyles(colors);
   const isKo = locale === 'ko';
@@ -28,11 +31,28 @@ export default function SettingsAlarmPage() {
       if (!mounted) return;
       if (alarmRaw === '0' || alarmRaw === '1') setAlarmEnabled(alarmRaw === '1');
       if (marketingRaw === '0' || marketingRaw === '1') setMarketingConsent(marketingRaw === '1');
+
+      if (auth.session) {
+        try {
+          const account = await apiFetch<{ marketing_consent?: boolean }>(
+            '/api/me/account',
+            auth.session
+          );
+          if (!mounted) return;
+          const serverMarketing = Boolean(account.marketing_consent);
+          setMarketingConsent(serverMarketing);
+          await AsyncStorage.multiSet([
+            [MARKETING_CONSENT_KEY, serverMarketing ? '1' : '0'],
+          ]);
+        } catch {
+          // no-op: keep local fallback
+        }
+      }
     })().catch(() => undefined);
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [auth.session]);
 
   const setAlarm = async (next: boolean) => {
     setAlarmEnabled(next);
@@ -42,6 +62,15 @@ export default function SettingsAlarmPage() {
   const setMarketing = async (next: boolean) => {
     setMarketingConsent(next);
     await AsyncStorage.setItem(MARKETING_CONSENT_KEY, next ? '1' : '0');
+    if (!auth.session) return;
+    try {
+      await apiFetch('/api/me/account', auth.session, {
+        method: 'PATCH',
+        body: JSON.stringify({ marketing_consent: next }),
+      });
+    } catch {
+      // no-op
+    }
   };
 
   const rowBase = {
@@ -65,23 +94,23 @@ export default function SettingsAlarmPage() {
             </Text>
           </Pressable>
           <Text style={{ color: colors.text, fontSize: 17, fontWeight: '700' }}>
-            {isKo ? '알람' : 'Alarm'}
+            {t('settingsAlarmTitle')}
           </Text>
           <View style={{ width: 58 }} />
         </View>
 
         <Text style={{ color: colors.text, fontSize: 30, fontWeight: '800', letterSpacing: -0.6 }}>
-          {isKo ? '알람' : 'Alarm'}
+          {t('settingsAlarmTitle')}
         </Text>
 
         <View style={[s.panel, { borderRadius: 13, gap: 0, paddingHorizontal: 0, overflow: 'hidden' }]}>
           <View style={[rowBase, { borderBottomWidth: 1, borderBottomColor: colors.border }]}>
             <View style={{ flex: 1, paddingRight: 10 }}>
               <Text style={[s.itemTitle, { fontSize: 16, fontWeight: '600' }]}>
-                {isKo ? '알림 받기' : 'Allow Notifications'}
+                {t('settingsAllowNotifications')}
               </Text>
               <Text style={s.itemMeta}>
-                {isKo ? '일정 알림을 수신합니다.' : 'Receive reminder notifications.'}
+                {t('settingsAllowNotificationsDesc')}
               </Text>
             </View>
             <Switch
@@ -95,13 +124,13 @@ export default function SettingsAlarmPage() {
             />
           </View>
 
-          <View style={rowBase}>
+          <View style={[rowBase, { borderTopWidth: 1, borderTopColor: colors.border }]}>
             <View style={{ flex: 1, paddingRight: 10 }}>
               <Text style={[s.itemTitle, { fontSize: 16, fontWeight: '600' }]}>
-                {isKo ? '마케팅 정보 수신 동의' : 'Marketing Consent'}
+                {t('settingsMarketingConsent')}
               </Text>
               <Text style={s.itemMeta}>
-                {isKo ? '이벤트/혜택 알림을 수신합니다.' : 'Receive event and promotion updates.'}
+                {t('settingsMarketingConsentDesc')}
               </Text>
             </View>
             <Switch

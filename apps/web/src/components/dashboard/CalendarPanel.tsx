@@ -13,6 +13,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Button from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 interface Tag {
@@ -312,6 +313,9 @@ export default function CalendarPanel() {
             <div className="grid grid-cols-7 overflow-hidden rounded-b-2xl border border-border/50">
               {days.map((day, index) => {
                 const dayTasks = day ? tasksByDay.get(day) || [] : [];
+                const cellDate = day
+                  ? `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+                  : "";
                 const isSelected =
                   selectedDate?.getDate() === day &&
                   selectedDate?.getMonth() === month;
@@ -353,7 +357,6 @@ export default function CalendarPanel() {
                         <div className="mt-2 space-y-1">
                           {dayTasks.slice(0, 2).map((task) => (
                             (() => {
-                              const cellDate = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
                               const startKey = dateKeyFromDateTime(task.start_time);
                               const endKey = dateKeyFromDateTime(
                                 task.end_time || task.start_time,
@@ -404,9 +407,74 @@ export default function CalendarPanel() {
                             })()
                           ))}
                           {dayTasks.length > 2 && (
-                            <p className="text-[10px] font-bold text-muted-foreground/60">
-                              + {dayTasks.length - 2} more
-                            </p>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button
+                                  type="button"
+                                  className="text-left text-[10px] font-bold text-muted-foreground/70 underline-offset-2 transition hover:text-foreground/80 hover:underline"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  + {dayTasks.length - 2} more
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent
+                                align="start"
+                                side="bottom"
+                                sideOffset={6}
+                                className="w-56 space-y-1 p-2"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {dayTasks.slice(2).map((task) => {
+                                  const startKey = dateKeyFromDateTime(task.start_time);
+                                  const endKey = dateKeyFromDateTime(
+                                    task.end_time || task.start_time,
+                                  );
+                                  const isStart = startKey === cellDate;
+                                  const isEnd = endKey === cellDate;
+                                  const isSingle = isStart && isEnd;
+                                  const bgColor = getTaskColor(task);
+                                  const markerLabel = isSingle
+                                    ? "•"
+                                    : isStart
+                                      ? "↘"
+                                      : isEnd
+                                        ? "↗"
+                                        : "━";
+
+                                  return (
+                                    <button
+                                      type="button"
+                                      key={`${task.id}-${cellDate}-popover`}
+                                      className={`flex w-full max-w-full items-center gap-1 overflow-hidden text-ellipsis whitespace-nowrap px-2 py-1 text-[10px] font-semibold cursor-pointer transition-opacity hover:opacity-90 ${
+                                        isSingle
+                                          ? "rounded-full"
+                                          : isStart
+                                            ? "rounded-l-full rounded-r-md"
+                                            : isEnd
+                                              ? "rounded-r-full rounded-l-md"
+                                              : "rounded-md"
+                                      }`}
+                                      style={{
+                                        backgroundColor: `${bgColor}40`,
+                                        color: getReadableTextColor(bgColor),
+                                        border: `1px solid ${bgColor}80`,
+                                      }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        router.push(`/dashboard/tasks/${task.id}`);
+                                      }}
+                                    >
+                                      <span className="shrink-0">{markerLabel}</span>
+                                      <span className="truncate">
+                                        {task.title ||
+                                          getContentText(task.content) ||
+                                          "Task"}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </PopoverContent>
+                            </Popover>
                           )}
                         </div>
                       </>

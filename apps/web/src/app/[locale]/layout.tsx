@@ -24,7 +24,11 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const messages = (await import(`../../../messages/${locale}.json`)).default;
+  const safeLocale: Locale = routing.locales.includes(locale as Locale)
+    ? (locale as Locale)
+    : "ko";
+  const messages = (await import(`../../../messages/${safeLocale}.json`))
+    .default;
   const t = messages.metadata;
 
   const baseUrl = "https://pecal.site";
@@ -36,6 +40,13 @@ export async function generateMetadata({
       template: `%s | Pecal`,
     },
     description: t.description,
+    icons: {
+      icon: [
+        { url: "/favicon.ico?v=2" },
+        { url: "/icon.png", type: "image/png" },
+      ],
+      apple: [{ url: "/apple-icon.png", type: "image/png" }],
+    },
     keywords:
       locale === "ko"
         ? [
@@ -59,7 +70,7 @@ export async function generateMetadata({
     authors: [{ name: "Pecal Team" }],
     creator: "Pecal",
     alternates: {
-      canonical: `${baseUrl}/${locale}`,
+      canonical: `${baseUrl}/${safeLocale}`,
       languages: {
         ko: `${baseUrl}/ko`,
         en: `${baseUrl}/en`,
@@ -68,8 +79,8 @@ export async function generateMetadata({
     },
     openGraph: {
       type: "website",
-      locale: locale === "ko" ? "ko_KR" : "en_US",
-      url: `${baseUrl}/${locale}`,
+      locale: safeLocale === "ko" ? "ko_KR" : "en_US",
+      url: `${baseUrl}/${safeLocale}`,
       siteName: "Pecal",
       title: t.title,
       description: t.ogDescription,

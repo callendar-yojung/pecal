@@ -23,6 +23,7 @@ struct PecalWidgetWorkspace: Decodable {
 struct PecalWidgetPayload: Decodable {
   let generated_at: String
   let nickname: String
+  let theme: String?
   let workspace_name: String?
   let tasks: [PecalWidgetTask]?
   let workspaces: [PecalWidgetWorkspace]
@@ -30,6 +31,7 @@ struct PecalWidgetPayload: Decodable {
   private enum CodingKeys: String, CodingKey {
     case generated_at
     case nickname
+    case theme
     case workspaces
     case workspace_name
     case tasks
@@ -39,6 +41,7 @@ struct PecalWidgetPayload: Decodable {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     generated_at = try container.decodeIfPresent(String.self, forKey: .generated_at) ?? ""
     nickname = try container.decodeIfPresent(String.self, forKey: .nickname) ?? "Pecal"
+    theme = try container.decodeIfPresent(String.self, forKey: .theme)
     let legacyWorkspaceName = try container.decodeIfPresent(String.self, forKey: .workspace_name)
     let legacyTasks = try container.decodeIfPresent([PecalWidgetTask].self, forKey: .tasks)
     workspace_name = legacyWorkspaceName
@@ -142,6 +145,35 @@ struct PecalWidgetEntryView: View {
 
   private var workspaceName: String {
     activeWorkspace?.workspace_name ?? "Workspace"
+  }
+
+  private var isDarkTheme: Bool {
+    let raw = entry.payload?.theme?.lowercased() ?? "light"
+    return raw == "dark" || raw == "black"
+  }
+
+  private var widgetBgColor: Color {
+    isDarkTheme ? Color(red: 0.08, green: 0.10, blue: 0.13) : Color.white
+  }
+
+  private var primaryTextColor: Color {
+    isDarkTheme ? Color.white.opacity(0.92) : Color.black.opacity(0.72)
+  }
+
+  private var secondaryTextColor: Color {
+    isDarkTheme ? Color(red: 0.74, green: 0.78, blue: 0.85) : Color.gray.opacity(0.9)
+  }
+
+  private var mutedTextColor: Color {
+    isDarkTheme ? Color(red: 0.63, green: 0.68, blue: 0.76) : Color.gray
+  }
+
+  private var dayBorderColor: Color {
+    isDarkTheme ? Color.white.opacity(0.12) : Color.gray.opacity(0.16)
+  }
+
+  private var otherMonthBgColor: Color {
+    isDarkTheme ? Color.white.opacity(0.05) : Color.white.opacity(0.14)
   }
 
   private var monthTitle: String {
@@ -266,12 +298,12 @@ struct PecalWidgetEntryView: View {
                 .frame(width: 7, height: 7)
               Text(timeLabel(task))
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Color.black.opacity(0.7))
+                .foregroundStyle(primaryTextColor)
                 .frame(width: 68, alignment: .leading)
               Text(task.title)
                 .font(.system(size: 12, weight: .bold))
                 .lineLimit(1)
-                .foregroundStyle(Color.black.opacity(0.85))
+                .foregroundStyle(primaryTextColor)
             }
           }
         }
@@ -285,13 +317,13 @@ struct PecalWidgetEntryView: View {
   var body: some View {
     if family == .systemLarge {
       ZStack {
-        Color.white
+        widgetBgColor
 
         if displayedWorkspaces.isEmpty {
           VStack(alignment: .leading, spacing: 8) {
             Text(monthTitle)
               .font(.system(size: 19, weight: .bold))
-              .foregroundStyle(Color.black.opacity(0.72))
+              .foregroundStyle(primaryTextColor)
               .lineLimit(1)
               .minimumScaleFactor(0.8)
             Text("워크스페이스 데이터를 불러오는 중입니다.")
@@ -305,7 +337,7 @@ struct PecalWidgetEntryView: View {
           VStack(alignment: .leading, spacing: 8) {
             Text(monthTitle)
               .font(.system(size: 19, weight: .bold))
-              .foregroundStyle(Color.black.opacity(0.72))
+              .foregroundStyle(primaryTextColor)
             Text("위젯 편집에서 워크스페이스를 선택하세요.")
               .font(.system(size: 12, weight: .semibold))
               .foregroundStyle(.gray)
@@ -318,14 +350,14 @@ struct PecalWidgetEntryView: View {
         }
       }
       .containerBackground(for: .widget) {
-        Color.white
+        widgetBgColor
       }
     } else if family == .systemMedium {
       if displayedWorkspaces.isEmpty {
         mediumWorkspacePage(
           PecalWidgetWorkspace(workspace_id: 0, workspace_name: workspaceName, tasks: todayTasks(for: activeWorkspace))
         )
-        .containerBackground(for: .widget) { Color.white }
+        .containerBackground(for: .widget) { widgetBgColor }
       } else if activeWorkspace == nil {
         VStack(alignment: .leading, spacing: 8) {
           Text("TODAY")
@@ -338,10 +370,10 @@ struct PecalWidgetEntryView: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .containerBackground(for: .widget) { Color.white }
+        .containerBackground(for: .widget) { widgetBgColor }
       } else if let workspace = activeWorkspace {
         mediumWorkspacePage(workspace)
-        .containerBackground(for: .widget) { Color.white }
+        .containerBackground(for: .widget) { widgetBgColor }
       }
     } else {
       VStack(alignment: .leading, spacing: 8) {
@@ -362,7 +394,7 @@ struct PecalWidgetEntryView: View {
         VStack(alignment: .leading, spacing: 2) {
           Text(monthTitle)
             .font(.system(size: 19, weight: .bold))
-            .foregroundStyle(Color.black.opacity(0.72))
+            .foregroundStyle(primaryTextColor)
             .lineLimit(1)
             .minimumScaleFactor(0.8)
           Text("TODAY")
@@ -372,7 +404,7 @@ struct PecalWidgetEntryView: View {
         Spacer()
         Text(workspace.workspace_name)
           .font(.system(size: 10, weight: .semibold))
-          .foregroundStyle(Color.gray.opacity(0.9))
+          .foregroundStyle(secondaryTextColor)
           .lineLimit(1)
           .minimumScaleFactor(0.7)
       }
@@ -381,7 +413,7 @@ struct PecalWidgetEntryView: View {
         ForEach(weekdayLabels, id: \.self) { day in
           Text(day)
             .font(.system(size: 8.5, weight: .bold))
-            .foregroundStyle(.gray)
+            .foregroundStyle(mutedTextColor)
             .frame(maxWidth: .infinity)
         }
       }
@@ -425,10 +457,10 @@ struct PecalWidgetEntryView: View {
     .padding(.vertical, 2)
     .frame(maxWidth: .infinity, minHeight: 46, alignment: .topLeading)
     .background(
-      Rectangle().fill(cell.inCurrentMonth ? Color.clear : Color.white.opacity(0.14))
+      Rectangle().fill(cell.inCurrentMonth ? Color.clear : otherMonthBgColor)
     )
     .overlay(
-      Rectangle().stroke(Color.gray.opacity(0.16), lineWidth: 0.5)
+      Rectangle().stroke(dayBorderColor, lineWidth: 0.5)
     )
   }
 
@@ -444,9 +476,9 @@ struct PecalWidgetEntryView: View {
   }
 
   private func dayNumberBadge(day: Int, isToday: Bool) -> some View {
-    Text(String(day))
+      Text(String(day))
       .font(.system(size: 11, weight: .semibold))
-      .foregroundColor(isToday ? .white : Color.black.opacity(0.65))
+      .foregroundColor(isToday ? .white : primaryTextColor)
       .frame(width: 20, height: 20)
       .background(
         Circle().fill(isToday ? Color.blue.opacity(0.35) : Color.clear)
@@ -464,7 +496,7 @@ struct PecalWidgetEntryView: View {
       .font(.system(size: 7.6, weight: .bold))
       .lineLimit(1)
       .minimumScaleFactor(0.6)
-      .foregroundColor(Color.black.opacity(0.72))
+      .foregroundColor(primaryTextColor)
       .frame(maxWidth: .infinity, alignment: .leading)
       .padding(.horizontal, 4)
       .padding(.vertical, 2)
