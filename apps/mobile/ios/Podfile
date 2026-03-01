@@ -63,7 +63,7 @@ target 'PecalMobile' do
     # Expo Router's LinkPreview imports a header removed in recent react-native-screens.
     # Provide a tiny compatibility stub so the pod build doesn't fail when the header is absent.
     require 'fileutils'
-    stub_header = <<~EOF
+    dismiss_stub = <<~EOF
       #ifndef RNSDismissibleModalProtocol_h
       #define RNSDismissibleModalProtocol_h
       #import <Foundation/Foundation.h>
@@ -73,11 +73,22 @@ target 'PecalMobile' do
       #endif
     EOF
 
+    tabbar_stub = <<~EOF
+      #ifndef RNSTabBarController_h
+      #define RNSTabBarController_h
+      #import <UIKit/UIKit.h>
+      @interface RNSTabBarController : UITabBarController
+      @end
+      #endif
+    EOF
+
     %w[Public Private].each do |scope|
       headers_dir = File.join(installer.sandbox.root, "Headers", scope, "RNScreens")
       FileUtils.mkdir_p(headers_dir)
-      header_path = File.join(headers_dir, "RNSDismissibleModalProtocol.h")
-      File.write(header_path, stub_header) unless File.exist?(header_path)
+      dismiss_path = File.join(headers_dir, "RNSDismissibleModalProtocol.h")
+      tabbar_path = File.join(headers_dir, "RNSTabBarController.h")
+      File.write(dismiss_path, dismiss_stub) unless File.exist?(dismiss_path)
+      File.write(tabbar_path, tabbar_stub) unless File.exist?(tabbar_path)
     end
   end
 end
