@@ -124,21 +124,23 @@ jobs:
           $dlib = Resolve-Path "signing-tools/Microsoft.ArtifactSigning.Client/bin/x64/Azure.CodeSigning.Dlib.dll"
           $metadata = Resolve-Path "signing-tools/metadata.json"
           $msi = Get-ChildItem -Path "src-tauri/target/release/bundle" -Recurse -Filter *.msi -File | Select-Object -First 1
+          $exe = Get-ChildItem -Path "src-tauri/target/release/bundle" -Recurse -Filter *.exe -File | Select-Object -First 1
+          $installer = if ($msi) { $msi } else { $exe }
 
-          if (-not $msi) {
-            Write-Error "MSI artifact not found for signing"
+          if (-not $installer) {
+            Write-Error "Installer artifact not found for signing"
             exit 1
           }
 
-          Write-Host "Signing MSI: $($msi.FullName)"
-          & $signtool sign /v /fd SHA256 /tr "http://timestamp.acs.microsoft.com" /td SHA256 /dlib $dlib /dmdf $metadata $msi.FullName
+          Write-Host "Signing installer: $($installer.FullName)"
+          & $signtool sign /v /fd SHA256 /tr "http://timestamp.acs.microsoft.com" /td SHA256 /dlib $dlib /dmdf $metadata $installer.FullName
 
           if ($LASTEXITCODE -ne 0) {
             Write-Error "MSI signing failed with exit code $LASTEXITCODE"
             exit $LASTEXITCODE
           }
 
-          Write-Host "MSI signing completed"
+          Write-Host "Installer signing completed"
 
       - name: Find and prepare artifacts
         id: artifacts
@@ -152,8 +154,12 @@ jobs:
             Write-Host "No bundle directory found"
           }
 
-          $artifact = Get-ChildItem -Path $bundleDir -Recurse -Filter *.msi -File | Select-Object -First 1
-          $sigFile = Get-ChildItem -Path $bundleDir -Recurse -Filter *.msi.sig -File | Select-Object -First 1
+          $msiArtifact = Get-ChildItem -Path $bundleDir -Recurse -Filter *.msi -File | Select-Object -First 1
+          $nsisArtifact = Get-ChildItem -Path $bundleDir -Recurse -Filter *.exe -File | Select-Object -First 1
+          $artifact = if ($msiArtifact) { $msiArtifact } else { $nsisArtifact }
+          $msiSigFile = Get-ChildItem -Path $bundleDir -Recurse -Filter *.msi.sig -File | Select-Object -First 1
+          $exeSigFile = Get-ChildItem -Path $bundleDir -Recurse -Filter *.exe.sig -File | Select-Object -First 1
+          $sigFile = if ($msiSigFile) { $msiSigFile } else { $exeSigFile }
 
           Write-Host "=== Found artifact: $($artifact.FullName) ==="
           Write-Host "=== Found signature: $($sigFile.FullName) ==="
