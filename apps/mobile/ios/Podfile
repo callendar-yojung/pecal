@@ -59,5 +59,25 @@ target 'PecalMobile' do
       :mac_catalyst_enabled => false,
       :ccache_enabled => ccache_enabled?(podfile_properties),
     )
+
+    # Expo Router's LinkPreview imports a header removed in recent react-native-screens.
+    # Provide a tiny compatibility stub so the pod build doesn't fail when the header is absent.
+    require 'fileutils'
+    stub_header = <<~EOF
+      #ifndef RNSDismissibleModalProtocol_h
+      #define RNSDismissibleModalProtocol_h
+      #import <Foundation/Foundation.h>
+      @protocol RNSDismissibleModalProtocol <NSObject>
+      - (void)requestDismissal;
+      @end
+      #endif
+    EOF
+
+    %w[Public Private].each do |scope|
+      headers_dir = File.join(installer.sandbox.root, "Headers", scope, "RNScreens")
+      FileUtils.mkdir_p(headers_dir)
+      header_path = File.join(headers_dir, "RNSDismissibleModalProtocol.h")
+      File.write(header_path, stub_header) unless File.exist?(header_path)
+    end
   end
 end
