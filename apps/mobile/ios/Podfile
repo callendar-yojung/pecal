@@ -68,6 +68,7 @@ target 'PecalMobile' do
       #define RNSDismissibleModalProtocol_h
       #import <Foundation/Foundation.h>
       @protocol RNSDismissibleModalProtocol <NSObject>
+      @optional
       - (void)requestDismissal;
       @end
       #endif
