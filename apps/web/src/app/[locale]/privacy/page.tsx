@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 
 export async function generateMetadata({
@@ -21,13 +20,20 @@ type SearchParams = {
 };
 
 export default async function PrivacyPolicyPage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<SearchParams>;
 }) {
+  const { locale } = await params;
   const query = await searchParams;
   const embedded = query?.embedded === "mobile" || query?.embedded === "true";
-  const t = useTranslations("privacyPolicy");
+  const t = await getTranslations({ locale, namespace: "privacyPolicy" });
+  const toStringList = (key: string): string[] => {
+    const value = t.raw(key);
+    return Array.isArray(value) ? value : [];
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -71,11 +77,9 @@ export default async function PrivacyPolicyPage({
                   {t("section1.required.title")}
                 </h3>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-4">
-                  {(t.raw("section1.required.items") as string[]).map(
-                    (item) => (
-                      <li key={item}>{item}</li>
-                    ),
-                  )}
+                  {toStringList("section1.required.items").map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
                 </ul>
               </div>
 
@@ -84,11 +88,9 @@ export default async function PrivacyPolicyPage({
                   {t("section1.optional.title")}
                 </h3>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-4">
-                  {(t.raw("section1.optional.items") as string[]).map(
-                    (item) => (
-                      <li key={item}>{item}</li>
-                    ),
-                  )}
+                  {toStringList("section1.optional.items").map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
                 </ul>
               </div>
             </div>
@@ -101,7 +103,7 @@ export default async function PrivacyPolicyPage({
             </h2>
             <p className="text-muted-foreground">{t("section2.content")}</p>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section2.purposes") as string[]).map((purpose) => (
+              {toStringList("section2.purposes").map((purpose) => (
                 <li key={purpose}>{purpose}</li>
               ))}
             </ul>
@@ -114,7 +116,7 @@ export default async function PrivacyPolicyPage({
             </h2>
             <p className="text-muted-foreground">{t("section3.content")}</p>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section3.retention") as string[]).map((item) => (
+              {toStringList("section3.retention").map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
@@ -127,7 +129,7 @@ export default async function PrivacyPolicyPage({
             </h2>
             <p className="text-muted-foreground">{t("section4.content")}</p>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section4.exceptions") as string[]).map((exception) => (
+              {toStringList("section4.exceptions").map((exception) => (
                 <li key={exception}>{exception}</li>
               ))}
             </ul>
@@ -151,7 +153,7 @@ export default async function PrivacyPolicyPage({
             </h2>
             <p className="text-muted-foreground">{t("section6.content")}</p>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section6.rights") as string[]).map((right) => (
+              {toStringList("section6.rights").map((right) => (
                 <li key={right}>{right}</li>
               ))}
             </ul>
@@ -186,7 +188,7 @@ export default async function PrivacyPolicyPage({
             </h2>
             <p className="text-muted-foreground">{t("section8.content")}</p>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
-              {(t.raw("section8.measures") as string[]).map((measure) => (
+              {toStringList("section8.measures").map((measure) => (
                 <li key={measure}>{measure}</li>
               ))}
             </ul>
@@ -215,11 +217,9 @@ export default async function PrivacyPolicyPage({
                   {t("section9.contact.note")}
                 </p>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  {(t.raw("section9.contact.agencies") as string[]).map(
-                    (agency) => (
-                      <li key={agency}>• {agency}</li>
-                    ),
-                  )}
+                  {toStringList("section9.contact.agencies").map((agency) => (
+                    <li key={agency}>• {agency}</li>
+                  ))}
                 </ul>
               </div>
             </div>
