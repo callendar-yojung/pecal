@@ -13,7 +13,7 @@ export default async function DashboardLayout({
   params: Promise<{ locale: string }>;
 }) {
   const [{ locale }, session] = await Promise.all([params, auth()]);
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
 
   let memberId: number | null = session?.user?.memberId ?? null;
 
