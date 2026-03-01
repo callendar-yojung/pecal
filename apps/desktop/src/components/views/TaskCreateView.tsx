@@ -44,6 +44,7 @@ export function TaskCreateView() {
   const [newTagName, setNewTagName] = useState('')
   const [newTagColor, setNewTagColor] = useState('#6366f1')
   const [isTagCreating, setIsTagCreating] = useState(false)
+  const [dateRangeError, setDateRangeError] = useState('')
 
   const formattedDate = useMemo(
     () => `${format(startDate, 'yyyy-MM-dd')} ~ ${format(endDate, 'yyyy-MM-dd')}`,
@@ -78,6 +79,32 @@ export function TaskCreateView() {
   const buildDatetime = (date: Date, hour: number, minute: number) =>
     setMinutes(setHours(date, hour), minute)
 
+  const normalizeDate = (value: string) => {
+    const parsed = parseDateInput(value)
+    if (Number.isNaN(parsed.getTime())) return null
+    return parsed
+  }
+
+  const handleStartDateChange = (value: string) => {
+    const parsed = normalizeDate(value)
+    if (!parsed) return
+    setDateRangeError('')
+    setStartDate(parsed)
+    if (parsed > endDate) {
+      setEndDate(parsed)
+    }
+  }
+
+  const handleEndDateChange = (value: string) => {
+    const parsed = normalizeDate(value)
+    if (!parsed) return
+    setDateRangeError('')
+    if (parsed < startDate) {
+      setStartDate(parsed)
+    }
+    setEndDate(parsed)
+  }
+
   const toMysqlDatetime = (date: Date) =>
     format(date, 'yyyy-MM-dd HH:mm:ss')
 
@@ -94,7 +121,9 @@ export function TaskCreateView() {
       } as const
       const startDatetime = buildDatetime(startDate, startHour, startMinute)
       const endDatetime = buildDatetime(endDate, endHour, endMinute)
+      setDateRangeError('')
       if (endDatetime.getTime() <= startDatetime.getTime()) {
+        setDateRangeError(t('event.invalidTimeRange'))
         alert(t('event.invalidTimeRange'))
         return
       }
@@ -204,21 +233,29 @@ export function TaskCreateView() {
               autoFocus
             />
 
-            <div className="flex items-center gap-2 flex-wrap">
-              <input
-                type="date"
-                value={format(startDate, 'yyyy-MM-dd')}
-                onChange={(e) => setStartDate(parseDateInput(e.target.value))}
-                className="px-2 py-1.5 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-sm"
-              />
-              <span className="text-gray-400">~</span>
-              <input
-                type="date"
-                value={format(endDate, 'yyyy-MM-dd')}
-                onChange={(e) => setEndDate(parseDateInput(e.target.value))}
-                className="px-2 py-1.5 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-sm"
-              />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="flex flex-col gap-1.5 text-sm">
+                <span className="text-gray-700 dark:text-gray-300">시작일</span>
+                <input
+                  type="date"
+                  value={format(startDate, 'yyyy-MM-dd')}
+                  onChange={(e) => handleStartDateChange(e.target.value)}
+                  className="px-2 py-1.5 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-sm"
+                />
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm">
+                <span className="text-gray-700 dark:text-gray-300">종료일</span>
+                <input
+                  type="date"
+                  value={format(endDate, 'yyyy-MM-dd')}
+                  onChange={(e) => handleEndDateChange(e.target.value)}
+                  className="px-2 py-1.5 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-sm"
+                />
+              </label>
             </div>
+            {dateRangeError ? (
+              <p className="text-sm text-red-500 dark:text-red-400">{dateRangeError}</p>
+            ) : null}
 
             <div className="flex items-center gap-2 flex-wrap">
               <select value={startHour} onChange={(e) => setStartHour(Number(e.target.value))} className="px-2 py-1.5 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-sm">

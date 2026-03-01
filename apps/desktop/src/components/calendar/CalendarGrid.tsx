@@ -20,11 +20,11 @@ interface CalendarGridProps {
 }
 
 export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
-  const MAX_VISIBLE_TASKS_PER_DAY = 5
+  const MAX_VISIBLE_TASKS_PER_DAY = 8
   const MIN_VISIBLE_TASKS_PER_DAY = 1
-  const EVENT_ROW_HEIGHT = 24
-  const DAY_HEADER_HEIGHT = 36
-  const DAY_CELL_PADDING = 16
+  const EVENT_ROW_HEIGHT = 20
+  const DAY_HEADER_HEIGHT = 32
+  const DAY_CELL_PADDING = 12
   const { i18n } = useTranslation()
   const { selectedDate, events } = useCalendarStore()
   const { openTaskCreate, openTaskDetail } = useViewStore()
@@ -107,14 +107,6 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
     return { isStart, isEnd, isSingle }
   }
 
-  const markerLabel = (event: Task, day: Date) => {
-    const state = getEventMarkerState(event, day)
-    if (state.isSingle) return '•'
-    if (state.isStart) return '↘'
-    if (state.isEnd) return '↗'
-    return '━'
-  }
-
   const eventShapeClass = (event: Task, day: Date) => {
     const state = getEventMarkerState(event, day)
     if (state.isSingle) return 'rounded-full'
@@ -132,9 +124,7 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
     }
   }
 
-  const getEventTitle = (event: Task, day: Date) => {
-    return `${markerLabel(event, day)} ${event.title}`
-  }
+  const getEventTitle = (event: Task) => event.title
 
   const getReadableTextColor = (hexColor?: string) => {
     if (!hexColor || !hexColor.startsWith('#')) return '#1f2937'
@@ -163,9 +153,11 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
       const availableHeight = cellHeight - DAY_HEADER_HEIGHT - DAY_CELL_PADDING
       const heightBasedLimit = Math.floor(availableHeight / EVENT_ROW_HEIGHT)
       const widthBasedCap =
-        cellWidth < 90 ? 2 :
-        cellWidth < 110 ? 3 :
-        cellWidth < 130 ? 4 : 5
+        cellWidth < 80 ? 1 :
+        cellWidth < 96 ? 2 :
+        cellWidth < 118 ? 3 :
+        cellWidth < 140 ? 4 :
+        cellWidth < 160 ? 5 : 6
       const dynamicLimit = Math.min(heightBasedLimit, widthBasedCap)
       const next = Math.max(
         MIN_VISIBLE_TASKS_PER_DAY,
@@ -213,7 +205,7 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
   }, [selectedDate])
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col min-h-0">
       <div className="grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-700">
         {weekDays.map((day, index) => (
           <div
@@ -231,7 +223,10 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
         ))}
       </div>
 
-      <div ref={gridRef} className="flex-1 grid grid-cols-7 grid-rows-6 gap-px bg-gray-200 dark:bg-gray-700">
+      <div
+        ref={gridRef}
+        className="flex-1 min-h-[360px] grid grid-cols-7 grid-rows-6 gap-px bg-gray-200 dark:bg-gray-700"
+      >
         {days.map((day) => {
           const dayDateKey = format(day, 'yyyy-MM-dd')
           const dayEvents = eventsByDate.get(dayDateKey) ?? []
@@ -246,7 +241,7 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
             <div
               key={day.toISOString()}
               onClick={() => isCurrentMonth && openTaskCreate(day)}
-              className={`group relative min-h-[100px] p-2 transition-colors flex flex-col overflow-visible ${
+              className={`group relative min-h-[72px] p-2 transition-colors flex flex-col overflow-visible min-w-0 ${
                 isCurrentMonth
                   ? 'bg-white dark:bg-gray-900 hover:bg-blue-50 dark:hover:bg-blue-950/30 cursor-pointer'
                   : 'bg-white dark:bg-gray-900 opacity-40'
@@ -290,7 +285,7 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
                     className={`w-full text-left px-2 py-1 text-xs truncate border transition-opacity hover:opacity-90 ${eventShapeClass(event, day)}`}
                     style={getEventStyle(event)}
                   >
-                    {getEventTitle(event, day)}
+                    {getEventTitle(event)}
                   </button>
                 ))}
                 {hiddenCount > 0 && (

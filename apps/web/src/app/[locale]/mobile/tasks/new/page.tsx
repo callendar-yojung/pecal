@@ -1,6 +1,14 @@
 "use client";
 
-import { type ChangeEvent, type FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  type ChangeEvent,
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { Bell, Paperclip, Palette, Tag } from "lucide-react";
 import RichTextEditor from "@/components/editor/RichTextEditor";
 
 type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE";
@@ -132,6 +140,11 @@ export default function MobileTaskEditorPage() {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [loadingAttachments, setLoadingAttachments] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [showNewTagForm, setShowNewTagForm] = useState(false);
+  const [newTagName, setNewTagName] = useState("");
+  const [newTagColor, setNewTagColor] = useState("#3B82F6");
+  const [creatingTag, setCreatingTag] = useState(false);
+  const [tagError, setTagError] = useState("");
 
   const canCreate = !!token && workspaceId > 0;
   const canLoadTags =
@@ -162,20 +175,75 @@ export default function MobileTaskEditorPage() {
     root.classList.add(theme);
   }, [theme]);
 
+  const loadTags = useCallback(async () => {
+    if (!canLoadTags) return;
+    const res = await fetch(
+      `/api/tags?owner_type=${ownerType}&owner_id=${ownerId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+    if (!res.ok) return;
+    const data = (await res.json()) as { tags?: TagItem[] };
+    setTags(data.tags ?? []);
+  }, [canLoadTags, ownerId, ownerType, token]);
+
   useEffect(() => {
     if (!canLoadTags) return;
-    void (async () => {
-      const res = await fetch(
-        `/api/tags?owner_type=${ownerType}&owner_id=${ownerId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
+    void loadTags();
+  }, [canLoadTags, loadTags]);
+
+  const createTag = useCallback(async () => {
+    if (!newTagName.trim()) {
+      setTagError("태그 이름을 입력해주세요.");
+      return;
+    }
+    if (!canLoadTags) {
+      setTagError("워크스페이스 정보를 찾을 수 없습니다.");
+      return;
+    }
+    setCreatingTag(true);
+    setTagError("");
+    try {
+      const res = await fetch("/api/tags", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
+        body: JSON.stringify({
+          name: newTagName.trim(),
+          color: newTagColor,
+          owner_type: ownerType,
+          owner_id: ownerId,
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        tag_id?: number;
+        error?: string;
+      };
+      if (!res.ok) {
+        setTagError(data.error || "태그 생성에 실패했습니다.");
+        return;
+      }
+      await loadTags();
+      const nextTagId = Number(data.tag_id ?? 0);
+      if (Number.isFinite(nextTagId) && nextTagId > 0) {
+        setTagIds((prev) =>
+          prev.includes(nextTagId) ? prev : [...prev, nextTagId],
+        );
+      }
+      setNewTagName("");
+      setNewTagColor("#3B82F6");
+      setShowNewTagForm(false);
+    } catch (error) {
+      setTagError(
+        error instanceof Error ? error.message : "태그 생성 중 오류가 발생했습니다.",
       );
-      if (!res.ok) return;
-      const data = (await res.json()) as { tags?: TagItem[] };
-      setTags(data.tags ?? []);
-    })();
-  }, [canLoadTags, ownerId, ownerType, token]);
+    } finally {
+      setCreatingTag(false);
+    }
+  }, [canLoadTags, loadTags, newTagColor, newTagName, ownerId, ownerType, token]);
 
   useEffect(() => {
     if (!canEdit) return;
@@ -527,7 +595,13 @@ export default function MobileTaskEditorPage() {
           </select>
 
           <div className="rounded-xl border border-border bg-background p-3">
-            <p className="text-sm font-semibold">색상</p>
+            <div className="mb-2 flex items-center justify-between">
+              <p className="flex items-center gap-1 text-sm font-semibold">
+                <Palette className="h-4 w-4" />
+                색상
+              </p>
+              <p className="text-xs text-muted-foreground">원하는 색을 터치하세요</p>
+            </div>
             <div className="mt-2 flex flex-wrap gap-2">
               {TASK_COLORS.map((swatch) => (
                 <button
@@ -549,7 +623,13 @@ export default function MobileTaskEditorPage() {
           </div>
 
           <div className="rounded-xl border border-border bg-background p-3">
-            <p className="text-sm font-semibold">알림</p>
+            <div className="mb-2 flex items-center justify-between">
+              <p className="flex items-center gap-1 text-sm font-semibold">
+                <Bell className="h-4 w-4" />
+                알림
+              </p>
+              <p className="text-xs text-muted-foreground">알림 시간을 터치해 주세요</p>
+            </div>
             <select
               value={reminderMinutes === null ? "" : String(reminderMinutes)}
               onChange={(e) =>
@@ -570,8 +650,14 @@ export default function MobileTaskEditorPage() {
             </select>
           </div>
 
-          <div className="rounded-xl border border-border bg-background p-3">
-            <p className="text-sm font-semibold">태그</p>
+            <div className="rounded-xl border border-border bg-background p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <p className="flex items-center gap-1 text-sm font-semibold">
+                  <Tag className="h-4 w-4" />
+                  태그
+                </p>
+                <p className="text-xs text-muted-foreground">원하는 태그를 눌러 선택</p>
+              </div>
             {!tags.length ? (
               <p className="mt-2 text-sm text-muted-foreground">
                 사용 가능한 태그가 없습니다.
@@ -606,16 +692,79 @@ export default function MobileTaskEditorPage() {
                     </button>
                   );
                 })}
+                {tags.length ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowNewTagForm((prev) => !prev)}
+                    className="rounded-full border border-dashed border-border px-3 py-1 text-sm font-semibold text-muted-foreground hover:bg-muted"
+                  >
+                    {showNewTagForm ? "취소" : "+ 태그 추가"}
+                  </button>
+                ) : null}
               </div>
             )}
+            {!tags.length ? (
+              <button
+                type="button"
+                onClick={() => setShowNewTagForm((prev) => !prev)}
+                className="mt-2 rounded-full border border-dashed border-border px-3 py-1 text-sm font-semibold text-muted-foreground hover:bg-muted"
+              >
+                {showNewTagForm ? "취소" : "+ 태그 추가"}
+              </button>
+            ) : null}
+            {showNewTagForm ? (
+              <div className="mt-2 flex flex-wrap gap-2 rounded-lg border border-border bg-card p-2">
+                <input
+                  type="text"
+                  value={newTagName}
+                  onChange={(event) => setNewTagName(event.target.value)}
+                  placeholder="태그 이름"
+                  className="h-9 min-w-[150px] flex-1 rounded-md border border-border bg-background px-3 text-sm"
+                />
+                <input
+                  type="color"
+                  value={newTagColor}
+                  onChange={(event) => setNewTagColor(event.target.value)}
+                  className="h-9 w-10 cursor-pointer rounded-md border border-border bg-background"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    void createTag();
+                  }}
+                  disabled={creatingTag}
+                  className="h-9 rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+                >
+                  {creatingTag ? "생성 중..." : "저장"}
+                </button>
+                {tagError ? (
+                  <p className="w-full text-xs text-red-500">{tagError}</p>
+                ) : null}
+              </div>
+            ) : null}
           </div>
 
           <div className="rounded-xl border border-border bg-background p-3">
-            <p className="text-sm font-semibold">첨부파일</p>
+            <div className="mb-2 flex items-center justify-between">
+              <p className="flex items-center gap-1 text-sm font-semibold">
+                <Paperclip className="h-4 w-4" />
+                첨부파일
+              </p>
+              <p className="text-xs text-muted-foreground">아래 영역을 눌러 파일 등록</p>
+            </div>
+            <label
+              htmlFor="task-file-input"
+              className="mt-2 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-card px-3 py-3 text-sm text-foreground transition-colors hover:bg-subtle"
+            >
+              <span className="font-medium">이곳을 눌러 첨부파일을 등록하세요</span>
+              <span className="text-xs text-muted-foreground">(클릭)</span>
+            </label>
             <input
+              id="task-file-input"
               type="file"
               onChange={handleFileUpload}
-              className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+              className="sr-only"
+              aria-label="첨부파일 업로드"
             />
             {uploadingFile ? (
               <p className="mt-2 text-xs text-muted-foreground">업로드 중...</p>
