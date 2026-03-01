@@ -91,5 +91,49 @@ target 'PecalMobile' do
       File.write(dismiss_path, dismiss_stub) unless File.exist?(dismiss_path)
       File.write(tabbar_path, tabbar_stub) unless File.exist?(tabbar_path)
     end
+
+    # Provide runtime stubs for removed RNScreens types so Expo Router compiles.
+    compat_dir = File.expand_path("../RNSScreensCompat", __dir__)
+    FileUtils.mkdir_p(compat_dir)
+    compat_file = File.join(compat_dir, "RNSScreensCompatStub.m")
+    unless File.exist?(compat_file)
+      File.write(compat_file, <<~EOS)
+        #import <UIKit/UIKit.h>
+        #import <RNScreens/RNSScreen.h>
+
+        @interface RNSBottomTabsScreenComponentView : UIView
+        @property(nonatomic, copy) NSString *tabKey;
+        - (UIViewController *)reactViewController;
+        @end
+        @implementation RNSBottomTabsScreenComponentView
+        - (UIViewController *)reactViewController { return nil; }
+        @end
+
+        @interface RNSBottomTabsHostComponentView : UIView
+        - (UITabBarController *)controller;
+        @end
+        @implementation RNSBottomTabsHostComponentView
+        - (UITabBarController *)controller { return nil; }
+        @end
+
+        @interface RNSTabBarController : UITabBarController @end
+        @implementation RNSTabBarController @end
+
+        @interface RNSScreenView (PecalCompat)
+        @property(nonatomic, copy) NSString *screenId;
+        @end
+        @implementation RNSScreenView (PecalCompat)
+        - (NSString *)screenId { return nil; }
+        - (void)setScreenId:(NSString *)value {}
+        @end
+      EOS
+    end
+
+    expo_head = installer.pods_project.targets.find { |t| t.name == "ExpoHead" }
+    if expo_head && !expo_head.source_build_phase.files_references.any? { |fr| fr.path&.end_with?("RNSScreensCompatStub.m") }
+      group = installer.pods_project.main_group.find_subpath("Compatibility Stubs", true)
+      file_ref = group.new_file(compat_file)
+      expo_head.source_build_phase.add_file_reference(file_ref)
+    end
   end
 end
