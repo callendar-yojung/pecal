@@ -44,7 +44,9 @@
     "active": true,
     "targets": [
       "dmg",
-      "app"
+      "app",
+      "msi",
+      "nsis"
     ],
     "createUpdaterArtifacts": false,
     "windows": {
