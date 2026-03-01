@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Text, View } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useI18n } from '../../contexts/I18nContext';
 import { useThemeMode } from '../../contexts/ThemeContext';
@@ -46,6 +46,14 @@ export function FullPageWebView({ path, query, onMessage, onNavigationStateChang
         sharedCookiesEnabled
         thirdPartyCookiesEnabled
         startInLoadingState
+        renderLoading={() => (
+          <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator color={colors.primary} size="large" />
+            <Text style={{ marginTop: 12, color: colors.textMuted, fontSize: 13 }}>
+              로딩 중...
+            </Text>
+          </View>
+        )}
         style={{ flex: 1, backgroundColor: colors.bg }}
         onHttpError={(event) => setError(`WebView HTTP ${event.nativeEvent.statusCode}`)}
         onError={(event) => setError(event.nativeEvent.description || 'WebView load error')}

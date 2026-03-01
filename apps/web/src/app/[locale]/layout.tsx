@@ -127,15 +127,38 @@ export default async function LocaleLayout({ children, params }: Props) {
   // 플래시 방지를 위한 인라인 스크립트
   const themeScript = `
     (function() {
-      function getTheme() {
-        var match = document.cookie.split('; ').find(function(row){ return row.trim().indexOf('theme=') === 0 });
-        return match ? decodeURIComponent(match.split('=')[1]) : null;
+      function parseThemeValue(raw) {
+        if (!raw) return null;
+        var trimmed = raw.toLowerCase().trim();
+        return trimmed === "light" || trimmed === "dark" || trimmed === "black" || trimmed === "system"
+          ? trimmed
+          : null;
       }
+      function getTheme() {
+        var match = document.cookie
+          .split("; ")
+          .find(function (row) {
+            return row.trim().indexOf("theme=") === 0;
+          });
+        if (!match) return null;
+        var raw = decodeURIComponent(match.split("=").slice(1).join("="));
+        return parseThemeValue(raw);
+      }
+
+      function getPreferredTheme() {
+        if (typeof window.matchMedia === "function") {
+          return window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light";
+        }
+        return "light";
+      }
+
       var raw = getTheme();
-      var theme = raw ? raw.toLowerCase() : 'light';
+      var theme = raw === "system" || raw === null ? getPreferredTheme() : raw;
       var root = document.documentElement;
       root.classList.remove('light','dark');
-      if (theme === 'dark' || theme === 'black') {
+      if (theme === "dark" || theme === "black") {
         root.classList.add('dark');
       } else {
         root.classList.add('light');

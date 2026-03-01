@@ -36,7 +36,24 @@ export default function MobileMemoPage() {
   const token = search.get("token") ?? "";
   const ownerType = (search.get("owner_type") ?? "") as OwnerType;
   const ownerId = Number(search.get("owner_id") ?? "0");
-  const theme = search.get("theme") === "dark" ? "dark" : "light";
+  const theme = useMemo(() => {
+    const queryTheme = search.get("theme");
+    if (queryTheme === "dark" || queryTheme === "light") return queryTheme;
+
+    if (typeof document !== "undefined") {
+      if (document.documentElement.classList.contains("dark")) return "dark";
+    }
+
+    if (
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+    ) {
+      return "dark";
+    }
+
+    return "light";
+  }, [search]);
 
   const headers = useMemo<Record<string, string>>(() => {
     const baseHeaders: Record<string, string> = {
@@ -222,7 +239,7 @@ export default function MobileMemoPage() {
 
   if (!canRequest) {
     return (
-      <main className="min-h-screen p-4 text-sm text-red-500">
+      <main className="min-h-screen bg-background p-4 text-sm text-red-500">
         인증 또는 워크스페이스 정보가 없습니다.
       </main>
     );
