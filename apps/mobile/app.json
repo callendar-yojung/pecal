@@ -2,7 +2,7 @@
   "expo": {
     "name": "Pecal Mobile",
     "slug": "pecal-mobile",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "scheme": "myapp",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
@@ -10,7 +10,8 @@
     "ios": {
       "supportsTablet": true,
       "icon": "./assets/icon.png",
-      "bundleIdentifier": "com.pecal.mobile"
+      "bundleIdentifier": "com.pecal.mobile",
+      "buildNumber": "1.0.2"
     },
     "android": {
       "adaptiveIcon": {
