@@ -121,6 +121,9 @@ target 'PecalMobile' do
         #endif
         @implementation RNSTabBarController @end
 
+        @interface RNSScreenStackView : UIView @end
+        @implementation RNSScreenStackView @end
+
         @interface RNSScreenStackView (PecalCompat)
         @property(nonatomic, copy) NSArray<NSString *> *screenIds;
         @property(nonatomic, copy) NSArray<UIView *> *reactSubviews;
@@ -165,6 +168,7 @@ target 'PecalMobile' do
         @interface RNSBottomTabsHostComponentView : UIView
         - (UITabBarController *)controller;
         @end
+        @interface RNSScreenStackView : UIView @end
         @interface RNSScreenStackView (PecalCompat)
         @property(nonatomic, copy) NSArray<NSString *> *screenIds;
         @property(nonatomic, copy) NSArray<UIView *> *reactSubviews;
