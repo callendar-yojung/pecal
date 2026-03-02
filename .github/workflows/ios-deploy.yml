@@ -94,6 +94,12 @@ jobs:
           bundle exec ruby -e 'require "xcodeproj"; puts Xcodeproj::VERSION'
           bundle exec pod install --repo-update --project-directory=ios
 
+      - name: Configure keychain for codesign
+        run: |
+          security unlock-keychain -p "${{ secrets.KEYCHAIN_PASSWORD }}" ~/Library/Keychains/login.keychain-db
+          security set-keychain-settings -t 3600 -u ~/Library/Keychains/login.keychain-db
+          security set-key-partition-list -S apple-tool:,apple: -s -k "${{ secrets.KEYCHAIN_PASSWORD }}" ~/Library/Keychains/login.keychain-db
+
       - name: Run fastlane
         run: |
           cd apps/mobile
