@@ -104,16 +104,6 @@ jobs:
             exit 1
           fi
 
-      - name: Configure keychain for codesign
-        run: |
-          security delete-keychain "${KEYCHAIN_PATH}" || true
-          security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
-          security list-keychains -d user -s "${KEYCHAIN_PATH}" login.keychain-db
-          security default-keychain -d user -s "${KEYCHAIN_PATH}"
-          security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
-          security set-keychain-settings -t 3600 -u "${KEYCHAIN_PATH}"
-          security set-key-partition-list -S apple-tool:,apple: -s -k "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
-
       - name: Run fastlane
         run: |
           cd apps/mobile
