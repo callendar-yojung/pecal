@@ -31,6 +31,13 @@ end
 platform :ios do
   desc "Build iOS and upload to TestFlight"
   lane :beta do |options|
+    xcode_select "/Applications/Xcode_16.4.app"
+    if ENV["KEYCHAIN_PASSWORD"] && !ENV["KEYCHAIN_PASSWORD"].empty?
+      unlock_keychain(
+        path: "/Users/runner/Library/Keychains/login.keychain-db",
+        password: ENV["KEYCHAIN_PASSWORD"]
+      )
+    end
     api_key, auth_key_path, auth_key_id, auth_issuer_id = load_app_store_api_credentials!
     team_id = ENV.fetch("APPLE_TEAM_ID", ENV.fetch("APP_STORE_CONNECT_TEAM_ID"))
 
@@ -80,6 +87,13 @@ platform :ios do
 
   desc "Submit latest build to App Store review"
   lane :release do
+    xcode_select "/Applications/Xcode_16.4.app"
+    if ENV["KEYCHAIN_PASSWORD"] && !ENV["KEYCHAIN_PASSWORD"].empty?
+      unlock_keychain(
+        path: "/Users/runner/Library/Keychains/login.keychain-db",
+        password: ENV["KEYCHAIN_PASSWORD"]
+      )
+    end
     api_key, = load_app_store_api_credentials!
 
     upload_to_app_store(
