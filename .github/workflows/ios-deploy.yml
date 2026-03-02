@@ -106,6 +106,10 @@ jobs:
             bundle exec fastlane ios ${{ github.event.inputs.lane }} changelog:"${{ github.event.inputs.changelog }}"
           fi
 
+      - name: Print gym log
+        if: always()
+        run: cat /Users/runner/Library/Logs/gym/PecalMobile-PecalMobile.log || true
+
       - name: Upload IPA artifact
         if: always()
         uses: actions/upload-artifact@v4
