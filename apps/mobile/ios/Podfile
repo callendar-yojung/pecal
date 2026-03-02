@@ -107,9 +107,6 @@ target 'PecalMobile' do
         @property(nonatomic, copy) NSString *tabKey;
         - (UIViewController *)reactViewController;
         @end
-        @implementation RNSBottomTabsScreenComponentView
-        - (UIViewController *)reactViewController { return nil; }
-        @end
         #endif
 
         #if __has_include(<RNScreens/RNSBottomTabsHostComponentView.h>)
@@ -118,23 +115,18 @@ target 'PecalMobile' do
         @interface RNSBottomTabsHostComponentView : UIView
         - (UITabBarController *)controller;
         @end
-        @implementation RNSBottomTabsHostComponentView
-        - (UITabBarController *)controller { return nil; }
-        @end
         #endif
 
         #if __has_include(<RNScreens/RNSTabBarController.h>)
         #import <RNScreens/RNSTabBarController.h>
         #else
         @interface RNSTabBarController : UITabBarController @end
-        @implementation RNSTabBarController @end
         #endif
 
-        #if __has_include(<RNScreens/RNSScreenStackView.h>)
-        #import <RNScreens/RNSScreenStackView.h>
+        #if __has_include(<RNScreens/RNSScreenStack.h>)
+        #import <RNScreens/RNSScreenStack.h>
         #else
         @interface RNSScreenStackView : UIView @end
-        @implementation RNSScreenStackView @end
         #endif
 
         @interface RNSScreenStackView (PecalCompat)
