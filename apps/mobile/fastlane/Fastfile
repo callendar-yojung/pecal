@@ -28,12 +28,24 @@ rescue ArgumentError
   UI.user_error!("APP_STORE_CONNECT_API_KEY_CONTENT must be a .p8 private key text (or base64-encoded .p8 text)")
 end
 
+def setup_ci_keychain_if_needed
+  return unless ENV["CI"] == "true"
+  return if ENV["KEYCHAIN_PASSWORD"].to_s.empty?
+
+  setup_ci(
+    provider: "github_actions",
+    keychain_name: ENV.fetch("KEYCHAIN_NAME", "ci.keychain"),
+    keychain_password: ENV["KEYCHAIN_PASSWORD"]
+  )
+end
+
 platform :ios do
   desc "Build iOS and upload to TestFlight"
   lane :beta do |options|
     desired_xcode = ENV["XCODE_PATH"] || "/Applications/Xcode_16.4.app"
     fallback_xcode = "/Applications/Xcode.app"
     xcode_select(File.exist?(desired_xcode) ? desired_xcode : fallback_xcode)
+    setup_ci_keychain_if_needed
     keychain_path = ENV["KEYCHAIN_PATH"] || "/Users/runner/Library/Keychains/login.keychain-db"
     if ENV["KEYCHAIN_PASSWORD"] && !ENV["KEYCHAIN_PASSWORD"].empty?
       unlock_keychain(
@@ -106,6 +118,7 @@ platform :ios do
     desired_xcode = ENV["XCODE_PATH"] || "/Applications/Xcode_16.4.app"
     fallback_xcode = "/Applications/Xcode.app"
     xcode_select(File.exist?(desired_xcode) ? desired_xcode : fallback_xcode)
+    setup_ci_keychain_if_needed
     keychain_path = ENV["KEYCHAIN_PATH"] || "/Users/runner/Library/Keychains/login.keychain-db"
     if ENV["KEYCHAIN_PASSWORD"] && !ENV["KEYCHAIN_PASSWORD"].empty?
       unlock_keychain(
@@ -130,6 +143,7 @@ platform :ios do
     desired_xcode = ENV["XCODE_PATH"] || "/Applications/Xcode_16.4.app"
     fallback_xcode = "/Applications/Xcode.app"
     xcode_select(File.exist?(desired_xcode) ? desired_xcode : fallback_xcode)
+    setup_ci_keychain_if_needed
     keychain_path = ENV["KEYCHAIN_PATH"] || "/Users/runner/Library/Keychains/login.keychain-db"
     if ENV["KEYCHAIN_PASSWORD"] && !ENV["KEYCHAIN_PASSWORD"].empty?
       unlock_keychain(
