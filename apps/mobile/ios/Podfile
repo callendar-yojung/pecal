@@ -96,11 +96,13 @@ target 'PecalMobile' do
     compat_dir = File.expand_path("../RNSScreensCompat", __dir__)
     FileUtils.mkdir_p(compat_dir)
     compat_file = File.join(compat_dir, "RNSScreensCompatStub.m")
-    unless File.exist?(compat_file)
-      File.write(compat_file, <<~EOS)
+    compat_code = <<~EOS
         #import <UIKit/UIKit.h>
         #import <RNScreens/RNSScreen.h>
 
+        #if __has_include(<RNScreens/RNSBottomTabsScreenComponentView.h>)
+        #import <RNScreens/RNSBottomTabsScreenComponentView.h>
+        #else
         @interface RNSBottomTabsScreenComponentView : UIView
         @property(nonatomic, copy) NSString *tabKey;
         - (UIViewController *)reactViewController;
@@ -108,21 +110,32 @@ target 'PecalMobile' do
         @implementation RNSBottomTabsScreenComponentView
         - (UIViewController *)reactViewController { return nil; }
         @end
+        #endif
 
+        #if __has_include(<RNScreens/RNSBottomTabsHostComponentView.h>)
+        #import <RNScreens/RNSBottomTabsHostComponentView.h>
+        #else
         @interface RNSBottomTabsHostComponentView : UIView
         - (UITabBarController *)controller;
         @end
         @implementation RNSBottomTabsHostComponentView
         - (UITabBarController *)controller { return nil; }
         @end
-
-        #ifndef RNSTabBarController_h
-        @interface RNSTabBarController : UITabBarController @end
         #endif
-        @implementation RNSTabBarController @end
 
+        #if __has_include(<RNScreens/RNSTabBarController.h>)
+        #import <RNScreens/RNSTabBarController.h>
+        #else
+        @interface RNSTabBarController : UITabBarController @end
+        @implementation RNSTabBarController @end
+        #endif
+
+        #if __has_include(<RNScreens/RNSScreenStackView.h>)
+        #import <RNScreens/RNSScreenStackView.h>
+        #else
         @interface RNSScreenStackView : UIView @end
         @implementation RNSScreenStackView @end
+        #endif
 
         @interface RNSScreenStackView (PecalCompat)
         @property(nonatomic, copy) NSArray<NSString *> *screenIds;
@@ -143,6 +156,8 @@ target 'PecalMobile' do
         - (void)setScreenId:(NSString *)value {}
         @end
       EOS
+    if !File.exist?(compat_file) || File.read(compat_file) != compat_code
+      File.write(compat_file, compat_code)
     end
 
     expo_head = installer.pods_project.targets.find { |t| t.name == "ExpoHead" }
@@ -152,35 +167,5 @@ target 'PecalMobile' do
       expo_head.source_build_phase.add_file_reference(file_ref)
     end
 
-    # Patch Expo Router LinkPreview to add forward declarations for removed RNS types.
-    link_preview = File.expand_path("../node_modules/expo-router/ios/LinkPreview/LinkPreviewNativeNavigation.mm", __dir__)
-    if File.exist?(link_preview)
-      content = File.read(link_preview)
-      unless content.include?("PECAL_RNS_COMPAT")
-        compat = <<~'COMPAT'
-        // PECAL_RNS_COMPAT
-        #ifndef PECAL_RNS_COMPAT
-        #define PECAL_RNS_COMPAT
-        @interface RNSBottomTabsScreenComponentView : UIView
-        @property(nonatomic, copy) NSString *tabKey;
-        - (UIViewController *)reactViewController;
-        @end
-        @interface RNSBottomTabsHostComponentView : UIView
-        - (UITabBarController *)controller;
-        @end
-        @interface RNSScreenStackView : UIView @end
-        @interface RNSScreenStackView (PecalCompat)
-        @property(nonatomic, copy) NSArray<NSString *> *screenIds;
-        @property(nonatomic, copy) NSArray<UIView *> *reactSubviews;
-        @end
-        @interface RNSScreenView (PecalCompat)
-        @property(nonatomic, copy) NSString *screenId;
-        @end
-        #endif
-        COMPAT
-        patched = content.sub('#import <RNScreens/RNSScreenStack.h>', "#import <RNScreens/RNSScreenStack.h>\n#{compat}")
-        File.write(link_preview, patched)
-      end
-    end
   end
 end

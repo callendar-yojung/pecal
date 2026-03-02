@@ -45,7 +45,10 @@ platform :ios do
       match(
         type: "appstore",
         readonly: ENV.fetch("MATCH_READONLY", "true") == "true",
-        app_identifier: ENV.fetch("IOS_APP_IDENTIFIER", "com.pecal.mobile")
+        app_identifier: [
+          ENV.fetch("IOS_APP_IDENTIFIER", "com.pecal.mobile"),
+          "com.pecal.mobile.PecalWidgetExtension"
+        ]
       )
     end
 
