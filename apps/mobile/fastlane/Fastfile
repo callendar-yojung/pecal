@@ -32,11 +32,16 @@ def setup_ci_keychain_if_needed
   return unless ENV["CI"] == "true"
   return if ENV["KEYCHAIN_PASSWORD"].to_s.empty?
 
-  setup_ci(
-    provider: "github_actions",
-    keychain_name: ENV.fetch("KEYCHAIN_NAME", "ci.keychain"),
-    keychain_password: ENV["KEYCHAIN_PASSWORD"]
+  keychain_name = ENV.fetch("KEYCHAIN_NAME", "ci.keychain")
+  create_keychain(
+    name: keychain_name,
+    password: ENV["KEYCHAIN_PASSWORD"],
+    default_keychain: true,
+    unlock: true,
+    timeout: 3600,
+    lock_when_sleeps: true
   )
+  ENV["KEYCHAIN_PATH"] = File.expand_path("~/Library/Keychains/#{keychain_name}-db")
 end
 
 platform :ios do
