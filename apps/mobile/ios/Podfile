@@ -119,6 +119,17 @@ target 'PecalMobile' do
         @interface RNSTabBarController : UITabBarController @end
         @implementation RNSTabBarController @end
 
+        @interface RNSScreenStackView (PecalCompat)
+        @property(nonatomic, copy) NSArray<NSString *> *screenIds;
+        @property(nonatomic, copy) NSArray<UIView *> *reactSubviews;
+        @end
+        @implementation RNSScreenStackView (PecalCompat)
+        - (NSArray<NSString *> *)screenIds { return @[]; }
+        - (void)setScreenIds:(NSArray<NSString *> *)value {}
+        - (NSArray<UIView *> *)reactSubviews { return @[]; }
+        - (void)setReactSubviews:(NSArray<UIView *> *)value {}
+        @end
+
         @interface RNSScreenView (PecalCompat)
         @property(nonatomic, copy) NSString *screenId;
         @end
@@ -145,9 +156,18 @@ target 'PecalMobile' do
         // PECAL_RNS_COMPAT
         #ifndef PECAL_RNS_COMPAT
         #define PECAL_RNS_COMPAT
-        @class RNSBottomTabsScreenComponentView;
-        @class RNSBottomTabsHostComponentView;
-        @class RNSTabBarController;
+        @interface RNSBottomTabsScreenComponentView : UIView
+        @property(nonatomic, copy) NSString *tabKey;
+        - (UIViewController *)reactViewController;
+        @end
+        @interface RNSBottomTabsHostComponentView : UIView
+        - (UITabBarController *)controller;
+        @end
+        @interface RNSTabBarController : UITabBarController @end
+        @interface RNSScreenStackView (PecalCompat)
+        @property(nonatomic, copy) NSArray<NSString *> *screenIds;
+        @property(nonatomic, copy) NSArray<UIView *> *reactSubviews;
+        @end
         @interface RNSScreenView (PecalCompat)
         @property(nonatomic, copy) NSString *screenId;
         @end
