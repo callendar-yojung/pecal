@@ -40,6 +40,9 @@ jobs:
       MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
       MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
       MATCH_READONLY: ${{ secrets.MATCH_READONLY || 'true' }}
+      KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+      KEYCHAIN_NAME: ci.keychain
+      KEYCHAIN_PATH: /Users/runner/Library/Keychains/ci.keychain-db
       FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT: "120"
       FASTLANE_XCODEBUILD_SETTINGS_RETRIES: "10"
       CI: true
@@ -96,9 +99,11 @@ jobs:
 
       - name: Configure keychain for codesign
         run: |
-          security unlock-keychain -p "${{ secrets.KEYCHAIN_PASSWORD }}" ~/Library/Keychains/login.keychain-db
-          security set-keychain-settings -t 3600 -u ~/Library/Keychains/login.keychain-db
-          security set-key-partition-list -S apple-tool:,apple: -s -k "${{ secrets.KEYCHAIN_PASSWORD }}" ~/Library/Keychains/login.keychain-db
+          security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_NAME}"
+          security default-keychain -s "${KEYCHAIN_NAME}"
+          security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+          security set-keychain-settings -t 3600 -u "${KEYCHAIN_PATH}"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
 
       - name: Run fastlane
         run: |

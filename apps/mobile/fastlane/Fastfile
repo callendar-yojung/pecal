@@ -34,9 +34,10 @@ platform :ios do
     desired_xcode = ENV["XCODE_PATH"] || "/Applications/Xcode_16.4.app"
     fallback_xcode = "/Applications/Xcode.app"
     xcode_select(File.exist?(desired_xcode) ? desired_xcode : fallback_xcode)
+    keychain_path = ENV["KEYCHAIN_PATH"] || "/Users/runner/Library/Keychains/login.keychain-db"
     if ENV["KEYCHAIN_PASSWORD"] && !ENV["KEYCHAIN_PASSWORD"].empty?
       unlock_keychain(
-        path: "/Users/runner/Library/Keychains/login.keychain-db",
+        path: keychain_path,
         password: ENV["KEYCHAIN_PASSWORD"]
       )
     end
@@ -50,7 +51,9 @@ platform :ios do
         app_identifier: [
           ENV.fetch("IOS_APP_IDENTIFIER", "com.pecal.mobile"),
           "com.pecal.mobile.PecalWidgetExtension"
-        ]
+        ],
+        keychain_name: ENV["KEYCHAIN_NAME"],
+        keychain_password: ENV["KEYCHAIN_PASSWORD"]
       )
     end
     provisioning_profiles = Actions.lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING]
@@ -100,9 +103,10 @@ platform :ios do
     desired_xcode = ENV["XCODE_PATH"] || "/Applications/Xcode_16.4.app"
     fallback_xcode = "/Applications/Xcode.app"
     xcode_select(File.exist?(desired_xcode) ? desired_xcode : fallback_xcode)
+    keychain_path = ENV["KEYCHAIN_PATH"] || "/Users/runner/Library/Keychains/login.keychain-db"
     if ENV["KEYCHAIN_PASSWORD"] && !ENV["KEYCHAIN_PASSWORD"].empty?
       unlock_keychain(
-        path: "/Users/runner/Library/Keychains/login.keychain-db",
+        path: keychain_path,
         password: ENV["KEYCHAIN_PASSWORD"]
       )
     end
@@ -123,9 +127,10 @@ platform :ios do
     desired_xcode = ENV["XCODE_PATH"] || "/Applications/Xcode_16.4.app"
     fallback_xcode = "/Applications/Xcode.app"
     xcode_select(File.exist?(desired_xcode) ? desired_xcode : fallback_xcode)
+    keychain_path = ENV["KEYCHAIN_PATH"] || "/Users/runner/Library/Keychains/login.keychain-db"
     if ENV["KEYCHAIN_PASSWORD"] && !ENV["KEYCHAIN_PASSWORD"].empty?
       unlock_keychain(
-        path: "/Users/runner/Library/Keychains/login.keychain-db",
+        path: keychain_path,
         password: ENV["KEYCHAIN_PASSWORD"]
       )
     end
@@ -137,7 +142,9 @@ platform :ios do
         app_identifier: [
           ENV.fetch("IOS_APP_IDENTIFIER", "com.pecal.mobile"),
           "com.pecal.mobile.PecalWidgetExtension"
-        ]
+        ],
+        keychain_name: ENV["KEYCHAIN_NAME"],
+        keychain_password: ENV["KEYCHAIN_PASSWORD"]
       )
     end
     provisioning_profiles = Actions.lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING]
