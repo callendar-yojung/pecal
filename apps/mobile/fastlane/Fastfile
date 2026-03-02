@@ -60,6 +60,8 @@ platform :ios do
       scheme: "PecalMobile",
       configuration: "Release",
       clean: true,
+      verbose: true,
+      silent: false,
       export_method: "app-store",
       export_options: {
         signingStyle: "automatic",
