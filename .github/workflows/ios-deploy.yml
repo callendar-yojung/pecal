@@ -97,6 +97,13 @@ jobs:
           bundle exec ruby -e 'require "xcodeproj"; puts Xcodeproj::VERSION'
           bundle exec pod install --repo-update --project-directory=ios
 
+      - name: Validate keychain secret
+        run: |
+          if [[ -z "${KEYCHAIN_PASSWORD}" ]]; then
+            echo "::error::KEYCHAIN_PASSWORD secret is not set. Add it in repo secrets."
+            exit 1
+          fi
+
       - name: Configure keychain for codesign
         run: |
           security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_NAME}"

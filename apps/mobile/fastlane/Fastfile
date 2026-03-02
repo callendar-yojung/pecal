@@ -45,16 +45,19 @@ platform :ios do
     team_id = ENV.fetch("APPLE_TEAM_ID", ENV.fetch("APP_STORE_CONNECT_TEAM_ID"))
 
     if ENV["MATCH_GIT_URL"] && !ENV["MATCH_GIT_URL"].empty?
-      match(
+      match_args = {
         type: "appstore",
         readonly: ENV.fetch("MATCH_READONLY", "true") == "true",
         app_identifier: [
           ENV.fetch("IOS_APP_IDENTIFIER", "com.pecal.mobile"),
           "com.pecal.mobile.PecalWidgetExtension"
-        ],
-        keychain_name: ENV["KEYCHAIN_NAME"],
-        keychain_password: ENV["KEYCHAIN_PASSWORD"]
-      )
+        ]
+      }
+      if ENV["KEYCHAIN_PASSWORD"] && !ENV["KEYCHAIN_PASSWORD"].empty?
+        match_args[:keychain_name] = ENV["KEYCHAIN_NAME"]
+        match_args[:keychain_password] = ENV["KEYCHAIN_PASSWORD"]
+      end
+      match(match_args)
     end
     provisioning_profiles = Actions.lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING]
     use_manual_signing = provisioning_profiles && !provisioning_profiles.empty?
@@ -136,16 +139,19 @@ platform :ios do
     end
 
     if ENV["MATCH_GIT_URL"] && !ENV["MATCH_GIT_URL"].empty?
-      match(
+      match_args = {
         type: "appstore",
         readonly: ENV.fetch("MATCH_READONLY", "true") == "true",
         app_identifier: [
           ENV.fetch("IOS_APP_IDENTIFIER", "com.pecal.mobile"),
           "com.pecal.mobile.PecalWidgetExtension"
-        ],
-        keychain_name: ENV["KEYCHAIN_NAME"],
-        keychain_password: ENV["KEYCHAIN_PASSWORD"]
-      )
+        ]
+      }
+      if ENV["KEYCHAIN_PASSWORD"] && !ENV["KEYCHAIN_PASSWORD"].empty?
+        match_args[:keychain_name] = ENV["KEYCHAIN_NAME"]
+        match_args[:keychain_password] = ENV["KEYCHAIN_PASSWORD"]
+      end
+      match(match_args)
     end
     provisioning_profiles = Actions.lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING]
     use_manual_signing = provisioning_profiles && !provisioning_profiles.empty?
