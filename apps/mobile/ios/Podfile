@@ -116,7 +116,9 @@ target 'PecalMobile' do
         - (UITabBarController *)controller { return nil; }
         @end
 
+        #ifndef RNSTabBarController_h
         @interface RNSTabBarController : UITabBarController @end
+        #endif
         @implementation RNSTabBarController @end
 
         @interface RNSScreenStackView (PecalCompat)
