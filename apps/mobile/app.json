@@ -9,7 +9,7 @@
     "icon": "./assets/icon.png",
     "ios": {
       "supportsTablet": true,
-      "icon": "./assets/icon.png",
+      "icon": "./assets/icon-ios.png",
       "bundleIdentifier": "com.pecal.mobile",
       "buildNumber": "1.0.2"
     },
