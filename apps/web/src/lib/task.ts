@@ -64,6 +64,7 @@ export interface Task {
   created_by_name?: string | null;
   updated_by_name?: string | null;
   workspace_id: number;
+  tag_ids?: number[];
   tags?: Array<{ tag_id: number; name: string; color: string }>;
 }
 
@@ -133,10 +134,24 @@ export async function getTaskById(taskId: number): Promise<Task | null> {
     TASK_DETAIL_TTL_SECONDS,
     async () => {
       const [rows] = await pool.query<RowDataPacket[]>(
-        `SELECT * FROM tasks WHERE id = ? LIMIT 1`,
+        `SELECT
+          t.*,
+          GROUP_CONCAT(tt.tag_id ORDER BY tt.tag_id) as tag_ids_csv
+         FROM tasks t
+         LEFT JOIN task_tags tt ON t.id = tt.task_id
+         WHERE t.id = ?
+         GROUP BY t.id
+         LIMIT 1`,
         [taskId],
       );
-      return rows.length > 0 ? (rows[0] as Task) : null;
+      if (rows.length === 0) return null;
+      const row = rows[0] as RowDataPacket & { tag_ids_csv?: string | null };
+      const tag_ids = (row.tag_ids_csv || "")
+        .split(",")
+        .map((value) => Number(value))
+        .filter((value) => Number.isFinite(value) && value > 0);
+      const task = { ...(row as unknown as Task), tag_ids };
+      return task;
     },
   );
 }
@@ -148,16 +163,25 @@ export async function getTaskByIdWithNames(
     `SELECT
       t.*,
       creator.nickname as created_by_name,
-      updater.nickname as updated_by_name
+      updater.nickname as updated_by_name,
+      GROUP_CONCAT(tt.tag_id ORDER BY tt.tag_id) as tag_ids_csv
      FROM tasks t
      LEFT JOIN members creator ON t.created_by = creator.member_id
      LEFT JOIN members updater ON t.updated_by = updater.member_id
+     LEFT JOIN task_tags tt ON t.id = tt.task_id
      WHERE t.id = ?
+     GROUP BY t.id
      LIMIT 1`,
     [taskId],
   );
 
-  return rows.length > 0 ? (rows[0] as Task) : null;
+  if (rows.length === 0) return null;
+  const row = rows[0] as RowDataPacket & { tag_ids_csv?: string | null };
+  const tag_ids = (row.tag_ids_csv || "")
+    .split(",")
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  return { ...(row as unknown as Task), tag_ids };
 }
 
 export interface CreateTaskData {
