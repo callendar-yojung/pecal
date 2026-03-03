@@ -27,6 +27,7 @@ import yaml from "highlight.js/lib/languages/yaml";
 import { lowlight } from "lowlight/lib/core";
 import { useEffect, useRef, useState } from "react";
 import { FontSize } from "./FontSize";
+import { extractGoogleMapsEmbedSrc, GoogleMapsEmbed } from "./GoogleMapsEmbed";
 import RichTextToolbar from "./RichTextToolbar";
 
 const registerLanguages = () => {
@@ -130,6 +131,7 @@ export default function RichTextEditor({
           rel: "noopener noreferrer nofollow",
         },
       }),
+      GoogleMapsEmbed,
       TaskList.configure({
         HTMLAttributes: {
           class: "editor-task-list",
@@ -156,6 +158,18 @@ export default function RichTextEditor({
       attributes: {
         class:
           "min-h-[300px] w-full bg-transparent px-4 py-3 text-sm text-foreground focus:outline-none",
+      },
+      handlePaste: (view, event) => {
+        const clipboardText = event.clipboardData?.getData("text/plain") ?? "";
+        const src = extractGoogleMapsEmbedSrc(clipboardText);
+        if (!src) return false;
+        event.preventDefault();
+        const nodeType = view.state.schema.nodes.googleMapsEmbed;
+        if (!nodeType) return false;
+        const node = nodeType.create({ src });
+        const tr = view.state.tr.replaceSelectionWith(node);
+        view.dispatch(tr.scrollIntoView());
+        return true;
       },
     },
     onUpdate: ({ editor }) => {
