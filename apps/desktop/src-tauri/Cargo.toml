@@ -1,10 +1,10 @@
 [package]
 name = "app"
 version = "1.0.3"
-description = "A Tauri App"
-authors = ["you"]
-license = ""
-repository = ""
+description = "Pecal desktop calendar and collaboration app"
+authors = ["Pecal Team"]
+license = "Proprietary"
+repository = "https://github.com/callendar-yojung/pecal"
 edition = "2021"
 rust-version = "1.77.2"
 
