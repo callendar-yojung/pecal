@@ -46,12 +46,6 @@ export default function TaskDetailPage() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         <View style={[s.panel, { borderRadius: 16, gap: 12 }]}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-            <Text style={s.formTitle}>일정 상세</Text>
-            <Pressable style={s.headerActionButton} onPress={() => router.push(`/tasks/${taskId}/edit`)}>
-              <Text style={s.headerActionText}>수정</Text>
-            </Pressable>
-          </View>
           <TaskDetailWebView task={task} minHeight={500} />
         </View>
       </ScrollView>

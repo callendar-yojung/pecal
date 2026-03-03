@@ -11,7 +11,7 @@ export async function generateMetadata({
   const t = await getTranslations({ locale, namespace: "dashboard.tasks" });
 
   return {
-    title: `${t("title")} - Kelindor`,
+    title: `${t("title")} - Pecal`,
   };
 }
 

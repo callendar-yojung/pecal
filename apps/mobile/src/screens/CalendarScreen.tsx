@@ -230,14 +230,41 @@ export function CalendarScreen({
     });
   }, [selectedDate]);
 
+  const allowPullToRefresh = viewMode !== 'month';
+
   return (
     <ScrollView
+      scrollEnabled={allowPullToRefresh}
+      alwaysBounceVertical={allowPullToRefresh}
       contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 24 }}
       showsVerticalScrollIndicator={false}
-      refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} /> : undefined}
+      refreshControl={
+        onRefresh && allowPullToRefresh
+          ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+          : undefined
+      }
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View style={{ width: 40, height: 32 }} />
+        <Pressable
+          onPress={() => {
+            if (refreshing) return;
+            onRefresh?.();
+          }}
+          style={{
+            width: 40,
+            height: 32,
+            borderRadius: 10,
+            borderWidth: 1,
+            borderColor: colors.border,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: colors.card,
+            opacity: refreshing ? 0.6 : 1,
+          }}
+          disabled={refreshing}
+        >
+          <Text style={{ fontSize: 15, fontWeight: '800', color: colors.textMuted }}>↻</Text>
+        </Pressable>
         <Pressable onPress={() => {
           onGoToday();
           setYear(today.getFullYear());

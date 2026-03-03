@@ -42,10 +42,10 @@ export async function generateMetadata({
     description: t.description,
     icons: {
       icon: [
-        { url: "/favicon.ico?v=2" },
-        { url: "/icon.png", type: "image/png" },
+        { url: "/favicon.ico?v=3" },
+        { url: "/icon.png?v=3", type: "image/png" },
       ],
-      apple: [{ url: "/apple-icon.png", type: "image/png" }],
+      apple: [{ url: "/apple-icon.png?v=3", type: "image/png" }],
     },
     keywords:
       locale === "ko"

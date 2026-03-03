@@ -5,8 +5,9 @@ import { getCurrentWindow } from '@tauri-apps/api/window'
 import { fetch } from '@tauri-apps/plugin-http'
 import { open } from '@tauri-apps/plugin-shell'
 import { useAuthStore, useThemeStore } from '../../stores'
+import { resolveApiBaseUrl } from '../../lib/apiBaseUrl'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL, 'http://localhost:3000')
 const DEFAULT_DEEPLINK_SCHEME = import.meta.env.DEV
   ? 'deskcal-dev://auth/callback'
   : 'deskcal://auth/callback'
@@ -127,9 +128,13 @@ export function LoginPage() {
 
     try {
       const callbackUrl = APP_DEEPLINK_SCHEME
-      const response = await fetch(
-        `${API_BASE_URL}/api/auth/${provider}/start?callback=${encodeURIComponent(callbackUrl)}`
-      )
+      const requestUrl = `${API_BASE_URL}/api/auth/${provider}/start?callback=${encodeURIComponent(callbackUrl)}`
+      let response: Awaited<ReturnType<typeof fetch>>
+      try {
+        response = await fetch(requestUrl)
+      } catch (networkError) {
+        throw new Error(`Network request failed: ${requestUrl}`)
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -184,15 +189,8 @@ export function LoginPage() {
           </button>
 
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
+            <div className="w-16 h-16 rounded-2xl overflow-hidden mx-auto mb-4 border border-gray-200 dark:border-gray-700 bg-white">
+              <img src="/icon.png" alt="Pecal icon" className="w-full h-full object-cover" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Pecal</h1>
             <p className="text-gray-500 dark:text-gray-400 mt-2">{t('auth.loginDescription')}</p>

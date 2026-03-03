@@ -1,12 +1,15 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { apiFetch } from './api';
+import { ALARM_ENABLED_KEY } from './settings-storage';
 import type { AuthSession } from './types';
 
 type ExpoNotificationsModule = typeof import('expo-notifications');
 
 let notificationsModulePromise: Promise<ExpoNotificationsModule | null> | null = null;
 let notificationHandlerConfigured = false;
+const PUSH_TOKEN_STORAGE_KEY = 'mobile_push_token';
 
 async function loadNotificationsModule(): Promise<ExpoNotificationsModule | null> {
   if (!notificationsModulePromise) {
@@ -64,6 +67,27 @@ async function getExpoPushToken(): Promise<string | null> {
   return tokenResponse.data ?? null;
 }
 
+async function getStoredPushToken() {
+  const token = await AsyncStorage.getItem(PUSH_TOKEN_STORAGE_KEY);
+  if (!token) return null;
+  const normalized = token.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+async function setStoredPushToken(token: string | null) {
+  if (!token) {
+    await AsyncStorage.removeItem(PUSH_TOKEN_STORAGE_KEY);
+    return;
+  }
+  await AsyncStorage.setItem(PUSH_TOKEN_STORAGE_KEY, token);
+}
+
+async function isAlarmEnabled() {
+  const value = await AsyncStorage.getItem(ALARM_ENABLED_KEY);
+  if (value === '0') return false;
+  return true;
+}
+
 export async function registerDevicePushToken(session: AuthSession): Promise<string | null> {
   const token = await getExpoPushToken();
   if (!token) return null;
@@ -95,5 +119,30 @@ export async function registerDevicePushToken(session: AuthSession): Promise<str
     }
   );
 
+  await setStoredPushToken(token);
   return token;
+}
+
+export async function unregisterDevicePushToken(session: AuthSession): Promise<void> {
+  const token = await getStoredPushToken();
+  if (!token) return;
+
+  await apiFetch<{ success: boolean }>(
+    '/api/me/push-tokens',
+    session,
+    {
+      method: 'DELETE',
+      body: JSON.stringify({ token }),
+    }
+  );
+  await setStoredPushToken(null);
+}
+
+export async function syncDevicePushToken(session: AuthSession): Promise<void> {
+  const enabled = await isAlarmEnabled();
+  if (!enabled) {
+    await unregisterDevicePushToken(session);
+    return;
+  }
+  await registerDevicePushToken(session);
 }

@@ -18,7 +18,7 @@ export default function Navbar() {
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2">
             <Image
-              src="/desktop-icon.png"
+              src="/desktop-icon-v3.png"
               alt="Pecal icon"
               width={32}
               height={32}

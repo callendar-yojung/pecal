@@ -1,7 +1,8 @@
 import { fetch } from '@tauri-apps/plugin-http'
 import { ApiError, createRequestCoordinator, isRetryableStatus, mapStatusToApiCode, toApiError } from '@repo/api-client'
+import { resolveApiBaseUrl } from '../lib/apiBaseUrl'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://pecal.site'
+const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL, 'https://pecal.site')
 const IS_DEV = import.meta.env.DEV
 
 interface RequestOptions {

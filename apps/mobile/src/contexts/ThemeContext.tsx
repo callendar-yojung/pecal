@@ -1,6 +1,9 @@
-import { createContext, useContext, useMemo, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useColorScheme } from 'react-native';
 
-type ThemeMode = 'light' | 'black';
+type ThemeMode = 'system' | 'light' | 'black';
+type ResolvedThemeMode = 'light' | 'black';
 
 type ThemeColors = {
   bg: string;
@@ -15,12 +18,13 @@ type ThemeColors = {
 
 type ThemeContextValue = {
   mode: ThemeMode;
+  resolvedMode: ResolvedThemeMode;
   colors: ThemeColors;
   toggleMode: () => void;
   setMode: (mode: ThemeMode) => void;
 };
 
-const palettes: Record<ThemeMode, ThemeColors> = {
+const palettes: Record<ResolvedThemeMode, ThemeColors> = {
   light: {
     bg: '#F2F4FB',
     card: '#FFFFFF',
@@ -44,18 +48,54 @@ const palettes: Record<ThemeMode, ThemeColors> = {
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
+const THEME_MODE_KEY = 'mobile_theme_mode';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [mode, setMode] = useState<ThemeMode>('light');
+  const systemColorScheme = useColorScheme();
+  const [mode, setModeState] = useState<ThemeMode>('system');
+  const setMode = useCallback((nextMode: ThemeMode) => {
+    setModeState(nextMode);
+    void AsyncStorage.setItem(THEME_MODE_KEY, nextMode);
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const stored = await AsyncStorage.getItem(THEME_MODE_KEY);
+        if (!mounted) return;
+        if (stored === 'system' || stored === 'light' || stored === 'black') {
+          setModeState(stored);
+        }
+      } catch {
+        // ignore restore failures and keep default
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+  const resolvedMode: ResolvedThemeMode = useMemo(() => {
+    if (mode === 'system') {
+      return systemColorScheme === 'dark' ? 'black' : 'light';
+    }
+    return mode;
+  }, [mode, systemColorScheme]);
 
   const value = useMemo<ThemeContextValue>(
     () => ({
       mode,
-      colors: palettes[mode],
-      toggleMode: () => setMode((prev) => (prev === 'light' ? 'black' : 'light')),
+      resolvedMode,
+      colors: palettes[resolvedMode],
+      toggleMode: () => setModeState((prev) => {
+        const effective = prev === 'system' ? (systemColorScheme === 'dark' ? 'black' : 'light') : prev;
+        const next = effective === 'light' ? 'black' : 'light';
+        void AsyncStorage.setItem(THEME_MODE_KEY, next);
+        return next;
+      }),
       setMode,
     }),
-    [mode]
+    [mode, resolvedMode, systemColorScheme]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

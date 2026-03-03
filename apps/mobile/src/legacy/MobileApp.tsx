@@ -21,7 +21,7 @@ import type { MainTab } from '../lib/types';
 
 export function MobileApp() {
   const { t, locale, setLocale } = useI18n();
-  const { mode, colors, toggleMode } = useThemeMode();
+  const { resolvedMode, colors, toggleMode } = useThemeMode();
   const s = createStyles(colors);
   const auth = useAuth();
   const data = useDashboardData(auth.session);
@@ -82,7 +82,7 @@ export function MobileApp() {
 
         <View style={s.headerActions}>
           <Pressable style={s.headerActionButton} onPress={toggleMode}>
-            <Text style={s.headerActionText}>{mode === 'light' ? t('themeBlack') : t('themeLight')}</Text>
+            <Text style={s.headerActionText}>{resolvedMode === 'light' ? t('themeBlack') : t('themeLight')}</Text>
           </Pressable>
           <Pressable style={s.headerActionButton} onPress={() => setLocale(locale === 'ko' ? 'en' : 'ko')}>
             <Text style={s.headerActionText}>{locale.toUpperCase()}</Text>
@@ -159,7 +159,13 @@ export function MobileApp() {
         {!data.selectedWorkspace ? <Text style={s.emptyText}>{t('noWorkspace')}</Text> : null}
 
         {data.selectedWorkspace && data.tab === 'overview' ? (
-          <OverviewScreen taskCount={data.tasks.length} memoCount={data.memos.length} fileCount={data.files.length} unreadCount={data.unreadCount} />
+          <OverviewScreen
+            tasks={data.tasks}
+            onPressTask={(taskId) => {
+              data.setActiveScheduleId(taskId);
+              data.setTab('tasks');
+            }}
+          />
         ) : null}
 
         {data.selectedWorkspace && data.tab === 'tasks' ? (
@@ -258,7 +264,7 @@ export function MobileApp() {
         ))}
       </View>
 
-      <StatusBar style={mode === 'black' ? 'light' : 'dark'} />
+      <StatusBar style={resolvedMode === 'black' ? 'light' : 'dark'} />
     </SafeAreaView>
   );
 }

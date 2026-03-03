@@ -4,6 +4,19 @@ import createMiddleware from "next-intl/middleware";
 import { routing } from "./i18n/routing";
 
 const intlMiddleware = createMiddleware(routing);
+const LOCALE_COOKIE = "NEXT_LOCALE";
+
+function hasLocalePrefix(pathname: string) {
+  return /^\/(ko|en)(\/|$)/.test(pathname);
+}
+
+function detectCountryCode(request: NextRequest) {
+  const country =
+    request.headers.get("x-vercel-ip-country") ??
+    request.headers.get("cf-ipcountry") ??
+    request.headers.get("x-country-code");
+  return country?.toUpperCase() ?? null;
+}
 
 export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -47,6 +60,22 @@ export default function middleware(request: NextRequest) {
       "Content-Type, Authorization",
     );
     response.headers.set("Access-Control-Allow-Credentials", "true");
+    return response;
+  }
+
+  // 첫 방문에 한해, 한국이 아닌 국가에서 접속하면 영어 로케일로 유도
+  const hasLocaleCookie = Boolean(request.cookies.get(LOCALE_COOKIE)?.value);
+  const countryCode = detectCountryCode(request);
+  if (
+    !hasLocaleCookie &&
+    !hasLocalePrefix(pathname) &&
+    countryCode &&
+    countryCode !== "KR"
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/en${pathname === "/" ? "" : pathname}`;
+    const response = NextResponse.redirect(url);
+    response.cookies.set(LOCALE_COOKIE, "en", { path: "/" });
     return response;
   }
 

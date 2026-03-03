@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { open } from '@tauri-apps/plugin-shell'
 import { useTranslation } from 'react-i18next'
 import { apiClient } from '../../api'
+import { resolveApiBaseUrl } from '../../lib/apiBaseUrl'
 import { useAuthStore, useWorkspaceStore } from '../../stores'
 
 type OwnerType = 'personal' | 'team'
@@ -45,7 +46,7 @@ interface PaymentRecord {
   created_at: string
 }
 
-const BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://pecal.site').replace(/\/$/, '')
+const BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL, 'https://pecal.site')
 
 export function SettingsBillingTab() {
   const { t } = useTranslation()
@@ -357,4 +358,3 @@ export function SettingsBillingTab() {
     </div>
   )
 }
-

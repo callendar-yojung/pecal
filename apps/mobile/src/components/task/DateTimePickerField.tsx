@@ -87,8 +87,8 @@ function buildHtml(input: { valueLocal: string; dark: boolean }) {
 }
 
 export function DateTimePickerField({ label, value, onChange }: Props) {
-  const { colors, mode } = useThemeMode();
-  const webTheme = mode === 'black' ? 'dark' : 'light';
+  const { colors, resolvedMode } = useThemeMode();
+  const webTheme = resolvedMode === 'black' ? 'dark' : 'light';
   const { locale } = useI18n();
   const s = createStyles(colors);
   const ref = useRef<WebView>(null);
@@ -97,7 +97,7 @@ export function DateTimePickerField({ label, value, onChange }: Props) {
   const [fallbackLocal, setFallbackLocal] = useState(false);
 
   const valueLocal = useMemo(() => toLocalDateTimeValue(value), [value]);
-  const html = useMemo(() => buildHtml({ valueLocal, dark: mode === 'black' }), [valueLocal, mode]);
+  const html = useMemo(() => buildHtml({ valueLocal, dark: resolvedMode === 'black' }), [valueLocal, resolvedMode]);
   const remoteUris = useMemo(() => {
     const base = getApiBaseUrl().replace(/\/+$/, '');
     const params = new URLSearchParams({ theme: webTheme });

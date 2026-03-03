@@ -1,16 +1,24 @@
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Text, View } from 'react-native';
-import { useMobileApp } from '../../../../src/contexts/MobileAppContext';
+import { useMaybeMobileApp } from '../../../../src/contexts/MobileAppContext';
 import { useThemeMode } from '../../../../src/contexts/ThemeContext';
 import { createStyles } from '../../../../src/styles/createStyles';
 import { FullPageWebView } from '../../../../src/components/common/FullPageWebView';
 
 export default function TaskEditPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { auth, data } = useMobileApp();
-  const { colors, mode } = useThemeMode();
+  const app = useMaybeMobileApp();
+  const { colors, resolvedMode } = useThemeMode();
   const s = createStyles(colors);
   const router = useRouter();
+  if (!app) {
+    return (
+      <View style={s.centerScreen}>
+        <Text style={s.emptyText}>앱 초기화 중...</Text>
+      </View>
+    );
+  }
+  const { auth, data } = app;
   const selectedWorkspace = data.selectedWorkspace;
 
   if (!auth.session) return <Redirect href="/(auth)/login" />;
@@ -41,7 +49,7 @@ export default function TaskEditPage() {
         workspace_id: selectedWorkspace.workspace_id,
         owner_type: selectedWorkspace.type,
         owner_id: selectedWorkspace.owner_id,
-        theme: mode === 'black' ? 'dark' : 'light',
+        theme: resolvedMode === 'black' ? 'dark' : 'light',
       }}
       onMessage={(message) => {
         if (message.type === 'task_saved') {

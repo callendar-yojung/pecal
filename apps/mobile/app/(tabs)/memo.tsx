@@ -7,7 +7,7 @@ import { FullPageWebView } from '../../src/components/common/FullPageWebView';
 
 export default function MemoTab() {
   const { auth, data } = useMobileApp();
-  const { colors, mode } = useThemeMode();
+  const { colors, resolvedMode } = useThemeMode();
   const s = createStyles(colors);
 
   if (!auth.session) return <Redirect href="/(auth)/login" />;
@@ -28,7 +28,7 @@ export default function MemoTab() {
         workspace_id: data.selectedWorkspace.workspace_id,
         owner_type: data.selectedWorkspace.type,
         owner_id: data.selectedWorkspace.owner_id,
-        theme: mode === 'black' ? 'dark' : 'light',
+        theme: resolvedMode === 'black' ? 'dark' : 'light',
       }}
     />
   );
