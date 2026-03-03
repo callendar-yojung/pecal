@@ -492,7 +492,7 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = com.pecal.mobile;
-				PRODUCT_NAME = PecalMobile;
+				PRODUCT_NAME = "app";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match AppStore com.pecal.mobile";
 				SWIFT_OBJC_BRIDGING_HEADER = "PecalMobile/PecalMobile-Bridging-Header.h";
@@ -530,7 +530,7 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.pecal.mobile;
-				PRODUCT_NAME = PecalMobile;
+				PRODUCT_NAME = "app";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match AppStore com.pecal.mobile";
 				SWIFT_OBJC_BRIDGING_HEADER = "PecalMobile/PecalMobile-Bridging-Header.h";
