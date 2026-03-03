@@ -27,6 +27,7 @@ import yaml from 'highlight.js/lib/languages/yaml'
 import RichTextToolbar from './RichTextToolbar'
 import { FontSize } from './FontSize'
 import { isTauriApp } from '../../utils/tauri'
+import { extractGoogleMapsEmbedSrc, GoogleMapsEmbed } from './GoogleMapsEmbed'
 
 const lowlight = createLowlight()
 
@@ -126,6 +127,7 @@ export default function RichTextEditor({
         autolink: true,
         defaultProtocol: 'https',
       }),
+      GoogleMapsEmbed,
       TaskList,
       TaskItem.configure({
         nested: true,
@@ -155,6 +157,18 @@ export default function RichTextEditor({
         if (!rawHref) return true
         const href = /^(https?:|mailto:|tel:)/i.test(rawHref) ? rawHref : `https://${rawHref}`
         void openExternalLink(href)
+        return true
+      },
+      handlePaste: (view, event) => {
+        const clipboardText = event.clipboardData?.getData('text/plain') ?? ''
+        const src = extractGoogleMapsEmbedSrc(clipboardText)
+        if (!src) return false
+        event.preventDefault()
+        const nodeType = view.state.schema.nodes.googleMapsEmbed
+        if (!nodeType) return false
+        const node = nodeType.create({ src })
+        const tr = view.state.tr.replaceSelectionWith(node)
+        view.dispatch(tr.scrollIntoView())
         return true
       },
     },

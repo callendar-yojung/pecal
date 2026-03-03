@@ -219,3 +219,11 @@ body {
 .ProseMirror ul[data-type="taskList"] li p {
   margin: 0;
 }
+
+.ProseMirror iframe[src*="google.com/maps/embed"] {
+  display: block;
+  width: 100%;
+  min-height: 260px;
+  border: 0;
+  border-radius: 12px;
+}
