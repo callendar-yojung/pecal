@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
@@ -153,6 +154,7 @@ export default function SettingsProfilePage() {
             onPress={() => router.back()}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4, paddingRight: 6 }}
           >
+            <Ionicons name="chevron-back" size={20} color={colors.primary} />
             <Text style={{ color: colors.primary, fontSize: 16, fontWeight: '600' }}>
               {isKo ? '설정' : 'Settings'}
             </Text>

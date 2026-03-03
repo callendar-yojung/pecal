@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
@@ -6,10 +7,9 @@ import { useMobileApp } from '../../src/contexts/MobileAppContext';
 import { useI18n } from '../../src/contexts/I18nContext';
 import { useThemeMode } from '../../src/contexts/ThemeContext';
 import { apiFetch } from '../../src/lib/api';
+import { syncDevicePushToken } from '../../src/lib/push-notifications';
+import { ALARM_ENABLED_KEY, MARKETING_CONSENT_KEY } from '../../src/lib/settings-storage';
 import { createStyles } from '../../src/styles/createStyles';
-
-const ALARM_ENABLED_KEY = 'mobile_settings_alarm_enabled';
-const MARKETING_CONSENT_KEY = 'mobile_settings_marketing_consent';
 
 export default function SettingsAlarmPage() {
   const router = useRouter();
@@ -57,6 +57,12 @@ export default function SettingsAlarmPage() {
   const setAlarm = async (next: boolean) => {
     setAlarmEnabled(next);
     await AsyncStorage.setItem(ALARM_ENABLED_KEY, next ? '1' : '0');
+    if (!auth.session) return;
+    try {
+      await syncDevicePushToken(auth.session);
+    } catch (error) {
+      console.warn('[mobile] push token sync from settings failed:', error);
+    }
   };
 
   const setMarketing = async (next: boolean) => {
@@ -89,6 +95,7 @@ export default function SettingsAlarmPage() {
             onPress={() => router.back()}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4, paddingRight: 6 }}
           >
+            <Ionicons name="chevron-back" size={20} color={colors.primary} />
             <Text style={{ color: colors.primary, fontSize: 16, fontWeight: '600' }}>
               {isKo ? '설정' : 'Settings'}
             </Text>

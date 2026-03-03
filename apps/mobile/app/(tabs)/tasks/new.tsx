@@ -2,19 +2,26 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
-import { useMobileApp } from '../../../src/contexts/MobileAppContext';
+import { useMaybeMobileApp } from '../../../src/contexts/MobileAppContext';
 import { useThemeMode } from '../../../src/contexts/ThemeContext';
+import { ALARM_ENABLED_KEY } from '../../../src/lib/settings-storage';
 import { createStyles } from '../../../src/styles/createStyles';
 import { FullPageWebView } from '../../../src/components/common/FullPageWebView';
 
-const ALARM_ENABLED_KEY = 'mobile_settings_alarm_enabled';
-
 export default function TaskCreatePage() {
   const params = useLocalSearchParams<{ date?: string }>();
-  const { auth, data } = useMobileApp();
-  const { colors, mode } = useThemeMode();
+  const app = useMaybeMobileApp();
+  const { colors, resolvedMode } = useThemeMode();
   const s = createStyles(colors);
   const router = useRouter();
+  if (!app) {
+    return (
+      <View style={s.centerScreen}>
+        <Text style={s.emptyText}>앱 초기화 중...</Text>
+      </View>
+    );
+  }
+  const { auth, data } = app;
   const selectedWorkspace = data.selectedWorkspace;
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [alarmEnabled, setAlarmEnabled] = useState(true);
@@ -67,7 +74,7 @@ export default function TaskCreatePage() {
         workspace_id: selectedWorkspace.workspace_id,
         owner_type: selectedWorkspace.type,
         owner_id: selectedWorkspace.owner_id,
-        theme: mode === 'black' ? 'dark' : 'light',
+        theme: resolvedMode === 'black' ? 'dark' : 'light',
         initial_date: initialDate,
         alarm_enabled: alarmEnabled ? 1 : 0,
       }}

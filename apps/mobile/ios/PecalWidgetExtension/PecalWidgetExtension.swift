@@ -103,6 +103,7 @@ struct PecalWidgetProvider: AppIntentTimelineProvider {
 
 struct PecalWidgetEntryView: View {
   var entry: PecalWidgetProvider.Entry
+  @Environment(\.colorScheme) private var colorScheme
   @Environment(\.widgetFamily) private var family
 
   private var calendar: Calendar {
@@ -148,6 +149,9 @@ struct PecalWidgetEntryView: View {
   }
 
   private var isDarkTheme: Bool {
+    if colorScheme == .dark {
+      return true
+    }
     let raw = entry.payload?.theme?.lowercased() ?? "light"
     return raw == "dark" || raw == "black"
   }
@@ -434,18 +438,18 @@ struct PecalWidgetEntryView: View {
 
   @ViewBuilder
   private func dayCellView(_ cell: MonthDayCell, workspace: PecalWidgetWorkspace?) -> some View {
-    VStack(alignment: .leading, spacing: 2) {
+    VStack(alignment: .leading, spacing: 1) {
       if let date = cell.date {
         let key = dayKey(date)
         let isToday = key == todayKey
 
         dayNumberBadge(day: calendar.component(.day, from: date), isToday: isToday)
         let dayTasks = tasksByDayKey(for: workspace)[key] ?? []
-        if let firstTask = dayTasks.first {
-          dayTaskChip(firstTask, cellDateKey: key)
+        ForEach(Array(dayTasks.prefix(2)), id: \.id) { task in
+          dayTaskChip(task, cellDateKey: key)
         }
-        if dayTasks.count > 1 {
-          Text("+\(dayTasks.count - 1) more")
+        if dayTasks.count > 2 {
+          Text("+\(dayTasks.count - 2) more")
             .font(.system(size: 7, weight: .semibold))
             .foregroundColor(Color.gray.opacity(0.85))
             .lineLimit(1)
@@ -493,13 +497,13 @@ struct PecalWidgetEntryView: View {
     let isSingle = isStart && isEnd
 
     return Text(task.title)
-      .font(.system(size: 7.6, weight: .bold))
+      .font(.system(size: 10.0, weight: .semibold))
       .lineLimit(1)
       .minimumScaleFactor(0.6)
       .foregroundColor(primaryTextColor)
       .frame(maxWidth: .infinity, alignment: .leading)
       .padding(.horizontal, 4)
-      .padding(.vertical, 2)
+      .padding(.vertical, 1)
       .background(
         RoundedRectangle(
           cornerSize: CGSize(

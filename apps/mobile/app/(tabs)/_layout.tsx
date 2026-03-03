@@ -24,7 +24,7 @@ import { FullPageWebView } from '../../src/components/common/FullPageWebView';
 
 export default function TabsLayout() {
   const { auth, data } = useMobileApp();
-  const { colors, mode, toggleMode } = useThemeMode();
+  const { colors, resolvedMode, toggleMode } = useThemeMode();
   const { t, locale, setLocale } = useI18n();
   const [flushingQueue, setFlushingQueue] = useState(false);
   const { width } = useWindowDimensions();
@@ -66,7 +66,7 @@ export default function TabsLayout() {
   const [detailDocPath, setDetailDocPath] = useState<'/terms' | '/privacy' | null>(null);
   const embeddedDocQuery = { embedded: 'mobile' };
   const [consentError, setConsentError] = useState<string | null>(null);
-  const WORKSPACE_NAME_MAX_LENGTH = 5;
+  const WORKSPACE_NAME_MAX_LENGTH = 10;
   const truncateWorkspaceName = (value: string, maxLength = WORKSPACE_NAME_MAX_LENGTH) => {
     if (value.length <= maxLength) return value;
     return `${value.slice(0, Math.max(1, maxLength))}...`;
@@ -199,6 +199,7 @@ export default function TabsLayout() {
 
   if (auth.loading) return null;
   if (!auth.session) return <Redirect href="/(auth)/login" />;
+  const showGlobalLoading = data.dashboardLoading;
 
   const sharedOverlays = (
     <>
@@ -489,7 +490,7 @@ export default function TabsLayout() {
               </View>
               <View style={s.mainTopActions}>
                 <Pressable style={s.mainTopActionButton} onPress={toggleMode}>
-                  <Text style={s.mainTopActionText}>{mode === 'light' ? t('themeBlack') : t('themeLight')}</Text>
+                  <Text style={s.mainTopActionText}>{resolvedMode === 'light' ? t('themeBlack') : t('themeLight')}</Text>
                 </Pressable>
                 <Pressable style={s.mainTopActionButton} onPress={() => setLocale(locale === 'ko' ? 'en' : 'ko')}>
                   <Text style={s.mainTopActionText}>{locale.toUpperCase()}</Text>
@@ -727,6 +728,36 @@ export default function TabsLayout() {
           ) : null}
         </SafeAreaView>
       </Modal>
+
+      {showGlobalLoading ? (
+        <View
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundColor: resolvedMode === 'black' ? 'rgba(7,9,14,0.82)' : 'rgba(242,244,251,0.84)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 999,
+          }}
+        >
+          <View
+            style={{
+              alignItems: 'center',
+              gap: 12,
+              paddingHorizontal: 22,
+              paddingVertical: 18,
+              borderRadius: 18,
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: colors.card,
+            }}
+          >
+            <Image source={require('../../assets/icon.png')} style={{ width: 60, height: 60, borderRadius: 14 }} />
+            <ActivityIndicator color={colors.primary} />
+            <Text style={{ color: colors.text, fontSize: 13, fontWeight: '700' }}>{t('commonLoading')}</Text>
+          </View>
+        </View>
+      ) : null}
 
       {consentLoading ? (
         <View

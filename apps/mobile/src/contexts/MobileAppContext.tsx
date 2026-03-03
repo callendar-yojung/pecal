@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { clearWidgetData, syncWidgetData } from '../lib/widget-bridge';
 import { apiFetch } from '../lib/api';
-import { registerDevicePushToken } from '../lib/push-notifications';
+import { syncDevicePushToken } from '../lib/push-notifications';
 import type { TaskItem } from '../lib/types';
 import { useThemeMode } from './ThemeContext';
 
@@ -17,7 +17,7 @@ const MobileAppContext = createContext<MobileAppContextValue | null>(null);
 export function MobileAppProvider({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   const data = useDashboardData(auth.session);
-  const { mode } = useThemeMode();
+  const { resolvedMode } = useThemeMode();
   const pushRegisteredMemberRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -40,10 +40,10 @@ export function MobileAppProvider({ children }: { children: React.ReactNode }) {
     const session = auth.session;
     void (async () => {
       try {
-        await registerDevicePushToken(session);
+        await syncDevicePushToken(session);
         pushRegisteredMemberRef.current = session.memberId;
       } catch (error) {
-        console.warn('[mobile] push token register failed:', error);
+        console.warn('[mobile] push token sync failed:', error);
       }
     })();
   }, [auth.session]);
@@ -105,7 +105,7 @@ export function MobileAppProvider({ children }: { children: React.ReactNode }) {
         tasks: workspaceTasksMap.get(selectedWorkspace.workspace_id) ?? [],
         workspaceName: selectedWorkspace.name,
         nickname: session.nickname,
-        themeMode: mode,
+        themeMode: resolvedMode,
         maxItems,
         workspaces: allWorkspaces.map((workspace) => ({
           workspaceId: workspace.workspace_id,
@@ -114,7 +114,7 @@ export function MobileAppProvider({ children }: { children: React.ReactNode }) {
         })),
       });
     })();
-  }, [auth.session, data.selectedWorkspace, data.tasks, data.workspaces, data.teamWorkspaces, data.dashboardLoading, mode]);
+  }, [auth.session, data.selectedWorkspace, data.tasks, data.workspaces, data.teamWorkspaces, data.dashboardLoading, resolvedMode]);
 
   const value = useMemo<MobileAppContextValue>(() => ({ auth, data }), [auth, data]);
 
@@ -125,4 +125,8 @@ export function useMobileApp() {
   const ctx = useContext(MobileAppContext);
   if (!ctx) throw new Error('useMobileApp must be used within MobileAppProvider');
   return ctx;
+}
+
+export function useMaybeMobileApp() {
+  return useContext(MobileAppContext);
 }

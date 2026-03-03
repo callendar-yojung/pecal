@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Redirect } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { RefreshControl, ScrollView, Text } from 'react-native';
 import { useMobileApp } from '../../src/contexts/MobileAppContext';
 import { useThemeMode } from '../../src/contexts/ThemeContext';
@@ -10,6 +10,7 @@ export default function OverviewTab() {
   const { auth, data } = useMobileApp();
   const { colors } = useThemeMode();
   const s = createStyles(colors);
+  const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
@@ -34,7 +35,13 @@ export default function OverviewTab() {
       {data.error || auth.error ? <Text style={s.errorText}>{data.error || auth.error}</Text> : null}
       {!data.selectedWorkspace ? <Text style={s.emptyText}>워크스페이스를 선택하세요.</Text> : null}
       {data.selectedWorkspace ? (
-        <OverviewScreen taskCount={data.tasks.length} memoCount={data.memos.length} fileCount={data.files.length} unreadCount={data.unreadCount} />
+        <OverviewScreen
+          tasks={data.tasks}
+          onPressTask={(taskId) => {
+            data.setActiveScheduleId(taskId);
+            router.push(`/tasks/${taskId}`);
+          }}
+        />
       ) : null}
     </ScrollView>
   );

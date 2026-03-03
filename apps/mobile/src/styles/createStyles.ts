@@ -160,7 +160,7 @@ export function createStyles(colors: Colors) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
-      width: '75%',
+      alignSelf: 'flex-start',
       minWidth: 0,
       flexShrink: 1,
     },

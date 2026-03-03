@@ -55,7 +55,7 @@ export function useAuth() {
   const [error, setError] = useState<string | null>(null);
   const refreshPromiseRef = useRef<Promise<AuthSession | null> | null>(null);
 
-  const callbackUrl = useMemo(() => Linking.createURL('auth/callback'), []);
+  const callbackUrl = useMemo(() => 'myapp://auth/callback', []);
 
   const persistSession = async (next: AuthSession | null) => {
     if (next) {

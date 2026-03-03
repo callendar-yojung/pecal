@@ -486,8 +486,8 @@ export function SharedRichTextWebView({
   minHeight = 180,
   onChange,
 }: Props) {
-  const { mode } = useThemeMode();
-  const webTheme = mode === 'black' ? 'dark' : 'light';
+  const { resolvedMode } = useThemeMode();
+  const webTheme = resolvedMode === 'black' ? 'dark' : 'light';
   const { locale } = useI18n();
   const ref = useRef<WebView>(null);
   const readyRef = useRef(false);
@@ -499,8 +499,8 @@ export function SharedRichTextWebView({
   const [fallbackLocalEditor, setFallbackLocalEditor] = useState(false);
 
   const html = useMemo(
-    () => buildHtml({ placeholder, dark: mode === 'black', readOnly }),
-    [placeholder, mode, readOnly]
+    () => buildHtml({ placeholder, dark: resolvedMode === 'black', readOnly }),
+    [placeholder, resolvedMode, readOnly]
   );
   const remoteEditorUris = useMemo(() => {
     const base = getApiBaseUrl().replace(/\/+$/, '');
@@ -558,7 +558,7 @@ export function SharedRichTextWebView({
   return (
     <View style={{ minHeight, borderRadius: 12, overflow: 'hidden' }}>
       {!fallbackLocalEditor ? (
-        <Text style={{ fontSize: 11, color: mode === 'black' ? '#8D98AF' : '#7C8599', paddingBottom: 6 }}>
+        <Text style={{ fontSize: 11, color: resolvedMode === 'black' ? '#8D98AF' : '#7C8599', paddingBottom: 6 }}>
           웹 에디터 동기화 모드
         </Text>
       ) : null}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { taskExportsApi, teamApi } from '../../api'
+import { resolveApiBaseUrl } from '../../lib/apiBaseUrl'
 import { useViewStore } from '../../stores'
 import type {
   MemberSearchResult,
@@ -43,7 +44,7 @@ export function TaskExportView() {
   const [error, setError] = useState<string | null>(null)
 
   const locale = i18n.language === 'ko' ? 'ko' : 'en'
-  const baseUrl = (import.meta.env.VITE_API_BASE_URL || 'https://pecal.site').replace(/\/$/, '')
+  const baseUrl = resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL, 'https://pecal.site')
 
   const buildShareUrl = (token: string) => `${baseUrl}/${locale}/export/tasks/${token}`
 

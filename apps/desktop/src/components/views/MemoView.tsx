@@ -69,6 +69,14 @@ function parseMemoContent(contentJson: string): Record<string, unknown> {
   }
 }
 
+function stringifyMemoContent(content: Record<string, unknown>): string {
+  try {
+    return JSON.stringify(content)
+  } catch {
+    return JSON.stringify(EMPTY_RICH_CONTENT)
+  }
+}
+
 export function MemoView() {
   const { t } = useTranslation()
   const { selectedWorkspaceId, workspaces } = useWorkspaceStore()
@@ -83,6 +91,7 @@ export function MemoView() {
   const [memoContent, setMemoContent] = useState<Record<string, unknown>>(EMPTY_RICH_CONTENT)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const skipAutosaveRef = useRef(false)
+  const loadedSnapshotRef = useRef<{ memoId: number; title: string; contentJson: string } | null>(null)
 
   const selectedWorkspace = useMemo(
     () => workspaces.find((workspace) => workspace.workspace_id === selectedWorkspaceId) ?? null,
@@ -187,34 +196,47 @@ export function MemoView() {
   useEffect(() => {
     if (!activeMemo) return
     skipAutosaveRef.current = true
-    setMemoTitle(activeMemo.title || t('memo.untitled'))
-    setMemoContent(parseMemoContent(activeMemo.content_json))
+    const loadedTitle = activeMemo.title || t('memo.untitled')
+    const loadedContent = parseMemoContent(activeMemo.content_json)
+    setMemoTitle(loadedTitle)
+    setMemoContent(loadedContent)
+    loadedSnapshotRef.current = {
+      memoId: activeMemo.memo_id,
+      title: loadedTitle.trim() || t('memo.untitled'),
+      contentJson: stringifyMemoContent(loadedContent),
+    }
   }, [activeMemo, t])
 
   const persistActiveMemo = useCallback(async () => {
     if (!activeMemoId || !ownerType || !ownerId) return
+    const nextTitle = memoTitle.trim() || t('memo.untitled')
+    const nextContentJson = stringifyMemoContent(memoContent)
+
     setIsSaving(true)
     try {
       await apiClient.put<{ success: boolean }>(`/api/memos/${activeMemoId}`, {
         owner_type: ownerType,
         owner_id: ownerId,
-        title: memoTitle.trim() || t('memo.untitled'),
+        title: nextTitle,
         content: memoContent,
       })
       setMemos((prev) =>
-        prev
-          .map((memo) =>
-            memo.memo_id === activeMemoId
-              ? {
-                  ...memo,
-                  title: memoTitle.trim() || t('memo.untitled'),
-                  content_json: JSON.stringify(memoContent),
-                  updated_at: new Date().toISOString(),
-                }
-              : memo
-          )
-          .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+        prev.map((memo) =>
+          memo.memo_id === activeMemoId
+            ? {
+                ...memo,
+                title: nextTitle,
+                content_json: nextContentJson,
+                updated_at: new Date().toISOString(),
+              }
+            : memo
+        )
       )
+      loadedSnapshotRef.current = {
+        memoId: activeMemoId,
+        title: nextTitle,
+        contentJson: nextContentJson,
+      }
     } catch (err) {
       console.error('Failed to save memo:', err)
     } finally {
@@ -228,6 +250,19 @@ export function MemoView() {
       skipAutosaveRef.current = false
       return
     }
+
+    const currentTitle = memoTitle.trim() || t('memo.untitled')
+    const currentContentJson = stringifyMemoContent(memoContent)
+    const loaded = loadedSnapshotRef.current
+    if (
+      loaded &&
+      loaded.memoId === activeMemo.memo_id &&
+      loaded.title === currentTitle &&
+      loaded.contentJson === currentContentJson
+    ) {
+      return
+    }
+
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current)
     }
@@ -240,7 +275,7 @@ export function MemoView() {
         clearTimeout(saveTimerRef.current)
       }
     }
-  }, [activeMemo, memoTitle, memoContent, persistActiveMemo])
+  }, [activeMemo, memoTitle, memoContent, persistActiveMemo, t])
 
   const createMemo = async () => {
     if (!ownerType || !ownerId) return
@@ -272,6 +307,20 @@ export function MemoView() {
     } catch (err) {
       console.error('Failed to delete memo:', err)
       setError(t('common.error'))
+    }
+  }
+
+  const handleSelectMemo = (memo: ServerMemoItem) => {
+    const loadedTitle = memo.title || t('memo.untitled')
+    const loadedContent = parseMemoContent(memo.content_json)
+    skipAutosaveRef.current = true
+    setActiveMemoId(memo.memo_id)
+    setMemoTitle(loadedTitle)
+    setMemoContent(loadedContent)
+    loadedSnapshotRef.current = {
+      memoId: memo.memo_id,
+      title: loadedTitle.trim() || t('memo.untitled'),
+      contentJson: stringifyMemoContent(loadedContent),
     }
   }
 
@@ -313,7 +362,7 @@ export function MemoView() {
               return (
                 <button
                   key={memo.memo_id}
-                  onClick={() => setActiveMemoId(memo.memo_id)}
+                  onClick={() => handleSelectMemo(memo)}
                   className={`w-full text-left rounded-lg border px-3 py-2 transition-colors ${
                     active
                       ? 'border-blue-400 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/20'

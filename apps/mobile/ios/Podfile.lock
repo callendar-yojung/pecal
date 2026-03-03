@@ -1865,7 +1865,7 @@ PODS:
 
 DEPENDENCIES:
   - "EXApplication (from `../../../node_modules/.pnpm/expo-application@7.0.8_expo@54.0.33_@babel+core@7.29.0_@expo+metro-runtime@6.1.2_expo-router@_exporvsentifnletccws5lcxb4/node_modules/expo-application/ios`)"
-  - "EXConstants (from `../../../node_modules/.pnpm/expo-constants@18.0.13_expo@54.0.33_react-native@0.81.5_@babel+core@7.29.0_@react-native+metr_374dtvuvda5m2mq7c6b4eqn3ii/node_modules/expo-constants/ios`)"
+  - "EXConstants (from `../../../node_modules/.pnpm/expo-constants@18.0.13_expo@54.0.33_@babel+core@7.29.0_@expo+metro-runtime@6.1.2_expo-router@_yb5zg7podyoxaytbej547f6qd4/node_modules/expo-constants/ios`)"
   - "EXNotifications (from `../../../node_modules/.pnpm/expo-notifications@0.32.16_expo@54.0.33_@babel+core@7.29.0_@expo+metro-runtime@6.1.2_expo-rou_w3fc5yd7cdobfkyrslwdhv3sx4/node_modules/expo-notifications/ios`)"
   - "Expo (from `../../../node_modules/.pnpm/expo@54.0.33_@babel+core@7.29.0_@expo+metro-runtime@6.1.2_expo-router@6.0.23_react-native-web_femdtukdsyukddl4b6ppo5vdau/node_modules/expo`)"
   - "ExpoAsset (from `../../../node_modules/.pnpm/expo-asset@12.0.12_expo@54.0.33_@babel+core@7.29.0_@expo+metro-runtime@6.1.2_expo-router@6.0._ntncsiwejmgr226csbhngdpvwu/node_modules/expo-asset/ios`)"
@@ -1953,7 +1953,7 @@ EXTERNAL SOURCES:
   EXApplication:
     :path: "../../../node_modules/.pnpm/expo-application@7.0.8_expo@54.0.33_@babel+core@7.29.0_@expo+metro-runtime@6.1.2_expo-router@_exporvsentifnletccws5lcxb4/node_modules/expo-application/ios"
   EXConstants:
-    :path: "../../../node_modules/.pnpm/expo-constants@18.0.13_expo@54.0.33_react-native@0.81.5_@babel+core@7.29.0_@react-native+metr_374dtvuvda5m2mq7c6b4eqn3ii/node_modules/expo-constants/ios"
+    :path: "../../../node_modules/.pnpm/expo-constants@18.0.13_expo@54.0.33_@babel+core@7.29.0_@expo+metro-runtime@6.1.2_expo-router@_yb5zg7podyoxaytbej547f6qd4/node_modules/expo-constants/ios"
   EXNotifications:
     :path: "../../../node_modules/.pnpm/expo-notifications@0.32.16_expo@54.0.33_@babel+core@7.29.0_@expo+metro-runtime@6.1.2_expo-rou_w3fc5yd7cdobfkyrslwdhv3sx4/node_modules/expo-notifications/ios"
   Expo:

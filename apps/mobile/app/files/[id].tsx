@@ -1,14 +1,23 @@
 import { useLocalSearchParams } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
-import { useMobileApp } from '../../src/contexts/MobileAppContext';
+import { useMaybeMobileApp } from '../../src/contexts/MobileAppContext';
 import { useThemeMode } from '../../src/contexts/ThemeContext';
 import { createStyles } from '../../src/styles/createStyles';
 
 export default function FileDetailPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data } = useMobileApp();
+  const app = useMaybeMobileApp();
   const { colors } = useThemeMode();
   const s = createStyles(colors);
+
+  if (!app) {
+    return (
+      <View style={s.centerScreen}>
+        <Text style={s.emptyText}>앱 초기화 중...</Text>
+      </View>
+    );
+  }
+  const { data } = app;
 
   const fileId = Number(id);
   const file = data.files.find((item) => item.file_id === fileId);
