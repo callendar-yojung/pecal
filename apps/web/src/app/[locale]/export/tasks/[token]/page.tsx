@@ -60,7 +60,7 @@ export async function generateMetadata({
   }
 
   const pageUrl = `${BASE_URL}/${safeLocale}/export/tasks/${token}`;
-  const imageUrl = `${BASE_URL}/og-image.png`;
+  const imageUrl = `${BASE_URL}/og-pecal.png`;
 
   return {
     title,
@@ -93,4 +93,3 @@ export async function generateMetadata({
 export default function TaskExportPage() {
   return <TaskExportViewClient />;
 }
-
