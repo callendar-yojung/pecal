@@ -254,6 +254,7 @@ export function createStyles(colors: Colors) {
     primaryButton: { backgroundColor: colors.primary, borderRadius: 10, alignItems: 'center', paddingVertical: 11 },
     primaryButtonHalf: { flex: 1, backgroundColor: colors.primary, borderRadius: 10, alignItems: 'center', paddingVertical: 11 },
     primaryButtonText: { color: '#ffffff', fontWeight: '700', fontSize: 13 },
+    secondaryButton: { backgroundColor: colors.cardSoft, borderRadius: 10, alignItems: 'center', paddingVertical: 11, borderWidth: 1, borderColor: colors.border },
     secondaryButtonHalf: { flex: 1, backgroundColor: colors.cardSoft, borderRadius: 10, alignItems: 'center', paddingVertical: 11, borderWidth: 1, borderColor: colors.border },
     secondaryButtonText: { color: colors.text, fontWeight: '700', fontSize: 13 },
 

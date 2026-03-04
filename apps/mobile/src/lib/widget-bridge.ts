@@ -20,6 +20,10 @@ type WidgetPayload = {
   generated_at: string;
   nickname: string;
   theme?: 'light' | 'dark';
+  api_base_url?: string;
+  access_token?: string;
+  refresh_token?: string;
+  member_id?: number;
   workspace_name?: string;
   tasks?: WidgetTask[];
   workspaces?: WidgetWorkspace[];
@@ -85,6 +89,10 @@ export async function syncWidgetData(params: {
   tasks: TaskItem[];
   workspaceName?: string;
   nickname: string;
+  apiBaseUrl?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  memberId?: number;
   themeMode?: 'light' | 'black';
   maxItems?: number;
   workspaces?: Array<{
@@ -100,6 +108,10 @@ export async function syncWidgetData(params: {
     generated_at: new Date().toISOString(),
     nickname: params.nickname,
     theme: params.themeMode === 'black' ? 'dark' : 'light',
+    api_base_url: params.apiBaseUrl,
+    access_token: params.accessToken,
+    refresh_token: params.refreshToken,
+    member_id: params.memberId,
     workspace_name: params.workspaceName,
     tasks: pickTasksForWidget(params.tasks ?? [], Math.max(1, params.maxItems ?? 180)),
     workspaces: (params.workspaces ?? [])

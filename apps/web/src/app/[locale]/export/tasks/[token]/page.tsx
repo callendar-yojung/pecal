@@ -1,100 +1,96 @@
-"use client";
+import type { Metadata } from "next";
+import type { Locale } from "@/i18n/config";
+import { routing } from "@/i18n/routing";
+import { getTaskExportByToken } from "@/lib/task-export";
+import { getTaskByIdWithNames } from "@/lib/task";
+import TaskExportViewClient from "./TaskExportViewClient";
 
-import { useParams } from "next/navigation";
-import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
-import TaskViewPanel, {
-  type TaskViewData,
-} from "@/components/dashboard/TaskViewPanel";
+const BASE_URL = "https://pecal.site";
 
-type ExportError = "unauthorized" | "notFound" | "expired" | "unknown";
-
-export default function TaskExportViewPage() {
-  const t = useTranslations("dashboard.tasks.exportView");
-  const params = useParams();
-  const token = String(params?.token || "");
-  const [task, setTask] = useState<TaskViewData | null>(null);
-  const [workspaceInfo, setWorkspaceInfo] = useState<{
-    type: "team" | "personal";
-    owner_id: number;
-  } | null>(null);
-  const [availableTags, setAvailableTags] = useState<
-    Array<{ tag_id: number; name: string; color: string }>
-  >([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<ExportError | null>(null);
-
-  useEffect(() => {
-    if (!token) return;
-    const fetchExport = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch(`/api/exports/tasks/${token}`);
-        if (!res.ok) {
-          if (res.status === 401 || res.status === 403) {
-            setError("unauthorized");
-          } else if (res.status === 410) {
-            setError("expired");
-          } else if (res.status === 404) {
-            setError("notFound");
-          } else {
-            setError("unknown");
-          }
-          return;
-        }
-        const data = await res.json();
-        setTask(data.task);
-        setWorkspaceInfo(data.workspace || null);
-        setAvailableTags(data.tags || []);
-      } catch {
-        setError("unknown");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchExport();
-  }, [token]);
-
-  if (loading) {
-    return (
-      <div className="mx-auto max-w-4xl px-4 py-10 text-sm text-muted-foreground">
-        {t("loading")}
-      </div>
-    );
-  }
-
-  if (error || !task) {
-    const message =
-      error === "unauthorized"
-        ? t("unauthorized")
-        : error === "expired"
-          ? t("expired")
-          : error === "notFound"
-            ? t("notFound")
-            : t("unknownError");
-    return (
-      <div className="mx-auto max-w-4xl px-4 py-10 text-sm text-muted-foreground">
-        {message}
-      </div>
-    );
-  }
-
-  return (
-    <div className="mx-auto max-w-4xl px-4 py-10">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">{t("title")}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
-      </div>
-      <TaskViewPanel
-        task={task}
-        workspaceType={workspaceInfo?.type}
-        ownerId={workspaceInfo?.owner_id}
-        availableTags={availableTags}
-        showActions={false}
-        showTags
-        showAttachments
-        attachmentsEndpoint={`/api/exports/tasks/${token}/attachments`}
-      />
-    </div>
-  );
+function toPlainText(value?: string | null) {
+  if (!value) return "";
+  const withoutTags = value.replace(/<[^>]*>/g, " ");
+  const normalized = withoutTags.replace(/\s+/g, " ").trim();
+  return normalized;
 }
+
+function truncateText(value: string, limit: number) {
+  if (value.length <= limit) return value;
+  return `${value.slice(0, limit - 1)}…`;
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; token: string }>;
+}): Promise<Metadata> {
+  const { locale, token } = await params;
+  const safeLocale: Locale = routing.locales.includes(locale as Locale)
+    ? (locale as Locale)
+    : "ko";
+
+  const fallbackTitle =
+    safeLocale === "ko" ? "Pecal 일정 공유" : "Pecal Task Share";
+  const fallbackDescription =
+    safeLocale === "ko"
+      ? "Pecal에서 공유한 일정입니다."
+      : "A task shared from Pecal.";
+
+  let title = fallbackTitle;
+  let description = fallbackDescription;
+
+  const exportRecord = await getTaskExportByToken(token);
+  if (exportRecord) {
+    const isExpired =
+      !!exportRecord.expires_at &&
+      new Date(exportRecord.expires_at).getTime() <= Date.now();
+    const isRevoked = !!exportRecord.revoked_at;
+    if (
+      exportRecord.visibility === "public" &&
+      !isExpired &&
+      !isRevoked
+    ) {
+      const task = await getTaskByIdWithNames(exportRecord.task_id);
+      if (task) {
+        title = truncateText(task.title || fallbackTitle, 80);
+        const contentPreview = truncateText(toPlainText(task.content), 160);
+        description = contentPreview || fallbackDescription;
+      }
+    }
+  }
+
+  const pageUrl = `${BASE_URL}/${safeLocale}/export/tasks/${token}`;
+  const imageUrl = `${BASE_URL}/og-image.png`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      type: "article",
+      url: pageUrl,
+      siteName: "Pecal",
+      title,
+      description,
+      images: [
+        {
+          url: imageUrl,
+          width: 1200,
+          height: 630,
+          alt: title,
+        },
+      ],
+      locale: safeLocale === "ko" ? "ko_KR" : "en_US",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [imageUrl],
+    },
+  };
+}
+
+export default function TaskExportPage() {
+  return <TaskExportViewClient />;
+}
+
