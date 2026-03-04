@@ -1,5 +1,21 @@
 default_platform(:ios)
 
+def upload_to_testflight_with_retry(params, max_attempts: 3, wait_seconds: 20)
+  attempts = 0
+  begin
+    attempts += 1
+    upload_to_testflight(params)
+  rescue => error
+    if attempts < max_attempts
+      UI.important("upload_to_testflight failed (attempt #{attempts}/#{max_attempts}): #{error.message}")
+      UI.important("Retrying in #{wait_seconds}s...")
+      sleep(wait_seconds)
+      retry
+    end
+    raise error
+  end
+end
+
 def load_app_store_api_credentials!
   raw_key = ENV.fetch("APP_STORE_CONNECT_API_KEY_CONTENT").strip
 
@@ -110,11 +126,15 @@ platform :ios do
       output_name: "PecalMobile.ipa"
     )
 
-    upload_to_testflight(
-      api_key: api_key,
-      skip_waiting_for_build_processing: true,
-      changelog: (options[:changelog] || ENV["CHANGELOG"]),
-      distribute_external: false
+    upload_to_testflight_with_retry(
+      {
+        api_key: api_key,
+        skip_waiting_for_build_processing: true,
+        changelog: (options[:changelog] || ENV["CHANGELOG"]),
+        distribute_external: false
+      },
+      max_attempts: 3,
+      wait_seconds: 20
     )
   end
 
