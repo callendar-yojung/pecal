@@ -7,8 +7,45 @@ import TaskExportViewClient from "./TaskExportViewClient";
 
 const BASE_URL = "https://pecal.site";
 
+type RichNode = {
+  type?: string;
+  text?: string;
+  content?: RichNode[];
+};
+
+function extractTextFromRichNode(node: RichNode): string {
+  const chunks: string[] = [];
+  if (node.type === "text" && typeof node.text === "string") {
+    chunks.push(node.text);
+  }
+  if (node.type === "hardBreak") {
+    chunks.push(" ");
+  }
+  if (Array.isArray(node.content)) {
+    for (const child of node.content) {
+      chunks.push(extractTextFromRichNode(child));
+    }
+    if (node.type === "paragraph") {
+      chunks.push(" ");
+    }
+  }
+  return chunks.join("");
+}
+
 function toPlainText(value?: string | null) {
   if (!value) return "";
+  const trimmed = value.trim();
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(trimmed) as RichNode;
+      const extracted = extractTextFromRichNode(parsed)
+        .replace(/\s+/g, " ")
+        .trim();
+      if (extracted) return extracted;
+    } catch {
+      // fallback to html/text cleanup below
+    }
+  }
   const withoutTags = value.replace(/<[^>]*>/g, " ");
   const normalized = withoutTags.replace(/\s+/g, " ").trim();
   return normalized;
