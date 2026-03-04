@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Pecal",
+  "productName": "Pecal Calendar: 당신의 모든 일정",
   "version": "1.0.3",
   "identifier": "com.deskcal.app",
   "build": {
@@ -50,6 +50,10 @@
     ],
     "createUpdaterArtifacts": false,
     "windows": {
+      "webviewInstallMode": {
+        "type": "offlineInstaller",
+        "silent": true
+      },
       "wix": {
         "language": "ko-KR",
         "upgradeCode": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"

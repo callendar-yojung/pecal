@@ -86,6 +86,22 @@ jobs:
           node scripts/update-version.mjs "$version"
           Select-String -Path src-tauri/tauri.conf.json -Pattern '"version"' | Select-Object -First 1
 
+      - name: Enforce offline installer mode (Store compliance)
+        shell: pwsh
+        working-directory: apps/desktop
+        run: |
+          $config = Get-Content "src-tauri/tauri.conf.json" -Raw | ConvertFrom-Json
+          $mode = $config.bundle.windows.webviewInstallMode.type
+          if (-not $mode) {
+            Write-Error "bundle.windows.webviewInstallMode.type is missing"
+            exit 1
+          }
+          if ($mode -ne "offlineInstaller" -and $mode -ne "fixedRuntime") {
+            Write-Error "Invalid webviewInstallMode '$mode'. Use offlineInstaller or fixedRuntime for standalone installer compliance."
+            exit 1
+          }
+          Write-Host "webviewInstallMode is '$mode' (offline-compliant)"
+
       - name: Verify signing files
         shell: pwsh
         working-directory: apps/desktop
