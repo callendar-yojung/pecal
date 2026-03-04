@@ -75,7 +75,7 @@ export default function TaskDetailPage() {
           onPress={() => router.push(`/tasks/${taskId}/export`)}
         >
           <Text style={s.secondaryButtonText}>
-            {t('tasksExportGoToPage')}
+            {t('tasksExport')}
           </Text>
         </Pressable>
       </View>
