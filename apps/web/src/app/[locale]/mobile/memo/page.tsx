@@ -74,6 +74,7 @@ export default function MobileMemoPage() {
   const [content, setContent] = useState<Record<string, unknown>>(EMPTY_DOC);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [message, setMessage] = useState("");
   const saveTimerRef = useRef<number | null>(null);
 
@@ -221,6 +222,53 @@ export default function MobileMemoPage() {
     }
   }, [canRequest, headers, loadMemoDetail, loadMemos, ownerId, ownerType, page]);
 
+  const deleteSelectedMemo = useCallback(async () => {
+    if (!canRequest || !selectedMemoId || deleting) return;
+    if (typeof window !== "undefined") {
+      const confirmed = window.confirm("이 메모를 삭제할까요?");
+      if (!confirmed) return;
+    }
+
+    if (saveTimerRef.current) {
+      window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+
+    setDeleting(true);
+    setMessage("");
+    try {
+      const qs = new URLSearchParams({
+        owner_type: ownerType,
+        owner_id: String(ownerId),
+      });
+      const res = await fetch(`/api/memos/${selectedMemoId}?${qs.toString()}`, {
+        method: "DELETE",
+        headers,
+      });
+      if (!res.ok) {
+        setMessage("메모 삭제에 실패했습니다.");
+        return;
+      }
+
+      setSelectedMemoId(null);
+      setViewMode("list");
+      setTitle("");
+      setContent(EMPTY_DOC);
+      setMessage("메모가 삭제되었습니다.");
+      await loadMemos();
+    } finally {
+      setDeleting(false);
+    }
+  }, [
+    canRequest,
+    deleting,
+    headers,
+    loadMemos,
+    ownerId,
+    ownerType,
+    selectedMemoId,
+  ]);
+
   useEffect(() => {
     applyTheme();
   }, [applyTheme]);
@@ -246,26 +294,26 @@ export default function MobileMemoPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background p-3 text-foreground">
-      <section className="mx-auto flex max-w-5xl flex-col gap-3">
-        <div className="rounded-2xl border border-border bg-card p-3">
+    <main className="min-h-screen bg-background px-3 py-4 text-foreground">
+      <section className="mx-auto flex max-w-3xl flex-col gap-3">
+        <div className="rounded-2xl border border-border bg-card/95 p-3 shadow-sm">
           <div className="flex items-center justify-between gap-2">
-            <h1 className="text-xl font-bold">메모</h1>
+            <h1 className="text-xl font-extrabold tracking-tight">메모</h1>
             <button
               type="button"
               onClick={createMemo}
-              className="rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
+              className="rounded-xl bg-primary px-3 py-2 text-sm font-bold text-primary-foreground shadow-sm"
             >
               새 메모
             </button>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            {saving ? "저장 중..." : message || "자동 저장"}
+            {deleting ? "삭제 중..." : saving ? "저장 중..." : message || "자동 저장"}
           </p>
         </div>
 
         {viewMode === "list" ? (
-          <div className="rounded-2xl border border-border bg-card p-2">
+          <div className="rounded-2xl border border-border bg-card/95 p-2 shadow-sm">
             <div className="max-h-[62vh] space-y-1 overflow-auto">
               {loading ? (
                 <p className="px-2 py-3 text-sm text-muted-foreground">
@@ -286,7 +334,7 @@ export default function MobileMemoPage() {
                     await loadMemoDetail(memo.memo_id);
                     setViewMode("detail");
                   }}
-                  className="w-full rounded-xl border border-border bg-card px-3 py-2 text-left text-sm"
+                  className="w-full rounded-xl border border-border bg-background/90 px-3 py-2 text-left text-sm"
                 >
                   <p className="truncate font-semibold text-foreground">
                     {memo.title || "제목 없음"}
@@ -320,7 +368,7 @@ export default function MobileMemoPage() {
             </div>
           </div>
         ) : (
-          <div className="rounded-2xl border border-border bg-card p-3">
+          <div className="rounded-2xl border border-border bg-card/95 p-3 shadow-sm">
             {!selectedMemoId ? (
               <div className="rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
                 목록에서 메모를 선택하면 상세가 열립니다.
@@ -335,9 +383,19 @@ export default function MobileMemoPage() {
                   >
                     목록
                   </button>
-                  <span className="text-xs text-muted-foreground">
-                    {saving ? "저장 중..." : message || "자동 저장"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void deleteSelectedMemo()}
+                      disabled={deleting || saving}
+                      className="rounded-lg border border-red-400/70 px-3 py-1.5 text-xs font-semibold text-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {deleting ? "삭제 중..." : "삭제"}
+                    </button>
+                    <span className="text-xs text-muted-foreground">
+                      {deleting ? "삭제 중..." : saving ? "저장 중..." : message || "자동 저장"}
+                    </span>
+                  </div>
                 </div>
                 <input
                   value={title}

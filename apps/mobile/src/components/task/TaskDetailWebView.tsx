@@ -8,6 +8,8 @@ import type { TaskItem } from '../../lib/types';
 
 type Props = {
   task: TaskItem;
+  authToken?: string;
+  availableTags?: Array<{ tag_id: number; name: string; color?: string }>;
   minHeight?: number;
 };
 
@@ -23,7 +25,7 @@ function taskContentText(content: string | null | undefined) {
   return trimmed;
 }
 
-export function TaskDetailWebView({ task, minHeight = 460 }: Props) {
+export function TaskDetailWebView({ task, authToken, availableTags = [], minHeight = 460 }: Props) {
   const ref = useRef<WebView>(null);
   const readyRef = useRef(false);
   const { locale } = useI18n();
@@ -66,10 +68,12 @@ export function TaskDetailWebView({ task, minHeight = 460 }: Props) {
             rrule: task.rrule ?? null,
             theme: webTheme,
           },
+          auth_token: authToken ?? '',
+          tags: availableTags,
         },
       })
     );
-  }, [fallbackLocal, task, webTheme]);
+  }, [authToken, availableTags, fallbackLocal, task, webTheme]);
 
   const handleRemoteFailure = useCallback(() => {
     if (fallbackLocal) return;

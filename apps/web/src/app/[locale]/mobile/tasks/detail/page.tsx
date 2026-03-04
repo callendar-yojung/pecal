@@ -5,6 +5,20 @@ import TaskViewPanel, {
   type TaskViewData,
 } from "@/components/dashboard/TaskViewPanel";
 
+type TagItem = {
+  tag_id: number;
+  name: string;
+  color: string;
+};
+
+type TaskAttachment = {
+  attachment_id: number;
+  file_id: number;
+  original_name: string;
+  file_size_formatted?: string;
+  file_path?: string;
+};
+
 type BridgeInbound =
   | {
       channel?: string;
@@ -16,9 +30,22 @@ type BridgeInbound =
           rrule?: string | null;
           theme?: "light" | "dark";
         };
+        auth_token?: string;
+        tags?: TagItem[];
       };
     }
   | Record<string, unknown>;
+
+type DetailBridgePayload = {
+  task?: Partial<TaskViewData> & {
+    is_all_day?: boolean;
+    reminder_minutes?: number | null;
+    rrule?: string | null;
+    theme?: "light" | "dark";
+  };
+  auth_token?: string;
+  tags?: TagItem[];
+};
 
 type BridgeOutbound =
   | { channel: "pecal-task-detail"; type: "ready" }
@@ -41,6 +68,21 @@ function postToNative(message: BridgeOutbound) {
   ) {
     (window as any).ReactNativeWebView.postMessage(serialized);
   }
+}
+
+function resolveFileUrl(filePath: string) {
+  if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
+    return filePath;
+  }
+  if (filePath.startsWith("/uploads/")) {
+    return filePath;
+  }
+  const bucket = process.env.NEXT_PUBLIC_AWS_S3_BUCKET || "";
+  const region = process.env.NEXT_PUBLIC_AWS_REGION || "";
+  if (bucket && region) {
+    return `https://${bucket}.s3.${region}.amazonaws.com/${filePath}`;
+  }
+  return filePath;
 }
 
 function applyTheme(theme: "light" | "dark") {
@@ -112,6 +154,35 @@ export default function MobileTaskDetailPage() {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [task, setTask] = useState<TaskViewData | null>(null);
   const [theme, setTheme] = useState<"light" | "dark" | null>(null);
+  const [authToken, setAuthToken] = useState("");
+  const [availableTags, setAvailableTags] = useState<TagItem[]>([]);
+  const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
+  const [loadingAttachments, setLoadingAttachments] = useState(false);
+
+  const handleOpenAttachment = useCallback((item: TaskAttachment) => {
+    if (!item.file_path) {
+      window.alert("파일 경로를 찾을 수 없습니다.");
+      return;
+    }
+    const url = resolveFileUrl(item.file_path);
+    window.open(url, "_blank", "noopener,noreferrer");
+  }, []);
+
+  const handleDownloadAttachment = useCallback((item: TaskAttachment) => {
+    if (!item.file_path) {
+      window.alert("파일 경로를 찾을 수 없습니다.");
+      return;
+    }
+    const url = resolveFileUrl(item.file_path);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = item.original_name || "attachment";
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, []);
 
   const handleInbound = useCallback((raw: unknown) => {
     try {
@@ -122,20 +193,21 @@ export default function MobileTaskDetailPage() {
       if (!parsed || (parsed as any).channel !== "pecal-task-detail") return;
       if ((parsed as any).type !== "set-task") return;
 
-      const payload = (parsed as any).payload as
-        | {
-            task?: Partial<TaskViewData> & {
-              is_all_day?: boolean;
-              reminder_minutes?: number | null;
-              rrule?: string | null;
-              theme?: "light" | "dark";
-            };
-          }
-        | undefined;
+      const payload = (parsed as { payload?: DetailBridgePayload }).payload;
       if (!payload?.task) return;
       if (payload.task.theme === "dark" || payload.task.theme === "light") {
         setTheme(payload.task.theme);
       }
+      setAuthToken(String(payload.auth_token ?? ""));
+      setAvailableTags(
+        Array.isArray(payload.tags)
+          ? payload.tags.map((tag) => ({
+              tag_id: Number(tag.tag_id),
+              name: String(tag.name ?? ""),
+              color: tag.color ?? "#3B82F6",
+            }))
+          : [],
+      );
       setTask({
         id: payload.task.id,
         title: String(payload.task.title ?? ""),
@@ -158,6 +230,35 @@ export default function MobileTaskDetailPage() {
       });
     }
   }, []);
+
+  useEffect(() => {
+    if (!task?.id || !authToken) {
+      setAttachments([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      setLoadingAttachments(true);
+      try {
+        const response = await fetch(`/api/tasks/attachments?task_id=${task.id}`, {
+          headers: { Authorization: `Bearer ${authToken}` },
+        });
+        if (!response.ok) {
+          if (!cancelled) setAttachments([]);
+          return;
+        }
+        const data = (await response.json()) as { attachments?: TaskAttachment[] };
+        if (!cancelled) {
+          setAttachments(Array.isArray(data.attachments) ? data.attachments : []);
+        }
+      } finally {
+        if (!cancelled) setLoadingAttachments(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [authToken, task?.id]);
 
   useEffect(() => {
     const rootTheme = document.documentElement.classList.contains("dark")
@@ -261,17 +362,66 @@ export default function MobileTaskDetailPage() {
   if (!theme) return <div className="bg-transparent p-0" />;
 
   return (
-    <div ref={rootRef} className="bg-transparent p-0">
+    <div ref={rootRef} className="bg-background px-3 py-3">
       {task ? (
-        <TaskViewPanel
-          task={task}
-          showActions={false}
-          showTags={false}
-          showAttachments={false}
-        />
+        <div className="mx-auto max-w-3xl space-y-3">
+          <TaskViewPanel
+            task={task}
+            showActions={false}
+            showTags
+            availableTags={availableTags}
+            showAttachments={false}
+          />
+          <div className="rounded-xl border border-border bg-card p-4">
+            <h3 className="mb-2 text-sm font-semibold text-foreground">첨부파일</h3>
+            {loadingAttachments ? (
+              <p className="text-sm text-muted-foreground">불러오는 중...</p>
+            ) : attachments.length === 0 ? (
+              <p className="text-sm text-muted-foreground">첨부파일이 없습니다.</p>
+            ) : (
+              <div className="space-y-2">
+                {attachments.map((item) => (
+                  <div
+                    key={item.attachment_id}
+                    className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleOpenAttachment(item)}
+                      className="min-w-0 flex-1 text-left"
+                    >
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {item.original_name}
+                      </p>
+                    </button>
+                    <div className="ml-3 flex shrink-0 items-center gap-2">
+                      <p className="text-xs text-muted-foreground">
+                        {item.file_size_formatted ?? ""}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenAttachment(item)}
+                        className="rounded-md border border-border px-2 py-1 text-xs text-foreground"
+                      >
+                        열기
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadAttachment(item)}
+                        className="rounded-md border border-border px-2 py-1 text-xs text-foreground"
+                      >
+                        다운로드
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       ) : (
-        <div className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
-          Loading...
+        <div className="mx-auto max-w-3xl rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
+          일정 정보를 불러오는 중...
         </div>
       )}
     </div>

@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { clearWidgetData, syncWidgetData } from '../lib/widget-bridge';
-import { apiFetch } from '../lib/api';
+import { apiFetch, getApiBaseUrl } from '../lib/api';
 import { syncDevicePushToken } from '../lib/push-notifications';
 import type { TaskItem } from '../lib/types';
 import { useThemeMode } from './ThemeContext';
@@ -105,6 +105,10 @@ export function MobileAppProvider({ children }: { children: React.ReactNode }) {
         tasks: workspaceTasksMap.get(selectedWorkspace.workspace_id) ?? [],
         workspaceName: selectedWorkspace.name,
         nickname: session.nickname,
+        apiBaseUrl: getApiBaseUrl(),
+        accessToken: session.accessToken,
+        refreshToken: session.refreshToken,
+        memberId: session.memberId,
         themeMode: resolvedMode,
         maxItems,
         workspaces: allWorkspaces.map((workspace) => ({

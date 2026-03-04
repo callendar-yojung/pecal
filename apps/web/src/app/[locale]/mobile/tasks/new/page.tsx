@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { Bell, Paperclip, Palette, Tag } from "lucide-react";
+import { useTranslations } from "next-intl";
 import RichTextEditor from "@/components/editor/RichTextEditor";
 
 type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE";
@@ -99,6 +100,7 @@ function postToNative(message: { type: string; payload?: Record<string, unknown>
 }
 
 export default function MobileTaskEditorPage() {
+  const tStatus = useTranslations("dashboard.tasks.status");
   const search = useMemo(
     () =>
       new URLSearchParams(
@@ -537,19 +539,19 @@ export default function MobileTaskEditorPage() {
   };
 
   return (
-    <main className="min-h-screen bg-background p-4 text-foreground">
-      <section className="mx-auto max-w-3xl rounded-2xl border border-border bg-card p-4 shadow-sm">
-        <h1 className="text-2xl font-bold">
+    <main className="min-h-screen bg-background px-3 py-4 text-foreground">
+      <section className="mx-auto max-w-3xl rounded-2xl border border-border bg-card/95 p-4 shadow-sm">
+        <h1 className="text-xl font-extrabold tracking-tight">
           {mode === "edit" ? "일정 수정" : "새 일정 등록"}
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          모바일 WebView 전체 페이지 모드
+        <p className="mt-1 text-xs text-muted-foreground">
+          제목, 시간, 태그, 첨부파일을 한 번에 관리할 수 있어요.
         </p>
       </section>
 
       <form
         onSubmit={submit}
-        className="mx-auto mt-4 max-w-3xl rounded-2xl border border-border bg-card p-4 shadow-sm"
+        className="mx-auto mt-3 max-w-3xl rounded-2xl border border-border bg-card/95 p-4 shadow-sm"
       >
         {loading ? (
           <p className="mb-3 text-sm text-muted-foreground">불러오는 중...</p>
@@ -589,9 +591,9 @@ export default function MobileTaskEditorPage() {
             onChange={(e) => setStatus(e.target.value as TaskStatus)}
             className="w-full rounded-xl border border-border bg-background px-3 py-3 outline-none focus:border-primary"
           >
-            <option value="TODO">TODO</option>
-            <option value="IN_PROGRESS">IN_PROGRESS</option>
-            <option value="DONE">DONE</option>
+            <option value="TODO">{tStatus("pending")}</option>
+            <option value="IN_PROGRESS">{tStatus("in_progress")}</option>
+            <option value="DONE">{tStatus("completed")}</option>
           </select>
 
           <div className="rounded-xl border border-border bg-background p-3">
@@ -827,7 +829,7 @@ export default function MobileTaskEditorPage() {
           <button
             type="submit"
             disabled={saving || loading}
-            className="w-full rounded-xl bg-primary px-4 py-3 font-semibold text-primary-foreground disabled:opacity-60"
+            className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground shadow-sm disabled:opacity-60"
           >
             {saving
               ? mode === "edit"
@@ -842,7 +844,7 @@ export default function MobileTaskEditorPage() {
               type="button"
               disabled={saving || loading}
               onClick={removeTask}
-              className="w-full rounded-xl border border-red-300 bg-red-50 px-4 py-3 font-semibold text-red-700 disabled:opacity-60"
+              className="w-full rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 disabled:opacity-60"
             >
               삭제
             </button>

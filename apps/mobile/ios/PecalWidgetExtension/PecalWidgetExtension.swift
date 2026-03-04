@@ -5,7 +5,7 @@ import AppIntents
 let pecalWidgetSuiteName = "group.site.pecal.app"
 let pecalWidgetStorageKey = "pecal_widget_payload"
 
-struct PecalWidgetTask: Decodable {
+struct PecalWidgetTask: Codable {
   let id: Int
   let title: String
   let start_time: String
@@ -14,16 +14,20 @@ struct PecalWidgetTask: Decodable {
   let color: String
 }
 
-struct PecalWidgetWorkspace: Decodable {
+struct PecalWidgetWorkspace: Codable {
   let workspace_id: Int
   let workspace_name: String
   let tasks: [PecalWidgetTask]
 }
 
-struct PecalWidgetPayload: Decodable {
+struct PecalWidgetPayload: Codable {
   let generated_at: String
   let nickname: String
   let theme: String?
+  let api_base_url: String?
+  let access_token: String?
+  let refresh_token: String?
+  let member_id: Int?
   let workspace_name: String?
   let tasks: [PecalWidgetTask]?
   let workspaces: [PecalWidgetWorkspace]
@@ -32,9 +36,37 @@ struct PecalWidgetPayload: Decodable {
     case generated_at
     case nickname
     case theme
+    case api_base_url
+    case access_token
+    case refresh_token
+    case member_id
     case workspaces
     case workspace_name
     case tasks
+  }
+
+  init(
+    generated_at: String,
+    nickname: String,
+    theme: String?,
+    api_base_url: String?,
+    access_token: String?,
+    refresh_token: String?,
+    member_id: Int?,
+    workspace_name: String?,
+    tasks: [PecalWidgetTask]?,
+    workspaces: [PecalWidgetWorkspace]
+  ) {
+    self.generated_at = generated_at
+    self.nickname = nickname
+    self.theme = theme
+    self.api_base_url = api_base_url
+    self.access_token = access_token
+    self.refresh_token = refresh_token
+    self.member_id = member_id
+    self.workspace_name = workspace_name
+    self.tasks = tasks
+    self.workspaces = workspaces
   }
 
   init(from decoder: Decoder) throws {
@@ -42,6 +74,10 @@ struct PecalWidgetPayload: Decodable {
     generated_at = try container.decodeIfPresent(String.self, forKey: .generated_at) ?? ""
     nickname = try container.decodeIfPresent(String.self, forKey: .nickname) ?? "Pecal"
     theme = try container.decodeIfPresent(String.self, forKey: .theme)
+    api_base_url = try container.decodeIfPresent(String.self, forKey: .api_base_url)
+    access_token = try container.decodeIfPresent(String.self, forKey: .access_token)
+    refresh_token = try container.decodeIfPresent(String.self, forKey: .refresh_token)
+    member_id = try container.decodeIfPresent(Int.self, forKey: .member_id)
     let legacyWorkspaceName = try container.decodeIfPresent(String.self, forKey: .workspace_name)
     let legacyTasks = try container.decodeIfPresent([PecalWidgetTask].self, forKey: .tasks)
     workspace_name = legacyWorkspaceName
@@ -61,6 +97,15 @@ struct PecalWidgetPayload: Decodable {
       ),
     ]
   }
+}
+
+private struct PecalTasksResponse: Decodable {
+  let tasks: [PecalWidgetTask]?
+}
+
+private struct PecalTokenRefreshResponse: Decodable {
+  let accessToken: String
+  let refreshToken: String
 }
 
 struct PecalWidgetEntry: TimelineEntry {
@@ -85,15 +130,16 @@ struct PecalWidgetProvider: AppIntentTimelineProvider {
   func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async -> PecalWidgetEntry {
     PecalWidgetEntry(
       date: .now,
-      payload: loadPecalWidgetPayload(),
+      payload: await resolvePecalWidgetPayload(),
       selectedWorkspaceId: configuration.workspace?.id
     )
   }
 
   func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<PecalWidgetEntry> {
+    let payload = await resolvePecalWidgetPayload()
     let entry = PecalWidgetEntry(
       date: .now,
-      payload: loadPecalWidgetPayload(),
+      payload: payload,
       selectedWorkspaceId: configuration.workspace?.id
     )
     let next = Calendar.current.date(byAdding: .minute, value: 15, to: .now) ?? .now.addingTimeInterval(900)
@@ -596,4 +642,122 @@ func loadPecalWidgetPayload() -> PecalWidgetPayload? {
   else { return nil }
 
   return try? JSONDecoder().decode(PecalWidgetPayload.self, from: data)
+}
+
+func savePecalWidgetPayload(_ payload: PecalWidgetPayload) {
+  guard let defaults = UserDefaults(suiteName: pecalWidgetSuiteName),
+        let data = try? JSONEncoder().encode(payload),
+        let json = String(data: data, encoding: .utf8)
+  else { return }
+  defaults.set(json, forKey: pecalWidgetStorageKey)
+  defaults.synchronize()
+}
+
+func resolvePecalWidgetPayload() async -> PecalWidgetPayload? {
+  guard let current = loadPecalWidgetPayload() else { return nil }
+  guard
+    let baseURLRaw = current.api_base_url?.trimmingCharacters(in: .whitespacesAndNewlines),
+    !baseURLRaw.isEmpty,
+    let refreshToken = current.refresh_token,
+    !refreshToken.isEmpty,
+    !current.workspaces.isEmpty
+  else {
+    return current
+  }
+
+  let baseURL = baseURLRaw.hasSuffix("/") ? String(baseURLRaw.dropLast()) : baseURLRaw
+  var accessToken = current.access_token ?? ""
+  var latestRefreshToken = refreshToken
+  var refreshedToken = false
+
+  func fetchWorkspaceTasks(token: String, workspaceId: Int) async throws -> [PecalWidgetTask] {
+    guard let url = URL(string: "\(baseURL)/api/tasks?workspace_id=\(workspaceId)&limit=200&sort_by=start_time&sort_order=ASC") else {
+      return []
+    }
+    var req = URLRequest(url: url)
+    req.timeoutInterval = 10
+    req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    let (data, response) = try await URLSession.shared.data(for: req)
+    guard let http = response as? HTTPURLResponse else { return [] }
+    if http.statusCode == 401 {
+      throw NSError(domain: "pecal.widget.auth", code: 401)
+    }
+    guard (200..<300).contains(http.statusCode) else { return [] }
+    let decoded = try JSONDecoder().decode(PecalTasksResponse.self, from: data)
+    return decoded.tasks ?? []
+  }
+
+  func refreshAccessToken(refreshToken: String) async -> (String, String)? {
+    guard let url = URL(string: "\(baseURL)/api/auth/external/refresh") else { return nil }
+    var req = URLRequest(url: url)
+    req.httpMethod = "POST"
+    req.timeoutInterval = 10
+    req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    let body = ["refresh_token": refreshToken]
+    guard let bodyData = try? JSONSerialization.data(withJSONObject: body) else { return nil }
+    req.httpBody = bodyData
+
+    do {
+      let (data, response) = try await URLSession.shared.data(for: req)
+      guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { return nil }
+      let decoded = try JSONDecoder().decode(PecalTokenRefreshResponse.self, from: data)
+      return (decoded.accessToken, decoded.refreshToken)
+    } catch {
+      return nil
+    }
+  }
+
+  var updatedWorkspaces: [PecalWidgetWorkspace] = []
+  updatedWorkspaces.reserveCapacity(current.workspaces.count)
+
+  for workspace in current.workspaces {
+    do {
+      let tasks = try await fetchWorkspaceTasks(token: accessToken, workspaceId: workspace.workspace_id)
+      updatedWorkspaces.append(
+        PecalWidgetWorkspace(
+          workspace_id: workspace.workspace_id,
+          workspace_name: workspace.workspace_name,
+          tasks: tasks
+        )
+      )
+    } catch {
+      if (error as NSError).code == 401, let refreshed = await refreshAccessToken(refreshToken: latestRefreshToken) {
+        accessToken = refreshed.0
+        latestRefreshToken = refreshed.1
+        refreshedToken = true
+        do {
+          let tasks = try await fetchWorkspaceTasks(token: accessToken, workspaceId: workspace.workspace_id)
+          updatedWorkspaces.append(
+            PecalWidgetWorkspace(
+              workspace_id: workspace.workspace_id,
+              workspace_name: workspace.workspace_name,
+              tasks: tasks
+            )
+          )
+          continue
+        } catch {
+          updatedWorkspaces.append(workspace)
+          continue
+        }
+      }
+      updatedWorkspaces.append(workspace)
+    }
+  }
+
+  let selectedTasks = updatedWorkspaces.first?.tasks ?? current.tasks
+  let merged = PecalWidgetPayload(
+    generated_at: ISO8601DateFormatter().string(from: Date()),
+    nickname: current.nickname,
+    theme: current.theme,
+    api_base_url: current.api_base_url,
+    access_token: accessToken.isEmpty ? current.access_token : accessToken,
+    refresh_token: refreshedToken ? latestRefreshToken : current.refresh_token,
+    member_id: current.member_id,
+    workspace_name: current.workspace_name,
+    tasks: selectedTasks,
+    workspaces: updatedWorkspaces
+  )
+
+  savePecalWidgetPayload(merged)
+  return merged
 }
