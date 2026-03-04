@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import TaskViewPanel, {
@@ -12,7 +12,9 @@ type ExportError = "unauthorized" | "notFound" | "expired" | "unknown";
 export default function TaskExportViewClient() {
   const t = useTranslations("dashboard.tasks.exportView");
   const params = useParams();
+  const router = useRouter();
   const token = String(params?.token || "");
+  const locale = String(params?.locale || "ko");
   const [task, setTask] = useState<TaskViewData | null>(null);
   const [workspaceInfo, setWorkspaceInfo] = useState<{
     type: "team" | "personal";
@@ -23,6 +25,17 @@ export default function TaskExportViewClient() {
   >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ExportError | null>(null);
+
+  useEffect(() => {
+    if (error !== "expired") return;
+    if (typeof window !== "undefined") {
+      window.alert("만료된 링크입니다.");
+    }
+    const timer = window.setTimeout(() => {
+      router.replace(`/${locale}`);
+    }, 150);
+    return () => window.clearTimeout(timer);
+  }, [error, locale, router]);
 
   useEffect(() => {
     if (!token) return;
@@ -98,4 +111,3 @@ export default function TaskExportViewClient() {
     </div>
   );
 }
-
