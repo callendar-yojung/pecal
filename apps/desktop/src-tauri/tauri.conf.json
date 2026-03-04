@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Pecal Calendar: 당신의 모든 일정",
+  "productName": "Pecal Calendar 당신의 모든 일정",
   "version": "1.0.3",
   "identifier": "com.deskcal.app",
   "build": {
