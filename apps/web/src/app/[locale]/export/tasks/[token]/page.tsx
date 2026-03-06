@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import type { Locale } from "@/i18n/config";
 import { routing } from "@/i18n/routing";
-import { getTaskExportByToken } from "@/lib/task-export";
+import { DEFAULT_OG_IMAGE, SITE_URL } from "@/lib/site-metadata";
 import { getTaskByIdWithNames } from "@/lib/task";
+import { getTaskExportByToken } from "@/lib/task-export";
 import TaskExportViewClient from "./TaskExportViewClient";
-
-const BASE_URL = "https://pecal.site";
 
 type RichNode = {
   type?: string;
@@ -82,11 +81,7 @@ export async function generateMetadata({
       !!exportRecord.expires_at &&
       new Date(exportRecord.expires_at).getTime() <= Date.now();
     const isRevoked = !!exportRecord.revoked_at;
-    if (
-      exportRecord.visibility === "public" &&
-      !isExpired &&
-      !isRevoked
-    ) {
+    if (exportRecord.visibility === "public" && !isExpired && !isRevoked) {
       const task = await getTaskByIdWithNames(exportRecord.task_id);
       if (task) {
         title = truncateText(task.title || fallbackTitle, 80);
@@ -96,8 +91,8 @@ export async function generateMetadata({
     }
   }
 
-  const pageUrl = `${BASE_URL}/${safeLocale}/export/tasks/${token}`;
-  const imageUrl = `${BASE_URL}/og-pecal.png`;
+  const pageUrl = `${SITE_URL}/${safeLocale}/export/tasks/${token}`;
+  const imageUrl = `${SITE_URL}${DEFAULT_OG_IMAGE}`;
 
   return {
     title,

@@ -3,12 +3,12 @@ import type { OpenAPIV3 } from "openapi-types";
 const swaggerSpec: OpenAPIV3.Document = {
   openapi: "3.0.0",
   info: {
-    title: "Kelindor API Documentation",
+    title: "Pecal API Documentation",
     version: "1.0.0",
     description: `
-# Kelindor API
+# Pecal API
 
-Kelindor는 팀 협업, 프로젝트 관리, 태스크 관리를 위한 올인원 워크스페이스 플랫폼입니다.
+Pecal은 팀 협업, 프로젝트 관리, 태스크 관리를 위한 올인원 워크스페이스 플랫폼입니다.
 
 ## 인증 방식
 
@@ -52,8 +52,8 @@ Authorization: Bearer <access_token>
 - 500: 서버 오류
     `,
     contact: {
-      name: "Kelindor Support",
-      email: "support@kelindor.com",
+      name: "Pecal Support",
+      email: "support@pecal.site",
     },
   },
   servers: [

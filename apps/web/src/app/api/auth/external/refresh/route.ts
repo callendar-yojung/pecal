@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { generateTokenPair, verifyToken } from "@/lib/jwt";
+import { findMemberById, isMemberLoginEnabled } from "@/lib/member";
 
 /**
  * POST /api/auth/external/refresh
@@ -27,12 +28,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const member = await findMemberById(payload.memberId);
+    if (!isMemberLoginEnabled(member)) {
+      return NextResponse.json(
+        { error: "Account is no longer available" },
+        { status: 401 },
+      );
+    }
+
     // 새 토큰 발급
     const tokens = await generateTokenPair({
-      memberId: payload.memberId,
-      nickname: payload.nickname,
-      provider: payload.provider,
-      email: payload.email,
+      memberId: member.member_id,
+      nickname: member.nickname ?? payload.nickname,
+      provider: member.provider ?? payload.provider,
+      email: member.email ?? payload.email,
     });
 
     return NextResponse.json({

@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { auth } from "@/auth";
 import { verifyToken } from "./jwt";
+import { findMemberById, isMemberLoginEnabled } from "./member";
 
 export interface AuthUser {
   memberId: number;
@@ -17,6 +18,22 @@ export interface AuthUser {
 export async function getAuthUser(
   request?: NextRequest,
 ): Promise<AuthUser | null> {
+  const buildAuthUser = async (
+    candidate: AuthUser,
+  ): Promise<AuthUser | null> => {
+    const member = await findMemberById(candidate.memberId);
+    if (!isMemberLoginEnabled(member)) {
+      return null;
+    }
+
+    return {
+      memberId: member.member_id,
+      nickname: member.nickname ?? candidate.nickname,
+      provider: member.provider ?? candidate.provider,
+      email: member.email ?? candidate.email,
+    };
+  };
+
   // 1. Authorization 헤더에서 JWT 확인
   if (request) {
     const authHeader = request.headers.get("authorization");
@@ -25,12 +42,12 @@ export async function getAuthUser(
       const payload = await verifyToken(token);
 
       if (payload && payload.type === "access") {
-        return {
+        return buildAuthUser({
           memberId: payload.memberId,
           nickname: payload.nickname,
           provider: payload.provider,
           email: payload.email,
-        };
+        });
       }
     }
 
@@ -39,12 +56,12 @@ export async function getAuthUser(
       const payload = await verifyToken(cookieToken);
 
       if (payload && payload.type === "access") {
-        return {
+        return buildAuthUser({
           memberId: payload.memberId,
           nickname: payload.nickname,
           provider: payload.provider,
           email: payload.email,
-        };
+        });
       }
     }
   }
@@ -52,12 +69,12 @@ export async function getAuthUser(
   // 2. NextAuth 세션 확인 (웹 브라우저용 폴백)
   const session = await auth();
   if (session?.user?.memberId) {
-    return {
+    return buildAuthUser({
       memberId: session.user.memberId,
       nickname: session.user.nickname || "",
       provider: session.user.provider,
       email: session.user.email,
-    };
+    });
   }
 
   return null;

@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { generateAccessToken, generateRefreshToken } from "@/lib/jwt";
 import { findOrCreateMember } from "@/lib/member";
 import { getOAuthRedirectUri } from "@/lib/oauth-redirect-uri";
-import { verifyOAuthState } from "@/lib/oauth-state";
+import { verifyOAuthStatePayload } from "@/lib/oauth-state";
 
 interface AppleTokenResponse {
   access_token: string;
@@ -16,6 +16,7 @@ interface AppleTokenResponse {
 interface AppleIdTokenPayload extends JWTPayload {
   sub: string;
   email?: string;
+  nonce?: string;
 }
 
 const APPLE_JWKS = createRemoteJWKSet(
@@ -38,7 +39,8 @@ async function handleAppleCallback(
   const code = params.get("code");
   const state = params.get("state");
   const error = params.get("error");
-  const appCallback = await verifyOAuthState("apple", state);
+  const oauthState = await verifyOAuthStatePayload("apple", state);
+  const appCallback = oauthState?.callback ?? null;
 
   const handleError = (errorMessage: string, status: number) => {
     if (appCallback) {
@@ -98,6 +100,12 @@ async function handleAppleCallback(
 
     if (!idTokenPayload.sub) {
       return handleError("Failed to get Apple user info", 500);
+    }
+    if (
+      !oauthState?.nonceHash ||
+      idTokenPayload.nonce !== oauthState.nonceHash
+    ) {
+      return handleError("Invalid Apple nonce", 400);
     }
 
     const providerId = idTokenPayload.sub;

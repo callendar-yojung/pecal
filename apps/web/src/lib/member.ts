@@ -13,6 +13,16 @@ export interface Member {
   profile_image_url?: string | null;
 }
 
+function isDuplicateEntryError(error: unknown): error is { code: string } {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof (error as { code?: unknown }).code === "string" &&
+    (error as { code: string }).code === "ER_DUP_ENTRY"
+  );
+}
+
 function generateRandomNickname(locale: "ko" | "en"): string {
   const koAdjectives = [
     "행복한",
@@ -158,8 +168,8 @@ export async function createMember(
         result = insertResult;
         finalNickname = nickname;
         break;
-      } catch (error: any) {
-        if (error?.code !== "ER_DUP_ENTRY") {
+      } catch (error: unknown) {
+        if (!isDuplicateEntryError(error)) {
           throw error;
         }
       }
@@ -186,8 +196,8 @@ export async function createMember(
           result = insertResult;
           finalNickname = fallback;
           break;
-        } catch (error: any) {
-          if (error?.code !== "ER_DUP_ENTRY") {
+        } catch (error: unknown) {
+          if (!isDuplicateEntryError(error)) {
             throw error;
           }
         }
@@ -347,4 +357,11 @@ export async function findMemberById(memberId: number): Promise<Member | null> {
     [memberId],
   );
   return (rows[0] as Member) || null;
+}
+
+export function isMemberLoginEnabled(
+  member: Pick<Member, "provider"> | null,
+): boolean {
+  if (!member) return false;
+  return member.provider !== "deleted";
 }

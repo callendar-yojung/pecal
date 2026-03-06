@@ -7,6 +7,7 @@ import SessionProvider from "@/components/SessionProvider";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import type { Locale } from "@/i18n/config";
 import { routing } from "@/i18n/routing";
+import { DEFAULT_OG_IMAGE, SITE_URL } from "@/lib/site-metadata";
 import "../globals.css";
 
 type Props = {
@@ -31,10 +32,8 @@ export async function generateMetadata({
     .default;
   const t = messages.metadata;
 
-  const baseUrl = "https://pecal.site";
-
   return {
-    metadataBase: new URL(baseUrl),
+    metadataBase: new URL(SITE_URL),
     title: {
       default: t.title,
       template: `%s | Pecal`,
@@ -70,23 +69,23 @@ export async function generateMetadata({
     authors: [{ name: "Pecal Team" }],
     creator: "Pecal",
     alternates: {
-      canonical: `${baseUrl}/${safeLocale}`,
+      canonical: `${SITE_URL}/${safeLocale}`,
       languages: {
-        ko: `${baseUrl}/ko`,
-        en: `${baseUrl}/en`,
-        "x-default": baseUrl,
+        ko: `${SITE_URL}/ko`,
+        en: `${SITE_URL}/en`,
+        "x-default": SITE_URL,
       },
     },
     openGraph: {
       type: "website",
       locale: safeLocale === "ko" ? "ko_KR" : "en_US",
-      url: `${baseUrl}/${safeLocale}`,
+      url: `${SITE_URL}/${safeLocale}`,
       siteName: "Pecal",
       title: t.title,
       description: t.ogDescription,
       images: [
         {
-          url: "/og-pecal.png",
+          url: DEFAULT_OG_IMAGE,
           width: 1200,
           height: 630,
           alt: t.title,
@@ -97,7 +96,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title: t.title,
       description: t.ogDescription,
-      images: ["/og-pecal.png"],
+      images: [DEFAULT_OG_IMAGE],
     },
     robots: {
       index: true,

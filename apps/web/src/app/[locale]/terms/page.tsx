@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import LegalNoticePanel from "@/components/legal/LegalNoticePanel";
+import { buildStaticMetadata } from "@/lib/site-metadata";
 
 export async function generateMetadata({
   params,
@@ -9,10 +11,14 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "termsOfService" });
+  const safeLocale = locale === "en" ? "en" : "ko";
 
-  return {
+  return buildStaticMetadata({
+    locale: safeLocale,
     title: t("title"),
-  };
+    description: t("intro"),
+    path: `/${safeLocale}/terms`,
+  });
 }
 
 type SearchParams = {
@@ -230,6 +236,7 @@ export default async function TermsOfServicePage({
             >
               {t("backToHome")}
             </Link>
+            <LegalNoticePanel locale={locale} current="terms" />
           </div>
         ) : null}
       </main>
