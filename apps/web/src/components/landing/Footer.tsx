@@ -15,7 +15,7 @@ export default function Footer() {
       { name: t("roadmap"), href: "#" },
     ],
     [t("resources")]: [
-      { name: t("helpCenter"), href: "#" },
+      { name: t("helpCenter"), href: "/support" },
       { name: t("guides"), href: "#" },
       { name: t("apiDocs"), href: "#" },
       { name: t("blog"), href: "#" },
@@ -23,7 +23,7 @@ export default function Footer() {
     [t("company")]: [
       { name: t("about"), href: "#" },
       { name: t("careers"), href: "#" },
-      { name: t("contact"), href: "#" },
+      { name: t("contact"), href: "/support" },
       { name: t("newsroom"), href: "#" },
     ],
     [t("legal")]: [

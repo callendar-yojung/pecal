@@ -14,6 +14,11 @@ interface OAuthStatePayload {
   nonceHash: string;
 }
 
+export interface VerifiedOAuthState {
+  callback: string;
+  nonceHash: string;
+}
+
 function getOAuthSecret(): Uint8Array {
   return new TextEncoder().encode(getRequiredEnv("AUTH_SECRET"));
 }
@@ -88,7 +93,7 @@ export function getOAuthStateCookieOptions(provider: OAuthProvider) {
 export async function createOAuthState(
   provider: OAuthProvider,
   callback: string,
-): Promise<{ state: string }> {
+): Promise<{ state: string; nonce: string }> {
   const normalized = normalizeCallbackUrl(callback);
   if (!normalized || !isAllowedOAuthCallback(normalized)) {
     throw new Error("Invalid OAuth callback");
@@ -107,13 +112,21 @@ export async function createOAuthState(
     .setExpirationTime(`${OAUTH_STATE_TTL_SECONDS}s`)
     .sign(getOAuthSecret());
 
-  return { state };
+  return { state, nonce };
 }
 
 export async function verifyOAuthState(
   provider: OAuthProvider,
   state: string | null,
 ): Promise<string | null> {
+  const payload = await verifyOAuthStatePayload(provider, state);
+  return payload?.callback ?? null;
+}
+
+export async function verifyOAuthStatePayload(
+  provider: OAuthProvider,
+  state: string | null,
+): Promise<VerifiedOAuthState | null> {
   if (!state) {
     return null;
   }
@@ -123,8 +136,13 @@ export async function verifyOAuthState(
     if (payload.type !== "oauth_state") return null;
     if (payload.provider !== provider) return null;
     if (typeof payload.callback !== "string") return null;
+    if (typeof payload.nonceHash !== "string" || !payload.nonceHash)
+      return null;
     if (!isAllowedOAuthCallback(payload.callback)) return null;
-    return payload.callback;
+    return {
+      callback: payload.callback,
+      nonceHash: payload.nonceHash,
+    };
   } catch {
     return null;
   }

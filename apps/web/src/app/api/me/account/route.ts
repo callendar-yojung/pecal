@@ -11,6 +11,25 @@ import {
 import { getMemberConsents, upsertMemberConsents } from "@/lib/member-settings";
 import { deleteFromS3, extractS3KeyFromUrl } from "@/lib/s3";
 
+async function deleteFileFromStorage(filePath: string): Promise<void> {
+  if (!filePath) return;
+
+  const s3Key = extractS3KeyFromUrl(filePath);
+  if (s3Key) {
+    await deleteFromS3(s3Key);
+    return;
+  }
+
+  if (!filePath.startsWith("/")) return;
+
+  const [{ unlink }, path] = await Promise.all([
+    import("node:fs/promises"),
+    import("node:path"),
+  ]);
+  const localPath = path.join(process.cwd(), "public", filePath);
+  await unlink(localPath);
+}
+
 // GET /api/me/account - 현재 사용자 정보 조회
 export async function GET(request: NextRequest) {
   try {
@@ -89,12 +108,13 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const { nickname, profile_image_url, privacy_consent, marketing_consent } = payload as {
-      nickname?: unknown;
-      profile_image_url?: unknown;
-      privacy_consent?: unknown;
-      marketing_consent?: unknown;
-    };
+    const { nickname, profile_image_url, privacy_consent, marketing_consent } =
+      payload as {
+        nickname?: unknown;
+        profile_image_url?: unknown;
+        privacy_consent?: unknown;
+        marketing_consent?: unknown;
+      };
 
     const hasNickname =
       typeof nickname === "string" && nickname.trim().length > 0;
@@ -184,5 +204,156 @@ export async function PATCH(request: NextRequest) {
       { error: "Failed to update account" },
       { status: 500 },
     );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const user = await getAuthUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const connection = await pool.getConnection();
+  const filesToDelete = new Set<string>();
+
+  try {
+    await connection.beginTransaction();
+
+    const [ownedTeams] = await connection.execute<RowDataPacket[]>(
+      `SELECT team_id FROM teams WHERE created_by = ? LIMIT 1`,
+      [user.memberId],
+    );
+    if (ownedTeams.length > 0) {
+      await connection.rollback();
+      return NextResponse.json(
+        {
+          error:
+            "Delete or transfer your owned team before deleting the account.",
+          code: "TEAM_OWNER_BLOCKED",
+        },
+        { status: 409 },
+      );
+    }
+
+    const [memberRows] = await connection.execute<RowDataPacket[]>(
+      `SELECT profile_image_url FROM members WHERE member_id = ? LIMIT 1`,
+      [user.memberId],
+    );
+    const profileImageUrl =
+      memberRows.length > 0
+        ? String(memberRows[0].profile_image_url ?? "")
+        : "";
+    if (profileImageUrl) {
+      filesToDelete.add(profileImageUrl);
+    }
+
+    const [personalFiles] = await connection.execute<RowDataPacket[]>(
+      `SELECT file_path FROM files WHERE owner_type = 'personal' AND owner_id = ?`,
+      [user.memberId],
+    );
+    for (const row of personalFiles) {
+      const filePath = String(row.file_path ?? "");
+      if (filePath) filesToDelete.add(filePath);
+    }
+
+    await connection.execute(`DELETE FROM notifications WHERE member_id = ?`, [
+      user.memberId,
+    ]);
+    await connection.execute(
+      `DELETE FROM member_push_tokens WHERE member_id = ?`,
+      [user.memberId],
+    );
+    await connection.execute(
+      `DELETE FROM member_settings WHERE member_id = ?`,
+      [user.memberId],
+    );
+    await connection.execute(
+      `DELETE FROM team_invitations WHERE invited_member_id = ? OR invited_by = ?`,
+      [user.memberId, user.memberId],
+    );
+    await connection.execute(
+      `DELETE FROM task_export_access WHERE member_id = ?`,
+      [user.memberId],
+    );
+    await connection.execute(`DELETE FROM team_members WHERE member_id = ?`, [
+      user.memberId,
+    ]);
+    await connection.execute(
+      `DELETE FROM memos WHERE owner_type = 'personal' AND owner_id = ?`,
+      [user.memberId],
+    );
+    await connection.execute(
+      `DELETE FROM files WHERE owner_type = 'personal' AND owner_id = ?`,
+      [user.memberId],
+    );
+    await connection.execute(
+      `DELETE FROM tags WHERE owner_type = 'personal' AND owner_id = ?`,
+      [user.memberId],
+    );
+    await connection.execute(
+      `DELETE FROM tasks WHERE workspace_id IN (
+         SELECT workspace_id FROM workspaces WHERE type = 'personal' AND owner_id = ?
+       )`,
+      [user.memberId],
+    );
+    await connection.execute(
+      `DELETE FROM storage_usage WHERE owner_type = 'personal' AND owner_id = ?`,
+      [user.memberId],
+    );
+    await connection.execute(
+      `DELETE FROM workspaces WHERE type = 'personal' AND owner_id = ?`,
+      [user.memberId],
+    );
+    await connection.execute(
+      `UPDATE billing_keys SET status = 'REMOVED' WHERE member_id = ?`,
+      [user.memberId],
+    );
+
+    const deletedNickname = `deleted_user_${user.memberId}`;
+    const deletedProviderId = `deleted:${user.memberId}:${Date.now()}`;
+    await connection.execute(
+      `UPDATE members
+       SET provider = 'deleted',
+           provider_id = ?,
+           email = NULL,
+           phone_number = NULL,
+           nickname = ?,
+           profile_image_url = NULL,
+           lasted_at = NOW()
+       WHERE member_id = ?`,
+      [deletedProviderId, deletedNickname, user.memberId],
+    );
+
+    await connection.commit();
+
+    for (const filePath of filesToDelete) {
+      try {
+        await deleteFileFromStorage(filePath);
+      } catch (error) {
+        console.error(
+          "Failed to delete stored file during account deletion:",
+          error,
+        );
+      }
+    }
+
+    const response = NextResponse.json({ success: true });
+    response.cookies.set("PECAL_ACCESS_TOKEN", "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 0,
+    });
+    return response;
+  } catch (error) {
+    await connection.rollback();
+    console.error("Failed to delete account:", error);
+    return NextResponse.json(
+      { error: "Failed to delete account" },
+      { status: 500 },
+    );
+  } finally {
+    connection.release();
   }
 }

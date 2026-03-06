@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useMobileApp } from '../../src/contexts/MobileAppContext';
 import { useI18n } from '../../src/contexts/I18nContext';
 import { useThemeMode } from '../../src/contexts/ThemeContext';
@@ -30,6 +30,7 @@ export default function SettingsProfilePage() {
   const [checkOk, setCheckOk] = useState<boolean | null>(null);
   const [checkedNickname, setCheckedNickname] = useState('');
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -146,6 +147,54 @@ export default function SettingsProfilePage() {
     }
   };
 
+  const onDeleteAccount = () => {
+    if (!auth.session || deleting) return;
+
+    Alert.alert(
+      isKo ? '계정 삭제' : 'Delete account',
+      isKo
+        ? '계정을 삭제하면 개인 워크스페이스 데이터와 로그인 정보가 제거됩니다. 이 작업은 되돌릴 수 없습니다.'
+        : 'Deleting your account removes your personal workspace data and sign-in access. This action cannot be undone.',
+      [
+        { text: isKo ? '취소' : 'Cancel', style: 'cancel' },
+        {
+          text: isKo ? '삭제' : 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              try {
+                setDeleting(true);
+                setMessage('');
+                await apiFetch<{ success: boolean }>('/api/me/account', auth.session, {
+                  method: 'DELETE',
+                });
+                await auth.logout();
+                router.replace('/(auth)/login');
+              } catch (error: unknown) {
+                const text = error instanceof Error ? error.message : String(error);
+                if (text.includes('owned team') || text.includes('team first')) {
+                  setMessage(
+                    isKo
+                      ? '소유 중인 팀이 있으면 계정을 삭제할 수 없습니다. 팀을 이전하거나 삭제한 뒤 다시 시도하세요.'
+                      : 'You cannot delete the account while owning a team. Transfer or delete the team first.',
+                  );
+                } else {
+                  setMessage(
+                    isKo
+                      ? '계정 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.'
+                      : 'Failed to delete the account. Please try again later.',
+                  );
+                }
+              } finally {
+                setDeleting(false);
+              }
+            })();
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <ScrollView style={s.content} contentContainerStyle={s.contentContainer}>
       <View style={s.section}>
@@ -231,6 +280,39 @@ export default function SettingsProfilePage() {
             </Text>
           ) : null}
           {message ? <Text style={s.itemMeta}>{message}</Text> : null}
+        </View>
+
+        <View style={[s.panel, { borderRadius: 13, gap: 10, borderColor: '#FCA5A5' }]}>
+          <Text style={[s.formTitle, { color: '#DC2626' }]}>
+            {isKo ? '계정 삭제' : 'Delete Account'}
+          </Text>
+          <Text style={s.itemMeta}>
+            {isKo
+              ? '앱에서 바로 계정을 삭제할 수 있습니다. 삭제 후 로그인과 개인 데이터는 복구할 수 없습니다.'
+              : 'You can delete your account directly in the app. Sign-in access and personal data cannot be restored after deletion.'}
+          </Text>
+          <Pressable
+            style={[
+              s.secondaryButtonHalf,
+              {
+                width: '100%',
+                borderColor: '#FCA5A5',
+                backgroundColor: '#FEF2F2',
+              },
+            ]}
+            onPress={onDeleteAccount}
+            disabled={deleting}
+          >
+            <Text style={[s.secondaryButtonText, { color: '#DC2626' }]}>
+              {deleting
+                ? isKo
+                  ? '삭제 중...'
+                  : 'Deleting...'
+                : isKo
+                  ? '계정 삭제'
+                  : 'Delete Account'}
+            </Text>
+          </Pressable>
         </View>
       </View>
     </ScrollView>

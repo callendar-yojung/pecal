@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     }
 
     const redirectUri = getOAuthRedirectUri(request, "apple");
-    const { state } = await createOAuthState("apple", appCallback);
+    const { state, nonce } = await createOAuthState("apple", appCallback);
 
     const params = new URLSearchParams({
       client_id: APPLE_CLIENT_ID,
@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
       response_mode: "form_post",
       scope: "name email",
       state,
+      nonce,
     });
 
     const authUrl = `${APPLE_AUTH_URL}?${params.toString()}`;

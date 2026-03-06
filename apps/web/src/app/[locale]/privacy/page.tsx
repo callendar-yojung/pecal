@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import LegalNoticePanel from "@/components/legal/LegalNoticePanel";
+import { buildStaticMetadata } from "@/lib/site-metadata";
 
 export async function generateMetadata({
   params,
@@ -9,10 +11,14 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "privacyPolicy" });
+  const safeLocale = locale === "en" ? "en" : "ko";
 
-  return {
+  return buildStaticMetadata({
+    locale: safeLocale,
     title: t("title"),
-  };
+    description: t("intro"),
+    path: `/${safeLocale}/privacy`,
+  });
 }
 
 type SearchParams = {
@@ -30,6 +36,9 @@ export default async function PrivacyPolicyPage({
   const query = await searchParams;
   const embedded = query?.embedded === "mobile" || query?.embedded === "true";
   const t = await getTranslations({ locale, namespace: "privacyPolicy" });
+  const footerT = await getTranslations({ locale, namespace: "footer" });
+  const companyInfoTitle =
+    locale === "ko" ? "회사 정보" : "Company Information";
   const toStringList = (key: string): string[] => {
     const value = t.raw(key);
     return Array.isArray(value) ? value : [];
@@ -232,6 +241,40 @@ export default async function PrivacyPolicyPage({
             </h2>
             <p className="text-muted-foreground">{t("section10.content")}</p>
           </section>
+
+          <section className="space-y-4">
+            <h2 className="text-2xl font-bold text-foreground">
+              {companyInfoTitle}
+            </h2>
+            <div className="rounded-lg border border-border bg-card p-6 space-y-3">
+              <p className="text-sm text-card-foreground">
+                {footerT("company-name")}
+              </p>
+              <p className="text-sm text-card-foreground">
+                {footerT("address")}
+              </p>
+              <p className="text-sm text-card-foreground">{footerT("owner")}</p>
+              <p className="text-sm text-card-foreground">{footerT("tel")}</p>
+              <p className="text-sm text-card-foreground">
+                {footerT("bizNum")}{" "}
+                <a
+                  href="https://moneypin.biz/bizno/detail/1506300732/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline underline-offset-4"
+                >
+                  [{footerT("bizCheck")}]
+                </a>
+              </p>
+              <p className="text-sm text-card-foreground">
+                {footerT("onlineSales")}
+              </p>
+              <p className="text-sm text-card-foreground">
+                {footerT("privacy-name")}
+              </p>
+              <p className="text-sm text-card-foreground">{footerT("email")}</p>
+            </div>
+          </section>
         </div>
 
         {!embedded ? (
@@ -242,6 +285,7 @@ export default async function PrivacyPolicyPage({
             >
               {t("backToHome")}
             </Link>
+            <LegalNoticePanel locale={locale} current="privacy" />
           </div>
         ) : null}
       </main>

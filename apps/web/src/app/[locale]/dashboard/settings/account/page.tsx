@@ -1,11 +1,13 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
 export default function AccountPage() {
   const t = useTranslations("dashboard.settings.account");
+  const router = useRouter();
   const { data: session, update: updateSession } = useSession();
   const [nickname, setNickname] = useState(session?.user?.nickname || "");
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(
@@ -18,6 +20,7 @@ export default function AccountPage() {
     "idle",
   );
   const [saved, setSaved] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (session?.user?.nickname) {
@@ -146,6 +149,30 @@ export default function AccountPage() {
     } catch (error) {
       console.error("Failed to remove profile image:", error);
       alert("Failed to remove profile image");
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(t("deleteAccountDesc"));
+    if (!confirmed) return;
+
+    try {
+      setDeleting(true);
+      const response = await fetch("/api/me/account", {
+        method: "DELETE",
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        alert(data.error || "Failed to delete account");
+        return;
+      }
+      router.replace("/delete-account");
+      router.refresh();
+    } catch (error) {
+      console.error("Failed to delete account:", error);
+      alert("Failed to delete account");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -279,9 +306,11 @@ export default function AccountPage() {
         </p>
         <button
           type="button"
+          onClick={handleDeleteAccount}
+          disabled={deleting}
           className="mt-4 rounded-xl border border-destructive bg-background px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
         >
-          {t("deleteButton")}
+          {deleting ? "..." : t("deleteButton")}
         </button>
       </div>
     </div>
