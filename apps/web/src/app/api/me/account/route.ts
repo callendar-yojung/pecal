@@ -1,6 +1,7 @@
 import type { RowDataPacket } from "mysql2";
 import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
+import { revokeAllMemberRefreshSessions } from "@/lib/auth-token-store";
 import pool from "@/lib/db";
 import {
   isNicknameReserved,
@@ -325,6 +326,7 @@ export async function DELETE(request: NextRequest) {
     );
 
     await connection.commit();
+    await revokeAllMemberRefreshSessions(user.memberId);
 
     for (const filePath of filesToDelete) {
       try {

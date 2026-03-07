@@ -1,193 +1,242 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Text, View } from 'react-native';
-import { WebView } from 'react-native-webview';
+import { isRichTextDocLike } from '@repo/utils';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, Linking, Pressable, Text, View } from 'react-native';
 import { useI18n } from '../../contexts/I18nContext';
 import { useThemeMode } from '../../contexts/ThemeContext';
 import { getApiBaseUrl } from '../../lib/api';
 import type { TaskItem } from '../../lib/types';
+import { createStyles } from '../../styles/createStyles';
+import { DetailAttachmentSection, DetailTagSection } from '../detail/DetailSections';
+import { SharedRichTextEditor } from '../editor/SharedRichTextEditor';
 
 type Props = {
   task: TaskItem;
   authToken?: string;
   availableTags?: Array<{ tag_id: number; name: string; color?: string }>;
   minHeight?: number;
+  onBackToList?: () => void;
+  onOpenEdit?: () => void;
+  onOpenExport?: () => void;
 };
 
-type DetailMessage =
-  | { type: 'ready' }
-  | { type: 'height'; payload?: { height?: number } }
-  | { type: 'error'; payload?: { message?: string } };
+type TaskAttachment = {
+  attachment_id: number;
+  file_id: number;
+  original_name: string;
+  file_size_formatted?: string;
+  file_path?: string;
+};
 
-function taskContentText(content: string | null | undefined) {
-  if (!content) return '';
-  const trimmed = content.trim();
-  if (!trimmed) return '';
-  return trimmed;
+function statusLabel(status: string | undefined, isKo: boolean) {
+  if (status === 'IN_PROGRESS') return isKo ? '진행중' : 'In Progress';
+  if (status === 'DONE') return isKo ? '완료' : 'Done';
+  return isKo ? '할 일' : 'To Do';
 }
 
-export function TaskDetailWebView({ task, authToken, availableTags = [], minHeight = 460 }: Props) {
-  const ref = useRef<WebView>(null);
-  const readyRef = useRef(false);
+function resolveFileUrl(filePath?: string) {
+  if (!filePath) return null;
+  if (filePath.startsWith('http://') || filePath.startsWith('https://')) return filePath;
+  if (filePath.startsWith('/uploads/')) return `${getApiBaseUrl().replace(/\/+$/, '')}${filePath}`;
+  return `${getApiBaseUrl().replace(/\/+$/, '')}/${filePath.replace(/^\/+/, '')}`;
+}
+
+export function TaskDetailWebView({
+  task,
+  authToken,
+  availableTags = [],
+  minHeight = 460,
+  onBackToList,
+  onOpenEdit,
+  onOpenExport,
+}: Props) {
+  const { resolvedMode, colors } = useThemeMode();
   const { locale } = useI18n();
-  const { resolvedMode } = useThemeMode();
-  const webTheme = resolvedMode === 'black' ? 'dark' : 'light';
-  const [webHeight, setWebHeight] = useState(minHeight);
-  const [remoteUriIndex, setRemoteUriIndex] = useState(0);
-  const [fallbackLocal, setFallbackLocal] = useState(false);
-  const [webLoading, setWebLoading] = useState(true);
+  const isKo = locale === 'ko';
+  const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
+  const s = createStyles(colors);
 
-  const remoteUris = useMemo(() => {
-    const base = getApiBaseUrl().replace(/\/+$/, '');
-    const params = new URLSearchParams({ theme: webTheme });
-    const query = params.toString();
-    return [
-      `${base}/${locale}/mobile/tasks/detail?${query}`,
-      `${base}/mobile/tasks/detail?${query}`,
-    ];
-  }, [locale, webTheme]);
-  const remoteUri = remoteUris[Math.min(remoteUriIndex, remoteUris.length - 1)];
+  const borderColor = resolvedMode === 'black' ? '#2D3443' : '#D9E0EF';
+  const cardColor = resolvedMode === 'black' ? '#141923' : '#FFFFFF';
+  const softColor = resolvedMode === 'black' ? '#A3AEC2' : '#667085';
+  const textColor = resolvedMode === 'black' ? '#F3F6FF' : '#111827';
+  const contentColor = resolvedMode === 'black' ? '#D0D7E7' : '#334155';
 
-  const postTask = useCallback(() => {
-    if (fallbackLocal || !readyRef.current) return;
-    ref.current?.postMessage(
-      JSON.stringify({
-        channel: 'pecal-task-detail',
-        type: 'set-task',
-        payload: {
-          task: {
-            id: task.id,
-            title: task.title,
-            start_time: task.start_time,
-            end_time: task.end_time,
-            content: task.content ?? '',
-            status: task.status ?? 'TODO',
-            color: task.color ?? '#3B82F6',
-            tag_ids: task.tag_ids ?? [],
-            is_all_day: !!task.is_all_day,
-            reminder_minutes: task.reminder_minutes ?? null,
-            rrule: task.rrule ?? null,
-            theme: webTheme,
-          },
-          auth_token: authToken ?? '',
-          tags: availableTags,
-        },
-      })
-    );
-  }, [authToken, availableTags, fallbackLocal, task, webTheme]);
+  const selectedTags = useMemo(() => {
+    if (Array.isArray(task.tags) && task.tags.length > 0) {
+      return task.tags.map((tag) => ({
+        tag_id: Number(tag.tag_id),
+        name: String(tag.name ?? ''),
+        color: tag.color,
+      }));
+    }
 
-  const handleRemoteFailure = useCallback(() => {
-    if (fallbackLocal) return;
-    readyRef.current = false;
-    setWebLoading(false);
-    setRemoteUriIndex((prev) => {
-      const next = prev + 1;
-      if (next < remoteUris.length) {
-        return next;
-      }
-      setFallbackLocal(true);
-      return prev;
-    });
-  }, [fallbackLocal, remoteUris.length]);
+    return (task.tag_ids ?? [])
+      .map((tagId) => availableTags.find((tag) => Number(tag.tag_id) === Number(tagId)))
+      .filter((tag): tag is { tag_id: number; name: string; color?: string } => Boolean(tag));
+  }, [task.tags, task.tag_ids, availableTags]);
+  const hasContentJson = isRichTextDocLike(task.content);
+  const hasContent = Boolean(task.content?.trim());
 
   useEffect(() => {
-    postTask();
-  }, [postTask]);
+    if (!authToken || !task.id) {
+      setAttachments([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch(`${getApiBaseUrl()}/api/tasks/attachments?task_id=${task.id}`, {
+          headers: { Authorization: `Bearer ${authToken}` },
+        });
+        if (!response.ok) {
+          if (!cancelled) setAttachments([]);
+          return;
+        }
+        const data = (await response.json()) as { attachments?: TaskAttachment[] };
+        if (!cancelled) setAttachments(Array.isArray(data.attachments) ? data.attachments : []);
+      } catch {
+        if (!cancelled) setAttachments([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [authToken, task.id]);
 
-  if (fallbackLocal) {
-    return (
-      <View
-        style={{
-          borderWidth: 1,
-          borderColor: resolvedMode === 'black' ? '#2D3443' : '#D9E0EF',
-          borderRadius: 12,
-          padding: 12,
-          backgroundColor: resolvedMode === 'black' ? '#141923' : '#FFFFFF',
-          gap: 8,
-        }}
-      >
-        <Text style={{ color: resolvedMode === 'black' ? '#F3F6FF' : '#111827', fontSize: 18, fontWeight: '700' }}>
-          {task.title}
-        </Text>
-        <Text style={{ color: resolvedMode === 'black' ? '#A3AEC2' : '#667085' }}>
-          {task.start_time} - {task.end_time}
-        </Text>
-        <Text style={{ color: resolvedMode === 'black' ? '#D0D7E7' : '#334155' }}>{taskContentText(task.content) || '내용 없음'}</Text>
-      </View>
-    );
-  }
+  const attachmentItems = useMemo(
+    () =>
+      attachments.map((item) => ({
+        id: item.attachment_id,
+        name: item.original_name,
+        sizeLabel: item.file_size_formatted,
+        onOpen: async () => {
+          const url = resolveFileUrl(item.file_path);
+          if (!url) {
+            Alert.alert(isKo ? '오류' : 'Error', isKo ? '파일 경로를 찾을 수 없습니다.' : 'File path is missing.');
+            return;
+          }
+          const canOpen = await Linking.canOpenURL(url);
+          if (!canOpen) {
+            Alert.alert(isKo ? '오류' : 'Error', isKo ? '파일을 열 수 없습니다.' : 'Unable to open file.');
+            return;
+          }
+          await Linking.openURL(url);
+        },
+        onDownload: async () => {
+          const url = resolveFileUrl(item.file_path);
+          if (!url) {
+            Alert.alert(isKo ? '오류' : 'Error', isKo ? '파일 경로를 찾을 수 없습니다.' : 'File path is missing.');
+            return;
+          }
+          await Linking.openURL(url);
+        },
+      })),
+    [attachments, isKo],
+  );
 
   return (
-    <View style={{ minHeight: Math.max(webHeight, minHeight), borderRadius: 12 }}>
-      <WebView
-        ref={ref}
-        originWhitelist={['*']}
-        source={{ uri: remoteUri }}
-        scrollEnabled
-        nestedScrollEnabled
-        javaScriptEnabled
-        scalesPageToFit={false}
-        automaticallyAdjustContentInsets={false}
-        contentInset={{ top: 0, bottom: 0, left: 0, right: 0 }}
-        contentInsetAdjustmentBehavior="never"
-        style={{ height: Math.max(minHeight, webHeight), backgroundColor: 'transparent' }}
-        onLoadStart={() => setWebLoading(true)}
-        onLoadEnd={() => setWebLoading(false)}
-        onError={handleRemoteFailure}
-        onHttpError={handleRemoteFailure}
-        onMessage={(event) => {
-          try {
-            const raw = JSON.parse(event.nativeEvent.data) as
-              | DetailMessage
-              | { channel?: string; type?: string; payload?: { height?: number; message?: string } };
-            if ((raw as { channel?: string }).channel !== 'pecal-task-detail') return;
-            const message = raw as { type?: string; payload?: { height?: number } };
-            if (message.type === 'ready') {
-              readyRef.current = true;
-              postTask();
-              return;
-            }
-            if (message.type === 'height') {
-              // Add a small buffer to avoid clipping due to border/pixel rounding differences.
-              const measured = Number(message.payload?.height) || minHeight;
-              const next = Math.max(minHeight, Math.min(6000, measured + 40));
-              setWebHeight(next);
-            }
-          } catch {
-            // ignore malformed bridge payload
-          }
-        }}
-      />
-      {webLoading ? (
+    <View
+      style={{
+        borderWidth: 1,
+        borderColor,
+        borderRadius: 18,
+        padding: 14,
+        backgroundColor: cardColor,
+        gap: 12,
+      }}
+    >
+      <View style={{ gap: 6 }}>
+        <Text style={{ color: textColor, fontSize: 24, fontWeight: '800', letterSpacing: -0.6 }}>
+          {task.title}
+        </Text>
+        <Text style={{ color: softColor, fontSize: 14 }}>
+          {task.start_time} - {task.end_time}
+        </Text>
+      </View>
+
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         <View
           style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundColor: resolvedMode === 'black' ? 'rgba(7,9,14,0.82)' : 'rgba(242,244,251,0.84)',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 10,
+            borderRadius: 999,
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            backgroundColor: `${task.color ?? '#3B82F6'}22`,
           }}
         >
+          <Text style={{ color: task.color ?? '#3B82F6', fontSize: 12, fontWeight: '700' }}>
+            {statusLabel(task.status, isKo)}
+          </Text>
+        </View>
+        {task.is_all_day ? (
           <View
             style={{
-              alignItems: 'center',
-              gap: 12,
-              paddingHorizontal: 22,
-              paddingVertical: 18,
-              borderRadius: 18,
-              borderWidth: 1,
-              borderColor: resolvedMode === 'black' ? '#2D3443' : '#D9E0EF',
-              backgroundColor: resolvedMode === 'black' ? '#141923' : '#FFFFFF',
+              borderRadius: 999,
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+              backgroundColor: resolvedMode === 'black' ? '#202637' : '#EEF2FF',
             }}
           >
-            <Image source={require('../../../assets/icon.png')} style={{ width: 60, height: 60, borderRadius: 14 }} />
-            <ActivityIndicator color={task.color ?? '#3B82F6'} />
-            <Text style={{ color: resolvedMode === 'black' ? '#F3F6FF' : '#111827', fontSize: 13, fontWeight: '700' }}>
-              로딩 중...
+            <Text style={{ color: softColor, fontSize: 12, fontWeight: '700' }}>
+              {isKo ? '종일 일정' : 'All day'}
             </Text>
           </View>
-        </View>
+        ) : null}
+      </View>
+
+      <DetailTagSection
+        title={isKo ? '태그' : 'Tags'}
+        tags={selectedTags.map((tag) => ({ id: tag.tag_id, name: tag.name, color: tag.color }))}
+      />
+
+      {task.reminder_minutes ? (
+        <Text style={{ color: softColor, fontSize: 12 }}>
+          {isKo ? '알림' : 'Reminder'}: {task.reminder_minutes}{isKo ? '분 전' : ' min before'}
+        </Text>
       ) : null}
+
+      <DetailAttachmentSection
+        title={isKo ? '첨부파일' : 'Attachments'}
+        emptyLabel={isKo ? '첨부파일이 없습니다.' : 'No attachments.'}
+        attachments={attachmentItems}
+      />
+
+      <View style={{ gap: 8 }}>
+        <Text style={{ color: softColor, fontSize: 12, fontWeight: '700' }}>
+          {isKo ? '내용' : 'Content'}
+        </Text>
+        <SharedRichTextEditor
+          valueJson={hasContentJson ? task.content ?? '' : ''}
+          valueText={hasContentJson ? '' : task.content ?? ''}
+          readOnly
+          minHeight={Math.max(minHeight - 180, 280)}
+          implementation="native"
+        />
+        {!hasContent ? (
+          <Text style={{ color: contentColor, fontSize: 13 }}>
+            {isKo ? '내용 없음' : 'No content'}
+          </Text>
+        ) : null}
+      </View>
+
+      <View style={{ gap: 8 }}>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {onBackToList ? (
+            <Pressable style={s.secondaryButtonHalf} onPress={onBackToList}>
+              <Text style={s.secondaryButtonText}>{isKo ? '목록으로' : 'Back to list'}</Text>
+            </Pressable>
+          ) : null}
+          {onOpenEdit ? (
+            <Pressable style={s.primaryButtonHalf} onPress={onOpenEdit}>
+              <Text style={s.primaryButtonText}>{isKo ? '수정' : 'Edit'}</Text>
+            </Pressable>
+          ) : null}
+        </View>
+        {onOpenExport ? (
+          <Pressable style={s.secondaryButton} onPress={onOpenExport}>
+            <Text style={s.secondaryButtonText}>{isKo ? '내보내기' : 'Export'}</Text>
+          </Pressable>
+        ) : null}
+      </View>
     </View>
   );
 }

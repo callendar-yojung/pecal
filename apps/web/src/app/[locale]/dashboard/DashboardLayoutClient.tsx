@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import WebJwtSync from "@/components/auth/WebJwtSync";
 import { NotificationsBell, Sidebar } from "@/components/dashboard";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 
@@ -52,6 +53,7 @@ export default function DashboardLayoutClient({
 
   return (
     <WorkspaceProvider>
+      <WebJwtSync />
       <div className="dashboard-canvas min-h-screen">
         <Sidebar
           isMobile={isMobile}

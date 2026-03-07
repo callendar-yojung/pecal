@@ -1,6 +1,13 @@
 "use client";
 
-import { ChartBar, CreditCard, Settings, Shield, User } from "lucide-react";
+import {
+  ChartBar,
+  CreditCard,
+  Lock,
+  Settings,
+  Shield,
+  User,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/routing";
 
@@ -14,6 +21,7 @@ export default function SettingsLayout({
   const settingsNav = [
     { key: "general", href: "/dashboard/settings", icon: Settings },
     { key: "account", href: "/dashboard/settings/account", icon: User },
+    { key: "security", href: "/dashboard/settings/security", icon: Lock },
     { key: "privacy", href: "/dashboard/settings/privacy", icon: Shield },
     { key: "billing", href: "/dashboard/settings/billing", icon: CreditCard },
     { key: "usage", href: "/dashboard/settings/usage", icon: ChartBar },

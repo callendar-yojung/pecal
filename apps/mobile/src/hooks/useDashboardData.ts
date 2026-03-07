@@ -2,7 +2,7 @@ import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, apiFetch, cachedApiFetch, getApiBaseUrl, invalidateApiCache } from '../lib/api';
-import { defaultTaskRangeByDate, groupTasksByDate } from '../lib/date';
+import { defaultTaskRangeByDate, groupTasksByDate, toLocalDateTimeString } from '../lib/date';
 import {
   enqueueMemoOffline,
   enqueueTaskOffline,
@@ -657,14 +657,39 @@ export function useDashboardData(session: AuthSession | null) {
 
   const updateTask = async (taskId: number, input: TaskMutationInput) => {
     if (!session || !selectedWorkspace) return;
-    await apiFetch('/api/tasks', session, {
-      method: 'PATCH',
-      body: JSON.stringify({
-        task_id: taskId,
-        ...input,
-      }),
-    });
-    await refreshCurrentWorkspace();
+    const previousTask = tasks.find((item) => item.id === taskId) ?? null;
+    const changedKeys = Object.keys(input) as Array<keyof TaskMutationInput>;
+    const statusOnlyUpdate = changedKeys.length === 1 && changedKeys[0] === 'status';
+
+    setTasks((prev) =>
+      prev.map((item) => {
+        if (item.id !== taskId) return item;
+        return {
+          ...item,
+          ...input,
+        };
+      })
+    );
+
+    try {
+      await apiFetch('/api/tasks', session, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          task_id: taskId,
+          ...input,
+        }),
+      });
+      invalidateApiCache(`tasks:${selectedWorkspace.workspace_id}`);
+      invalidateApiCache(`calendar:${selectedWorkspace.workspace_id}`);
+      if (!statusOnlyUpdate) {
+        void refreshCurrentWorkspace();
+      }
+    } catch (error) {
+      if (previousTask) {
+        setTasks((prev) => prev.map((item) => (item.id === taskId ? previousTask : item)));
+      }
+      throw error;
+    }
   };
 
   const deleteTask = async (taskId: number) => {
@@ -684,8 +709,8 @@ export function useDashboardData(session: AuthSession | null) {
     start.setMinutes(start.getMinutes() + minutes);
     end.setMinutes(end.getMinutes() + minutes);
     await updateTask(taskId, {
-      start_time: start.toISOString(),
-      end_time: end.toISOString(),
+      start_time: toLocalDateTimeString(start),
+      end_time: toLocalDateTimeString(end),
     });
   };
 
@@ -701,7 +726,7 @@ export function useDashboardData(session: AuthSession | null) {
       return;
     }
     await updateTask(taskId, {
-      end_time: end.toISOString(),
+      end_time: toLocalDateTimeString(end),
     });
   };
 

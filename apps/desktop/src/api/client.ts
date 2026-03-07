@@ -55,6 +55,9 @@ class ApiClient {
 
     const requestHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
+      'X-Client-Platform': 'desktop',
+      'X-Client-Name': 'Pecal Desktop',
+      'X-App-Version': import.meta.env.VITE_APP_VERSION || 'unknown',
       ...headers,
     }
 

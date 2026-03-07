@@ -225,6 +225,21 @@ export function useAuth() {
   };
 
   const logout = async () => {
+    if (session) {
+      try {
+        const base = getApiBaseUrl();
+        await fetch(`${base}/api/auth/external/logout`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.accessToken}`,
+          },
+          body: JSON.stringify({ refresh_token: session.refreshToken }),
+        });
+      } catch {
+        // local session clear still proceeds
+      }
+    }
     await persistSession(null);
   };
 

@@ -6,12 +6,14 @@ import { getTaskAccentColor, getTaskStatusColor } from '../lib/task-colors';
 import { useThemeMode } from '../contexts/ThemeContext';
 import { useI18n } from '../contexts/I18nContext';
 import { createStyles } from '../styles/createStyles';
+import { SelectDropdown } from '../components/common/SelectDropdown';
 
 type Props = {
   tasks: TaskItem[];
   tags: TagItem[];
   onOpenCreateTask?: () => void;
   onOpenTask?: (taskId: number) => void;
+  onChangeTaskStatus?: (taskId: number, status: TaskStatus) => void;
 };
 
 function statusLabel(status: string | undefined, t: (key: string) => string) {
@@ -25,6 +27,7 @@ export function TasksScreen({
   tags,
   onOpenCreateTask,
   onOpenTask,
+  onChangeTaskStatus,
 }: Props) {
   const { colors } = useThemeMode();
   const { t } = useI18n();
@@ -32,9 +35,20 @@ export function TasksScreen({
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | TaskStatus>('ALL');
   const [tagFilter, setTagFilter] = useState<number | 'ALL'>('ALL');
-  const [sortBy, setSortBy] = useState<'START_ASC' | 'START_DESC' | 'TITLE_ASC'>('START_DESC');
+  const [sortBy, setSortBy] = useState<'START_ASC' | 'START_DESC' | 'TITLE_ASC' | 'TITLE_DESC'>('START_DESC');
+  const [statusFilterDropdownOpen, setStatusFilterDropdownOpen] = useState(false);
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+  const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
+  const [statusDropdownTaskId, setStatusDropdownTaskId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 10;
+
+  const sortOptions = [
+    { key: 'START_ASC', label: '일정시작 ↑' },
+    { key: 'START_DESC', label: '일정시작 ↓' },
+    { key: 'TITLE_ASC', label: '제목순 ↑' },
+    { key: 'TITLE_DESC', label: '제목순 ↓' },
+  ] as const;
 
   const todoCount = tasks.filter((task) => task.status !== 'DONE').length;
   const filteredTasks = useMemo(() => {
@@ -50,10 +64,24 @@ export function TasksScreen({
       })
       .sort((a, b) => {
         if (sortBy === 'TITLE_ASC') return a.title.localeCompare(b.title);
+        if (sortBy === 'TITLE_DESC') return b.title.localeCompare(a.title);
         if (sortBy === 'START_DESC') return b.start_time.localeCompare(a.start_time);
         return a.start_time.localeCompare(b.start_time);
       });
   }, [tasks, statusFilter, tagFilter, query, sortBy]);
+
+  const statusFilterOptions = [
+    { key: 'ALL', label: '전체' },
+    { key: 'TODO', label: '예정' },
+    { key: 'IN_PROGRESS', label: '진행중' },
+    { key: 'DONE', label: '완료' },
+  ] as const;
+  const tagOptions = [{ key: 'ALL' as const, label: '태그 전체' }, ...tags.map((tag) => ({ key: tag.tag_id, label: tag.name }))];
+  const taskStatusOptions = [
+    { key: 'TODO', label: '예정' },
+    { key: 'IN_PROGRESS', label: '진행중' },
+    { key: 'DONE', label: '완료' },
+  ] as const;
 
   const totalPages = Math.max(1, Math.ceil(filteredTasks.length / pageSize));
   const pagedTasks = useMemo(() => {
@@ -103,70 +131,56 @@ export function TasksScreen({
           style={s.input}
           placeholderTextColor={colors.textMuted}
         />
-        <View style={s.row}>
-          {(['ALL', 'TODO', 'IN_PROGRESS', 'DONE'] as const).map((status) => (
-            <Pressable
-              key={status}
-              onPress={() => setStatusFilter(status)}
-              style={[
-                s.workspacePill,
-                { marginRight: 0, paddingVertical: 7, paddingHorizontal: 10 },
-                statusFilter === status ? s.workspacePillActive : null,
-              ]}
-            >
-              <Text style={[s.workspacePillText, statusFilter === status ? s.workspacePillTextActive : null]}>
-                {status === 'ALL' ? '전체' : statusLabel(status, t)}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        <View style={s.row}>
-          <Pressable
-            onPress={() => setTagFilter('ALL')}
-            style={[
-              s.workspacePill,
-              { marginRight: 0, paddingVertical: 7, paddingHorizontal: 10 },
-              tagFilter === 'ALL' ? s.workspacePillActive : null,
-            ]}
-          >
-            <Text style={[s.workspacePillText, tagFilter === 'ALL' ? s.workspacePillTextActive : null]}>태그 전체</Text>
-          </Pressable>
-          {tags.slice(0, 6).map((tag) => (
-            <Pressable
-              key={tag.tag_id}
-              onPress={() => setTagFilter(tag.tag_id)}
-              style={[
-                s.workspacePill,
-                { marginRight: 0, paddingVertical: 7, paddingHorizontal: 10 },
-                tagFilter === tag.tag_id ? s.workspacePillActive : null,
-              ]}
-            >
-              <Text style={[s.workspacePillText, tagFilter === tag.tag_id ? s.workspacePillTextActive : null]}>
-                {tag.name}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        <View style={s.row}>
-          {[
-            { key: 'START_ASC', label: '시작 빠른순' },
-            { key: 'START_DESC', label: '시작 늦은순' },
-            { key: 'TITLE_ASC', label: '제목순' },
-          ].map((option) => (
-            <Pressable
-              key={option.key}
-              onPress={() => setSortBy(option.key as 'START_ASC' | 'START_DESC' | 'TITLE_ASC')}
-              style={[
-                s.workspacePill,
-                { marginRight: 0, paddingVertical: 7, paddingHorizontal: 10 },
-                sortBy === option.key ? s.workspacePillActive : null,
-              ]}
-            >
-              <Text style={[s.workspacePillText, sortBy === option.key ? s.workspacePillTextActive : null]}>
-                {option.label}
-              </Text>
-            </Pressable>
-          ))}
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <View style={{ flex: 1 }}>
+            <SelectDropdown
+              value={statusFilter}
+              options={statusFilterOptions}
+              open={statusFilterDropdownOpen}
+              onToggle={() => {
+                setStatusFilterDropdownOpen((prev) => !prev);
+                setSortDropdownOpen(false);
+                setTagDropdownOpen(false);
+              }}
+              onSelect={(value) => {
+                setStatusFilter(value);
+                setStatusFilterDropdownOpen(false);
+              }}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <SelectDropdown
+              value={sortBy}
+              options={sortOptions}
+              open={sortDropdownOpen}
+              onToggle={() => {
+                setSortDropdownOpen((prev) => !prev);
+                setStatusFilterDropdownOpen(false);
+                setTagDropdownOpen(false);
+              }}
+              onSelect={(value) => {
+                setSortBy(value);
+                setSortDropdownOpen(false);
+              }}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <SelectDropdown
+              value={tagFilter}
+              options={tagOptions}
+              open={tagDropdownOpen}
+              onToggle={() => {
+                setTagDropdownOpen((prev) => !prev);
+                setStatusFilterDropdownOpen(false);
+                setSortDropdownOpen(false);
+              }}
+              onSelect={(value) => {
+                setTagFilter(value);
+                setTagDropdownOpen(false);
+              }}
+              numberOfLines={1}
+            />
+          </View>
         </View>
       </View>
 
@@ -175,9 +189,8 @@ export function TasksScreen({
           const badgeColor = getTaskStatusColor(task.status);
           const accentColor = getTaskAccentColor(task);
           return (
-            <Pressable
+            <View
               key={task.id}
-              onPress={() => onOpenTask?.(task.id)}
               style={{
                 borderRadius: 14,
                 borderWidth: 1,
@@ -189,14 +202,24 @@ export function TasksScreen({
                 gap: 6,
               }}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                <Text style={[s.itemTitle, { flex: 1 }]} numberOfLines={1}>{task.title}</Text>
-                <View style={{ backgroundColor: `${badgeColor}22`, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
-                  <Text style={{ color: badgeColor, fontSize: 11, fontWeight: '700' }}>{statusLabel(task.status, t)}</Text>
+              <Pressable onPress={() => onOpenTask?.(task.id)} style={{ gap: 6 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <Text style={[s.itemTitle, { flex: 1 }]} numberOfLines={1}>{task.title}</Text>
+                  <SelectDropdown
+                    value={(task.status ?? 'TODO') as TaskStatus}
+                    options={taskStatusOptions}
+                    open={statusDropdownTaskId === task.id}
+                    onToggle={() => setStatusDropdownTaskId((prev) => (prev === task.id ? null : task.id))}
+                    onSelect={(value) => {
+                      setStatusDropdownTaskId(null);
+                      onChangeTaskStatus?.(task.id, value);
+                    }}
+                    style="pill"
+                  />
                 </View>
-              </View>
-              <Text style={s.itemMeta}>{formatDateTime(task.start_time)} - {formatDateTime(task.end_time)}</Text>
-            </Pressable>
+                <Text style={s.itemMeta}>{formatDateTime(task.start_time)} - {formatDateTime(task.end_time)}</Text>
+              </Pressable>
+            </View>
           );
         })}
         {!filteredTasks.length ? <Text style={s.emptyText}>{t('tasksEmpty')}</Text> : null}

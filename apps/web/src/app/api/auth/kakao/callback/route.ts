@@ -1,8 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { generateAccessToken, generateRefreshToken } from "@/lib/jwt";
+import { generateTokenPair } from "@/lib/jwt";
 import { findOrCreateMember } from "@/lib/member";
 import { getOAuthRedirectUri } from "@/lib/oauth-redirect-uri";
 import { verifyOAuthState } from "@/lib/oauth-state";
+import { getSessionClientMeta } from "@/lib/session-client-meta";
 
 /**
  * GET /api/auth/kakao/callback?code=XXX&state=deskcal://auth/callback
@@ -46,10 +47,17 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const clientMeta = getSessionClientMeta(request);
     console.log("🔑 카카오 OAuth 콜백 처리 시작:", {
       code: `${code.substring(0, 10)}...`,
       appCallback: appCallback,
     });
+
+    const kakaoClientId = process.env.AUTH_KAKAO_ID;
+    const kakaoClientSecret = process.env.AUTH_KAKAO_SECRET;
+    if (!kakaoClientId || !kakaoClientSecret) {
+      return handleError("Kakao OAuth is not configured", 500);
+    }
 
     // redirect_uri는 반드시 카카오에 등록된 URL을 사용해야 함
     const redirectUri = getOAuthRedirectUri(request, "kakao");
@@ -62,8 +70,8 @@ export async function GET(request: NextRequest) {
       },
       body: new URLSearchParams({
         grant_type: "authorization_code",
-        client_id: process.env.AUTH_KAKAO_ID!,
-        client_secret: process.env.AUTH_KAKAO_SECRET!,
+        client_id: kakaoClientId,
+        client_secret: kakaoClientSecret,
         code,
         redirect_uri: redirectUri,
       }),
@@ -102,18 +110,12 @@ export async function GET(request: NextRequest) {
 
     // 4. JWT 토큰 생성
     const memberNickname = member.nickname ?? "사용자";
-    const accessToken = await generateAccessToken({
+    const { accessToken, refreshToken } = await generateTokenPair({
       memberId: member.member_id,
       nickname: memberNickname,
       provider: "kakao",
       email: member.email,
-    });
-
-    const refreshToken = await generateRefreshToken({
-      memberId: member.member_id,
-      nickname: memberNickname,
-      provider: "kakao",
-      email: member.email,
+      ...clientMeta,
     });
 
     console.log("✅ JWT 토큰 생성 완료");

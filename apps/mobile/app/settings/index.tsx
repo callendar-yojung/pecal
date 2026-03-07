@@ -6,12 +6,12 @@ import { useThemeMode } from '../../src/contexts/ThemeContext';
 import { createStyles } from '../../src/styles/createStyles';
 
 type MenuItem = {
-  key: 'profile' | 'alarm' | 'theme';
+  key: 'profile' | 'security' | 'alarm' | 'theme';
   labelKo: string;
   labelEn: string;
   descriptionKo: string;
   descriptionEn: string;
-  route: '/settings/profile' | '/settings/alarm' | '/settings/theme';
+  route: '/settings/profile' | '/settings/security' | '/settings/alarm' | '/settings/theme';
   icon: keyof typeof Ionicons.glyphMap;
 };
 
@@ -24,6 +24,15 @@ const SETTINGS_ITEMS: MenuItem[] = [
     descriptionEn: 'View account and workspace',
     route: '/settings/profile',
     icon: 'person-circle-outline',
+  },
+  {
+    key: 'security',
+    labelKo: '보안',
+    labelEn: 'Security',
+    descriptionKo: '로그인 기기와 세션 관리',
+    descriptionEn: 'Manage devices and sessions',
+    route: '/settings/security',
+    icon: 'shield-checkmark-outline',
   },
   {
     key: 'alarm',

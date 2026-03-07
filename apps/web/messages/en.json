@@ -657,6 +657,7 @@
       "nav": {
         "general": "General",
         "account": "Account",
+        "security": "Security",
         "privacy": "Privacy",
         "billing": "Billing",
         "usage": "Usage",
@@ -706,6 +707,25 @@
         "deleteAccount": "Delete Account",
         "deleteAccountDesc": "Deleting your account will permanently remove all your data",
         "deleteButton": "Delete Account"
+      },
+      "security": {
+        "title": "Security",
+        "description": "Manage signed-in devices and your session security status",
+        "loggedDevices": "Logged-in Devices",
+        "loggedDevicesDesc": "Manage devices and sessions currently signed in to this account",
+        "loadingDevices": "Loading logged-in devices...",
+        "noDevices": "No active signed-in devices",
+        "currentDevice": "Current device",
+        "deviceLabel": "Browser / Device",
+        "providerLabel": "Sign-in method",
+        "appVersionLabel": "App version",
+        "lastActive": "Last active",
+        "revokeDevice": "Sign out",
+        "revokingDevice": "Signing out...",
+        "revokeDeviceConfirm": "Sign out this device?",
+        "revokeDeviceFailed": "Failed to sign out the device. Please try again.",
+        "unknownDevice": "Unknown device",
+        "unknownProvider": "Unknown"
       },
       "privacy": {
         "title": "Privacy",

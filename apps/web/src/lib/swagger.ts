@@ -389,6 +389,20 @@ Authorization: Bearer <access_token>
           provider: { type: "string" },
         },
       },
+      LoginSession: {
+        type: "object",
+        properties: {
+          session_id: { type: "string" },
+          provider: { type: "string" },
+          client_platform: { type: "string" },
+          client_name: { type: "string" },
+          app_version: { type: "string", nullable: true },
+          user_agent: { type: "string", nullable: true },
+          created_at: { type: "string" },
+          last_seen_at: { type: "string" },
+          current: { type: "boolean" },
+        },
+      },
       Release: {
         type: "object",
         properties: {
@@ -546,6 +560,47 @@ Authorization: Bearer <access_token>
         },
       },
     },
+    "/api/auth/external/logout": {
+      post: {
+        tags: ["Auth - External"],
+        summary: "외부 앱 로그아웃",
+        description:
+          "현재 access/refresh token을 폐기하고 외부 앱 세션을 종료합니다.",
+        security: [{ BearerAuth: [] }],
+        requestBody: {
+          required: false,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  refresh_token: {
+                    type: "string",
+                    description: "현재 사용 중인 Refresh Token",
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "로그아웃 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean" },
+                  },
+                },
+              },
+            },
+          },
+          "401": { description: "인증 필요 또는 유효하지 않은 토큰" },
+        },
+      },
+    },
     "/api/auth/external/me": {
       get: {
         tags: ["Auth - External"],
@@ -567,6 +622,68 @@ Authorization: Bearer <access_token>
             },
           },
           "401": { description: "인증 필요" },
+        },
+      },
+    },
+    "/api/me/sessions": {
+      get: {
+        tags: ["Account"],
+        summary: "로그인 기기 목록 조회",
+        description: "현재 회원의 활성 로그인 세션(기기) 목록을 반환합니다.",
+        security: [{ BearerAuth: [] }],
+        responses: {
+          "200": {
+            description: "세션 목록 조회 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    currentSessionId: { type: "string", nullable: true },
+                    sessions: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/LoginSession" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "401": { description: "인증 필요" },
+        },
+      },
+    },
+    "/api/me/sessions/{sessionId}": {
+      delete: {
+        tags: ["Account"],
+        summary: "특정 로그인 기기 세션 종료",
+        description: "선택한 기기의 로그인 세션을 종료합니다.",
+        security: [{ BearerAuth: [] }],
+        parameters: [
+          {
+            name: "sessionId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+            description: "종료할 세션 ID",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "세션 종료 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean" },
+                  },
+                },
+              },
+            },
+          },
+          "401": { description: "인증 필요" },
+          "404": { description: "세션 없음" },
         },
       },
     },

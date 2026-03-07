@@ -1,9 +1,10 @@
 "use client";
 
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { Link, usePathname } from "@/i18n/routing";
+import { logoutWebSession } from "@/lib/web-auth-client";
 
 export default function UserMenu() {
   const t = useTranslations("dashboard.userMenu");
@@ -310,7 +311,7 @@ export default function UserMenu() {
               type="button"
               onClick={() => {
                 setIsOpen(false);
-                signOut({ callbackUrl: "/" });
+                void logoutWebSession("/");
               }}
               className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-destructive transition-colors hover:bg-destructive/10"
             >

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { invoke } from '@tauri-apps/api/core'
 import { useModalStore, useAuthStore, useThemeStore, useWorkspaceStore } from '../../stores'
 import { authApi, fileApi, usageApi, subscriptionApi, releaseApi } from '../../api'
+import type { LoginSessionItem } from '../../api/auth'
 import { SettingsBillingTab } from './SettingsBillingTab'
 import type {
   UsageData,
@@ -10,7 +11,7 @@ import type {
   SubscriptionStatus,
 } from '../../types'
 
-type SettingsTab = 'profile' | 'system' | 'billing' | 'planUsage'
+type SettingsTab = 'profile' | 'security' | 'system' | 'billing' | 'planUsage'
 interface UserPreferences {
   theme: string
   language: string
@@ -43,6 +44,16 @@ export function SettingsModal() {
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
             d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+      ),
+    },
+    {
+      key: 'security',
+      label: t('settings.security'),
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M12 3l7 4v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V7l7-4z" />
         </svg>
       ),
     },
@@ -126,6 +137,8 @@ export function SettingsModal() {
           <div className="flex-1 overflow-y-auto p-5">
             {tab === 'profile' ? (
               <ProfileTab />
+            ) : tab === 'security' ? (
+              <SecurityTab />
             ) : tab === 'system' ? (
               <SystemTab />
             ) : tab === 'billing' ? (
@@ -340,6 +353,189 @@ function InfoRow({ label, value }: { label: string; value: string }) {
     <div className="flex items-center justify-between py-1.5">
       <span className="text-xs text-gray-400 dark:text-gray-500">{label}</span>
       <span className="max-w-[65%] break-words text-right text-xs text-gray-600 dark:text-gray-300">{value}</span>
+    </div>
+  )
+}
+
+function providerToLabel(provider: string, t: (key: string) => string) {
+  if (provider === 'apple') return 'Apple'
+  if (provider === 'google') return 'Google'
+  if (provider === 'kakao') return 'Kakao'
+  return t('settings.otherProvider')
+}
+
+function detectBrowser(userAgent?: string | null) {
+  if (!userAgent) return null
+  const agent = userAgent.toLowerCase()
+  if (agent.includes('edg/')) return 'Microsoft Edge'
+  if (agent.includes('chrome/') && !agent.includes('edg/')) return 'Google Chrome'
+  if (agent.includes('safari/') && !agent.includes('chrome/')) return 'Safari'
+  if (agent.includes('firefox/')) return 'Firefox'
+  return null
+}
+
+function detectDeviceType(session: LoginSessionItem, t: (key: string) => string) {
+  if (session.client_platform === 'desktop') return t('settings.desktopApp')
+  if (session.client_platform === 'ios' || session.client_platform === 'android') return t('settings.mobileApp')
+  if (session.client_platform === 'web') {
+    const agent = session.user_agent?.toLowerCase() ?? ''
+    return /iphone|ipad|android|mobile/.test(agent) ? t('settings.mobileBrowser') : t('settings.desktopBrowser')
+  }
+  return session.client_platform
+}
+
+function detectOs(userAgent?: string | null) {
+  if (!userAgent) return null
+  const agent = userAgent.toLowerCase()
+  if (agent.includes('mac os x') || agent.includes('macintosh')) return 'macOS'
+  if (agent.includes('windows')) return 'Windows'
+  if (agent.includes('android')) return 'Android'
+  if (agent.includes('iphone') || agent.includes('ipad') || agent.includes('ios')) return 'iOS'
+  return null
+}
+
+function formatEnvironment(session: LoginSessionItem, t: (key: string) => string) {
+  const parts = [
+    detectDeviceType(session, t),
+    detectBrowser(session.user_agent),
+    detectOs(session.user_agent),
+  ].filter(Boolean)
+
+  return parts.join(' · ') || session.client_name
+}
+
+function formatSessionTitle(session: LoginSessionItem) {
+  const version = session.app_version ? ` · v${session.app_version}` : ''
+  return `${session.client_name}${version}`
+}
+
+function SecurityTab() {
+  const { t } = useTranslation()
+  const { logout } = useAuthStore()
+  const [sessions, setSessions] = useState<LoginSessionItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null)
+
+  const loadSessions = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await authApi.getSessions()
+      setSessions(Array.isArray(response.sessions) ? response.sessions : [])
+    } catch (err) {
+      console.error('Failed to load sessions:', err)
+      setError(t('settings.securityLoadError'))
+      setSessions([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void loadSessions()
+  }, [])
+
+  const handleRevokeSession = async (sessionId: string) => {
+    try {
+      setRevokingSessionId(sessionId)
+      await authApi.revokeSession(sessionId)
+      setSessions((prev) => prev.filter((item) => item.session_id !== sessionId))
+    } catch (err) {
+      console.error('Failed to revoke session:', err)
+      setError(t('settings.revokeDeviceFailed'))
+    } finally {
+      setRevokingSessionId(null)
+    }
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+          {t('settings.session')}
+        </p>
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          {t('settings.securityDescription')}
+        </p>
+        <button
+          onClick={logout}
+          className="mt-3 inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-100 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/30"
+        >
+          {t('auth.logout')}
+        </button>
+      </div>
+
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              {t('settings.loggedDevices')}
+            </p>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {t('settings.loggedDevicesDescription')}
+            </p>
+          </div>
+          <button
+            onClick={() => void loadSessions()}
+            className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+          >
+            {t('alarm.refresh')}
+          </button>
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {loading ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t('settings.loadingDevices')}</p>
+          ) : sessions.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t('settings.loggedDevicesEmpty')}</p>
+          ) : (
+            sessions.map((session) => (
+              <div
+                key={session.session_id}
+                className="rounded-lg border border-gray-200 dark:border-gray-700 p-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      {formatSessionTitle(session)}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      {t('settings.device')}: {formatEnvironment(session, t)}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      {t('settings.provider')}: {providerToLabel(session.provider, t)}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      {t('settings.lastActive')}: {new Date(session.last_seen_at).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="shrink-0">
+                    {session.current ? (
+                      <span className="rounded-full bg-blue-100 px-2 py-1 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                        {t('settings.currentDevice')}
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => void handleRevokeSession(session.session_id)}
+                        disabled={revokingSessionId === session.session_id}
+                        className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+                      >
+                        {revokingSessionId === session.session_id
+                          ? t('settings.signingOutDevice')
+                          : t('settings.signOutDevice')}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+          {error ? (
+            <p className="text-sm text-red-500">{error}</p>
+          ) : null}
+        </div>
+      </div>
     </div>
   )
 }

@@ -2,7 +2,7 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 import type { TaskStatus } from '../../lib/types';
 import { useThemeMode } from '../../contexts/ThemeContext';
 import { createStyles } from '../../styles/createStyles';
-import { SharedRichTextWebView } from '../editor/SharedRichTextWebView';
+import { SharedRichTextEditor } from '../editor/SharedRichTextEditor';
 import { DateTimePickerField } from './DateTimePickerField';
 
 type Props = {
@@ -52,6 +52,11 @@ export function TaskEditorForm({
 }: Props) {
   const { colors } = useThemeMode();
   const s = createStyles(colors);
+  const statusLabels: Record<TaskStatus, string> = {
+    TODO: '예정',
+    IN_PROGRESS: '진행중',
+    DONE: '완료',
+  };
 
   return (
     <View style={[s.panel, { borderRadius: 16, gap: 10 }]}>
@@ -67,11 +72,12 @@ export function TaskEditorForm({
       <DateTimePickerField label="시작 시간" value={startTime} onChange={onStartTimeChange} />
       <DateTimePickerField label="종료 시간" value={endTime} onChange={onEndTimeChange} />
 
-      <SharedRichTextWebView
+      <SharedRichTextEditor
         valueJson={contentJson}
         valueText=""
         placeholder="태스크 상세 내용을 입력하세요."
         minHeight={220}
+        implementation="webview"
         onChange={(json) => onContentChange(json)}
       />
 
@@ -87,7 +93,7 @@ export function TaskEditorForm({
             ]}
           >
             <Text style={[s.workspacePillText, status === item ? s.workspacePillTextActive : null]}>
-              {item}
+              {statusLabels[item]}
             </Text>
           </Pressable>
         ))}

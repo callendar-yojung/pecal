@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { validateRefreshSession } from "@/lib/auth-token-store";
 import { generateTokenPair, verifyToken } from "@/lib/jwt";
 import { findMemberById, isMemberLoginEnabled } from "@/lib/member";
+import { getSessionClientMeta } from "@/lib/session-client-meta";
 
 /**
  * POST /api/auth/external/refresh
@@ -8,6 +10,7 @@ import { findMemberById, isMemberLoginEnabled } from "@/lib/member";
  */
 export async function POST(request: NextRequest) {
   try {
+    const clientMeta = getSessionClientMeta(request);
     const body = await request.json();
     const { refresh_token } = body;
 
@@ -28,8 +31,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const isStored = await validateRefreshSession({
+      sessionId: payload.sid,
+      tokenId: payload.jti,
+      refreshToken: refresh_token,
+      memberId: payload.memberId,
+    });
+    if (!isStored) {
+      return NextResponse.json(
+        { error: "Refresh token revoked or expired" },
+        { status: 401 },
+      );
+    }
+
     const member = await findMemberById(payload.memberId);
-    if (!isMemberLoginEnabled(member)) {
+    if (!member || !isMemberLoginEnabled(member)) {
       return NextResponse.json(
         { error: "Account is no longer available" },
         { status: 401 },
@@ -42,6 +58,10 @@ export async function POST(request: NextRequest) {
       nickname: member.nickname ?? payload.nickname,
       provider: member.provider ?? payload.provider,
       email: member.email ?? payload.email,
+      ...clientMeta,
+      sessionId: payload.sid,
+      revokeRefreshTokenId: payload.jti,
+      revokeRefreshTokenExpiresAt: payload.exp ?? null,
     });
 
     return NextResponse.json({
