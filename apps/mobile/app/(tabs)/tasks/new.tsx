@@ -1,19 +1,33 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Alert, ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMaybeMobileApp } from '../../../src/contexts/MobileAppContext';
 import { useThemeMode } from '../../../src/contexts/ThemeContext';
-import { ALARM_ENABLED_KEY } from '../../../src/lib/settings-storage';
+import { defaultTaskRangeByDate } from '../../../src/lib/date';
+import type { TaskStatus } from '../../../src/lib/types';
 import { createStyles } from '../../../src/styles/createStyles';
-import { FullPageWebView } from '../../../src/components/common/FullPageWebView';
+import { TaskEditorForm } from '../../../src/components/task/TaskEditorForm';
 
 export default function TaskCreatePage() {
   const params = useLocalSearchParams<{ date?: string }>();
   const app = useMaybeMobileApp();
-  const { colors, resolvedMode } = useThemeMode();
+  const { colors } = useThemeMode();
   const s = createStyles(colors);
+  const insets = useSafeAreaInsets();
   const router = useRouter();
+  const initialDate =
+    typeof params.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(params.date)
+      ? new Date(`${params.date}T09:00:00`)
+      : new Date();
+  const [title, setTitle] = useState('');
+  const [contentJson, setContentJson] = useState('');
+  const [range, setRange] = useState(defaultTaskRangeByDate(initialDate));
+  const [status, setStatus] = useState<TaskStatus>('TODO');
+  const [allDay, setAllDay] = useState(false);
+  const [reminderMinutes, setReminderMinutes] = useState('10');
+  const [saving, setSaving] = useState(false);
+
   if (!app) {
     return (
       <View style={s.centerScreen}>
@@ -21,72 +35,70 @@ export default function TaskCreatePage() {
       </View>
     );
   }
+
   const { auth, data } = app;
-  const selectedWorkspace = data.selectedWorkspace;
-  const [prefsLoaded, setPrefsLoaded] = useState(false);
-  const [alarmEnabled, setAlarmEnabled] = useState(true);
-  const initialDate =
-    typeof params.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(params.date)
-      ? params.date
-      : undefined;
-
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const alarmRaw = await AsyncStorage.getItem(ALARM_ENABLED_KEY);
-        if (!mounted) return;
-        if (alarmRaw === '0' || alarmRaw === '1') {
-          setAlarmEnabled(alarmRaw === '1');
-        }
-      } finally {
-        if (mounted) setPrefsLoaded(true);
-      }
-    })();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    setRange(defaultTaskRangeByDate(initialDate));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.date]);
 
   if (!auth.session) return <Redirect href="/(auth)/login" />;
-  if (!selectedWorkspace) {
+  if (!data.selectedWorkspace) {
     return (
       <View style={s.centerScreen}>
         <Text style={s.emptyText}>워크스페이스를 선택하세요.</Text>
       </View>
     );
   }
-  if (!prefsLoaded) {
-    return (
-      <View style={s.centerScreen}>
-        <Text style={s.emptyText}>설정 불러오는 중...</Text>
-      </View>
-    );
-  }
+
+  const submit = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const created = await data.createTaskWithInput({
+        title,
+        start_time: range.start,
+        end_time: range.end,
+        content: contentJson || null,
+        status,
+        is_all_day: allDay,
+        reminder_minutes: reminderMinutes ? Number(reminderMinutes) : null,
+      });
+      if (!created) return;
+      router.replace('/tasks');
+    } catch (error) {
+      Alert.alert('오류', error instanceof Error ? error.message : '일정을 저장하지 못했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
-    <FullPageWebView
-      path="/mobile/tasks/new"
-      query={{
-        mode: 'create',
-        token: auth.session.accessToken,
-        workspace_id: selectedWorkspace.workspace_id,
-        owner_type: selectedWorkspace.type,
-        owner_id: selectedWorkspace.owner_id,
-        theme: resolvedMode === 'black' ? 'dark' : 'light',
-        initial_date: initialDate,
-        alarm_enabled: alarmEnabled ? 1 : 0,
-      }}
-      onMessage={(message) => {
-        if (message.type !== 'task_saved' && message.type !== 'task_created') return;
-        const payload = (message.payload ?? {}) as { taskId?: number; task_id?: number; id?: number };
-        const createdTaskId = Number(payload.taskId ?? payload.task_id ?? payload.id ?? 0);
-        if (!Number.isFinite(createdTaskId) || createdTaskId <= 0) return;
-        data.setActiveScheduleId(createdTaskId);
-        void data.loadDashboard(selectedWorkspace);
-        router.replace(`/tasks/${createdTaskId}`);
-      }}
-    />
+    <ScrollView
+      style={s.content}
+      contentContainerStyle={[s.contentContainer, { paddingTop: Math.max(12, insets.top + 8) }]}
+    >
+      <TaskEditorForm
+        title={title}
+        startTime={range.start}
+        endTime={range.end}
+        status={status}
+        allDay={allDay}
+        reminderMinutes={reminderMinutes}
+        rrule=""
+        contentJson={contentJson}
+        saving={saving}
+        submitLabel="일정 만들기"
+        onTitleChange={setTitle}
+        onStartTimeChange={(value) => setRange((prev) => ({ ...prev, start: value }))}
+        onEndTimeChange={(value) => setRange((prev) => ({ ...prev, end: value }))}
+        onStatusChange={setStatus}
+        onAllDayChange={setAllDay}
+        onReminderMinutesChange={setReminderMinutes}
+        onRruleChange={() => undefined}
+        onContentChange={setContentJson}
+        onSubmit={() => void submit()}
+      />
+    </ScrollView>
   );
 }

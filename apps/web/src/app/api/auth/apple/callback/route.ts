@@ -1,9 +1,10 @@
 import { createRemoteJWKSet, type JWTPayload, jwtVerify } from "jose";
 import { type NextRequest, NextResponse } from "next/server";
-import { generateAccessToken, generateRefreshToken } from "@/lib/jwt";
+import { generateTokenPair } from "@/lib/jwt";
 import { findOrCreateMember } from "@/lib/member";
 import { getOAuthRedirectUri } from "@/lib/oauth-redirect-uri";
 import { verifyOAuthStatePayload } from "@/lib/oauth-state";
+import { getSessionClientMeta } from "@/lib/session-client-meta";
 
 interface AppleTokenResponse {
   access_token: string;
@@ -70,6 +71,7 @@ async function handleAppleCallback(
   }
 
   try {
+    const clientMeta = getSessionClientMeta(request);
     const redirectUri = getOAuthRedirectUri(request, "apple");
 
     const tokenResponse = await fetch("https://appleid.apple.com/auth/token", {
@@ -115,18 +117,12 @@ async function handleAppleCallback(
     const member = await findOrCreateMember("apple", providerId, email);
     const memberNickname = member.nickname ?? "사용자";
 
-    const accessToken = await generateAccessToken({
+    const { accessToken, refreshToken } = await generateTokenPair({
       memberId: member.member_id,
       nickname: memberNickname,
       provider: "apple",
       email: member.email,
-    });
-
-    const refreshToken = await generateRefreshToken({
-      memberId: member.member_id,
-      nickname: memberNickname,
-      provider: "apple",
-      email: member.email,
+      ...clientMeta,
     });
 
     const callbackUrl = new URL(appCallback);

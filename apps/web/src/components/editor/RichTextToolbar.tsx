@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  RICH_TEXT_FONT_SIZES,
+  RICH_TEXT_HEADING_OPTIONS,
+} from "@repo/utils";
 import type { Editor } from "@tiptap/react";
 import {
   AlignCenter,
@@ -22,18 +26,6 @@ import {
   Underline,
   Undo,
 } from "lucide-react";
-
-const FONT_SIZES = [
-  "12px",
-  "14px",
-  "16px",
-  "18px",
-  "20px",
-  "24px",
-  "28px",
-  "32px",
-  "40px",
-];
 
 interface RichTextToolbarProps {
   editor: Editor | null;
@@ -133,10 +125,11 @@ export default function RichTextToolbar({ editor }: RichTextToolbarProps) {
               }}
               className="h-8 w-24 appearance-none rounded-md border border-input bg-background pl-2 pr-8 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
             >
-              <option value="paragraph">본문</option>
-              <option value="h1">제목 1</option>
-              <option value="h2">제목 2</option>
-              <option value="h3">제목 3</option>
+              {RICH_TEXT_HEADING_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.labelKo}
+                </option>
+              ))}
             </select>
             <ChevronDown className="pointer-events-none absolute right-2 h-3 w-3 text-muted-foreground" />
           </div>
@@ -149,7 +142,7 @@ export default function RichTextToolbar({ editor }: RichTextToolbarProps) {
               }
               className="h-8 w-20 appearance-none rounded-md border border-input bg-background pl-2 pr-8 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
             >
-              {FONT_SIZES.map((size) => (
+              {RICH_TEXT_FONT_SIZES.map((size) => (
                 <option key={size} value={size}>
                   {size}
                 </option>

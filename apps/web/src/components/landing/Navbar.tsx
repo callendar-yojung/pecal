@@ -1,10 +1,11 @@
 "use client";
 
-import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
+import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Link } from "@/i18n/routing";
+import { logoutWebSession } from "@/lib/web-auth-client";
 import LanguageSwitcher from "./LanguageSwitcher";
 
 export default function Navbar() {
@@ -39,7 +40,7 @@ export default function Navbar() {
               </span>
               <button
                 type="button"
-                onClick={() => signOut()}
+                onClick={() => void logoutWebSession("/")}
                 className="rounded-lg px-4 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
               >
                 {t("logout")}
@@ -113,7 +114,7 @@ export default function Navbar() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => signOut()}
+                  onClick={() => void logoutWebSession("/")}
                   className="text-left text-sm text-muted-foreground"
                 >
                   {t("logout")}

@@ -1,8 +1,9 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { getMemberConsents } from "@/lib/member-settings";
+import { isMemberSessionActive } from "@/lib/auth-token-store";
 import { verifyToken } from "@/lib/jwt";
-import { cookies } from "next/headers";
+import { getMemberConsents } from "@/lib/member-settings";
 import DashboardLayoutClient from "./DashboardLayoutClient";
 
 export default async function DashboardLayout({
@@ -16,6 +17,7 @@ export default async function DashboardLayout({
   const cookieStore = await cookies();
 
   let memberId: number | null = session?.user?.memberId ?? null;
+  const sessionId = session?.user?.sessionId ?? null;
 
   if (!memberId) {
     const desktopToken = cookieStore.get("PECAL_ACCESS_TOKEN")?.value;
@@ -24,6 +26,13 @@ export default async function DashboardLayout({
       if (payload?.type === "access") {
         memberId = payload.memberId;
       }
+    }
+  }
+
+  if (memberId && sessionId) {
+    const isActive = await isMemberSessionActive({ memberId, sessionId });
+    if (!isActive) {
+      memberId = null;
     }
   }
 

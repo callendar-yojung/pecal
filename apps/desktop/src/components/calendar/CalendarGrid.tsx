@@ -324,7 +324,7 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
                         className={`w-full text-left px-2 py-1 text-xs truncate border transition-opacity hover:opacity-90 ${eventShapeClass(event, day)}`}
                         style={getEventStyle(event)}
                       >
-                        {getEventTitle(event, day)}
+                        {getEventTitle(event)}
                       </button>
                     ))}
                   </div>

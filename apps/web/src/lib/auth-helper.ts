@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { auth } from "@/auth";
+import { isMemberSessionActive } from "./auth-token-store";
 import { verifyToken } from "./jwt";
 import { findMemberById, isMemberLoginEnabled } from "./member";
 
@@ -22,7 +23,7 @@ export async function getAuthUser(
     candidate: AuthUser,
   ): Promise<AuthUser | null> => {
     const member = await findMemberById(candidate.memberId);
-    if (!isMemberLoginEnabled(member)) {
+    if (!member || !isMemberLoginEnabled(member)) {
       return null;
     }
 
@@ -69,6 +70,14 @@ export async function getAuthUser(
   // 2. NextAuth 세션 확인 (웹 브라우저용 폴백)
   const session = await auth();
   if (session?.user?.memberId) {
+    const isActive = await isMemberSessionActive({
+      memberId: session.user.memberId,
+      sessionId: session.user.sessionId,
+    });
+    if (!isActive) {
+      return null;
+    }
+
     return buildAuthUser({
       memberId: session.user.memberId,
       nickname: session.user.nickname || "",

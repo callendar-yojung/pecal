@@ -12,6 +12,18 @@ type AccountResponse = {
   marketing_consent?: boolean
 }
 
+export type LoginSessionItem = {
+  session_id: string
+  provider: string
+  client_platform: string
+  client_name: string
+  app_version?: string | null
+  user_agent?: string | null
+  created_at: string
+  last_seen_at: string
+  current: boolean
+}
+
 export const authApi = {
   loginWithKakao: (accessToken: string) => {
     console.log('🔑 Kakao Login API Call:', {
@@ -28,9 +40,16 @@ export const authApi = {
     apiClient.post<RefreshTokenResponse>('/api/auth/external/refresh', {
       refresh_token: refreshToken,
     }),
+  logout: (refreshToken: string | null) =>
+    apiClient.post<{ success: boolean }>('/api/auth/external/logout', {
+      refresh_token: refreshToken,
+    }),
 
   getMe: () => apiClient.get<MeResponse>('/api/auth/external/me'),
   getAccount: () => apiClient.get<AccountResponse>('/api/me/account'),
+  getSessions: () => apiClient.get<{ sessions?: LoginSessionItem[] }>('/api/me/sessions'),
+  revokeSession: (sessionId: string) =>
+    apiClient.delete<{ success: boolean }>(`/api/me/sessions/${sessionId}`),
 
   updateAccount: (data: {
     nickname?: string

@@ -39,6 +39,7 @@ export default function TasksTab() {
           tags={data.tags}
           onOpenCreateTask={() => router.push('/tasks/new')}
           onOpenTask={(taskId) => router.push(`/tasks/${taskId}`)}
+          onChangeTaskStatus={(taskId, status) => void data.updateTask(taskId, { status })}
         />
       ) : null}
     </ScrollView>

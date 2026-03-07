@@ -5,7 +5,7 @@ import { useThemeMode } from '../../contexts/ThemeContext';
 import { useI18n } from '../../contexts/I18nContext';
 import { getApiBaseUrl } from '../../lib/api';
 import { createStyles } from '../../styles/createStyles';
-import { formatDateTime } from '../../lib/date';
+import { formatDateTime, toLocalDateTimeString } from '../../lib/date';
 
 type Props = {
   label: string;
@@ -25,10 +25,10 @@ function toLocalDateTimeValue(iso: string) {
   return new Date(date.getTime() - offset).toISOString().slice(0, 16);
 }
 
-function toIso(localDateTimeValue: string) {
+function toLocalDateTimeStringValue(localDateTimeValue: string) {
   const parsed = new Date(localDateTimeValue);
   if (Number.isNaN(parsed.getTime())) return null;
-  return parsed.toISOString();
+  return toLocalDateTimeString(parsed);
 }
 
 function buildHtml(input: { valueLocal: string; dark: boolean }) {
@@ -176,7 +176,7 @@ export function DateTimePickerField({ label, value, onChange }: Props) {
 
               const message = raw as { type?: string; value?: string };
               if (message.type !== 'change' || !message.value) return;
-              const next = toIso(message.value);
+              const next = toLocalDateTimeStringValue(message.value);
               if (!next) return;
               onChange(next);
             } catch {

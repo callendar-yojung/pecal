@@ -1,35 +1,67 @@
+import { useCallback, useState } from 'react';
 import { Redirect } from 'expo-router';
-import { Text, View } from 'react-native';
+import { RefreshControl, ScrollView, Text } from 'react-native';
 import { useMobileApp } from '../../src/contexts/MobileAppContext';
 import { useThemeMode } from '../../src/contexts/ThemeContext';
 import { createStyles } from '../../src/styles/createStyles';
-import { FullPageWebView } from '../../src/components/common/FullPageWebView';
+import { MemoScreen } from '../../src/screens/MemoScreen';
 
 export default function MemoTab() {
   const { auth, data } = useMobileApp();
-  const { colors, resolvedMode } = useThemeMode();
+  const { colors } = useThemeMode();
   const s = createStyles(colors);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    if (!data.selectedWorkspace) return;
+    setRefreshing(true);
+    try {
+      await data.loadDashboard(data.selectedWorkspace);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [data]);
 
   if (!auth.session) return <Redirect href="/(auth)/login" />;
 
-  if (!data.selectedWorkspace) {
-    return (
-      <View style={s.centerScreen}>
-        <Text style={s.emptyText}>워크스페이스를 선택하세요.</Text>
-      </View>
-    );
-  }
-
   return (
-    <FullPageWebView
-      path="/mobile/memo"
-      query={{
-        token: auth.session.accessToken,
-        workspace_id: data.selectedWorkspace.workspace_id,
-        owner_type: data.selectedWorkspace.type,
-        owner_id: data.selectedWorkspace.owner_id,
-        theme: resolvedMode === 'black' ? 'dark' : 'light',
-      }}
-    />
+    <ScrollView
+      style={s.content}
+      contentContainerStyle={s.contentContainer}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+    >
+      {data.error || auth.error ? <Text style={s.errorText}>{data.error || auth.error}</Text> : null}
+      {!data.selectedWorkspace ? <Text style={s.emptyText}>워크스페이스를 선택하세요.</Text> : null}
+      {data.selectedWorkspace ? (
+        <MemoScreen
+          memoTitle={data.memoTitle}
+          memoText={data.memoText}
+          memoContentJson={data.memoContentJson}
+          selectedMemoId={data.selectedMemoId}
+          memoConflict={data.memoConflict}
+          memoSearch={data.memoSearch}
+          memoFolderFilter={data.memoFolderFilter}
+          memoSort={data.memoSort}
+          memoFavoriteOnly={data.memoFavoriteOnly}
+          memoIsSaving={data.memoIsSaving}
+          memos={data.decoratedMemos}
+          onMemoTitleChange={data.setMemoTitle}
+          onMemoTextChange={data.setMemoText}
+          onMemoEditorChange={data.onMemoEditorChange}
+          onMemoSearchChange={data.setMemoSearch}
+          onMemoFolderFilterChange={data.setMemoFolderFilter}
+          onMemoSortChange={data.setMemoSort}
+          onMemoFavoriteOnlyToggle={() => data.setMemoFavoriteOnly((prev) => !prev)}
+          onSelectMemoForEdit={data.selectMemoForEdit}
+          onClearMemoEditor={data.clearMemoEditor}
+          onUpdateMemo={data.updateMemo}
+          onToggleMemoPinned={data.toggleMemoPinned}
+          onSetMemoFolder={data.setMemoFolder}
+          onSetMemoTags={data.setMemoTags}
+          onToggleMemoFavorite={data.toggleMemoFavorite}
+          onDeleteMemo={data.deleteMemo}
+        />
+      ) : null}
+    </ScrollView>
   );
 }

@@ -6,6 +6,8 @@ import {
   toApiError,
   type ApiErrorSource,
 } from '@repo/api-client';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 import type { AuthSession } from './types';
 export { ApiError } from '@repo/api-client';
 
@@ -38,6 +40,9 @@ async function requestJson(
 ): Promise<{ ok: boolean; status: number; data: unknown }> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    'X-Client-Platform': Platform.OS === 'ios' ? 'ios' : Platform.OS,
+    'X-Client-Name': 'Pecal Mobile',
+    'X-App-Version': Constants.expoConfig?.version || Constants.nativeAppVersion || 'unknown',
     ...(options.headers as Record<string, string> | undefined),
   };
 

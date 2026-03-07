@@ -40,6 +40,7 @@ export type TaskItem = {
   status?: TaskStatus;
   color?: string;
   tag_ids?: number[];
+  tags?: Array<{ tag_id: number; name: string; color: string }>;
   description?: string | null;
   assignee_id?: number | null;
   is_all_day?: boolean;

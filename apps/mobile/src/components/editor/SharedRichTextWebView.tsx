@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  RICH_TEXT_FONT_SIZES,
+  RICH_TEXT_HEADING_OPTIONS,
+} from '@repo/utils';
 import { Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useThemeMode } from '../../contexts/ThemeContext';
@@ -29,12 +33,27 @@ function escapeHtml(value: string) {
     .replace(/'/g, '&#39;');
 }
 
-function buildHtml(input: { placeholder: string; dark: boolean; readOnly: boolean }) {
-  const { placeholder, dark, readOnly } = input;
+function buildToolbarHtml() {
+  const headingOptions = RICH_TEXT_HEADING_OPTIONS.map((option) => {
+    const value = option.value === 'paragraph' ? 'p' : option.value;
+    return `<option value="${value}">${option.labelKo}</option>`;
+  }).join('');
+
+  const fontSizeOptions = RICH_TEXT_FONT_SIZES.map((size) => {
+    const selected = size === '16px' ? ' selected' : '';
+    return `<option${selected}>${size}</option>`;
+  }).join('');
+
+  return `<div class="toolbar"><button class="btn" data-action="undo">↶</button><button class="btn" data-action="redo">↷</button><div class="sep"></div><select id="headingSelect" class="select">${headingOptions}</select><select id="fontSizeSelect" class="select">${fontSizeOptions}</select><input id="textColor" class="color" type="color" value="#111827" /><div class="sep"></div><button class="btn" data-action="bold">B</button><button class="btn" data-action="italic">I</button><button class="btn" data-action="underline">U</button><button class="btn" data-action="strike">S</button><button class="btn" data-action="highlight">HL</button><div class="sep"></div><button class="btn" data-action="ul">•</button><button class="btn" data-action="ol">1.</button><button class="btn" data-action="task">☑</button><div class="sep"></div><button class="btn" data-action="left">L</button><button class="btn" data-action="center">C</button><button class="btn" data-action="right">R</button><div class="sep"></div><button class="btn" data-action="quote">❝</button><button class="btn" data-action="code">\`</button><button class="btn" data-action="codeblock">{ }</button><button class="btn" data-action="link">🔗</button><button class="btn warn" data-action="clear">⌫</button></div>`;
+}
+
+function buildHtml(input: { placeholder: string; dark: boolean; readOnly: boolean; minHeight: number }) {
+  const { placeholder, dark, readOnly, minHeight } = input;
   const bg = dark ? '#101216' : '#FFFFFF';
   const text = dark ? '#E5E7EB' : '#111827';
   const border = dark ? '#2F3541' : '#E5E7EB';
   const muted = dark ? '#8B95A7' : '#6B7280';
+  const editorMinHeight = Math.max(readOnly ? 0 : 96, minHeight);
 
   return `<!doctype html>
 <html>
@@ -53,7 +72,7 @@ function buildHtml(input: { placeholder: string; dark: boolean; readOnly: boolea
       .select, .color { border: 1px solid ${border}; border-radius: 8px; background: ${bg}; color: ${text}; font-size: 11px; padding: 4px 6px; height: 28px; }
       .select { min-width: 78px; }
       .color { width: 30px; padding: 2px; }
-      .editor { min-height: 260px; padding: 12px; line-height: 1.56; outline: none; color: ${text}; font-size: 14px; white-space: pre-wrap; }
+      .editor { min-height: ${editorMinHeight}px; padding: 12px; line-height: 1.56; outline: none; color: ${text}; font-size: 14px; white-space: pre-wrap; }
       .editor:empty:before { content: attr(data-placeholder); color: ${muted}; }
       pre { background: ${dark ? '#0B1220' : '#F8FAFC'}; border: 1px solid ${border}; border-radius: 8px; padding: 10px; white-space: pre-wrap; }
       blockquote { border-left: 3px solid ${dark ? '#3B455A' : '#CBD5E1'}; margin: 0; padding-left: 10px; color: ${muted}; }
@@ -65,7 +84,7 @@ function buildHtml(input: { placeholder: string; dark: boolean; readOnly: boolea
         ${
           readOnly
             ? ''
-            : '<div class="toolbar"><button class="btn" data-action="undo">↶</button><button class="btn" data-action="redo">↷</button><div class="sep"></div><select id="headingSelect" class="select"><option value="p">본문</option><option value="h1">제목 1</option><option value="h2">제목 2</option><option value="h3">제목 3</option></select><select id="fontSizeSelect" class="select"><option>12px</option><option>14px</option><option selected>16px</option><option>18px</option><option>20px</option><option>24px</option><option>28px</option><option>32px</option><option>40px</option></select><input id="textColor" class="color" type="color" value="#111827" /><div class="sep"></div><button class="btn" data-action="bold">B</button><button class="btn" data-action="italic">I</button><button class="btn" data-action="underline">U</button><button class="btn" data-action="strike">S</button><button class="btn" data-action="highlight">HL</button><div class="sep"></div><button class="btn" data-action="ul">•</button><button class="btn" data-action="ol">1.</button><button class="btn" data-action="task">☑</button><div class="sep"></div><button class="btn" data-action="left">L</button><button class="btn" data-action="center">C</button><button class="btn" data-action="right">R</button><div class="sep"></div><button class="btn" data-action="quote">❝</button><button class="btn" data-action="code">`</button><button class="btn" data-action="codeblock">{ }</button><button class="btn" data-action="link">🔗</button><button class="btn warn" data-action="clear">⌫</button></div>'
+            : buildToolbarHtml()
         }
         <div id="editor" class="editor" contenteditable="${readOnly ? 'false' : 'true'}" data-placeholder="${escapeHtml(placeholder)}"></div>
       </div>
@@ -284,7 +303,7 @@ function buildHtml(input: { placeholder: string; dark: boolean; readOnly: boolea
       function emitHeight() {
         if (!bridge) return;
         const toolbar = document.querySelector('.toolbar');
-        const h = Math.max(220, Number(editor.scrollHeight || 0) + Number(toolbar?.scrollHeight || 0) + 24);
+        const h = Math.max(${editorMinHeight}, Number(editor.scrollHeight || 0) + Number(toolbar?.scrollHeight || 0) + 56);
         bridge.postMessage(JSON.stringify({ type: 'height', payload: { height: h } }));
       }
 
@@ -499,8 +518,8 @@ export function SharedRichTextWebView({
   const [fallbackLocalEditor, setFallbackLocalEditor] = useState(false);
 
   const html = useMemo(
-    () => buildHtml({ placeholder, dark: resolvedMode === 'black', readOnly }),
-    [placeholder, resolvedMode, readOnly]
+    () => buildHtml({ placeholder, dark: resolvedMode === 'black', readOnly, minHeight }),
+    [placeholder, resolvedMode, readOnly, minHeight]
   );
   const remoteEditorUris = useMemo(() => {
     const base = getApiBaseUrl().replace(/\/+$/, '');

@@ -12,7 +12,7 @@ interface AuthState {
 
   setAuth: (user: Member, accessToken: string, refreshToken: string) => void
   updateUser: (partial: Partial<Member>) => void
-  logout: () => void
+  logout: () => Promise<void>
   setLoading: (loading: boolean) => void
 }
 
@@ -64,7 +64,13 @@ export const useAuthStore = create<AuthState>()(
           user: state.user ? { ...state.user, ...partial } : null,
         })),
 
-      logout: () => {
+      logout: async () => {
+        const refreshToken = get().refreshToken
+        try {
+          await authApi.logout(refreshToken)
+        } catch {
+          // local sign-out still proceeds
+        }
         apiClient.setAccessToken(null)
         set({
           user: null,

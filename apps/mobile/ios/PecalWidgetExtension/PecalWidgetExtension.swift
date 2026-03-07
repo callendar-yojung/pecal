@@ -543,9 +543,8 @@ struct PecalWidgetEntryView: View {
     let isSingle = isStart && isEnd
 
     return Text(task.title)
-      .font(.system(size: 10.0, weight: .semibold))
+      .font(.system(size: 6.0, weight: .semibold))
       .lineLimit(1)
-      .minimumScaleFactor(0.6)
       .foregroundColor(primaryTextColor)
       .frame(maxWidth: .infinity, alignment: .leading)
       .padding(.horizontal, 4)
