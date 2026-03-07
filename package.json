@@ -27,10 +27,13 @@
   },
   "pnpm": {
     "overrides": {
+      "dompurify": "3.3.2",
       "fast-xml-parser": "5.3.8",
+      "immutable": "3.8.3",
       "minimatch": "10.2.4",
       "rollup": "4.59.0",
-      "swagger-client": "3.37.0"
+      "swagger-client": "3.37.0",
+      "tar": "7.5.10"
     }
   }
 }
