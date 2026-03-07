@@ -115,7 +115,28 @@ jobs:
 
       - name: Print gym log
         if: always()
-        run: cat /Users/runner/Library/Logs/gym/PecalMobile-PecalMobile.log || true
+        run: |
+          echo "=== gym logs ==="
+          ls -la /Users/runner/Library/Logs/gym || true
+          echo
+          for log in /Users/runner/Library/Logs/gym/app-PecalMobile.log /Users/runner/Library/Logs/gym/PecalMobile-PecalMobile.log; do
+            if [[ -f "$log" ]]; then
+              echo "=== $log (tail -n 200) ==="
+              tail -n 200 "$log" || true
+              echo
+              echo "=== filtered errors from $log ==="
+              grep -n -A8 -B8 "ARCHIVE FAILED\\|error:\\|No profiles\\|Provisioning\\|Command PhaseScriptExecution failed\\|duplicate symbol\\|SwiftCompile\\|CompileC" "$log" | tail -n 200 || true
+              echo
+            fi
+          done
+
+      - name: Upload gym logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-gym-logs
+          path: /Users/runner/Library/Logs/gym/*.log
+          if-no-files-found: ignore
 
       - name: Upload IPA artifact
         if: always()
