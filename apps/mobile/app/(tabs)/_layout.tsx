@@ -733,15 +733,21 @@ export default function TabsLayout() {
         <View
           style={{
             position: 'absolute',
-            inset: 0,
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
             backgroundColor: resolvedMode === 'black' ? 'rgba(7,9,14,0.82)' : 'rgba(242,244,251,0.84)',
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 999,
+            paddingHorizontal: 24,
           }}
         >
           <View
             style={{
+              width: '100%',
+              maxWidth: 220,
               alignItems: 'center',
               gap: 12,
               paddingHorizontal: 22,

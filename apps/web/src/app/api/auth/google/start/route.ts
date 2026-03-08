@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getOAuthRedirectUri } from "@/lib/oauth-redirect-uri";
 import { createOAuthState, isAllowedOAuthCallback } from "@/lib/oauth-state";
+import { getSessionClientMeta } from "@/lib/session-client-meta";
 
 /**
  * GET /api/auth/google/start?callback=deskcal://auth/callback
@@ -14,6 +15,7 @@ import { createOAuthState, isAllowedOAuthCallback } from "@/lib/oauth-state";
  */
 export async function GET(request: NextRequest) {
   try {
+    const clientMeta = getSessionClientMeta(request);
     const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
     const GOOGLE_CLIENT_ID = process.env.AUTH_GOOGLE_ID;
 
@@ -46,7 +48,7 @@ export async function GET(request: NextRequest) {
     // 구글은 커스텀 스킴(deskcal://)을 웹 앱에서는 허용하지 않음
     const redirectUri = getOAuthRedirectUri(request, "google");
 
-    const { state } = await createOAuthState("google", appCallback);
+    const { state } = await createOAuthState("google", appCallback, clientMeta);
 
     // 구글 인증 URL 생성
     const params = new URLSearchParams({

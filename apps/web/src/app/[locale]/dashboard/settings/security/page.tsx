@@ -48,17 +48,20 @@ function detectDeviceType(userAgent: string | null, platform: string | null) {
   return "Unknown device";
 }
 
-function detectOs(userAgent: string | null) {
+function detectHardware(userAgent: string | null, platform: string | null) {
   const ua = userAgent?.toLowerCase() ?? "";
 
-  if (ua.includes("iphone") || ua.includes("ipad") || ua.includes("ios")) {
-    return "iOS";
-  }
-  if (ua.includes("android")) return "Android";
-  if (ua.includes("mac os x") || ua.includes("macintosh")) return "macOS";
-  if (ua.includes("windows nt")) return "Windows";
-  if (ua.includes("linux")) return "Linux";
-  return "Unknown OS";
+  if (platform === "desktop") return "Desktop";
+  if (platform === "ios") return "iPhone";
+  if (platform === "android") return "Android";
+  if (ua.includes("iphone")) return "iPhone";
+  if (ua.includes("ipad")) return "iPad";
+  if (ua.includes("android") && ua.includes("mobile")) return "Android phone";
+  if (ua.includes("android")) return "Android tablet";
+  if (ua.includes("mac os x") || ua.includes("macintosh")) return "Mac";
+  if (ua.includes("windows nt")) return "Windows PC";
+  if (ua.includes("linux")) return "Linux PC";
+  return "Unknown device";
 }
 
 export default function SecurityPage() {
@@ -126,14 +129,16 @@ export default function SecurityPage() {
   };
 
   const formatSessionTitle = (item: LoginSessionItem) => {
-    if (item.client_name?.trim()) {
-      return item.client_name.trim();
+    const clientName = item.client_name?.trim();
+    if (
+      clientName &&
+      clientName !== "Pecal" &&
+      clientName !== "Pecal Web"
+    ) {
+      return clientName;
     }
 
-    if (item.client_platform === "mobile") return "Pecal Mobile";
-    if (item.client_platform === "desktop") return "Pecal Desktop";
-    if (item.client_platform === "web") return "Pecal Web";
-    return t("unknownDevice");
+    return detectHardware(item.user_agent, item.client_platform) || t("unknownDevice");
   };
 
   const formatProvider = (provider: string | null) => {
@@ -144,16 +149,17 @@ export default function SecurityPage() {
   const formatEnvironment = (item: LoginSessionItem) => {
     const deviceType = detectDeviceType(item.user_agent, item.client_platform);
     const browser = detectBrowser(item.user_agent);
-    const os = detectOs(item.user_agent);
 
     if (
       item.client_platform === "desktop" ||
-      item.client_platform === "mobile"
+      item.client_platform === "mobile" ||
+      item.client_platform === "ios" ||
+      item.client_platform === "android"
     ) {
-      return `${deviceType} · ${os}`;
+      return deviceType;
     }
 
-    return `${deviceType} · ${browser} · ${os}`;
+    return browser ? `${deviceType} · ${browser}` : deviceType;
   };
 
   const handleRevokeSession = async (sessionId: string) => {

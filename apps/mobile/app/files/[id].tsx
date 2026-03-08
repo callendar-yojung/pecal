@@ -61,7 +61,7 @@ export default function FileDetailPage() {
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => router.replace('/(tabs)/files')}
           style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4, paddingRight: 8 }}
         >
           <Ionicons name="chevron-back" size={20} color={colors.primary} />

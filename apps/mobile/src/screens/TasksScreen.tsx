@@ -44,10 +44,10 @@ export function TasksScreen({
   const pageSize = 10;
 
   const sortOptions = [
-    { key: 'START_ASC', label: '일정시작 ↑' },
-    { key: 'START_DESC', label: '일정시작 ↓' },
-    { key: 'TITLE_ASC', label: '제목순 ↑' },
-    { key: 'TITLE_DESC', label: '제목순 ↓' },
+    { key: 'START_ASC', label: '빠른 일정순' },
+    { key: 'START_DESC', label: '늦은 일정순' },
+    { key: 'TITLE_ASC', label: '이름 A-Z' },
+    { key: 'TITLE_DESC', label: '이름 Z-A' },
   ] as const;
 
   const todoCount = tasks.filter((task) => task.status !== 'DONE').length;
@@ -132,7 +132,7 @@ export function TasksScreen({
           placeholderTextColor={colors.textMuted}
         />
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, zIndex: statusFilterDropdownOpen ? 40 : 1 }}>
             <SelectDropdown
               value={statusFilter}
               options={statusFilterOptions}
@@ -146,9 +146,10 @@ export function TasksScreen({
                 setStatusFilter(value);
                 setStatusFilterDropdownOpen(false);
               }}
+              menuMode="overlay"
             />
           </View>
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, zIndex: sortDropdownOpen ? 39 : 1 }}>
             <SelectDropdown
               value={sortBy}
               options={sortOptions}
@@ -162,9 +163,10 @@ export function TasksScreen({
                 setSortBy(value);
                 setSortDropdownOpen(false);
               }}
+              menuMode="overlay"
             />
           </View>
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, zIndex: tagDropdownOpen ? 38 : 1 }}>
             <SelectDropdown
               value={tagFilter}
               options={tagOptions}
@@ -179,6 +181,7 @@ export function TasksScreen({
                 setTagDropdownOpen(false);
               }}
               numberOfLines={1}
+              menuMode="overlay"
             />
           </View>
         </View>
@@ -188,10 +191,13 @@ export function TasksScreen({
         {pagedTasks.map((task) => {
           const badgeColor = getTaskStatusColor(task.status);
           const accentColor = getTaskAccentColor(task);
+          const statusMenuOpen = statusDropdownTaskId === task.id;
           return (
             <View
               key={task.id}
               style={{
+                position: 'relative',
+                zIndex: statusMenuOpen ? 100 : 1,
                 borderRadius: 14,
                 borderWidth: 1,
                 borderColor: colors.border,
@@ -215,6 +221,7 @@ export function TasksScreen({
                       onChangeTaskStatus?.(task.id, value);
                     }}
                     style="pill"
+                    menuMode="overlay"
                   />
                 </View>
                 <Text style={s.itemMeta}>{formatDateTime(task.start_time)} - {formatDateTime(task.end_time)}</Text>

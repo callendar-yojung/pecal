@@ -12,11 +12,19 @@ interface OAuthStatePayload {
   provider: OAuthProvider;
   callback: string;
   nonceHash: string;
+  clientPlatform?: string;
+  clientName?: string;
+  appVersion?: string | null;
 }
 
 export interface VerifiedOAuthState {
   callback: string;
   nonceHash: string;
+  clientMeta?: {
+    clientPlatform: string;
+    clientName: string;
+    appVersion?: string | null;
+  };
 }
 
 function getOAuthSecret(): Uint8Array {
@@ -93,6 +101,11 @@ export function getOAuthStateCookieOptions(provider: OAuthProvider) {
 export async function createOAuthState(
   provider: OAuthProvider,
   callback: string,
+  clientMeta?: {
+    clientPlatform?: string;
+    clientName?: string;
+    appVersion?: string | null;
+  },
 ): Promise<{ state: string; nonce: string }> {
   const normalized = normalizeCallbackUrl(callback);
   if (!normalized || !isAllowedOAuthCallback(normalized)) {
@@ -106,6 +119,9 @@ export async function createOAuthState(
     provider,
     callback: normalized,
     nonceHash: nonce,
+    clientPlatform: clientMeta?.clientPlatform?.trim().slice(0, 120),
+    clientName: clientMeta?.clientName?.trim().slice(0, 120),
+    appVersion: clientMeta?.appVersion?.trim().slice(0, 120) ?? null,
   } satisfies OAuthStatePayload)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
@@ -142,6 +158,19 @@ export async function verifyOAuthStatePayload(
     return {
       callback: payload.callback,
       nonceHash: payload.nonceHash,
+      clientMeta:
+        typeof payload.clientPlatform === "string" &&
+        typeof payload.clientName === "string"
+          ? {
+              clientPlatform: payload.clientPlatform,
+              clientName: payload.clientName,
+              appVersion:
+                typeof payload.appVersion === "string" ||
+                payload.appVersion === null
+                  ? payload.appVersion
+                  : null,
+            }
+          : undefined,
     };
   } catch {
     return null;

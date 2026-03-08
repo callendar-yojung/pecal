@@ -189,7 +189,6 @@
     "lastUpdated": "Last Updated: February 6, 2026",
     "intro": "yojung (the 'Company') values your privacy and complies with relevant laws including the Personal Information Protection Act. This Privacy Policy explains what personal information we collect, how we use it, how long we retain it, and how we dispose of it when you use our services.",
     "backToHome": "Back to Home",
-
     "section1": {
       "title": "1. Personal Information We Collect",
       "content": "We collect the following personal information to provide our services.",
@@ -212,7 +211,6 @@
         ]
       }
     },
-
     "section2": {
       "title": "2. Purpose of Collection and Use",
       "content": "We use the collected personal information for the following purposes.",
@@ -224,7 +222,6 @@
         "Marketing and advertising: Event information and participation opportunities (only with consent)"
       ]
     },
-
     "section3": {
       "title": "3. Retention and Use Period",
       "content": "In principle, we destroy personal information without delay after the purpose of collection and use has been achieved.",
@@ -235,7 +232,6 @@
         "Payment and supply records: 5 years (E-Commerce Act)"
       ]
     },
-
     "section4": {
       "title": "4. Provision to Third Parties",
       "content": "We do not provide personal information to third parties in principle. However, exceptions apply in the following cases.",
@@ -245,13 +241,11 @@
         "When necessary for service provision (e.g., providing to payment gateway for payment processing)"
       ]
     },
-
     "section5": {
       "title": "5. Outsourcing of Personal Information Processing",
       "content": "We outsource personal information processing tasks to external companies as follows to improve our services.",
       "note": "When entering into outsourcing contracts, we stipulate and supervise necessary matters to ensure that contractors handle personal information safely in accordance with the Personal Information Protection Act and related laws."
     },
-
     "section6": {
       "title": "6. Rights of Users and Legal Representatives",
       "content": "Users may exercise the following rights at any time.",
@@ -263,7 +257,6 @@
       ],
       "note": "Rights can be exercised through the settings page or customer support, and we will take action without delay."
     },
-
     "section7": {
       "title": "7. Installation and Operation of Automatic Collection Devices",
       "content": "We operate 'cookies' that periodically store and retrieve user information.",
@@ -273,7 +266,6 @@
         "control": "Users have the choice to accept cookies and can set cookie options through web browser settings to allow, block, or warn about cookies."
       }
     },
-
     "section8": {
       "title": "8. Security Measures",
       "content": "In accordance with Article 29 of the Personal Information Protection Act, we take the following technical and administrative measures to ensure security.",
@@ -284,7 +276,6 @@
         "Access control: Granting, changing, and revoking access rights to personal information processing systems"
       ]
     },
-
     "section9": {
       "title": "9. Privacy Officer",
       "content": "We have designated a Privacy Officer who is responsible for overall personal information processing and handles complaints and remedies related to personal information processing.",
@@ -301,7 +292,6 @@
         ]
       }
     },
-
     "section10": {
       "title": "10. Changes to Privacy Policy",
       "content": "This Privacy Policy is effective from the date of implementation, and if there are additions, deletions, or corrections due to changes in laws and policies, we will announce them through notices at least 7 days before the changes take effect."
@@ -716,7 +706,7 @@
         "loadingDevices": "Loading logged-in devices...",
         "noDevices": "No active signed-in devices",
         "currentDevice": "Current device",
-        "deviceLabel": "Browser / Device",
+        "deviceLabel": "Device",
         "providerLabel": "Sign-in method",
         "appVersionLabel": "App version",
         "lastActive": "Last active",
@@ -904,18 +894,15 @@
       }
     }
   },
-
   "termsOfService": {
     "title": "Terms of Service",
     "lastUpdated": "Last Updated: February 12, 2026",
     "backToHome": "Back to Home",
     "intro": "These Terms of Service ('Terms') govern your use of the Pecal service ('Service') provided by yojung ('Company'), and establish the rights, obligations, and responsibilities between the Company and users.",
-
     "section1": {
       "title": "Article 1 (Purpose)",
       "content": "These Terms aim to define the conditions and procedures for using the Pecal service provided by the Company, as well as the rights, obligations, and responsibilities between the Company and users."
     },
-
     "section2": {
       "title": "Article 2 (Definitions)",
       "items": [
@@ -926,7 +913,6 @@
         "'Content' refers to all information such as text, images, and files created or uploaded by users within the Service."
       ]
     },
-
     "section3": {
       "title": "Article 3 (Effectiveness and Amendment of Terms)",
       "items": [
@@ -936,7 +922,6 @@
         "Continued use of the Service after the effective date of amended Terms shall be deemed as consent to the changes."
       ]
     },
-
     "section4": {
       "title": "Article 4 (Service Agreement)",
       "items": [
@@ -945,7 +930,6 @@
         "The Company may refuse registration or terminate the agreement in the following cases: using another person's information, providing false information, or otherwise interfering with service operations."
       ]
     },
-
     "section5": {
       "title": "Article 5 (Service Content)",
       "content": "The services provided by the Company include the following.",
@@ -958,7 +942,6 @@
         "Other services developed or provided through partnerships"
       ]
     },
-
     "section6": {
       "title": "Article 6 (Service Modification and Suspension)",
       "items": [
@@ -967,7 +950,6 @@
         "The Company will notify users in advance of any service modifications or suspensions. However, in urgent cases, notification may be provided afterward."
       ]
     },
-
     "section7": {
       "title": "Article 7 (User Obligations)",
       "items": [
@@ -978,7 +960,6 @@
         "Users are responsible for managing their account information."
       ]
     },
-
     "section8": {
       "title": "Article 8 (Paid Services and Payment)",
       "items": [
@@ -989,7 +970,6 @@
         "Upon subscription cancellation, the Service remains available until the current billing period expires, after which it converts to the free plan."
       ]
     },
-
     "section9": {
       "title": "Article 9 (Content Rights and Responsibilities)",
       "items": [
@@ -999,12 +979,10 @@
         "The Company may delete content that violates applicable laws or infringes on the rights of others without prior notice."
       ]
     },
-
     "section10": {
       "title": "Article 10 (Privacy Protection)",
       "content": "The Company collects, uses, and manages users' personal information in accordance with its Privacy Policy. Please refer to the Privacy Policy for details."
     },
-
     "section11": {
       "title": "Article 11 (Disclaimer)",
       "items": [
@@ -1014,7 +992,6 @@
         "The Company has no obligation to intervene in disputes between users or between users and third parties arising through the Service, and is not liable for any resulting damages."
       ]
     },
-
     "section12": {
       "title": "Article 12 (Termination of Agreement)",
       "items": [
@@ -1023,7 +1000,6 @@
         "Upon termination, the user's personal information and content will be handled in accordance with the Privacy Policy."
       ]
     },
-
     "section13": {
       "title": "Article 13 (Dispute Resolution)",
       "items": [
@@ -1031,7 +1007,6 @@
         "If negotiation fails, the laws of the Republic of Korea shall govern, and jurisdiction shall be determined in accordance with the Civil Procedure Act."
       ]
     },
-
     "section14": {
       "title": "Supplementary Provisions",
       "content": "These Terms take effect from February 12, 2026."

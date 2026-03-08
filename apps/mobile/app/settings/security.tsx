@@ -55,26 +55,40 @@ function detectDeviceType(item: LoginSessionItem, isKo: boolean) {
   return item.client_platform;
 }
 
-function detectOs(userAgent?: string | null) {
-  if (!userAgent) return null;
-  const agent = userAgent.toLowerCase();
-  if (agent.includes('mac os x') || agent.includes('macintosh')) return 'macOS';
-  if (agent.includes('windows')) return 'Windows';
-  if (agent.includes('android')) return 'Android';
-  if (agent.includes('iphone') || agent.includes('ipad') || agent.includes('ios')) return 'iOS';
-  return null;
+function detectHardware(item: LoginSessionItem) {
+  const clientName = item.client_name?.trim();
+  if (
+    clientName &&
+    clientName !== 'Pecal' &&
+    clientName !== 'Pecal Mobile' &&
+    clientName !== 'Pecal Desktop' &&
+    clientName !== 'Pecal Web'
+  ) {
+    return clientName;
+  }
+
+  const agent = item.user_agent?.toLowerCase() ?? '';
+  if (item.client_platform === 'ios') return 'iPhone';
+  if (item.client_platform === 'android') return 'Android';
+  if (item.client_platform === 'desktop') return 'Desktop';
+  if (agent.includes('iphone')) return 'iPhone';
+  if (agent.includes('ipad')) return 'iPad';
+  if (agent.includes('android') && agent.includes('mobile')) return 'Android phone';
+  if (agent.includes('android')) return 'Android tablet';
+  if (agent.includes('mac os x') || agent.includes('macintosh')) return 'Mac';
+  if (agent.includes('windows')) return 'Windows PC';
+  return clientName || item.client_platform;
 }
 
 function buildDeviceLabel(item: LoginSessionItem) {
   const version = item.app_version ? ` · v${item.app_version}` : '';
-  return `${item.client_name}${version}`;
+  return `${detectHardware(item)}${version}`;
 }
 
 function buildEnvironmentLabel(item: LoginSessionItem, isKo: boolean) {
   const parts = [
     detectDeviceType(item, isKo),
     detectBrowser(item.user_agent),
-    detectOs(item.user_agent),
   ].filter(Boolean);
   return parts.join(' · ') || item.client_platform;
 }

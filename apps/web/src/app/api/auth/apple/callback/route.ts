@@ -71,7 +71,7 @@ async function handleAppleCallback(
   }
 
   try {
-    const clientMeta = getSessionClientMeta(request);
+    const clientMeta = oauthState?.clientMeta ?? getSessionClientMeta(request);
     const redirectUri = getOAuthRedirectUri(request, "apple");
 
     const tokenResponse = await fetch("https://appleid.apple.com/auth/token", {

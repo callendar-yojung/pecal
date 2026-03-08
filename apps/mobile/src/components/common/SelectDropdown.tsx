@@ -15,6 +15,7 @@ type Props<T extends string | number> = {
   onSelect: (value: T) => void;
   style?: 'input' | 'pill';
   numberOfLines?: number;
+  menuMode?: 'flow' | 'overlay';
 };
 
 export function SelectDropdown<T extends string | number>({
@@ -25,6 +26,7 @@ export function SelectDropdown<T extends string | number>({
   onSelect,
   style = 'input',
   numberOfLines = 1,
+  menuMode = 'flow',
 }: Props<T>) {
   const { colors } = useThemeMode();
   const s = createStyles(colors);
@@ -32,7 +34,16 @@ export function SelectDropdown<T extends string | number>({
   const isPill = style === 'pill';
 
   return (
-    <View>
+    <View
+      style={
+        menuMode === 'overlay'
+          ? {
+              position: 'relative',
+              zIndex: open ? 50 : 1,
+            }
+          : undefined
+      }
+    >
       <Pressable
         onPress={onToggle}
         style={
@@ -77,10 +88,20 @@ export function SelectDropdown<T extends string | number>({
           style={[
             s.panel,
             {
-              marginTop: 6,
+              marginTop: menuMode === 'overlay' ? 0 : 6,
               padding: 6,
               borderRadius: 14,
               gap: 4,
+              position: menuMode === 'overlay' ? 'absolute' : 'relative',
+              top: menuMode === 'overlay' ? (isPill ? 32 : 44) : undefined,
+              right: menuMode === 'overlay' ? 0 : undefined,
+              minWidth: menuMode === 'overlay' ? 120 : undefined,
+              zIndex: menuMode === 'overlay' ? 60 : undefined,
+              shadowColor: menuMode === 'overlay' ? '#000' : undefined,
+              shadowOpacity: menuMode === 'overlay' ? 0.12 : undefined,
+              shadowRadius: menuMode === 'overlay' ? 10 : undefined,
+              shadowOffset: menuMode === 'overlay' ? { width: 0, height: 6 } : undefined,
+              elevation: menuMode === 'overlay' ? 8 : undefined,
             },
           ]}
         >

@@ -5,6 +5,15 @@ import { resolveApiBaseUrl } from '../lib/apiBaseUrl'
 const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL, 'https://pecal.site')
 const IS_DEV = import.meta.env.DEV
 
+function getDesktopClientName() {
+  if (typeof navigator === 'undefined') return 'Desktop'
+  const agent = navigator.userAgent.toLowerCase()
+  if (agent.includes('mac os x') || agent.includes('macintosh')) return 'Mac'
+  if (agent.includes('windows')) return 'Windows PC'
+  if (agent.includes('linux')) return 'Linux PC'
+  return 'Desktop'
+}
+
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
   body?: unknown
@@ -56,7 +65,7 @@ class ApiClient {
     const requestHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       'X-Client-Platform': 'desktop',
-      'X-Client-Name': 'Pecal Desktop',
+      'X-Client-Name': getDesktopClientName(),
       'X-App-Version': import.meta.env.VITE_APP_VERSION || 'unknown',
       ...headers,
     }

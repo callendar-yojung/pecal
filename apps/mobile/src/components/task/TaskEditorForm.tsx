@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { useState } from 'react';
+import { Modal, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { TASK_COLOR_OPTIONS } from '../../lib/task-colors';
 import type { TagItem, TaskStatus } from '../../lib/types';
 import { useThemeMode } from '../../contexts/ThemeContext';
 import { createStyles } from '../../styles/createStyles';
 import { SharedRichTextEditor } from '../editor/SharedRichTextEditor';
-import { SelectDropdown } from '../common/SelectDropdown';
 
 type Props = {
   title: string;
@@ -68,8 +68,7 @@ export function TaskEditorForm({
 }: Props) {
   const { colors } = useThemeMode();
   const s = createStyles(colors);
-  const [startTimeOpen, setStartTimeOpen] = useState(false);
-  const [endTimeOpen, setEndTimeOpen] = useState(false);
+  const [pickerTarget, setPickerTarget] = useState<'startDate' | 'startTime' | 'endDate' | 'endTime' | null>(null);
   const [showNewTagInput, setShowNewTagInput] = useState(false);
   const [newTagName, setNewTagName] = useState('');
   const [tagError, setTagError] = useState<string | null>(null);
@@ -86,16 +85,6 @@ export function TaskEditorForm({
     { key: '30', label: '30분 전' },
     { key: '60', label: '1시간 전' },
   ] as const;
-  const timeOptions = useMemo(
-    () =>
-      Array.from({ length: 48 }, (_, idx) => {
-        const hours = String(Math.floor(idx / 2)).padStart(2, '0');
-        const minutes = idx % 2 === 0 ? '00' : '30';
-        return `${hours}:${minutes}`;
-      }),
-    []
-  );
-
   const splitDateTime = (value: string) => {
     if (!value) return { date: '', time: '' };
     const [date, time = ''] = value.split('T');
@@ -108,9 +97,26 @@ export function TaskEditorForm({
     const nextTime = time || splitDateTime(fallback).time || '09:00';
     return nextDate && nextTime ? `${nextDate}T${nextTime}` : fallback;
   };
+  const parsePickerDate = (value: string, fallbackTime: string) => {
+    const { date, time } = splitDateTime(value);
+    const targetDate = date || new Date().toISOString().slice(0, 10);
+    const targetTime = time || fallbackTime;
+    const parsed = new Date(`${targetDate}T${targetTime}:00`);
+    return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  };
+  const formatDatePart = (selected: Date) => {
+    const year = selected.getFullYear();
+    const month = String(selected.getMonth() + 1).padStart(2, '0');
+    const day = String(selected.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   const startParts = splitDateTime(startTime);
   const endParts = splitDateTime(endTime);
+  const activePickerDate =
+    pickerTarget === 'startDate' || pickerTarget === 'startTime'
+      ? parsePickerDate(startTime, '09:00')
+      : parsePickerDate(endTime, '09:30');
   const createTag = async () => {
     const name = newTagName.trim();
     if (!name || !onCreateTag || creatingTag) return;
@@ -121,6 +127,34 @@ export function TaskEditorForm({
       setShowNewTagInput(false);
     } catch (error) {
       setTagError(error instanceof Error ? error.message : '태그를 추가하지 못했습니다.');
+    }
+  };
+  const handleTimePickerChange = (event: DateTimePickerEvent, selected?: Date) => {
+    if (event.type === 'dismissed') {
+      setPickerTarget(null);
+      return;
+    }
+    if (!selected) return;
+
+    if (pickerTarget === 'startDate') {
+      onStartTimeChange(buildDateTime(formatDatePart(selected), startParts.time, startTime));
+    } else if (pickerTarget === 'endDate') {
+      onEndTimeChange(buildDateTime(formatDatePart(selected), endParts.time, endTime));
+    } else {
+      const hours = String(selected.getHours()).padStart(2, '0');
+      const minutes = String(selected.getMinutes()).padStart(2, '0');
+      const snappedMinutes = Number(minutes) >= 30 ? '30' : '00';
+      const nextTime = `${hours}:${snappedMinutes}`;
+
+      if (pickerTarget === 'startTime') {
+        onStartTimeChange(buildDateTime(startParts.date, nextTime, startTime));
+      } else {
+        onEndTimeChange(buildDateTime(endParts.date, nextTime, endTime));
+      }
+    }
+
+    if (Platform.OS !== 'ios') {
+      setPickerTarget(null);
     }
   };
 
@@ -139,54 +173,76 @@ export function TaskEditorForm({
       <View style={{ gap: 6 }}>
         <Text style={s.formTitle}>시작 시간</Text>
         <View style={[s.row, { alignItems: 'flex-start' }]}>
-          <TextInput
-            value={startParts.date}
-            onChangeText={(value) => onStartTimeChange(buildDateTime(value, startParts.time, startTime))}
-            placeholder="YYYY-MM-DD"
-            style={[s.input, { flex: 1 }]}
-            placeholderTextColor={colors.textMuted}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <View style={{ flex: 1 }}>
-            <SelectDropdown
-              value={startParts.time || '09:00'}
-              options={timeOptions.map((item) => ({ key: item, label: item }))}
-              open={startTimeOpen}
-              onToggle={() => setStartTimeOpen((prev) => !prev)}
-              onSelect={(value) => {
-                onStartTimeChange(buildDateTime(startParts.date, value, startTime));
-                setStartTimeOpen(false);
-              }}
-            />
-          </View>
+          <Pressable
+            onPress={() => setPickerTarget('startDate')}
+            style={[
+              s.input,
+              {
+                flex: 1,
+                minHeight: 46,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              },
+            ]}
+          >
+            <Text style={{ color: colors.text, fontSize: 14, fontWeight: '600' }}>{startParts.date || '날짜 선택'}</Text>
+            <Text style={{ color: colors.textMuted, fontSize: 12 }}>날짜 선택</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setPickerTarget('startTime')}
+            style={[
+              s.input,
+              {
+                flex: 1,
+                minHeight: 46,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              },
+            ]}
+          >
+            <Text style={{ color: colors.text, fontSize: 14, fontWeight: '600' }}>{startParts.time || '09:00'}</Text>
+            <Text style={{ color: colors.textMuted, fontSize: 12 }}>시간 선택</Text>
+          </Pressable>
         </View>
       </View>
 
       <View style={{ gap: 6 }}>
         <Text style={s.formTitle}>종료 시간</Text>
         <View style={[s.row, { alignItems: 'flex-start' }]}>
-          <TextInput
-            value={endParts.date}
-            onChangeText={(value) => onEndTimeChange(buildDateTime(value, endParts.time, endTime))}
-            placeholder="YYYY-MM-DD"
-            style={[s.input, { flex: 1 }]}
-            placeholderTextColor={colors.textMuted}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <View style={{ flex: 1 }}>
-            <SelectDropdown
-              value={endParts.time || '09:30'}
-              options={timeOptions.map((item) => ({ key: item, label: item }))}
-              open={endTimeOpen}
-              onToggle={() => setEndTimeOpen((prev) => !prev)}
-              onSelect={(value) => {
-                onEndTimeChange(buildDateTime(endParts.date, value, endTime));
-                setEndTimeOpen(false);
-              }}
-            />
-          </View>
+          <Pressable
+            onPress={() => setPickerTarget('endDate')}
+            style={[
+              s.input,
+              {
+                flex: 1,
+                minHeight: 46,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              },
+            ]}
+          >
+            <Text style={{ color: colors.text, fontSize: 14, fontWeight: '600' }}>{endParts.date || '날짜 선택'}</Text>
+            <Text style={{ color: colors.textMuted, fontSize: 12 }}>날짜 선택</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setPickerTarget('endTime')}
+            style={[
+              s.input,
+              {
+                flex: 1,
+                minHeight: 46,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              },
+            ]}
+          >
+            <Text style={{ color: colors.text, fontSize: 14, fontWeight: '600' }}>{endParts.time || '09:30'}</Text>
+            <Text style={{ color: colors.textMuted, fontSize: 12 }}>시간 선택</Text>
+          </Pressable>
         </View>
       </View>
 
@@ -358,6 +414,104 @@ export function TaskEditorForm({
           </Pressable>
         ) : null}
       </View>
+
+      <Modal
+        visible={pickerTarget !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPickerTarget(null)}
+      >
+        <Pressable
+          onPress={() => setPickerTarget(null)}
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(15, 23, 42, 0.24)',
+            justifyContent: pickerTarget === 'startDate' || pickerTarget === 'endDate' ? 'flex-start' : 'center',
+            paddingHorizontal: 20,
+            paddingTop: pickerTarget === 'startDate' || pickerTarget === 'endDate' ? 72 : 20,
+            paddingBottom: 20,
+          }}
+        >
+          <Pressable
+            onPress={(event) => event.stopPropagation()}
+            style={{
+              borderRadius: 18,
+              backgroundColor: colors.card,
+              borderWidth: 1,
+              borderColor: colors.border,
+              overflow: 'hidden',
+              maxHeight: pickerTarget === 'startDate' || pickerTarget === 'endDate' ? '82%' : undefined,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                borderBottomWidth: 1,
+                borderBottomColor: colors.border,
+              }}
+            >
+              <Text style={{ color: colors.text, fontSize: 16, fontWeight: '800' }}>
+                {pickerTarget === 'startDate'
+                  ? '시작 날짜 선택'
+                  : pickerTarget === 'endDate'
+                    ? '종료 날짜 선택'
+                    : pickerTarget === 'startTime'
+                      ? '시작 시간 선택'
+                      : '종료 시간 선택'}
+              </Text>
+              <Pressable onPress={() => setPickerTarget(null)}>
+                <Text style={{ color: colors.primary, fontSize: 14, fontWeight: '700' }}>닫기</Text>
+              </Pressable>
+            </View>
+            <View
+              style={{
+                paddingHorizontal: 16,
+                paddingTop: 14,
+                paddingBottom: 6,
+                gap: 4,
+              }}
+            >
+              <Text style={{ color: colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.6 }}>
+                {pickerTarget === 'startDate'
+                  ? startParts.date || '날짜 선택'
+                  : pickerTarget === 'endDate'
+                    ? endParts.date || '날짜 선택'
+                    : pickerTarget === 'startTime'
+                      ? startParts.time || '09:00'
+                      : endParts.time || '09:30'}
+              </Text>
+              <Text style={{ color: colors.textMuted, fontSize: 13, fontWeight: '600' }}>
+                {pickerTarget === 'startDate' || pickerTarget === 'endDate'
+                  ? '직접 입력 없이 날짜를 선택합니다'
+                  : '30분 단위로 자동 보정됩니다'}
+              </Text>
+            </View>
+            <DateTimePicker
+              value={activePickerDate}
+              mode={pickerTarget === 'startDate' || pickerTarget === 'endDate' ? 'date' : 'time'}
+              display={
+                Platform.OS === 'ios'
+                  ? pickerTarget === 'startDate' || pickerTarget === 'endDate'
+                    ? 'inline'
+                    : 'spinner'
+                  : 'default'
+              }
+              minuteInterval={pickerTarget === 'startDate' || pickerTarget === 'endDate' ? undefined : 30}
+              onChange={handleTimePickerChange}
+              style={{
+                alignSelf: 'stretch',
+                backgroundColor: colors.card,
+                minHeight: pickerTarget === 'startDate' || pickerTarget === 'endDate' ? 380 : 216,
+              }}
+              textColor={colors.text}
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }

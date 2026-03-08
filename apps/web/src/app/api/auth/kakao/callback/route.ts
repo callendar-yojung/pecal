@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { generateTokenPair } from "@/lib/jwt";
 import { findOrCreateMember } from "@/lib/member";
 import { getOAuthRedirectUri } from "@/lib/oauth-redirect-uri";
-import { verifyOAuthState } from "@/lib/oauth-state";
+import { verifyOAuthStatePayload } from "@/lib/oauth-state";
 import { getSessionClientMeta } from "@/lib/session-client-meta";
 
 /**
@@ -23,7 +23,8 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const state = searchParams.get("state");
   const error = searchParams.get("error");
-  const appCallback = await verifyOAuthState("kakao", state);
+  const oauthState = await verifyOAuthStatePayload("kakao", state);
+  const appCallback = oauthState?.callback ?? null;
 
   const handleError = (errorMessage: string, status: number) => {
     if (appCallback) {
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const clientMeta = getSessionClientMeta(request);
+    const clientMeta = oauthState?.clientMeta ?? getSessionClientMeta(request);
     console.log("🔑 카카오 OAuth 콜백 처리 시작:", {
       code: `${code.substring(0, 10)}...`,
       appCallback: appCallback,

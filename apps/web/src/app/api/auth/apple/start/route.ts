@@ -1,9 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getOAuthRedirectUri } from "@/lib/oauth-redirect-uri";
 import { createOAuthState, isAllowedOAuthCallback } from "@/lib/oauth-state";
+import { getSessionClientMeta } from "@/lib/session-client-meta";
 
 export async function GET(request: NextRequest) {
   try {
+    const clientMeta = getSessionClientMeta(request);
     const APPLE_AUTH_URL = "https://appleid.apple.com/auth/authorize";
     const APPLE_CLIENT_ID = process.env.AUTH_APPLE_ID;
 
@@ -32,7 +34,11 @@ export async function GET(request: NextRequest) {
     }
 
     const redirectUri = getOAuthRedirectUri(request, "apple");
-    const { state, nonce } = await createOAuthState("apple", appCallback);
+    const { state, nonce } = await createOAuthState(
+      "apple",
+      appCallback,
+      clientMeta,
+    );
 
     const params = new URLSearchParams({
       client_id: APPLE_CLIENT_ID,

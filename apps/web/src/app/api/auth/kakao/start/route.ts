@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getOAuthRedirectUri } from "@/lib/oauth-redirect-uri";
 import { createOAuthState, isAllowedOAuthCallback } from "@/lib/oauth-state";
+import { getSessionClientMeta } from "@/lib/session-client-meta";
 
 /**
  * GET /api/auth/kakao/start?callback=desktop-calendar://auth/callback
@@ -14,6 +15,7 @@ import { createOAuthState, isAllowedOAuthCallback } from "@/lib/oauth-state";
  */
 export async function GET(request: NextRequest) {
   try {
+    const clientMeta = getSessionClientMeta(request);
     const KAKAO_AUTH_URL = "https://kauth.kakao.com/oauth/authorize";
     const KAKAO_CLIENT_ID = process.env.AUTH_KAKAO_ID;
 
@@ -46,7 +48,7 @@ export async function GET(request: NextRequest) {
     // 카카오는 커스텀 스킴(deskcal://)을 허용하지 않음
     const redirectUri = getOAuthRedirectUri(request, "kakao");
 
-    const { state } = await createOAuthState("kakao", appCallback);
+    const { state } = await createOAuthState("kakao", appCallback, clientMeta);
 
     // 카카오 인증 URL 생성
     const params = new URLSearchParams({

@@ -7,6 +7,7 @@ import {
   type ApiErrorSource,
 } from '@repo/api-client';
 import Constants from 'expo-constants';
+import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import type { AuthSession } from './types';
 export { ApiError } from '@repo/api-client';
@@ -29,6 +30,29 @@ let authHandlers: ApiAuthHandlers | null = null;
 const coordinator = createRequestCoordinator();
 const SOURCE: ApiErrorSource = 'mobile';
 
+function getMobileClientName() {
+  const modelName = Device.modelName?.trim();
+  const modelId = Device.modelId?.trim();
+
+  // iOS modelName is often just "iPhone", which is too generic for session management.
+  if (Platform.OS === 'ios') {
+    if (modelId) return modelId;
+    if (modelName) return modelName;
+  }
+
+  const explicitModel = modelName || modelId;
+  if (explicitModel) return explicitModel;
+  return Platform.OS === 'ios' ? 'iPhone' : Platform.OS === 'android' ? 'Android' : 'Mobile';
+}
+
+export function getMobileClientHeaders() {
+  return {
+    'X-Client-Platform': Platform.OS === 'ios' ? 'ios' : Platform.OS,
+    'X-Client-Name': getMobileClientName(),
+    'X-App-Version': Constants.expoConfig?.version || Constants.nativeAppVersion || 'unknown',
+  };
+}
+
 export function setApiAuthHandlers(handlers: ApiAuthHandlers | null) {
   authHandlers = handlers;
 }
@@ -40,9 +64,7 @@ async function requestJson(
 ): Promise<{ ok: boolean; status: number; data: unknown }> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'X-Client-Platform': Platform.OS === 'ios' ? 'ios' : Platform.OS,
-    'X-Client-Name': 'Pecal Mobile',
-    'X-App-Version': Constants.expoConfig?.version || Constants.nativeAppVersion || 'unknown',
+    ...getMobileClientHeaders(),
     ...(options.headers as Record<string, string> | undefined),
   };
 

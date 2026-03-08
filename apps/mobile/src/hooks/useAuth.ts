@@ -1,7 +1,7 @@
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ApiError, getApiBaseUrl, setApiAuthHandlers } from '../lib/api';
+import { ApiError, getApiBaseUrl, getMobileClientHeaders, setApiAuthHandlers } from '../lib/api';
 import { clearSession, loadSession, saveSession } from '../lib/auth-storage';
 import type { AuthSession, OAuthProvider } from '../lib/types';
 
@@ -181,7 +181,10 @@ export function useAuth() {
       setError(null);
       setAuthLoading(provider);
       const base = getApiBaseUrl();
-      const startRes = await fetch(`${base}/api/auth/${provider}/start?callback=${encodeURIComponent(callbackUrl)}`);
+      const startRes = await fetch(
+        `${base}/api/auth/${provider}/start?callback=${encodeURIComponent(callbackUrl)}`,
+        { headers: getMobileClientHeaders() }
+      );
       if (!startRes.ok) throw new Error(await startRes.text());
 
       const { authUrl } = (await startRes.json()) as { authUrl?: string };
