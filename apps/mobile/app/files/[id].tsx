@@ -1,5 +1,6 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Alert, Image, Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMaybeMobileApp } from '../../src/contexts/MobileAppContext';
 import { useThemeMode } from '../../src/contexts/ThemeContext';
@@ -28,6 +29,7 @@ export default function FileDetailPage() {
   const { colors } = useThemeMode();
   const s = createStyles(colors);
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   if (!app) {
     return (
@@ -57,6 +59,15 @@ export default function FileDetailPage() {
       style={s.content}
       contentContainerStyle={[s.contentContainer, { paddingTop: Math.max(12, insets.top + 8) }]}
     >
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+        <Pressable
+          onPress={() => router.back()}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4, paddingRight: 8 }}
+        >
+          <Ionicons name="chevron-back" size={20} color={colors.primary} />
+          <Text style={{ color: colors.primary, fontSize: 16, fontWeight: '600' }}>뒤로</Text>
+        </Pressable>
+      </View>
       <View style={[s.panel, { borderRadius: 16, gap: 10 }]}>
         <Text style={[s.sectionTitle, { fontSize: 22 }]}>{file.original_name}</Text>
         <Text style={s.itemMeta}>크기: {file.file_size_formatted ?? `${file.file_size ?? 0} bytes`}</Text>

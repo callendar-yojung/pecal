@@ -19,24 +19,40 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => {
+      let refreshPromise: Promise<{ accessToken: string; refreshToken: string }> | null = null
+
       const refreshSession = async () => {
+        if (refreshPromise) {
+          return refreshPromise
+        }
+
         const refreshToken = get().refreshToken
         if (!refreshToken) {
           throw new Error('No refresh token available')
         }
 
-        const response = await authApi.refreshToken(refreshToken)
-        const nextAccessToken = response.accessToken
-        const nextRefreshToken = response.refreshToken || refreshToken
+        const job = (async () => {
+          const response = await authApi.refreshToken(refreshToken)
+          const nextAccessToken = response.accessToken
+          const nextRefreshToken = response.refreshToken || refreshToken
 
-        apiClient.setAccessToken(nextAccessToken)
-        set({
-          accessToken: nextAccessToken,
-          refreshToken: nextRefreshToken,
-          isAuthenticated: true,
-        })
+          apiClient.setAccessToken(nextAccessToken)
+          set({
+            accessToken: nextAccessToken,
+            refreshToken: nextRefreshToken,
+            isAuthenticated: true,
+          })
 
-        return { accessToken: nextAccessToken, refreshToken: nextRefreshToken }
+          return { accessToken: nextAccessToken, refreshToken: nextRefreshToken }
+        })()
+
+        refreshPromise = job
+
+        try {
+          return await job
+        } finally {
+          refreshPromise = null
+        }
       }
 
       apiClient.setRefreshHandler(refreshSession)

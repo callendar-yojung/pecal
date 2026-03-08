@@ -7,6 +7,7 @@ import { useThemeMode } from '../../../../src/contexts/ThemeContext';
 import type { TaskStatus } from '../../../../src/lib/types';
 import { createStyles } from '../../../../src/styles/createStyles';
 import { TaskEditorForm } from '../../../../src/components/task/TaskEditorForm';
+import { apiFetch, invalidateApiCache } from '../../../../src/lib/api';
 
 export default function TaskEditPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -21,9 +22,12 @@ export default function TaskEditPage() {
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [status, setStatus] = useState<TaskStatus>('TODO');
+  const [color, setColor] = useState('#3B82F6');
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [allDay, setAllDay] = useState(false);
   const [reminderMinutes, setReminderMinutes] = useState('10');
   const [saving, setSaving] = useState(false);
+  const [creatingTag, setCreatingTag] = useState(false);
 
   if (!app) {
     return (
@@ -43,6 +47,8 @@ export default function TaskEditPage() {
     setStartTime(task.start_time);
     setEndTime(task.end_time);
     setStatus(task.status ?? 'TODO');
+    setColor(task.color ?? '#3B82F6');
+    setSelectedTagIds(task.tag_ids ?? (task.tags ?? []).map((tag) => tag.tag_id));
     setAllDay(Boolean(task.is_all_day));
     setReminderMinutes(task.reminder_minutes ? String(task.reminder_minutes) : '10');
   }, [task]);
@@ -55,6 +61,7 @@ export default function TaskEditPage() {
       </View>
     );
   }
+  const workspace = data.selectedWorkspace;
   if (!Number.isFinite(taskId) || taskId <= 0 || !task) {
     return (
       <View style={s.centerScreen}>
@@ -73,6 +80,8 @@ export default function TaskEditPage() {
         end_time: endTime,
         content: contentJson || null,
         status,
+        color,
+        tag_ids: selectedTagIds,
         is_all_day: allDay,
         reminder_minutes: reminderMinutes ? Number(reminderMinutes) : null,
       });
@@ -81,6 +90,41 @@ export default function TaskEditPage() {
       Alert.alert('오류', error instanceof Error ? error.message : '일정을 저장하지 못했습니다.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const ensureRange = (nextStart: string, nextEnd: string) => {
+    const start = new Date(nextStart);
+    const end = new Date(nextEnd);
+    if (Number.isNaN(start.getTime())) return { start: nextStart, end: nextEnd };
+    if (Number.isNaN(end.getTime()) || end <= start) {
+      const adjusted = new Date(start);
+      adjusted.setMinutes(adjusted.getMinutes() + 30);
+      return {
+        start: nextStart,
+        end: `${adjusted.getFullYear()}-${String(adjusted.getMonth() + 1).padStart(2, '0')}-${String(adjusted.getDate()).padStart(2, '0')}T${String(adjusted.getHours()).padStart(2, '0')}:${String(adjusted.getMinutes()).padStart(2, '0')}:${String(adjusted.getSeconds()).padStart(2, '0')}`,
+      };
+    }
+    return { start: nextStart, end: nextEnd };
+  };
+
+  const createTag = async (name: string, tagColor: string) => {
+    setCreatingTag(true);
+    try {
+      const result = await apiFetch<{ tag_id: number }>('/api/tags', auth.session, {
+        method: 'POST',
+        body: JSON.stringify({
+          name,
+          color: tagColor,
+          owner_type: workspace.type,
+          owner_id: workspace.owner_id,
+        }),
+      });
+      setSelectedTagIds((prev) => (prev.includes(result.tag_id) ? prev : [...prev, result.tag_id]));
+      invalidateApiCache(`tags:${workspace.type}:${workspace.owner_id}`);
+      await data.loadDashboard(workspace);
+    } finally {
+      setCreatingTag(false);
     }
   };
 
@@ -114,16 +158,31 @@ export default function TaskEditPage() {
         startTime={startTime}
         endTime={endTime}
         status={status}
+        color={color}
+        selectedTagIds={selectedTagIds}
+        availableTags={data.tags}
         allDay={allDay}
         reminderMinutes={reminderMinutes}
         rrule=""
         contentJson={contentJson}
         saving={saving}
+        creatingTag={creatingTag}
         submitLabel="일정 저장"
         onTitleChange={setTitle}
-        onStartTimeChange={setStartTime}
-        onEndTimeChange={setEndTime}
+        onStartTimeChange={(value) => {
+          const next = ensureRange(value, endTime);
+          setStartTime(next.start);
+          setEndTime(next.end);
+        }}
+        onEndTimeChange={(value) => {
+          const next = ensureRange(startTime, value);
+          setStartTime(next.start);
+          setEndTime(next.end);
+        }}
         onStatusChange={setStatus}
+        onColorChange={setColor}
+        onSelectedTagIdsChange={setSelectedTagIds}
+        onCreateTag={createTag}
         onAllDayChange={setAllDay}
         onReminderMinutesChange={setReminderMinutes}
         onRruleChange={() => undefined}

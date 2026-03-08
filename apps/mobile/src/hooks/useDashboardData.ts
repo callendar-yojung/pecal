@@ -831,11 +831,19 @@ export function useDashboardData(session: AuthSession | null) {
       setError('메모 제목을 입력하세요.');
       return;
     }
+    const currentContentJson = memoContentJson || JSON.stringify(textToDoc(memoText.trim()));
     const latest = memos.find((item) => item.memo_id === selectedMemoId);
     if (!opts?.force && latest && memoBaseUpdatedAt && latest.updated_at !== memoBaseUpdatedAt) {
-      setMemoConflict(true);
-      setError('다른 기기에서 메모가 변경되었습니다. 검토 후 덮어쓰기 하세요.');
-      return;
+      const latestContentJson = latest.content_json || JSON.stringify(textToDoc(''));
+      const sameContent = latest.title === memoTitle.trim() && latestContentJson === currentContentJson;
+      if (sameContent) {
+        setMemoConflict(false);
+        setMemoBaseUpdatedAt(latest.updated_at);
+      } else {
+        setMemoConflict(true);
+        setError('다른 기기에서 메모가 변경되었습니다. 검토 후 덮어쓰기 하세요.');
+        return;
+      }
     }
     setMemoIsSaving(true);
     try {
@@ -855,7 +863,7 @@ export function useDashboardData(session: AuthSession | null) {
             ? {
                 ...memo,
                 title: memoTitle.trim(),
-                content_json: memoContentJson || JSON.stringify(textToDoc(memoText.trim())),
+                content_json: currentContentJson,
                 updated_at: nextUpdatedAt,
               }
             : memo

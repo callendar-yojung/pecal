@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { generateTokenPair } from "@/lib/jwt";
 import { findOrCreateMember } from "@/lib/member";
+import { getSessionClientMeta } from "@/lib/session-client-meta";
 
 interface KakaoUserResponse {
   id: number;
@@ -19,6 +20,7 @@ interface KakaoUserResponse {
  */
 export async function POST(request: NextRequest) {
   try {
+    const clientMeta = getSessionClientMeta(request);
     const body = await request.json();
     const { access_token } = body;
 
@@ -66,6 +68,7 @@ export async function POST(request: NextRequest) {
       nickname: member.nickname || "",
       provider: "kakao",
       email: member.email,
+      ...clientMeta,
     });
 
     return NextResponse.json({
