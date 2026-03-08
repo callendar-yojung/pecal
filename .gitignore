@@ -6,4 +6,9 @@ apps/*/node_modules
 packages/*/node_modules
 .env
 .env.local
+.env.*
+*.env
+*.env.*
+*.sample
+*.example
 apps/desktop/src-tauri/keys/
