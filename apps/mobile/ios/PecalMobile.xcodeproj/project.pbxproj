@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 70;
+	objectVersion = 56;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -16,6 +16,11 @@
 		900E663E2F4C8FD300CA6FFC /* PecalWidgetExtensionExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 900E662B2F4C8FD200CA6FFC /* PecalWidgetExtensionExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A1B2C3D42F60000100CA6FFC /* PecalWidgetBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D62F60000100CA6FFC /* PecalWidgetBridge.m */; };
 		A1B2C3D52F60000100CA6FFC /* PecalWidgetBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D72F60000100CA6FFC /* PecalWidgetBridge.swift */; };
+		A70100012F4C8FD200CA6FFC /* AppIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A70100112F4C8FD200CA6FFC /* AppIntent.swift */; };
+		A70100022F4C8FD200CA6FFC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A70100122F4C8FD200CA6FFC /* Assets.xcassets */; };
+		A70100032F4C8FD200CA6FFC /* PecalWidgetExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = A70100142F4C8FD200CA6FFC /* PecalWidgetExtension.swift */; };
+		A70100042F4C8FD200CA6FFC /* PecalWidgetExtensionBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A70100152F4C8FD200CA6FFC /* PecalWidgetExtensionBundle.swift */; };
+		A70100052F4C8FD200CA6FFC /* PecalWidgetExtensionControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = A70100162F4C8FD200CA6FFC /* PecalWidgetExtensionControl.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 		FEC92BC7699A8E951CDB871B /* libPods-PecalMobile.a in Frameworks */ = {isa = PBXBuildFile; fileRef = EDD22E12EF546A29975AA76D /* libPods-PecalMobile.a */; };
@@ -58,6 +63,12 @@
 		900E66442F4D2C5000CA6FFC /* PecalWidgetExtensionExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PecalWidgetExtensionExtension.entitlements; sourceTree = "<group>"; };
 		A1B2C3D62F60000100CA6FFC /* PecalWidgetBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = PecalWidgetBridge.m; path = PecalMobile/PecalWidgetBridge.m; sourceTree = "<group>"; };
 		A1B2C3D72F60000100CA6FFC /* PecalWidgetBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PecalWidgetBridge.swift; path = PecalMobile/PecalWidgetBridge.swift; sourceTree = "<group>"; };
+		A70100112F4C8FD200CA6FFC /* AppIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PecalWidgetExtension/AppIntent.swift; sourceTree = "<group>"; };
+		A70100122F4C8FD200CA6FFC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = PecalWidgetExtension/Assets.xcassets; sourceTree = "<group>"; };
+		A70100132F4C8FD200CA6FFC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PecalWidgetExtension/Info.plist; sourceTree = "<group>"; };
+		A70100142F4C8FD200CA6FFC /* PecalWidgetExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PecalWidgetExtension/PecalWidgetExtension.swift; sourceTree = "<group>"; };
+		A70100152F4C8FD200CA6FFC /* PecalWidgetExtensionBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PecalWidgetExtension/PecalWidgetExtensionBundle.swift; sourceTree = "<group>"; };
+		A70100162F4C8FD200CA6FFC /* PecalWidgetExtensionControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PecalWidgetExtension/PecalWidgetExtensionControl.swift; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = PecalMobile/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
 		E319AA2184049CADD0731E42 /* Pods-PecalMobile.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-PecalMobile.release.xcconfig"; path = "Target Support Files/Pods-PecalMobile/Pods-PecalMobile.release.xcconfig"; sourceTree = "<group>"; };
@@ -66,31 +77,6 @@
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = PecalMobile/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* PecalMobile-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "PecalMobile-Bridging-Header.h"; path = "PecalMobile/PecalMobile-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
-
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		900E66422F4C8FD300CA6FFC /* Exceptions for "PecalWidgetExtension" folder in "PecalWidgetExtensionExtension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 900E662A2F4C8FD200CA6FFC /* PecalWidgetExtensionExtension */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
-/* Begin PBXFileSystemSynchronizedRootGroup section */
-		900E66302F4C8FD200CA6FFC /* PecalWidgetExtension */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				900E66422F4C8FD300CA6FFC /* Exceptions for "PecalWidgetExtension" folder in "PecalWidgetExtensionExtension" target */,
-			);
-			explicitFileTypes = {
-			};
-			explicitFolders = (
-			);
-			path = PecalWidgetExtension;
-			sourceTree = "<group>";
-		};
-/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		13B07F8C1A680F5B00A75B9A /* Frameworks */ = {
@@ -182,6 +168,19 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		900E66302F4C8FD200CA6FFC /* PecalWidgetExtension */ = {
+			isa = PBXGroup;
+			children = (
+				A70100112F4C8FD200CA6FFC /* AppIntent.swift */,
+				A70100122F4C8FD200CA6FFC /* Assets.xcassets */,
+				A70100132F4C8FD200CA6FFC /* Info.plist */,
+				A70100142F4C8FD200CA6FFC /* PecalWidgetExtension.swift */,
+				A70100152F4C8FD200CA6FFC /* PecalWidgetExtensionBundle.swift */,
+				A70100162F4C8FD200CA6FFC /* PecalWidgetExtensionControl.swift */,
+			);
+			path = PecalWidgetExtension;
+			sourceTree = "<group>";
+		};
 		96B3F7573F9A980846494228 /* ExpoModulesProviders */ = {
 			isa = PBXGroup;
 			children = (
@@ -246,9 +245,6 @@
 			);
 			dependencies = (
 			);
-			fileSystemSynchronizedGroups = (
-				900E66302F4C8FD200CA6FFC /* PecalWidgetExtension */,
-			);
 			name = PecalWidgetExtensionExtension;
 			productName = PecalWidgetExtensionExtension;
 			productReference = 900E662B2F4C8FD200CA6FFC /* PecalWidgetExtensionExtension.appex */;
@@ -310,6 +306,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A70100022F4C8FD200CA6FFC /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -455,6 +452,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A70100012F4C8FD200CA6FFC /* AppIntent.swift in Sources */,
+				A70100032F4C8FD200CA6FFC /* PecalWidgetExtension.swift in Sources */,
+				A70100042F4C8FD200CA6FFC /* PecalWidgetExtensionBundle.swift in Sources */,
+				A70100052F4C8FD200CA6FFC /* PecalWidgetExtensionControl.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -501,7 +502,7 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = com.pecal.mobile;
-				PRODUCT_NAME = "app";
+				PRODUCT_NAME = app;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "PecalMobile/PecalMobile-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -538,7 +539,7 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.pecal.mobile;
-				PRODUCT_NAME = "app";
+				PRODUCT_NAME = app;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "PecalMobile/PecalMobile-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
