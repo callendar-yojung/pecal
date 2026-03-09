@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 import { requireOwnerAccess } from "@/lib/access";
 import { jsonError, jsonServerError, jsonSuccess } from "@/lib/api-response";
 import { createFileRecord } from "@/lib/file";
+import { createOpsEvent } from "@/lib/ops-event-log";
 import { canUploadFile, formatBytes, type OwnerType } from "@/lib/storage";
 
 // 허용된 파일 타입
@@ -78,6 +79,19 @@ export async function POST(request: NextRequest): Promise<Response> {
       fileSizeBytes,
     );
     if (!uploadCheck.allowed) {
+      await createOpsEvent({
+        eventType: "FILE_UPLOAD_FAILURE",
+        status: "failure",
+        payload: {
+          reason: "LIMIT_EXCEEDED",
+          ownerType,
+          ownerId: Number(ownerId),
+          fileName: file.name,
+          fileSizeBytes,
+          limitBytes: uploadCheck.limit_bytes ?? null,
+          maxFileSizeBytes: uploadCheck.max_file_size_bytes ?? null,
+        },
+      });
       return jsonError(
         uploadCheck.reason || "Upload limit exceeded",
         403,
@@ -155,6 +169,14 @@ export async function POST(request: NextRequest): Promise<Response> {
       },
     });
   } catch (error) {
+    await createOpsEvent({
+      eventType: "FILE_UPLOAD_FAILURE",
+      status: "failure",
+      payload: {
+        reason: "UPLOAD_EXCEPTION",
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
     return jsonServerError(error, "Failed to upload file");
   }
 }

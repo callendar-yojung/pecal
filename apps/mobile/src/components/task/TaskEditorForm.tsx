@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Modal, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { Image, Modal, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { TASK_COLOR_OPTIONS } from '../../lib/task-colors';
-import type { TagItem, TaskStatus } from '../../lib/types';
+import type { TagItem, TaskAttachmentItem, TaskStatus } from '../../lib/types';
 import { useThemeMode } from '../../contexts/ThemeContext';
 import { createStyles } from '../../styles/createStyles';
 import { SharedRichTextEditor } from '../editor/SharedRichTextEditor';
@@ -15,6 +15,9 @@ type Props = {
   color: string;
   selectedTagIds: number[];
   availableTags: TagItem[];
+  attachments?: TaskAttachmentItem[];
+  uploadingAttachmentIds?: string[];
+  attachmentMode?: 'pending' | 'saved';
   allDay: boolean;
   reminderMinutes: string;
   rrule: string;
@@ -29,6 +32,8 @@ type Props = {
   onColorChange: (color: string) => void;
   onSelectedTagIdsChange: (next: number[]) => void;
   onCreateTag?: (name: string, color: string) => Promise<void>;
+  onPickAttachment?: () => void;
+  onRemoveAttachment?: (attachmentId: number | string) => void;
   onAllDayChange: (next: boolean) => void;
   onReminderMinutesChange: (minutes: string) => void;
   onRruleChange: (value: string) => void;
@@ -45,6 +50,9 @@ export function TaskEditorForm({
   color,
   selectedTagIds,
   availableTags,
+  attachments = [],
+  uploadingAttachmentIds = [],
+  attachmentMode = 'saved',
   allDay,
   reminderMinutes,
   rrule,
@@ -59,6 +67,8 @@ export function TaskEditorForm({
   onColorChange,
   onSelectedTagIdsChange,
   onCreateTag,
+  onPickAttachment,
+  onRemoveAttachment,
   onAllDayChange,
   onReminderMinutesChange,
   onRruleChange,
@@ -76,6 +86,18 @@ export function TaskEditorForm({
     TODO: '예정',
     IN_PROGRESS: '진행중',
     DONE: '완료',
+  };
+  const formatBytes = (bytes?: number) => {
+    if (!bytes || bytes <= 0) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    const units = ['KB', 'MB', 'GB'];
+    let value = bytes / 1024;
+    let unitIndex = 0;
+    while (value >= 1024 && unitIndex < units.length - 1) {
+      value /= 1024;
+      unitIndex += 1;
+    }
+    return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unitIndex]}`;
   };
   const reminderOptions = [
     { key: '0', label: '정시 알림' },
@@ -348,6 +370,102 @@ export function TaskEditorForm({
         </View>
       </View>
 
+      <View style={[s.panel, { borderRadius: 16, gap: 10 }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <View style={{ gap: 4, flex: 1 }}>
+            <Text style={s.formTitle}>첨부파일</Text>
+            <Text style={s.itemMeta}>
+              {attachmentMode === 'pending'
+                ? '일정을 저장한 뒤 선택한 파일이 함께 업로드됩니다.'
+                : '현재 일정에 첨부할 파일을 추가하거나 제거할 수 있습니다.'}
+            </Text>
+            <Text style={s.itemMeta}>허용 형식: JPG, PNG, WEBP, PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, CSV, ZIP, HWP</Text>
+          </View>
+          {onPickAttachment ? (
+            <Pressable
+              onPress={onPickAttachment}
+              style={[
+                s.secondaryButton,
+                { width: 'auto', minHeight: 0, paddingVertical: 10, paddingHorizontal: 14, alignSelf: 'flex-start' },
+              ]}
+            >
+              <Text style={s.secondaryButtonText}>파일 추가</Text>
+            </Pressable>
+          ) : null}
+        </View>
+
+        {attachments.length === 0 ? (
+          <Text style={s.subtleText}>
+            {attachmentMode === 'pending' ? '선택된 첨부파일이 없습니다.' : '첨부된 파일이 없습니다.'}
+          </Text>
+        ) : (
+          <View style={{ gap: 8 }}>
+            {attachments.map((attachment) => {
+              const isUploading = uploadingAttachmentIds.includes(String(attachment.attachment_id));
+              return (
+                <View
+                  key={`${attachment.attachment_id}:${attachment.file_id}:${attachment.original_name}`}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: 12,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    backgroundColor: colors.cardSoft,
+                    gap: 6,
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                    <View style={{ flex: 1, gap: 4 }}>
+                      <Text numberOfLines={1} style={{ color: colors.text, fontSize: 14, fontWeight: '700' }}>
+                        {attachment.original_name}
+                      </Text>
+                      {(attachment.preview_uri || attachment.file_path) &&
+                      ((attachment.mime_type && attachment.mime_type.startsWith('image/')) ||
+                        (attachment.file_path && /\.(png|jpe?g|gif|webp|svg)$/i.test(attachment.file_path)) ||
+                        (attachment.preview_uri && /\.(png|jpe?g|gif|webp|svg)$/i.test(attachment.preview_uri))) ? (
+                        <Image
+                          source={{ uri: attachment.preview_uri || attachment.file_path }}
+                          resizeMode="cover"
+                          style={{
+                            width: '100%',
+                            height: 120,
+                            borderRadius: 10,
+                            marginTop: 4,
+                            backgroundColor: colors.border,
+                          }}
+                        />
+                      ) : null}
+                      <Text style={s.itemMeta}>
+                        {attachment.file_size_formatted || formatBytes(attachment.file_size) || '파일 크기 확인 불가'}
+                        {isUploading ? ' · 업로드 중...' : ''}
+                      </Text>
+                    </View>
+                    {onRemoveAttachment ? (
+                      <Pressable
+                        disabled={isUploading}
+                        onPress={() => onRemoveAttachment(attachment.attachment_id)}
+                        style={{
+                          borderWidth: 1,
+                          borderColor: '#FCA5A5',
+                          borderRadius: 10,
+                          paddingHorizontal: 10,
+                          paddingVertical: 7,
+                          backgroundColor: '#FFF5F5',
+                          opacity: isUploading ? 0.5 : 1,
+                        }}
+                      >
+                        <Text style={{ color: '#DC2626', fontSize: 12, fontWeight: '700' }}>제거</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
+      </View>
+
       <SharedRichTextEditor
         valueJson={contentJson}
         valueText=""
@@ -357,51 +475,65 @@ export function TaskEditorForm({
         onChange={(json) => onContentChange(json)}
       />
 
-      <View style={s.row}>
-        {(['TODO', 'IN_PROGRESS', 'DONE'] as const).map((item) => (
-          <Pressable
-            key={item}
-            onPress={() => onStatusChange(item)}
-            style={[
-              s.workspacePill,
-              { marginRight: 0, paddingVertical: 7, paddingHorizontal: 10 },
-              status === item ? s.workspacePillActive : null,
-            ]}
-          >
-            <Text style={[s.workspacePillText, status === item ? s.workspacePillTextActive : null]}>
-              {statusLabels[item]}
-            </Text>
-          </Pressable>
-        ))}
+      <View style={[s.panel, { borderRadius: 16, gap: 10 }]}>
+        <Text style={s.formTitle}>진행 상태</Text>
+        <Text style={s.itemMeta}>일정이 현재 어느 단계인지 선택합니다.</Text>
+        <View style={[s.row, { flexWrap: 'wrap', gap: 8 }]}>
+          {(['TODO', 'IN_PROGRESS', 'DONE'] as const).map((item) => (
+            <Pressable
+              key={item}
+              onPress={() => onStatusChange(item)}
+              style={[
+                s.workspacePill,
+                { marginRight: 0, paddingVertical: 8, paddingHorizontal: 12 },
+                status === item ? s.workspacePillActive : null,
+              ]}
+            >
+              <Text style={[s.workspacePillText, status === item ? s.workspacePillTextActive : null]}>
+                {statusLabels[item]}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
 
-      <View style={s.row}>
-        <Pressable
-          onPress={() => onAllDayChange(!allDay)}
-          style={[
-            s.workspacePill,
-            { marginRight: 0, paddingVertical: 7, paddingHorizontal: 10 },
-            allDay ? s.workspacePillActive : null,
-          ]}
-        >
-          <Text style={[s.workspacePillText, allDay ? s.workspacePillTextActive : null]}>종일 일정</Text>
-        </Pressable>
-        <Text style={[s.itemMeta, { alignSelf: 'center' }]}>시작 기준 알림</Text>
-        {reminderOptions.map((item) => (
+      <View style={[s.panel, { borderRadius: 16, gap: 10 }]}>
+        <Text style={s.formTitle}>일정 옵션</Text>
+        <Text style={s.itemMeta}>종일 일정 여부를 설정합니다.</Text>
+        <View style={[s.row, { flexWrap: 'wrap', gap: 8 }]}>
           <Pressable
-            key={item.key}
-            onPress={() => onReminderMinutesChange(item.key)}
+            onPress={() => onAllDayChange(!allDay)}
             style={[
               s.workspacePill,
-              { marginRight: 0, paddingVertical: 7, paddingHorizontal: 10 },
-              reminderMinutes === item.key ? s.workspacePillActive : null,
+              { marginRight: 0, paddingVertical: 8, paddingHorizontal: 12 },
+              allDay ? s.workspacePillActive : null,
             ]}
           >
-            <Text style={[s.workspacePillText, reminderMinutes === item.key ? s.workspacePillTextActive : null]}>
-              {item.key === '0' ? item.label : `시작 ${item.label}`}
-            </Text>
+            <Text style={[s.workspacePillText, allDay ? s.workspacePillTextActive : null]}>종일 일정</Text>
           </Pressable>
-        ))}
+        </View>
+      </View>
+
+      <View style={[s.panel, { borderRadius: 16, gap: 10 }]}>
+        <Text style={s.formTitle}>알림</Text>
+        <Text style={s.itemMeta}>시작 시간을 기준으로 받을 알림 시점을 선택합니다.</Text>
+        <View style={[s.row, { flexWrap: 'wrap', gap: 8 }]}>
+          {reminderOptions.map((item) => (
+            <Pressable
+              key={item.key}
+              onPress={() => onReminderMinutesChange(item.key)}
+              style={[
+                s.workspacePill,
+                { marginRight: 0, paddingVertical: 8, paddingHorizontal: 12 },
+                reminderMinutes === item.key ? s.workspacePillActive : null,
+              ]}
+            >
+              <Text style={[s.workspacePillText, reminderMinutes === item.key ? s.workspacePillTextActive : null]}>
+                {item.key === '0' ? item.label : `시작 ${item.label}`}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
 
       <View style={s.row}>

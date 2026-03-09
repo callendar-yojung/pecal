@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import { RefreshControl, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useMobileApp } from '../../../../src/contexts/MobileAppContext';
 import { useThemeMode } from '../../../../src/contexts/ThemeContext';
 import { useI18n } from '../../../../src/contexts/I18nContext';
@@ -14,6 +14,7 @@ export default function TaskDetailPage() {
   const s = createStyles(colors);
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
+  const [attachmentsLoading, setAttachmentsLoading] = useState(true);
 
   const taskId = Number(id);
   const task = useMemo(() => data.tasks.find((item) => item.id === taskId), [data.tasks, taskId]);
@@ -46,14 +47,51 @@ export default function TaskDetailPage() {
       >
         <TaskDetailWebView
           task={task}
-          authToken={auth.session.accessToken}
+          session={auth.session}
+          workspace={data.selectedWorkspace}
           availableTags={data.tags}
           minHeight={680}
           onBackToList={() => router.replace('/tasks')}
           onOpenEdit={() => router.push(`/tasks/${taskId}/edit`)}
           onOpenExport={() => router.push(`/tasks/${taskId}/export`)}
+          onAttachmentsLoadingChange={setAttachmentsLoading}
         />
       </ScrollView>
+      {attachmentsLoading ? (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: colors.bg + 'E6',
+          }}
+        >
+          <View
+            style={{
+              minWidth: 180,
+              maxWidth: 240,
+              paddingHorizontal: 20,
+              paddingVertical: 18,
+              borderRadius: 20,
+              backgroundColor: colors.card,
+              borderWidth: 1,
+              borderColor: colors.border,
+              alignItems: 'center',
+              gap: 10,
+            }}
+          >
+            <ActivityIndicator color={colors.primary} />
+            <Text style={{ color: colors.text, fontSize: 13, fontWeight: '700' }}>
+              첨부파일 불러오는 중...
+            </Text>
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }

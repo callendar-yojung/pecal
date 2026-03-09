@@ -50,6 +50,11 @@ type TaskCreateInput = {
   reminder_minutes?: number | null;
 };
 
+type TaskCreateResult = {
+  success: boolean;
+  taskId?: number;
+};
+
 type MemoMeta = {
   pinned?: boolean;
   tags?: string[];
@@ -427,6 +432,24 @@ export function useDashboardData(session: AuthSession | null) {
     }
   };
 
+  const loadMemosOnly = async (workspace: Workspace) => {
+    if (!session) return;
+    try {
+      const memoRes = await cachedApiFetch<{ memos: MemoItem[] }>(
+        `memos:${workspace.type}:${workspace.owner_id}:page1:size50`,
+        `/api/memos?owner_type=${workspace.type}&owner_id=${workspace.owner_id}&page=1&page_size=50`,
+        session,
+        {},
+        { cacheMs: 8_000, dedupe: true, retries: 1 }
+      );
+      setMemos(memoRes.memos ?? []);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setMemos([]);
+    }
+  };
+
   const loadDashboard = async (workspace: Workspace) => {
     if (!session) return;
     setDashboardLoading(true);
@@ -583,15 +606,15 @@ export function useDashboardData(session: AuthSession | null) {
     }
   };
 
-  const createTaskWithInput = async (input: TaskCreateInput): Promise<boolean> => {
-    if (!session || !selectedWorkspace) return false;
+  const createTaskWithInput = async (input: TaskCreateInput): Promise<TaskCreateResult> => {
+    if (!session || !selectedWorkspace) return { success: false };
     if (!input.title.trim()) {
       setError('일정 제목을 입력하세요.');
-      return false;
+      return { success: false };
     }
     if (new Date(input.start_time) >= new Date(input.end_time)) {
       setError('종료 시간이 시작 시간보다 늦어야 합니다.');
-      return false;
+      return { success: false };
     }
     const payload = {
       title: input.title.trim(),
@@ -609,14 +632,14 @@ export function useDashboardData(session: AuthSession | null) {
     };
 
     try {
-      await apiFetch('/api/tasks', session, {
+      const response = await apiFetch<{ success: true; taskId: number }>('/api/tasks', session, {
         method: 'POST',
         body: JSON.stringify(payload),
       });
       invalidateApiCache(`tasks:${selectedWorkspace.workspace_id}`);
       invalidateApiCache(`calendar:${selectedWorkspace.workspace_id}`);
       await loadDashboard(selectedWorkspace);
-      return true;
+      return { success: true, taskId: Number(response.taskId) };
     } catch (error) {
       const apiError = error instanceof ApiError ? error : null;
       if (apiError?.code === 'NETWORK_ERROR') {
@@ -626,7 +649,7 @@ export function useDashboardData(session: AuthSession | null) {
         });
         setOfflineQueueCount(await getOfflineQueueCount());
         setError('오프라인 상태입니다. 일정을 임시 저장했고 연결 복구 시 자동 전송됩니다.');
-        return true;
+        return { success: true };
       }
       throw error;
     }
@@ -642,7 +665,7 @@ export function useDashboardData(session: AuthSession | null) {
       color: '#3B82F6',
       tag_ids: [],
     });
-    if (!created) return;
+    if (!created.success) return;
     setTaskTitle('');
     setTaskContentJson('');
     setTaskRange(defaultTaskRangeByDate(new Date(taskRange.start)));
@@ -772,7 +795,7 @@ export function useDashboardData(session: AuthSession | null) {
       }
       invalidateApiCache(`memos:${selectedWorkspace.type}:${selectedWorkspace.owner_id}`);
       if (!opts?.auto) {
-        await loadDashboard(selectedWorkspace);
+        await loadMemosOnly(selectedWorkspace);
       }
     } catch (error) {
       const apiError = error instanceof ApiError ? error : null;
@@ -874,7 +897,7 @@ export function useDashboardData(session: AuthSession | null) {
       await AsyncStorage.removeItem(memoDraftKey(selectedWorkspace.workspace_id)).catch(() => undefined);
       invalidateApiCache(`memos:${selectedWorkspace.type}:${selectedWorkspace.owner_id}`);
       if (!opts?.silent) {
-        await loadDashboard(selectedWorkspace);
+        await loadMemosOnly(selectedWorkspace);
       }
     } finally {
       setMemoIsSaving(false);
@@ -894,7 +917,7 @@ export function useDashboardData(session: AuthSession | null) {
       }),
     });
     invalidateApiCache(`memos:${selectedWorkspace.type}:${selectedWorkspace.owner_id}`);
-    await loadDashboard(selectedWorkspace);
+    await loadMemosOnly(selectedWorkspace);
   };
 
   const deleteMemo = async (memoId: number) => {
@@ -1202,6 +1225,7 @@ export function useDashboardData(session: AuthSession | null) {
     memoFolderFilter,
     setMemoFolderFilter,
     loadWorkspaces,
+    loadMemosOnly,
     loadDashboard,
     flushPendingQueue,
     createTaskWithInput,

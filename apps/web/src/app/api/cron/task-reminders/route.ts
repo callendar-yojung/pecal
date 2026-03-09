@@ -3,6 +3,7 @@ import {
   dispatchDueTaskReminders,
   processTaskReminderStream,
 } from "@/lib/task-reminder-stream";
+import { createOpsEvent } from "@/lib/ops-event-log";
 import { getRedisClient, toRedisKey } from "@/lib/redis-cache";
 
 const LAST_RUN_KEY = toRedisKey("task:reminders:cron:last-run");
@@ -42,6 +43,11 @@ export async function POST(request: NextRequest) {
       processedStreamEvents,
       sentNotifications,
     };
+    await createOpsEvent({
+      eventType: "TASK_REMINDER_CRON_SUCCESS",
+      status: "success",
+      payload,
+    });
     const redis = getRedisClient();
     if (redis) {
       await redis.set(LAST_RUN_KEY, JSON.stringify(payload), "EX", 60 * 60 * 24);
@@ -54,6 +60,14 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Cron Task Reminders] failed:", error);
+    await createOpsEvent({
+      eventType: "TASK_REMINDER_CRON_FAILURE",
+      status: "failure",
+      payload: {
+        ranAt: new Date().toISOString(),
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
     const redis = getRedisClient();
     if (redis) {
       await redis.set(

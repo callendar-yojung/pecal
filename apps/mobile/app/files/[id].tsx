@@ -1,15 +1,23 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Alert, Image, Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMaybeMobileApp } from '../../src/contexts/MobileAppContext';
 import { useThemeMode } from '../../src/contexts/ThemeContext';
-import { getApiBaseUrl } from '../../src/lib/api';
+import { apiFetch, getApiBaseUrl } from '../../src/lib/api';
+import { downloadAndShareAttachment } from '../../src/lib/file-upload';
+import type { FileItem } from '../../src/lib/types';
 import { createStyles } from '../../src/styles/createStyles';
 
 function isImageFile(name: string) {
   const ext = name.split('.').pop()?.toLowerCase() ?? '';
   return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'heic', 'heif'].includes(ext);
+}
+
+function isPdfFile(name: string) {
+  return name.split('.').pop()?.toLowerCase() === 'pdf';
 }
 
 function resolveFileUrl(filePath?: string) {
@@ -38,10 +46,37 @@ export default function FileDetailPage() {
       </View>
     );
   }
-  const { data } = app;
+  const { data, auth } = app;
 
   const fileId = Number(id);
-  const file = data.files.find((item) => item.file_id === fileId);
+  const cachedFile = data.files.find((item) => item.file_id === fileId);
+  const [remoteFile, setRemoteFile] = useState<FileItem | null>(cachedFile ?? null);
+
+  useEffect(() => {
+    setRemoteFile(cachedFile ?? null);
+  }, [cachedFile]);
+
+  useEffect(() => {
+    if (cachedFile || !auth.session || Number.isNaN(fileId)) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await apiFetch<{ file?: FileItem }>(`/api/files?id=${fileId}`, auth.session);
+        if (!cancelled) {
+          setRemoteFile(response.file ?? null);
+        }
+      } catch {
+        if (!cancelled) {
+          setRemoteFile(null);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [auth.session, cachedFile, fileId]);
+
+  const file = useMemo(() => remoteFile ?? cachedFile ?? null, [cachedFile, remoteFile]);
   const fileUrl = resolveFileUrl(file?.file_path);
 
   if (!file) {
@@ -53,6 +88,7 @@ export default function FileDetailPage() {
   }
 
   const imageFile = isImageFile(file.original_name);
+  const pdfFile = isPdfFile(file.original_name);
 
   return (
     <ScrollView
@@ -83,6 +119,25 @@ export default function FileDetailPage() {
             }}
             resizeMode="contain"
           />
+        ) : pdfFile && fileUrl ? (
+          <View
+            style={{
+              overflow: 'hidden',
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: 12,
+              backgroundColor: colors.cardSoft,
+              height: 560,
+            }}
+          >
+            <WebView
+              source={{ uri: fileUrl }}
+              style={{ flex: 1, backgroundColor: colors.cardSoft }}
+              originWhitelist={['*']}
+              startInLoadingState
+              allowsInlineMediaPlayback
+            />
+          </View>
         ) : (
           <View
             style={{
@@ -106,12 +161,16 @@ export default function FileDetailPage() {
               Alert.alert('오류', '다운로드 주소가 없습니다.');
               return;
             }
-            const canOpen = await Linking.canOpenURL(fileUrl);
-            if (!canOpen) {
-              Alert.alert('오류', '파일을 열 수 없습니다.');
-              return;
+            try {
+              await downloadAndShareAttachment({
+                url: fileUrl,
+                fileName: file.original_name,
+                mimeType: file.mime_type,
+                session: auth.session,
+              });
+            } catch (error) {
+              Alert.alert('오류', error instanceof Error ? error.message : '파일을 다운로드할 수 없습니다.');
             }
-            await Linking.openURL(fileUrl);
           }}
         >
           <Text style={s.primaryButtonText}>다운로드</Text>

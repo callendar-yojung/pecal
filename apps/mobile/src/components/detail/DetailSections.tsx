@@ -1,4 +1,4 @@
-import { Pressable, Text, View } from 'react-native';
+import { Image, Pressable, Text, View } from 'react-native';
 import { useThemeMode } from '../../contexts/ThemeContext';
 
 export type DetailTagItem = {
@@ -11,15 +11,19 @@ export type DetailAttachmentItem = {
   id: number | string;
   name: string;
   sizeLabel?: string;
+  previewUrl?: string | null;
+  isImage?: boolean;
   onOpen?: () => void;
   onDownload?: () => void;
+  onRemove?: () => void;
+  removing?: boolean;
 };
 
 export function DetailSection({
   title,
   children,
 }: {
-  title: string;
+  title?: string;
   children: React.ReactNode;
 }) {
   const { resolvedMode } = useThemeMode();
@@ -27,7 +31,7 @@ export function DetailSection({
 
   return (
     <View style={{ gap: 8 }}>
-      <Text style={{ color: softColor, fontSize: 12, fontWeight: '700' }}>{title}</Text>
+      {title ? <Text style={{ color: softColor, fontSize: 12, fontWeight: '700' }}>{title}</Text> : null}
       {children}
     </View>
   );
@@ -37,7 +41,7 @@ export function DetailTagSection({
   title,
   tags,
 }: {
-  title: string;
+  title?: string;
   tags: DetailTagItem[];
 }) {
   const { resolvedMode } = useThemeMode();
@@ -71,7 +75,7 @@ export function DetailAttachmentSection({
   emptyLabel,
   attachments,
 }: {
-  title: string;
+  title?: string;
   emptyLabel: string;
   attachments: DetailAttachmentItem[];
 }) {
@@ -101,6 +105,19 @@ export function DetailAttachmentSection({
               }}
             >
               <View style={{ gap: 2 }}>
+                {attachment.isImage && attachment.previewUrl ? (
+                  <Image
+                    source={{ uri: attachment.previewUrl }}
+                    resizeMode="cover"
+                    style={{
+                      width: '100%',
+                      height: 148,
+                      borderRadius: 10,
+                      marginBottom: 6,
+                      backgroundColor: resolvedMode === 'black' ? '#0F172A' : '#E9EEF8',
+                    }}
+                  />
+                ) : null}
                 <Text style={{ color: textColor, fontSize: 14, fontWeight: '700' }}>{attachment.name}</Text>
                 {attachment.sizeLabel ? (
                   <Text style={{ color: softColor, fontSize: 12 }}>{attachment.sizeLabel}</Text>
@@ -135,6 +152,23 @@ export function DetailAttachmentSection({
                     }}
                   >
                     <Text style={{ color: textColor, fontSize: 12, fontWeight: '700' }}>다운로드</Text>
+                  </Pressable>
+                ) : null}
+                {attachment.onRemove ? (
+                  <Pressable
+                    disabled={attachment.removing}
+                    onPress={attachment.onRemove}
+                    style={{
+                      borderWidth: 1,
+                      borderColor: '#FCA5A5',
+                      borderRadius: 10,
+                      paddingHorizontal: 10,
+                      paddingVertical: 7,
+                      backgroundColor: '#FFF5F5',
+                      opacity: attachment.removing ? 0.5 : 1,
+                    }}
+                  >
+                    <Text style={{ color: '#DC2626', fontSize: 12, fontWeight: '700' }}>제거</Text>
                   </Pressable>
                 ) : null}
               </View>

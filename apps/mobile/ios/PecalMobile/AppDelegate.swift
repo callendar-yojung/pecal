@@ -1,6 +1,8 @@
 import Expo
 import React
+#if canImport(ReactAppDependencyProvider)
 import ReactAppDependencyProvider
+#endif
 
 @UIApplicationMain
 public class AppDelegate: ExpoAppDelegate {
@@ -15,7 +17,9 @@ public class AppDelegate: ExpoAppDelegate {
   ) -> Bool {
     let delegate = ReactNativeDelegate()
     let factory = ExpoReactNativeFactory(delegate: delegate)
+#if canImport(ReactAppDependencyProvider)
     delegate.dependencyProvider = RCTAppDependencyProvider()
+#endif
 
     reactNativeDelegate = delegate
     reactNativeFactory = factory

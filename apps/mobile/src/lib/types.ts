@@ -54,6 +54,18 @@ export type FileItem = {
   file_size_formatted?: string;
   file_size?: number;
   file_path?: string;
+  mime_type?: string | null;
+};
+
+export type TaskAttachmentItem = {
+  attachment_id: number | string;
+  file_id: number | string;
+  original_name: string;
+  file_size_formatted?: string;
+  file_size?: number;
+  file_path?: string;
+  preview_uri?: string;
+  mime_type?: string | null;
 };
 
 export type MemoItem = {

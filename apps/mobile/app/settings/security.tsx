@@ -37,6 +37,23 @@ function detectBrowser(userAgent?: string | null) {
   return null;
 }
 
+function prettifyAppleModelId(modelId: string) {
+  const normalized = modelId.trim();
+  const match = /^iPhone(\d+),(\d+)$/i.exec(normalized);
+  if (!match) return normalized;
+
+  const major = Number(match[1]);
+  const variant = Number(match[2]);
+  const mapping: Record<number, string> = {
+    14: 'iPhone 13',
+    15: variant >= 4 ? 'iPhone 15' : 'iPhone 14',
+    16: variant >= 3 ? 'iPhone 15 Pro' : 'iPhone 15',
+    17: 'iPhone 16',
+  };
+
+  return mapping[major] ?? normalized;
+}
+
 function detectDeviceType(item: LoginSessionItem, isKo: boolean) {
   if (item.client_platform === 'desktop') return isKo ? '데스크탑 앱' : 'Desktop app';
   if (item.client_platform === 'ios' || item.client_platform === 'android') {
@@ -57,14 +74,22 @@ function detectDeviceType(item: LoginSessionItem, isKo: boolean) {
 
 function detectHardware(item: LoginSessionItem) {
   const clientName = item.client_name?.trim();
+  const normalized = clientName?.toLowerCase();
+  const isGenericName =
+    !clientName ||
+    clientName === 'Pecal' ||
+    clientName === 'Pecal Mobile' ||
+    clientName === 'Pecal Desktop' ||
+    clientName === 'Pecal Web' ||
+    normalized === 'arm64' ||
+    normalized === 'x64' ||
+    normalized === 'x86_64' ||
+    normalized === 'simulator' ||
+    normalized === 'unknown';
   if (
-    clientName &&
-    clientName !== 'Pecal' &&
-    clientName !== 'Pecal Mobile' &&
-    clientName !== 'Pecal Desktop' &&
-    clientName !== 'Pecal Web'
+    !isGenericName
   ) {
-    return clientName;
+    return /^iPhone\d+,\d+$/i.test(clientName) ? prettifyAppleModelId(clientName) : clientName;
   }
 
   const agent = item.user_agent?.toLowerCase() ?? '';

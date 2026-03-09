@@ -1,6 +1,8 @@
 import { SignJWT } from "jose";
 import { type NextRequest, NextResponse } from "next/server";
 import { loginAdmin } from "@/lib/admin";
+import { createAdminAuditLog } from "@/lib/admin-audit-log";
+import { getAdminSecurityState, isPasswordChangeRequired, verifyAdminTotpCode } from "@/lib/admin-security";
 import {
   checkAdminLoginAllowed,
   clearAdminLoginFailures,
@@ -12,13 +14,13 @@ import { getRequiredEnv } from "@/lib/required-env";
 
 const secret = new TextEncoder().encode(getRequiredEnv("API_SECRET_KEY"));
 
-// POST /api/admin/login - 관리자 로그인
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { username, password } = body as {
+    const { username, password, otpCode } = body as {
       username?: string;
       password?: string;
+      otpCode?: string;
     };
 
     if (!username || !password) {
@@ -40,9 +42,7 @@ export async function POST(request: NextRequest) {
       return response;
     }
 
-    // 관리자 로그인 검증
     const admin = await loginAdmin(normalizedUsername, password);
-
     if (!admin) {
       await recordAdminLoginFailure(normalizedUsername, clientIp);
       return NextResponse.json(
@@ -51,20 +51,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const security = await getAdminSecurityState(admin.admin_id);
+    const twoFactorEnabled = security?.twoFactorEnabled ?? false;
+    if (twoFactorEnabled) {
+      if (!otpCode?.trim()) {
+        return NextResponse.json(
+          { error: "2FA_CODE_REQUIRED", requiresTwoFactor: true },
+          { status: 401 },
+        );
+      }
+
+      const verified = await verifyAdminTotpCode(admin.admin_id, otpCode.trim());
+      if (!verified) {
+        await recordAdminLoginFailure(normalizedUsername, clientIp);
+        return NextResponse.json(
+          { error: "2FA_CODE_INVALID", requiresTwoFactor: true },
+          { status: 401 },
+        );
+      }
+    }
+
     await clearAdminLoginFailures(normalizedUsername, clientIp);
 
-    // JWT 토큰 생성
+    const requiresPasswordChange = isPasswordChangeRequired({
+      passwordChangedAt: security?.passwordChangedAt ?? admin.password_changed_at ?? null,
+      forcePasswordChange: security?.forcePasswordChange ?? admin.force_password_change ?? false,
+    });
+
     const token = await new SignJWT({
       admin_id: admin.admin_id,
       username: admin.username,
-      role: admin.role,
+      role: security?.role ?? admin.role,
       type: "admin",
+      must_change_password: requiresPasswordChange,
     })
       .setProtectedHeader({ alg: "HS256" })
       .setExpirationTime("24h")
       .sign(secret);
 
-    // 쿠키에 토큰 저장
     const response = NextResponse.json({
       success: true,
       admin: {
@@ -72,16 +96,32 @@ export async function POST(request: NextRequest) {
         username: admin.username,
         name: admin.name,
         email: admin.email,
-        role: admin.role,
+        role: security?.role ?? admin.role,
       },
+      requiresPasswordChange,
+      twoFactorEnabled,
     });
 
     response.cookies.set("admin_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 60 * 60 * 24, // 24시간
+      maxAge: 60 * 60 * 24,
       path: "/",
+    });
+
+    await createAdminAuditLog({
+      adminId: admin.admin_id,
+      action: "ADMIN_LOGIN",
+      targetType: "AUTH",
+      targetId: admin.admin_id,
+      ip: clientIp,
+      payload: {
+        username: admin.username,
+        role: security?.role ?? admin.role,
+        twoFactorEnabled,
+        requiresPasswordChange,
+      },
     });
 
     return response;

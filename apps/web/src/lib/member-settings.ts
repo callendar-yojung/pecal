@@ -12,6 +12,28 @@ type MemberConsentPatch = {
   marketing_consent?: boolean;
 };
 
+export interface MemberConsentHistoryItem {
+  historyId: number;
+  memberId: number;
+  consentType: "privacy" | "marketing";
+  previousValue: boolean;
+  currentValue: boolean;
+  changedByType: "member" | "admin" | "system";
+  changedById: number | null;
+  changedAt: string;
+}
+
+type MemberConsentHistoryRow = RowDataPacket & {
+  consent_history_id: number;
+  member_id: number;
+  consent_type: "privacy" | "marketing";
+  previous_value: number;
+  current_value: number;
+  changed_by_type: "member" | "admin" | "system";
+  changed_by_id: number | null;
+  changed_at: string;
+};
+
 let ensureTablePromise: Promise<void> | null = null;
 
 async function ensureMemberSettingsTable() {
@@ -24,6 +46,23 @@ async function ensureMemberSettingsTable() {
           marketing_consent TINYINT(1) NOT NULL DEFAULT 0,
           updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           CONSTRAINT fk_member_settings_member
+            FOREIGN KEY (member_id) REFERENCES members(member_id)
+            ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      await pool.execute(`
+        CREATE TABLE IF NOT EXISTS member_consent_history (
+          consent_history_id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          member_id BIGINT NOT NULL,
+          consent_type ENUM('privacy', 'marketing') NOT NULL,
+          previous_value TINYINT(1) NOT NULL,
+          current_value TINYINT(1) NOT NULL,
+          changed_by_type ENUM('member', 'admin', 'system') NOT NULL DEFAULT 'member',
+          changed_by_id BIGINT NULL,
+          changed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          KEY idx_member_consent_history_member_changed (member_id, changed_at),
+          KEY idx_member_consent_history_type_changed (consent_type, changed_at),
+          CONSTRAINT fk_member_consent_history_member
             FOREIGN KEY (member_id) REFERENCES members(member_id)
             ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
@@ -60,11 +99,40 @@ export async function getMemberConsents(memberId: number): Promise<{
   };
 }
 
+async function createConsentHistoryEntry(params: {
+  memberId: number;
+  consentType: "privacy" | "marketing";
+  previousValue: boolean;
+  currentValue: boolean;
+  changedByType?: "member" | "admin" | "system";
+  changedById?: number | null;
+}) {
+  await pool.execute<ResultSetHeader>(
+    `INSERT INTO member_consent_history
+      (member_id, consent_type, previous_value, current_value, changed_by_type, changed_by_id)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [
+      params.memberId,
+      params.consentType,
+      params.previousValue ? 1 : 0,
+      params.currentValue ? 1 : 0,
+      params.changedByType ?? "member",
+      params.changedById ?? null,
+    ],
+  );
+}
+
 export async function upsertMemberConsents(
   memberId: number,
   patch: MemberConsentPatch,
+  options?: {
+    changedByType?: "member" | "admin" | "system";
+    changedById?: number | null;
+  },
 ) {
   await ensureMemberSettingsTable();
+
+  const previous = await getMemberConsents(memberId);
 
   const privacyValue =
     patch.privacy_consent === undefined
@@ -88,6 +156,63 @@ export async function upsertMemberConsents(
     [memberId, privacyValue, marketingValue],
   );
 
-  return getMemberConsents(memberId);
+  const current = await getMemberConsents(memberId);
+
+  if (
+    patch.privacy_consent !== undefined &&
+    previous.privacy_consent !== current.privacy_consent
+  ) {
+    await createConsentHistoryEntry({
+      memberId,
+      consentType: "privacy",
+      previousValue: previous.privacy_consent,
+      currentValue: current.privacy_consent,
+      changedByType: options?.changedByType,
+      changedById: options?.changedById,
+    });
+  }
+
+  if (
+    patch.marketing_consent !== undefined &&
+    previous.marketing_consent !== current.marketing_consent
+  ) {
+    await createConsentHistoryEntry({
+      memberId,
+      consentType: "marketing",
+      previousValue: previous.marketing_consent,
+      currentValue: current.marketing_consent,
+      changedByType: options?.changedByType,
+      changedById: options?.changedById,
+    });
+  }
+
+  return current;
 }
 
+export async function listMemberConsentHistory(
+  memberId: number,
+  limit = 50,
+): Promise<MemberConsentHistoryItem[]> {
+  await ensureMemberSettingsTable();
+  const safeLimit = Math.max(1, Math.min(200, Math.trunc(limit)));
+  const [rows] = await pool.query<MemberConsentHistoryRow[]>(
+    `SELECT consent_history_id, member_id, consent_type, previous_value, current_value,
+            changed_by_type, changed_by_id, changed_at
+     FROM member_consent_history
+     WHERE member_id = ?
+     ORDER BY changed_at DESC
+     LIMIT ${safeLimit}`,
+    [memberId],
+  );
+
+  return rows.map((row) => ({
+    historyId: Number(row.consent_history_id),
+    memberId: Number(row.member_id),
+    consentType: row.consent_type,
+    previousValue: Number(row.previous_value) === 1,
+    currentValue: Number(row.current_value) === 1,
+    changedByType: row.changed_by_type,
+    changedById: row.changed_by_id === null ? null : Number(row.changed_by_id),
+    changedAt: row.changed_at,
+  }));
+}

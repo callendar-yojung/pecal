@@ -54,16 +54,19 @@ export function useAuth() {
   const [authLoading, setAuthLoading] = useState<OAuthProvider | null>(null);
   const [error, setError] = useState<string | null>(null);
   const refreshPromiseRef = useRef<Promise<AuthSession | null> | null>(null);
+  const sessionRef = useRef<AuthSession | null>(null);
 
   const callbackUrl = useMemo(() => 'myapp://auth/callback', []);
 
   const persistSession = async (next: AuthSession | null) => {
     if (next) {
       await saveSession(next);
+      sessionRef.current = next;
       setSession(next);
       return;
     }
     await clearSession();
+    sessionRef.current = null;
     setSession(null);
   };
 
@@ -74,11 +77,17 @@ export function useAuth() {
 
     const job = (async () => {
       try {
+        const latestSession = sessionRef.current;
+        const refreshSeed =
+          latestSession && latestSession.memberId === baseSession.memberId ? latestSession : baseSession;
         const base = getApiBaseUrl();
         const res = await fetch(`${base}/api/auth/external/refresh`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh_token: baseSession.refreshToken }),
+          headers: {
+            'Content-Type': 'application/json',
+            ...getMobileClientHeaders(),
+          },
+          body: JSON.stringify({ refresh_token: refreshSeed.refreshToken }),
         });
 
         if (!res.ok) {
@@ -95,7 +104,7 @@ export function useAuth() {
         }
 
         const next: AuthSession = {
-          ...baseSession,
+          ...refreshSeed,
           accessToken: data.accessToken,
           refreshToken: data.refreshToken,
         };
@@ -166,6 +175,7 @@ export function useAuth() {
     try {
       const stored = await loadSession();
       if (stored) {
+        sessionRef.current = stored;
         const validated = await validateSession(stored);
         if (validated) setSession(validated);
       }
@@ -267,15 +277,19 @@ export function useAuth() {
   };
 
   useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
+  useEffect(() => {
     setApiAuthHandlers({
-      getSession: () => session,
+      getSession: () => sessionRef.current,
       refreshSession,
       onAuthFailure: (reason) => {
         void forceLogout(reason);
       },
     });
     return () => setApiAuthHandlers(null);
-  }, [session, refreshSession, forceLogout]);
+  }, [refreshSession, forceLogout]);
 
   return {
     session,

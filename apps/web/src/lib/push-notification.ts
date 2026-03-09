@@ -1,4 +1,5 @@
 import { deactivatePushTokens, isLikelyExpoPushToken } from "./push-token";
+import { createOpsEvent } from "@/lib/ops-event-log";
 
 interface ExpoPushMessage {
   to: string;
@@ -36,6 +37,7 @@ export async function sendExpoPushNotifications(
   if (validMessages.length === 0) return { sent: 0, invalidTokens: [] };
 
   let sent = 0;
+  let failed = 0;
   const invalidTokens: string[] = [];
   const tokenIndex = new Map<string, string>();
   for (const msg of validMessages) tokenIndex.set(msg.to, msg.to);
@@ -56,6 +58,7 @@ export async function sendExpoPushNotifications(
 
       if (!res.ok) {
         const text = await res.text();
+        failed += payload.length;
         console.error("[push] Expo send failed:", res.status, text);
         continue;
       }
@@ -63,6 +66,7 @@ export async function sendExpoPushNotifications(
       const json = (await res.json()) as { data?: ExpoPushTicket[] };
       const tickets = json.data ?? [];
       sent += tickets.filter((ticket) => ticket.status === "ok").length;
+      failed += tickets.filter((ticket) => ticket.status === "error").length;
 
       for (let i = 0; i < tickets.length; i += 1) {
         const ticket = tickets[i];
@@ -75,6 +79,7 @@ export async function sendExpoPushNotifications(
         }
       }
     } catch (error) {
+      failed += payload.length;
       console.error("[push] Expo send error:", error);
     }
   }
@@ -83,6 +88,17 @@ export async function sendExpoPushNotifications(
   if (uniqueInvalidTokens.length > 0) {
     await deactivatePushTokens(uniqueInvalidTokens);
   }
+
+  await createOpsEvent({
+    eventType: "PUSH_BATCH",
+    status: failed > 0 ? "failure" : "success",
+    payload: {
+      attempted: validMessages.length,
+      sent,
+      failed,
+      invalidTokens: uniqueInvalidTokens.length,
+    },
+  });
 
   return { sent, invalidTokens: uniqueInvalidTokens };
 }

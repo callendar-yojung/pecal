@@ -16,7 +16,7 @@ export default function MemoTab() {
     if (!data.selectedWorkspace) return;
     setRefreshing(true);
     try {
-      await data.loadDashboard(data.selectedWorkspace);
+      await data.loadMemosOnly(data.selectedWorkspace);
     } finally {
       setRefreshing(false);
     }

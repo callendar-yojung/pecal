@@ -1,39 +1,17 @@
-import { jwtVerify } from "jose";
 import { type NextRequest, NextResponse } from "next/server";
+import { createAdminAuditLogFromRequest } from "@/lib/admin-audit-log";
+import { requireAdminRole } from "@/lib/admin-auth";
 import {
   createPayPalBillingPlan,
   createPayPalProduct,
 } from "@/lib/paypal-subscription";
 import { createPlan } from "@/lib/plan";
-import { getRequiredEnv } from "@/lib/required-env";
 
-const secret = new TextEncoder().encode(getRequiredEnv("API_SECRET_KEY"));
-
-async function verifyAdminToken(request: NextRequest) {
-  const token = request.cookies.get("admin_token")?.value;
-
-  if (!token) {
-    return null;
-  }
-
-  try {
-    const { payload } = await jwtVerify(token, secret);
-    if (payload.type !== "admin") {
-      return null;
-    }
-    return payload;
-  } catch {
-    return null;
-  }
-}
-
-// POST /api/admin/plans/create-with-paypal - PayPal 구독 상품 생성 및 플랜 등록
 export async function POST(request: NextRequest) {
   try {
-    const admin = await verifyAdminToken(request);
-
-    if (!admin) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const admin = await requireAdminRole(request, ["SUPER_ADMIN", "BILLING"]);
+    if ("error" in admin) {
+      return NextResponse.json({ error: admin.error }, { status: admin.status });
     }
 
     const body = await request.json();
@@ -48,27 +26,11 @@ export async function POST(request: NextRequest) {
       interval_count = 1,
     } = body;
 
-    if (
-      !name ||
-      !description ||
-      price === undefined ||
-      !max_members ||
-      !max_storage_mb
-    ) {
-      return NextResponse.json(
-        { error: "필수 항목을 모두 입력해주세요." },
-        { status: 400 },
-      );
+    if (!name || !description || price === undefined || !max_members || !max_storage_mb) {
+      return NextResponse.json({ error: "필수 항목을 모두 입력해주세요." }, { status: 400 });
     }
 
-    // 1. PayPal 상품(Product) 생성
-    const product = await createPayPalProduct({
-      name,
-      description,
-      type: "SERVICE",
-    });
-
-    // 2. PayPal 플랜(Billing Plan) 생성
+    const product = await createPayPalProduct({ name, description, type: "SERVICE" });
     const billingPlan = await createPayPalBillingPlan({
       product_id: product.id,
       name,
@@ -78,9 +40,26 @@ export async function POST(request: NextRequest) {
       interval_unit,
       interval_count,
     });
-
-    // 3. 로컬 데이터베이스에 플랜 저장
     const planId = await createPlan(name, price, max_members, max_storage_mb);
+
+    await createAdminAuditLogFromRequest(request, {
+      adminId: Number(admin.admin_id),
+      action: "PLAN_CREATE",
+      targetType: "PLAN",
+      targetId: planId,
+      payload: {
+        name,
+        description,
+        price,
+        max_members,
+        max_storage_mb,
+        currency,
+        interval_unit,
+        interval_count,
+        paypal_product_id: product.id,
+        paypal_plan_id: billingPlan.id,
+      },
+    });
 
     return NextResponse.json({
       success: true,
@@ -92,10 +71,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("PayPal plan creation error:", error);
     return NextResponse.json(
-      {
-        error: "PayPal 구독 상품 생성 중 오류가 발생했습니다.",
-        details: error.message,
-      },
+      { error: "PayPal 구독 상품 생성 중 오류가 발생했습니다.", details: error.message },
       { status: 500 },
     );
   }

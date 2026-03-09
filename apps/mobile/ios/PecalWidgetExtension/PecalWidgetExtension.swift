@@ -142,7 +142,7 @@ struct PecalWidgetProvider: AppIntentTimelineProvider {
       payload: payload,
       selectedWorkspaceId: configuration.workspace?.id
     )
-    let next = Calendar.current.date(byAdding: .minute, value: 15, to: .now) ?? .now.addingTimeInterval(900)
+    let next = Calendar.current.date(byAdding: .minute, value: 10, to: .now) ?? .now.addingTimeInterval(600)
     return Timeline(entries: [entry], policy: .after(next))
   }
 }
@@ -364,8 +364,101 @@ struct PecalWidgetEntryView: View {
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
   }
 
+  private var lockScreenTasks: [PecalWidgetTask] {
+    todayTasks(for: activeWorkspace)
+  }
+
+  private var closestTask: PecalWidgetTask? {
+    let now = Date()
+    let datedTasks = lockScreenTasks.compactMap { task -> (PecalWidgetTask, Date, Date)? in
+      guard let start = parseISO(task.start_time) else { return nil }
+      let end = parseISO(task.end_time) ?? start
+      return (task, start, end)
+    }
+
+    if let active = datedTasks.first(where: { _, start, end in
+      start <= now && end >= now
+    }) {
+      return active.0
+    }
+
+    return datedTasks.min { lhs, rhs in
+      let leftDistance = abs(lhs.1.timeIntervalSince(now))
+      let rightDistance = abs(rhs.1.timeIntervalSince(now))
+      if leftDistance == rightDistance {
+        return lhs.1 < rhs.1
+      }
+      return leftDistance < rightDistance
+    }?.0
+  }
+
+  @ViewBuilder
+  private func accessoryInlineView() -> some View {
+    if let task = closestTask {
+      Text("\(workspaceName) · \(task.title)")
+    } else {
+      Text("\(workspaceName) · 오늘 일정 없음")
+    }
+  }
+
+  @ViewBuilder
+  private func accessoryCircularView() -> some View {
+    ZStack {
+      Circle()
+        .fill(Color.blue.opacity(0.14))
+      VStack(spacing: 1) {
+        Text("\(lockScreenTasks.count)")
+          .font(.system(size: 14, weight: .bold))
+        Text("TODAY")
+          .font(.system(size: 6, weight: .semibold))
+      }
+      .foregroundStyle(primaryTextColor)
+    }
+  }
+
+  @ViewBuilder
+  private func accessoryRectangularView() -> some View {
+    VStack(alignment: .leading, spacing: 4) {
+      HStack(spacing: 6) {
+        Image(systemName: "calendar")
+          .font(.system(size: 11, weight: .semibold))
+        Text(workspaceName)
+          .font(.system(size: 11, weight: .bold))
+          .lineLimit(1)
+        Spacer(minLength: 0)
+        Text("\(lockScreenTasks.count)개")
+          .font(.system(size: 10, weight: .semibold))
+          .foregroundStyle(.secondary)
+      }
+
+      if let task = closestTask {
+        Text(task.title)
+          .font(.system(size: 12, weight: .bold))
+          .lineLimit(1)
+        Text(timeLabel(task))
+          .font(.system(size: 10, weight: .semibold))
+          .foregroundStyle(.secondary)
+      } else {
+        Text("오늘 일정이 없습니다.")
+          .font(.system(size: 11, weight: .semibold))
+          .foregroundStyle(.secondary)
+      }
+    }
+  }
+
+  private var deepLinkURL: URL? {
+    guard let task = closestTask else { return nil }
+    return URL(string: "myapp://tasks/\(task.id)")
+  }
+
   var body: some View {
-    if family == .systemLarge {
+    if family == .accessoryInline {
+      accessoryInlineView()
+    } else if family == .accessoryCircular {
+      accessoryCircularView()
+    } else if family == .accessoryRectangular {
+      accessoryRectangularView()
+    } else if family == .systemLarge {
       ZStack {
         widgetBgColor
 
@@ -402,39 +495,44 @@ struct PecalWidgetEntryView: View {
       .containerBackground(for: .widget) {
         widgetBgColor
       }
-    } else if family == .systemMedium {
-      if displayedWorkspaces.isEmpty {
-        mediumWorkspacePage(
-          PecalWidgetWorkspace(workspace_id: 0, workspace_name: workspaceName, tasks: todayTasks(for: activeWorkspace))
-        )
-        .containerBackground(for: .widget) { widgetBgColor }
-      } else if activeWorkspace == nil {
-        VStack(alignment: .leading, spacing: 8) {
-          Text("TODAY")
-            .font(.system(size: 12, weight: .bold))
-            .foregroundStyle(.gray)
-          Text("위젯 편집에서 워크스페이스를 선택하세요.")
-            .font(.system(size: 12, weight: .semibold))
-            .foregroundStyle(.gray)
-          Spacer(minLength: 0)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .containerBackground(for: .widget) { widgetBgColor }
-      } else if let workspace = activeWorkspace {
-        mediumWorkspacePage(workspace)
-        .containerBackground(for: .widget) { widgetBgColor }
-      }
     } else {
-      VStack(alignment: .leading, spacing: 8) {
-        Text(monthTitle)
-          .font(.headline)
-          .fontWeight(.bold)
-        Text("Large 위젯에서 월간 일정 디자인이 표시됩니다.")
-          .font(.caption2)
-          .foregroundStyle(.secondary)
+      Group {
+        if family == .systemMedium {
+          if displayedWorkspaces.isEmpty {
+            mediumWorkspacePage(
+              PecalWidgetWorkspace(workspace_id: 0, workspace_name: workspaceName, tasks: todayTasks(for: activeWorkspace))
+            )
+            .containerBackground(for: .widget) { widgetBgColor }
+          } else if activeWorkspace == nil {
+            VStack(alignment: .leading, spacing: 8) {
+              Text("TODAY")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(.gray)
+              Text("위젯 편집에서 워크스페이스를 선택하세요.")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.gray)
+              Spacer(minLength: 0)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .containerBackground(for: .widget) { widgetBgColor }
+          } else if let workspace = activeWorkspace {
+            mediumWorkspacePage(workspace)
+            .containerBackground(for: .widget) { widgetBgColor }
+          }
+        } else {
+          VStack(alignment: .leading, spacing: 8) {
+            Text(monthTitle)
+              .font(.headline)
+              .fontWeight(.bold)
+            Text("Large 위젯에서 월간 일정 디자인이 표시됩니다.")
+              .font(.caption2)
+              .foregroundStyle(.secondary)
+          }
+          .padding()
+        }
       }
-      .padding()
+      .widgetURL(deepLinkURL)
     }
   }
 
@@ -628,8 +726,8 @@ struct PecalWidgetExtension: Widget {
       PecalWidgetEntryView(entry: entry)
     }
     .configurationDisplayName("Pecal 일정")
-    .description("현재 달 캘린더와 일정 제목을 색상과 함께 보여줍니다.")
-    .supportedFamilies([.systemMedium, .systemLarge])
+    .description("오늘 일정과 월간 일정을 위젯에서 보여줍니다.")
+    .supportedFamilies([.systemMedium, .systemLarge, .accessoryInline, .accessoryCircular, .accessoryRectangular])
   }
 }
 

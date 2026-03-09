@@ -1,45 +1,24 @@
-import { jwtVerify } from "jose";
 import { type NextRequest, NextResponse } from "next/server";
 import { getDashboardStats } from "@/lib/admin";
-import { getRequiredEnv } from "@/lib/required-env";
+import { requireAdminRole } from "@/lib/admin-auth";
+import { getOpsDashboardMetrics, listRecentOpsEvents } from "@/lib/ops-event-log";
 
-const secret = new TextEncoder().encode(getRequiredEnv("API_SECRET_KEY"));
-
-async function verifyAdminToken(request: NextRequest) {
-  const token = request.cookies.get("admin_token")?.value;
-
-  if (!token) {
-    return null;
-  }
-
-  try {
-    const { payload } = await jwtVerify(token, secret);
-    if (payload.type !== "admin") {
-      return null;
-    }
-    return payload;
-  } catch {
-    return null;
-  }
-}
-
-// GET /api/admin/stats - 대시보드 통계
 export async function GET(request: NextRequest) {
   try {
-    const admin = await verifyAdminToken(request);
-
-    if (!admin) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const admin = await requireAdminRole(request, ["SUPER_ADMIN", "OPS", "BILLING"]);
+    if ("error" in admin) {
+      return NextResponse.json({ error: admin.error }, { status: admin.status });
     }
 
-    const stats = await getDashboardStats();
+    const [stats, ops, recentEvents] = await Promise.all([
+      getDashboardStats(),
+      getOpsDashboardMetrics(),
+      listRecentOpsEvents(20),
+    ]);
 
-    return NextResponse.json(stats);
+    return NextResponse.json({ ...stats, ops, recentEvents });
   } catch (error) {
     console.error("Admin stats error:", error);
-    return NextResponse.json(
-      { error: "통계 조회 중 오류가 발생했습니다." },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "통계 조회 중 오류가 발생했습니다." }, { status: 500 });
   }
 }

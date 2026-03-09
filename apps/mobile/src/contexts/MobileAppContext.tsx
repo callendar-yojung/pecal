@@ -19,6 +19,7 @@ export function MobileAppProvider({ children }: { children: React.ReactNode }) {
   const data = useDashboardData(auth.session);
   const { resolvedMode } = useThemeMode();
   const pushRegisteredMemberRef = useRef<number | null>(null);
+  const widgetFailureKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     void auth.restore();
@@ -101,7 +102,7 @@ export function MobileAppProvider({ children }: { children: React.ReactNode }) {
         })
       );
 
-      await syncWidgetData({
+      const didSync = await syncWidgetData({
         tasks: workspaceTasksMap.get(selectedWorkspace.workspace_id) ?? [],
         workspaceName: selectedWorkspace.name,
         nickname: session.nickname,
@@ -117,6 +118,40 @@ export function MobileAppProvider({ children }: { children: React.ReactNode }) {
           tasks: workspaceTasksMap.get(workspace.workspace_id) ?? [],
         })),
       });
+
+      if (didSync) {
+        widgetFailureKeyRef.current = null;
+        return;
+      }
+
+      const failureKey = `${session.memberId}:${selectedWorkspace.workspace_id}:${resolvedMode}`;
+      if (widgetFailureKeyRef.current === failureKey) {
+        return;
+      }
+      widgetFailureKeyRef.current = failureKey;
+
+      try {
+        await apiFetch(
+          "/api/mobile/client-events",
+          session,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              platform: "ios",
+              event_type: "WIDGET_SYNC_FAILURE",
+              app_version: "current",
+              payload: {
+                workspaceId: selectedWorkspace.workspace_id,
+                workspaceName: selectedWorkspace.name,
+                tasksCount: workspaceTasksMap.get(selectedWorkspace.workspace_id)?.length ?? 0,
+                theme: resolvedMode,
+              },
+            }),
+          }
+        );
+      } catch (error) {
+        console.warn("[mobile] widget sync failure log failed:", error);
+      }
     })();
   }, [auth.session, data.selectedWorkspace, data.tasks, data.workspaces, data.teamWorkspaces, data.dashboardLoading, resolvedMode]);
 

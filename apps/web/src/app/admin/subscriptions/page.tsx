@@ -17,26 +17,60 @@ interface Subscription {
 export default function AdminSubscriptionsPage() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [filter, setFilter] = useState<
     "all" | "ACTIVE" | "CANCELED" | "EXPIRED"
   >("all");
 
-  useEffect(() => {
-    const fetchSubscriptions = async () => {
-      try {
-        const response = await fetch("/api/admin/subscriptions");
-        if (response.ok) {
-          const data = await response.json();
-          setSubscriptions(data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch subscriptions:", error);
-      } finally {
-        setLoading(false);
+  const fetchSubscriptions = async () => {
+    try {
+      const response = await fetch("/api/admin/subscriptions");
+      if (response.ok) {
+        const data = await response.json();
+        setSubscriptions(data);
       }
-    };
-    fetchSubscriptions();
+    } catch (error) {
+      console.error("Failed to fetch subscriptions:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void fetchSubscriptions();
   }, []);
+
+  const handleForceStatusChange = async (
+    subscriptionId: number,
+    status: "ACTIVE" | "CANCELED" | "EXPIRED",
+  ) => {
+    setUpdatingId(subscriptionId);
+    try {
+      const response = await fetch("/api/admin/subscriptions", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          subscription_id: subscriptionId,
+          status,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        alert(data.error || "구독 상태 변경에 실패했습니다.");
+        return;
+      }
+
+      await fetchSubscriptions();
+    } catch (error) {
+      console.error("Failed to update subscription status:", error);
+      alert("구독 상태 변경 중 오류가 발생했습니다.");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   const filteredSubscriptions =
     filter === "all"
@@ -118,6 +152,9 @@ export default function AdminSubscriptionsPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   시작일
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  강제 변경
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -158,6 +195,34 @@ export default function AdminSubscriptionsPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     {new Date(sub.started_at).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void handleForceStatusChange(sub.subscription_id, "ACTIVE")}
+                        disabled={updatingId === sub.subscription_id}
+                        className="rounded-lg border border-green-200 px-3 py-1 text-xs font-semibold text-green-700 transition hover:bg-green-50 disabled:opacity-50 dark:border-green-900/40 dark:text-green-300 dark:hover:bg-green-900/10"
+                      >
+                        활성
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleForceStatusChange(sub.subscription_id, "CANCELED")}
+                        disabled={updatingId === sub.subscription_id}
+                        className="rounded-lg border border-red-200 px-3 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50 dark:border-red-900/40 dark:text-red-300 dark:hover:bg-red-900/10"
+                      >
+                        취소
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleForceStatusChange(sub.subscription_id, "EXPIRED")}
+                        disabled={updatingId === sub.subscription_id}
+                        className="rounded-lg border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                      >
+                        만료
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -3,6 +3,7 @@ import { validateRefreshSession } from "@/lib/auth-token-store";
 import { generateTokenPair, verifyToken } from "@/lib/jwt";
 import { findMemberById, isMemberLoginEnabled } from "@/lib/member";
 import { getSessionClientMeta } from "@/lib/session-client-meta";
+import { createOpsEvent } from "@/lib/ops-event-log";
 
 /**
  * POST /api/auth/external/refresh
@@ -15,6 +16,11 @@ export async function POST(request: NextRequest) {
     const { refresh_token } = body;
 
     if (!refresh_token) {
+      await createOpsEvent({
+        eventType: "AUTH_REFRESH_FAILURE",
+        status: "failure",
+        payload: { reason: "MISSING_REFRESH_TOKEN" },
+      });
       return NextResponse.json(
         { error: "refresh_token is required" },
         { status: 400 },
@@ -25,6 +31,11 @@ export async function POST(request: NextRequest) {
     const payload = await verifyToken(refresh_token);
 
     if (!payload || payload.type !== "refresh") {
+      await createOpsEvent({
+        eventType: "AUTH_REFRESH_FAILURE",
+        status: "failure",
+        payload: { reason: "INVALID_REFRESH_TOKEN" },
+      });
       return NextResponse.json(
         { error: "Invalid refresh token" },
         { status: 401 },
@@ -38,6 +49,15 @@ export async function POST(request: NextRequest) {
       memberId: payload.memberId,
     });
     if (!isStored) {
+      await createOpsEvent({
+        eventType: "AUTH_REFRESH_FAILURE",
+        status: "failure",
+        payload: {
+          reason: "REFRESH_TOKEN_REVOKED",
+          memberId: payload.memberId,
+          sessionId: payload.sid,
+        },
+      });
       return NextResponse.json(
         { error: "Refresh token revoked or expired" },
         { status: 401 },
@@ -46,6 +66,14 @@ export async function POST(request: NextRequest) {
 
     const member = await findMemberById(payload.memberId);
     if (!member || !isMemberLoginEnabled(member)) {
+      await createOpsEvent({
+        eventType: "AUTH_REFRESH_FAILURE",
+        status: "failure",
+        payload: {
+          reason: "ACCOUNT_UNAVAILABLE",
+          memberId: payload.memberId,
+        },
+      });
       return NextResponse.json(
         { error: "Account is no longer available" },
         { status: 401 },
@@ -70,6 +98,14 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Token refresh error:", error);
+    await createOpsEvent({
+      eventType: "AUTH_REFRESH_FAILURE",
+      status: "failure",
+      payload: {
+        reason: "REFRESH_EXCEPTION",
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
     return NextResponse.json(
       { error: "Token refresh failed" },
       { status: 500 },

@@ -1,11 +1,20 @@
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMaybeMobileApp } from '../../../src/contexts/MobileAppContext';
 import { useThemeMode } from '../../../src/contexts/ThemeContext';
 import { defaultTaskRangeByDate } from '../../../src/lib/date';
-import type { TaskStatus } from '../../../src/lib/types';
+import {
+  ensureAttachmentAllowed,
+  formatUploadLimitMessage,
+  pickAttachments,
+  pickImageAttachments,
+  uploadTaskAttachment,
+  type PickedAttachment,
+} from '../../../src/lib/file-upload';
+import { isUploadLimitError } from '../../../src/lib/plan-limits';
+import type { TaskAttachmentItem, TaskStatus } from '../../../src/lib/types';
 import { createStyles } from '../../../src/styles/createStyles';
 import { TaskEditorForm } from '../../../src/components/task/TaskEditorForm';
 import { apiFetch, invalidateApiCache } from '../../../src/lib/api';
@@ -31,6 +40,8 @@ export default function TaskCreatePage() {
   const [reminderMinutes, setReminderMinutes] = useState('10');
   const [saving, setSaving] = useState(false);
   const [creatingTag, setCreatingTag] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState<PickedAttachment[]>([]);
+  const [uploadingLocalIds, setUploadingLocalIds] = useState<string[]>([]);
 
   if (!app) {
     return (
@@ -41,12 +52,13 @@ export default function TaskCreatePage() {
   }
 
   const { auth, data } = app;
+  const session = auth.session;
   useEffect(() => {
     setRange(defaultTaskRangeByDate(initialDate));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.date]);
 
-  if (!auth.session) return <Redirect href="/(auth)/login" />;
+  if (!session) return <Redirect href="/(auth)/login" />;
   if (!data.selectedWorkspace) {
     return (
       <View style={s.centerScreen}>
@@ -71,11 +83,39 @@ export default function TaskCreatePage() {
         is_all_day: allDay,
         reminder_minutes: reminderMinutes ? Number(reminderMinutes) : null,
       });
-      if (!created) return;
+      if (!created.success) return;
+      if (created.taskId && pendingAttachments.length > 0) {
+        setUploadingLocalIds(pendingAttachments.map((item) => item.localId));
+        for (const attachment of pendingAttachments) {
+          await uploadTaskAttachment({
+            session,
+            workspace,
+            taskId: created.taskId,
+            attachment,
+          });
+        }
+      } else if (!created.taskId && pendingAttachments.length > 0) {
+        Alert.alert('첨부파일 보류', '오프라인으로 일정이 임시 저장되어 첨부파일은 아직 업로드되지 않았습니다.');
+      }
       router.replace('/tasks');
     } catch (error) {
-      Alert.alert('오류', error instanceof Error ? error.message : '일정을 저장하지 못했습니다.');
+      if (isUploadLimitError(error)) {
+        const details = (error as { details?: Record<string, unknown> }).details ?? {};
+        Alert.alert(
+          '업로드 제한',
+          formatUploadLimitMessage({
+            reason: typeof details.error === 'string' ? details.error : '파일 업로드 제한에 걸렸습니다.',
+            maxFileSizeBytes: Number(details.max_file_size_bytes ?? 0),
+            usedBytes: Number(details.used_bytes ?? 0),
+            limitBytes: Number(details.limit_bytes ?? 0),
+            planName: '현재 플랜',
+          }),
+        );
+      } else {
+        Alert.alert('오류', error instanceof Error ? error.message : '일정을 저장하지 못했습니다.');
+      }
     } finally {
+      setUploadingLocalIds([]);
       setSaving(false);
     }
   };
@@ -98,7 +138,7 @@ export default function TaskCreatePage() {
   const createTag = async (name: string, tagColor: string) => {
     setCreatingTag(true);
     try {
-      const result = await apiFetch<{ tag_id: number }>('/api/tags', auth.session, {
+      const result = await apiFetch<{ tag_id: number }>('/api/tags', session, {
         method: 'POST',
         body: JSON.stringify({
           name,
@@ -114,6 +154,69 @@ export default function TaskCreatePage() {
       setCreatingTag(false);
     }
   };
+
+  const attachmentItems = useMemo(
+    () =>
+      pendingAttachments.map((item) => ({
+        attachment_id: item.localId,
+        file_id: item.localId,
+        original_name: item.name,
+        file_size: item.size,
+        file_size_formatted: undefined,
+        preview_uri: item.uri,
+        mime_type: item.mimeType,
+      })),
+    [pendingAttachments],
+  );
+
+  const pickNewAttachments = async () => {
+    const handlePicked = async (picked: PickedAttachment[]) => {
+      if (!picked.length) return;
+      const accepted: typeof picked = [];
+      for (const asset of picked) {
+        const limit = await ensureAttachmentAllowed(session, workspace, asset.size);
+        if (!limit.allowed) {
+          Alert.alert(
+            '업로드 제한',
+            formatUploadLimitMessage({
+              reason: limit.reason,
+              maxFileSizeBytes: limit.maxFileSizeBytes,
+              usedBytes: limit.usedBytes,
+              limitBytes: limit.limitBytes,
+              planName: limit.planName,
+            }),
+          );
+          continue;
+        }
+        accepted.push(asset);
+      }
+      if (!accepted.length) return;
+      setPendingAttachments((prev) => {
+        const seen = new Set(prev.map((item) => item.localId));
+        return [...prev, ...accepted.filter((item) => !seen.has(item.localId))];
+      });
+    };
+
+    const openPicker = (mode: 'image' | 'file') => {
+      void (async () => {
+        try {
+          const picked = mode === 'image' ? await pickImageAttachments() : await pickAttachments();
+          await handlePicked(picked);
+        } catch (error) {
+          Alert.alert('오류', error instanceof Error ? error.message : '파일을 선택하지 못했습니다.');
+        }
+      })();
+    };
+
+    Alert.alert('첨부 추가', '추가할 항목을 선택하세요.', [
+      { text: '취소', style: 'cancel' },
+      { text: '이미지', onPress: () => openPicker('image') },
+      { text: '파일', onPress: () => openPicker('file') },
+    ]);
+  };
+
+  const removePendingAttachment = (attachmentId: number | string) =>
+    setPendingAttachments((prev) => prev.filter((item) => item.localId !== String(attachmentId)));
 
   return (
     <ScrollView
@@ -142,6 +245,11 @@ export default function TaskCreatePage() {
         onColorChange={setColor}
         onSelectedTagIdsChange={setSelectedTagIds}
         onCreateTag={createTag}
+        attachments={attachmentItems}
+        uploadingAttachmentIds={uploadingLocalIds}
+        attachmentMode="pending"
+        onPickAttachment={() => void pickNewAttachments()}
+        onRemoveAttachment={removePendingAttachment}
         onAllDayChange={setAllDay}
         onReminderMinutesChange={setReminderMinutes}
         onRruleChange={() => undefined}

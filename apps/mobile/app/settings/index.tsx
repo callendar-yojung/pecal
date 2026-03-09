@@ -6,18 +6,20 @@ import { useThemeMode } from '../../src/contexts/ThemeContext';
 import { createStyles } from '../../src/styles/createStyles';
 
 type MenuItem = {
-  key: 'profile' | 'security' | 'alarm' | 'theme';
+  key: 'profile' | 'security' | 'plan' | 'alarm' | 'theme';
+  section: 'account' | 'plan' | 'preferences';
   labelKo: string;
   labelEn: string;
   descriptionKo: string;
   descriptionEn: string;
-  route: '/settings/profile' | '/settings/security' | '/settings/alarm' | '/settings/theme';
+  route: '/settings/profile' | '/settings/security' | '/settings/plan' | '/settings/alarm' | '/settings/theme';
   icon: keyof typeof Ionicons.glyphMap;
 };
 
 const SETTINGS_ITEMS: MenuItem[] = [
   {
     key: 'profile',
+    section: 'account',
     labelKo: '프로필',
     labelEn: 'Profile',
     descriptionKo: '계정 정보와 워크스페이스 확인',
@@ -27,6 +29,7 @@ const SETTINGS_ITEMS: MenuItem[] = [
   },
   {
     key: 'security',
+    section: 'account',
     labelKo: '보안',
     labelEn: 'Security',
     descriptionKo: '로그인 기기와 세션 관리',
@@ -35,7 +38,18 @@ const SETTINGS_ITEMS: MenuItem[] = [
     icon: 'shield-checkmark-outline',
   },
   {
+    key: 'plan',
+    section: 'plan',
+    labelKo: '플랜',
+    labelEn: 'Plan',
+    descriptionKo: '플랜, 사용량, 결제 정보 관리',
+    descriptionEn: 'Manage plan, usage, and billing',
+    route: '/settings/plan',
+    icon: 'card-outline',
+  },
+  {
     key: 'alarm',
+    section: 'preferences',
     labelKo: '알람',
     labelEn: 'Alarm',
     descriptionKo: '알림/마케팅 동의 설정',
@@ -45,6 +59,7 @@ const SETTINGS_ITEMS: MenuItem[] = [
   },
   {
     key: 'theme',
+    section: 'preferences',
     labelKo: '테마',
     labelEn: 'Theme',
     descriptionKo: '시스템설정/라이트/블랙 선택',
@@ -60,6 +75,17 @@ export default function SettingsHomePage() {
   const { colors } = useThemeMode();
   const s = createStyles(colors);
   const isKo = locale === 'ko';
+  const groupedItems = {
+    account: SETTINGS_ITEMS.filter((item) => item.section === 'account'),
+    plan: SETTINGS_ITEMS.filter((item) => item.section === 'plan'),
+    preferences: SETTINGS_ITEMS.filter((item) => item.section === 'preferences'),
+  } as const;
+
+  const sectionTitle = (section: keyof typeof groupedItems) => {
+    if (section === 'account') return isKo ? '계정' : 'Account';
+    if (section === 'plan') return isKo ? '플랜' : 'Plan';
+    return isKo ? '환경설정' : 'Preferences';
+  };
 
   return (
     <ScrollView style={s.content} contentContainerStyle={s.contentContainer}>
@@ -93,35 +119,42 @@ export default function SettingsHomePage() {
           {isKo ? '설정' : 'Settings'}
         </Text>
 
-        <View style={[s.panel, { paddingHorizontal: 0, overflow: 'hidden', borderRadius: 13 }]}>
-          {SETTINGS_ITEMS.map((item, index) => (
-            <Pressable
-              key={item.key}
-              onPress={() => router.push(item.route)}
-              style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 10,
-                paddingHorizontal: 14,
-                paddingVertical: 13,
-                borderBottomWidth: index < SETTINGS_ITEMS.length - 1 ? 1 : 0,
-                borderBottomColor: colors.border,
-                backgroundColor: pressed ? `${colors.primary}10` : colors.card,
-              })}
-            >
-              <Ionicons name={item.icon} size={20} color={colors.textMuted} />
-              <View style={{ flex: 1 }}>
-                <Text style={[s.itemTitle, { fontSize: 17, fontWeight: '500' }]}>
-                  {isKo ? item.labelKo : item.labelEn}
-                </Text>
-                <Text style={s.itemMeta}>
-                  {isKo ? item.descriptionKo : item.descriptionEn}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-            </Pressable>
-          ))}
-        </View>
+        {(['account', 'plan', 'preferences'] as const).map((section) => (
+          <View key={section} style={{ gap: 8 }}>
+            <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: '700', paddingHorizontal: 4 }}>
+              {sectionTitle(section)}
+            </Text>
+            <View style={[s.panel, { paddingHorizontal: 0, overflow: 'hidden', borderRadius: 13 }]}>
+              {groupedItems[section].map((item, index) => (
+                <Pressable
+                  key={item.key}
+                  onPress={() => router.push(item.route)}
+                  style={({ pressed }) => ({
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 10,
+                    paddingHorizontal: 14,
+                    paddingVertical: 13,
+                    borderBottomWidth: index < groupedItems[section].length - 1 ? 1 : 0,
+                    borderBottomColor: colors.border,
+                    backgroundColor: pressed ? `${colors.primary}10` : colors.card,
+                  })}
+                >
+                  <Ionicons name={item.icon} size={20} color={colors.textMuted} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[s.itemTitle, { fontSize: 17, fontWeight: '500' }]}>
+                      {isKo ? item.labelKo : item.labelEn}
+                    </Text>
+                    <Text style={s.itemMeta}>
+                      {isKo ? item.descriptionKo : item.descriptionEn}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        ))}
       </View>
     </ScrollView>
   );

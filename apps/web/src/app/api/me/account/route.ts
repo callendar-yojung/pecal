@@ -188,6 +188,9 @@ export async function PATCH(request: NextRequest) {
         marketing_consent: hasMarketingConsent
           ? (marketing_consent as boolean)
           : undefined,
+      }, {
+        changedByType: "member",
+        changedById: user.memberId,
       });
     }
 

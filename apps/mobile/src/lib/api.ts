@@ -31,16 +31,30 @@ const coordinator = createRequestCoordinator();
 const SOURCE: ApiErrorSource = 'mobile';
 
 function getMobileClientName() {
+  const deviceName = Device.deviceName?.trim();
   const modelName = Device.modelName?.trim();
   const modelId = Device.modelId?.trim();
 
+  const invalidTokens = new Set(['arm64', 'x64', 'x86_64', 'simulator', 'unknown']);
+  const isInvalidName = (value?: string | null) => {
+    if (!value) return true;
+    return invalidTokens.has(value.trim().toLowerCase());
+  };
+
   // iOS modelName is often just "iPhone", which is too generic for session management.
   if (Platform.OS === 'ios') {
-    if (modelId) return modelId;
-    if (modelName) return modelName;
+    if (!isInvalidName(deviceName)) return deviceName!;
+    if (!isInvalidName(modelId)) return modelId!;
+    if (!isInvalidName(modelName)) return modelName!;
   }
 
-  const explicitModel = modelName || modelId;
+  const explicitModel = !isInvalidName(deviceName)
+    ? deviceName
+    : !isInvalidName(modelName)
+      ? modelName
+      : !isInvalidName(modelId)
+        ? modelId
+        : null;
   if (explicitModel) return explicitModel;
   return Platform.OS === 'ios' ? 'iPhone' : Platform.OS === 'android' ? 'Android' : 'Mobile';
 }
@@ -98,7 +112,8 @@ async function requestJson(
 }
 
 export async function apiFetch<T>(path: string, session: AuthSession | null, options: RequestInit = {}): Promise<T> {
-  const activeSession = session ?? authHandlers?.getSession() ?? null;
+  // Prefer the latest in-memory session over a possibly stale caller snapshot.
+  const activeSession = authHandlers?.getSession() ?? session ?? null;
   const first = await requestJson(path, activeSession, options);
 
   if (first.ok) return first.data as T;
@@ -110,7 +125,8 @@ export async function apiFetch<T>(path: string, session: AuthSession | null, opt
 
   // 401 자동 재발급 + 1회 재시도
   if (first.status === 401 && activeSession && authHandlers) {
-    const refreshed = await authHandlers.refreshSession(activeSession);
+    const refreshBaseSession = authHandlers.getSession() ?? activeSession;
+    const refreshed = await authHandlers.refreshSession(refreshBaseSession);
     if (refreshed?.accessToken) {
       const retried = await requestJson(path, refreshed, options);
       if (retried.ok) return retried.data as T;

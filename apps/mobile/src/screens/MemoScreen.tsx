@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { InteractionManager, Pressable, Text, View } from 'react-native';
 import type { MemoItem } from '../lib/types';
 import { useThemeMode } from '../contexts/ThemeContext';
 import { useI18n } from '../contexts/I18nContext';
@@ -68,11 +68,23 @@ export function MemoScreen({
   const { t } = useI18n();
   const s = createStyles(colors);
   const [pane, setPane] = useState<'list' | 'editor'>('list');
+  const [editorPreloaded, setEditorPreloaded] = useState(false);
   const statusMessage = memoConflict ? '충돌 감지됨' : memoIsSaving ? '저장 중...' : '자동 저장';
 
   useEffect(() => {
-    if (selectedMemoId) setPane('editor');
+    if (selectedMemoId) {
+      setPane('editor');
+      setEditorPreloaded(true);
+    }
   }, [selectedMemoId]);
+
+  useEffect(() => {
+    if (editorPreloaded) return;
+    const task = InteractionManager.runAfterInteractions(() => {
+      setEditorPreloaded(true);
+    });
+    return () => task.cancel();
+  }, [editorPreloaded]);
 
   const startNewMemo = async () => {
     await onClearMemoEditor();
@@ -93,20 +105,18 @@ export function MemoScreen({
         </View>
       ) : null}
 
-      {pane === 'editor' ? (
-        <MemoEditorForm
-          title={memoTitle}
-          contentJson={memoContentJson}
-          contentText={memoText}
-          saving={memoIsSaving}
-          conflict={memoConflict}
-          onTitleChange={onMemoTitleChange}
-          onContentChange={onMemoEditorChange}
-          onBackToList={() => setPane('list')}
-          onDelete={selectedMemoId !== null ? () => onDeleteMemo(selectedMemoId) : undefined}
-          onForceOverwrite={memoConflict ? () => onUpdateMemo({ force: true }) : undefined}
-        />
-      ) : (
+      <View
+        style={
+          pane === 'list'
+            ? undefined
+            : {
+                height: 0,
+                opacity: 0,
+                overflow: 'hidden',
+              }
+        }
+        pointerEvents={pane === 'list' ? 'auto' : 'none'}
+      >
         <MemoListPanel
           memos={memos}
           memoSearch={memoSearch}
@@ -127,7 +137,35 @@ export function MemoScreen({
           onToggleMemoFavorite={onToggleMemoFavorite}
           onDeleteMemo={onDeleteMemo}
         />
-      )}
+      </View>
+
+      {editorPreloaded ? (
+        <View
+          style={
+            pane === 'editor'
+              ? undefined
+              : {
+                  height: 0,
+                  opacity: 0,
+                  overflow: 'hidden',
+                }
+          }
+          pointerEvents={pane === 'editor' ? 'auto' : 'none'}
+        >
+          <MemoEditorForm
+            title={memoTitle}
+            contentJson={memoContentJson}
+            contentText={memoText}
+            saving={memoIsSaving}
+            conflict={memoConflict}
+            onTitleChange={onMemoTitleChange}
+            onContentChange={onMemoEditorChange}
+            onBackToList={() => setPane('list')}
+            onDelete={selectedMemoId !== null ? () => onDeleteMemo(selectedMemoId) : undefined}
+            onForceOverwrite={memoConflict ? () => onUpdateMemo({ force: true }) : undefined}
+          />
+        </View>
+      ) : null}
     </View>
   );
 }

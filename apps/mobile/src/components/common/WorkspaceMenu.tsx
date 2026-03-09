@@ -45,6 +45,7 @@ export function WorkspaceMenu({
   const [scope, setScope] = useState<'personal' | 'team'>('personal');
   const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
   const [workspaceName, setWorkspaceName] = useState('');
+  const [createExpanded, setCreateExpanded] = useState(false);
 
   const personalWorkspaces = useMemo(
     () => workspaces.filter((workspace) => workspace.type === 'personal'),
@@ -73,10 +74,12 @@ export function WorkspaceMenu({
     if (selectedWorkspaceType === 'team') {
       setScope('team');
       setSelectedTeamId(selectedWorkspaceOwnerId ?? teamGroups[0]?.teamId ?? null);
+      setCreateExpanded(false);
       return;
     }
     setScope('personal');
     setSelectedTeamId(teamGroups[0]?.teamId ?? null);
+    setCreateExpanded(false);
   }, [open, selectedWorkspaceOwnerId, selectedWorkspaceType, teamGroups]);
 
   const createTargetLabel = scope === 'personal' ? t('workspaceCreatePersonal') : t('workspaceCreateTeamWorkspace');
@@ -104,90 +107,134 @@ export function WorkspaceMenu({
         </Pressable>
       </View>
 
-      <View style={{ gap: 6 }}>
-        <TextInput
-          value={workspaceName}
-          onChangeText={setWorkspaceName}
-          placeholder={t('workspaceNamePlaceholder')}
-          placeholderTextColor={colors.textMuted}
-          style={s.input}
-        />
-        <Pressable
-          style={[
-            s.modeMenuCreate,
-            { opacity: canCreateWorkspace && !creatingWorkspace ? 1 : 0.5 },
-          ]}
-          disabled={!canCreateWorkspace || creatingWorkspace}
-          onPress={async () => {
-            if (!onCreateWorkspace) return;
-            await onCreateWorkspace({
-              name: workspaceName.trim(),
-              scope,
-              teamId: scope === 'team' ? selectedTeamId : null,
-            });
-            setWorkspaceName('');
+      {scope === 'team' ? (
+        <View
+          style={{
+            gap: 8,
+            padding: 12,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: colors.border,
+            backgroundColor: colors.cardSoft,
           }}
         >
-          <Text style={s.modeMenuCreateText}>
-            {creatingWorkspace ? t('workspaceCreating') : createTargetLabel}
-          </Text>
-        </Pressable>
-        {scope === 'team' && !selectedTeamId ? (
-          <Text style={s.modeMenuText}>{t('workspaceNoTeamSelected')}</Text>
-        ) : null}
-      </View>
-
-      {scope === 'team' ? (
-        <View style={s.row}>
-          {teamGroups.map((group) => (
-            <Pressable
-              key={group.teamId}
-              onPress={() => setSelectedTeamId(group.teamId)}
-              style={[
-                s.workspacePill,
-                { marginRight: 0, paddingVertical: 6, paddingHorizontal: 10 },
-                selectedTeamId === group.teamId ? s.workspacePillActive : null,
-              ]}
-            >
-              <Text style={[s.workspacePillText, selectedTeamId === group.teamId ? s.workspacePillTextActive : null]}>
-                {group.teamName}
-              </Text>
-            </Pressable>
-          ))}
-          {!teamGroups.length ? <Text style={s.modeMenuText}>팀이 없습니다.</Text> : null}
-        </View>
-      ) : null}
-
-      {visibleWorkspaces.map((workspace) => {
-        const active = selectedWorkspaceId === workspace.workspace_id;
-        return (
+          <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: '700' }}>팀 목록</Text>
+          <View style={s.row}>
+            {teamGroups.map((group) => (
+              <Pressable
+                key={group.teamId}
+                onPress={() => setSelectedTeamId(group.teamId)}
+                style={[
+                  s.workspacePill,
+                  { marginRight: 0, paddingVertical: 6, paddingHorizontal: 10 },
+                  selectedTeamId === group.teamId ? s.workspacePillActive : null,
+                ]}
+              >
+                <Text style={[s.workspacePillText, selectedTeamId === group.teamId ? s.workspacePillTextActive : null]}>
+                  {group.teamName}
+                </Text>
+              </Pressable>
+            ))}
+            {!teamGroups.length ? <Text style={s.modeMenuText}>팀이 없습니다.</Text> : null}
+          </View>
           <Pressable
-            key={workspace.workspace_id}
-            style={[s.modeMenuItem, active ? s.modeMenuItemActive : null]}
+            style={s.modeMenuCreate}
             onPress={() => {
-              onSelectWorkspace(workspace.workspace_id);
+              onOpenCreateTeam();
               onClose();
             }}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text style={[s.modeMenuText, active ? s.modeMenuTextActive : null]}>{workspace.name}</Text>
-              {active ? (
-                <Ionicons name="checkmark" size={16} color={colors.primary} />
-              ) : null}
-            </View>
+            <Text style={s.modeMenuCreateText}>{t('workspaceCreateTeam')}</Text>
           </Pressable>
-        );
-      })}
-      {!visibleWorkspaces.length ? <Text style={s.modeMenuText}>{t('noWorkspace')}</Text> : null}
-      <Pressable
-        style={s.modeMenuCreate}
-        onPress={() => {
-          onOpenCreateTeam();
-          onClose();
+        </View>
+      ) : null}
+
+      <View
+        style={{
+          gap: 8,
+          padding: 12,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: colors.border,
+          backgroundColor: colors.cardSoft,
         }}
       >
-        <Text style={s.modeMenuCreateText}>{t('workspaceCreateTeam')}</Text>
-      </Pressable>
+        <Pressable
+          onPress={() => setCreateExpanded((prev) => !prev)}
+          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+        >
+          <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: '700' }}>
+            {scope === 'personal' ? '개인 워크스페이스' : '워크스페이스 목록'}
+          </Text>
+          <Ionicons
+            name={createExpanded ? 'chevron-up' : 'chevron-down'}
+            size={18}
+            color={colors.textMuted}
+          />
+        </Pressable>
+        {visibleWorkspaces.map((workspace) => {
+          const active = selectedWorkspaceId === workspace.workspace_id;
+          return (
+            <Pressable
+              key={workspace.workspace_id}
+              style={[s.modeMenuItem, active ? s.modeMenuItemActive : null]}
+              onPress={() => {
+                onSelectWorkspace(workspace.workspace_id);
+                onClose();
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={[s.modeMenuText, active ? s.modeMenuTextActive : null]}>{workspace.name}</Text>
+                {active ? (
+                  <Ionicons name="checkmark" size={16} color={colors.primary} />
+                ) : null}
+              </View>
+            </Pressable>
+          );
+        })}
+        {!visibleWorkspaces.length ? <Text style={s.modeMenuText}>{t('noWorkspace')}</Text> : null}
+        <Pressable
+          style={s.modeMenuCreate}
+          onPress={() => setCreateExpanded((prev) => !prev)}
+        >
+          <Text style={s.modeMenuCreateText}>{createTargetLabel}</Text>
+        </Pressable>
+        {createExpanded ? (
+          <>
+            <TextInput
+              value={workspaceName}
+              onChangeText={setWorkspaceName}
+              placeholder={t('workspaceNamePlaceholder')}
+              placeholderTextColor={colors.textMuted}
+              style={s.input}
+            />
+            <Pressable
+              style={[
+                s.modeMenuCreate,
+                { opacity: canCreateWorkspace && !creatingWorkspace ? 1 : 0.5 },
+              ]}
+              disabled={!canCreateWorkspace || creatingWorkspace}
+              onPress={async () => {
+                if (!onCreateWorkspace) return;
+                await onCreateWorkspace({
+                  name: workspaceName.trim(),
+                  scope,
+                  teamId: scope === 'team' ? selectedTeamId : null,
+                });
+                setWorkspaceName('');
+                setCreateExpanded(false);
+              }}
+            >
+              <Text style={s.modeMenuCreateText}>
+                {creatingWorkspace ? t('workspaceCreating') : createTargetLabel}
+              </Text>
+            </Pressable>
+            {scope === 'team' && !selectedTeamId ? (
+              <Text style={s.modeMenuText}>{t('workspaceNoTeamSelected')}</Text>
+            ) : null}
+          </>
+        ) : null}
+      </View>
       <Pressable style={s.modeMenuLogout} onPress={onLogout}>
         <Text style={s.modeMenuLogoutText}>{t('logout')}</Text>
       </Pressable>

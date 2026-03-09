@@ -1,28 +1,23 @@
-import { jwtVerify } from "jose";
 import { type NextRequest, NextResponse } from "next/server";
-import { getRequiredEnv } from "@/lib/required-env";
+import { requireAdminToken } from "@/lib/admin-auth";
+import { getAdminSecurityState } from "@/lib/admin-security";
 
-const secret = new TextEncoder().encode(getRequiredEnv("API_SECRET_KEY"));
-
-// GET /api/admin/me - 현재 로그인한 관리자 정보
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get("admin_token")?.value;
-
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const admin = await requireAdminToken(request, { allowPasswordChangeOnly: true });
+    if ("error" in admin) {
+      return NextResponse.json({ error: admin.error }, { status: admin.status });
     }
 
-    const { payload } = await jwtVerify(token, secret);
-
-    if (payload.type !== "admin") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const security = await getAdminSecurityState(Number(admin.admin_id));
 
     return NextResponse.json({
-      admin_id: payload.admin_id,
-      username: payload.username,
-      role: payload.role,
+      admin_id: admin.admin_id,
+      username: admin.username,
+      role: security?.role ?? admin.role,
+      requiresPasswordChange: security?.requiresPasswordChange ?? admin.must_change_password === true,
+      twoFactorEnabled: security?.twoFactorEnabled ?? false,
+      passwordChangedAt: security?.passwordChangedAt ?? null,
     });
   } catch (error) {
     console.error("Admin auth error:", error);
