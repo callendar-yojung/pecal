@@ -3,7 +3,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, getApiBaseUrl, getMobileClientHeaders, setApiAuthHandlers } from '../lib/api';
 import { clearSession, loadSession, saveSession } from '../lib/auth-storage';
-import type { AuthSession, OAuthProvider } from '../lib/types';
+import type { AuthProvider, AuthSession, OAuthProvider } from '../lib/types';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -15,7 +15,7 @@ function parseAuthCallback(url: string): AuthSession | null {
   const refreshToken = String(params.refreshToken ?? '');
   const memberId = Number(params.memberId ?? 0);
   const nickname = String(params.nickname ?? 'User');
-  const provider = String(params.provider ?? 'kakao') as OAuthProvider;
+  const provider = String(params.provider ?? 'kakao') as AuthProvider;
   const email = params.email ? String(params.email) : undefined;
 
   if (!accessToken || !refreshToken || !memberId) return null;
@@ -33,7 +33,7 @@ function parseAuthCallbackFromQuery(params: Record<string, string | string[] | u
   const refreshToken = String(get('refreshToken') ?? '');
   const memberId = Number(get('memberId') ?? 0);
   const nickname = String(get('nickname') ?? 'User');
-  const provider = String(get('provider') ?? 'kakao') as OAuthProvider;
+  const provider = String(get('provider') ?? 'kakao') as AuthProvider;
   const email = get('email') ? String(get('email')) : undefined;
 
   if (!accessToken || !refreshToken || !memberId) return null;
@@ -51,7 +51,7 @@ function toFriendlyOAuthError(error: string) {
 export function useAuth() {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [loading, setLoading] = useState(true);
-  const [authLoading, setAuthLoading] = useState<OAuthProvider | null>(null);
+  const [authLoading, setAuthLoading] = useState<OAuthProvider | 'local-login' | 'local-register' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const refreshPromiseRef = useRef<Promise<AuthSession | null> | null>(null);
   const sessionRef = useRef<AuthSession | null>(null);
@@ -237,6 +237,146 @@ export function useAuth() {
     }
   };
 
+  const loginWithPassword = async (params: {
+    loginId: string;
+    password: string;
+  }) => {
+    try {
+      setError(null);
+      setAuthLoading('local-login');
+      const base = getApiBaseUrl();
+      const response = await fetch(`${base}/api/auth/external/local/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getMobileClientHeaders(),
+        },
+        body: JSON.stringify({
+          login_id: params.loginId,
+          password: params.password,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        setError(String(data.error ?? '로그인에 실패했습니다.'));
+        return;
+      }
+
+      await persistSession({
+        accessToken: String(data.accessToken),
+        refreshToken: String(data.refreshToken),
+        memberId: Number(data.user.memberId),
+        nickname: String(data.user.nickname ?? 'User'),
+        email: data.user.email ? String(data.user.email) : undefined,
+        provider: 'local',
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '로그인에 실패했습니다.');
+    } finally {
+      setAuthLoading(null);
+    }
+  };
+
+  const registerWithPassword = async (params: {
+    loginId: string;
+    password: string;
+    nickname: string;
+    email: string;
+  }) => {
+    try {
+      setError(null);
+      setAuthLoading('local-register');
+      const base = getApiBaseUrl();
+      const response = await fetch(`${base}/api/auth/external/local/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getMobileClientHeaders(),
+        },
+        body: JSON.stringify({
+          login_id: params.loginId,
+          password: params.password,
+          nickname: params.nickname,
+          email: params.email,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        setError(String(data.error ?? '회원가입에 실패했습니다.'));
+        return;
+      }
+
+      await persistSession({
+        accessToken: String(data.accessToken),
+        refreshToken: String(data.refreshToken),
+        memberId: Number(data.user.memberId),
+        nickname: String(data.user.nickname ?? params.nickname),
+        email: data.user.email ? String(data.user.email) : undefined,
+        provider: 'local',
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '회원가입에 실패했습니다.');
+    } finally {
+      setAuthLoading(null);
+    }
+  };
+
+  const checkLocalAvailability = async (params: {
+    loginId?: string;
+    nickname?: string;
+  }) => {
+    const base = getApiBaseUrl();
+    const query = new URLSearchParams();
+    if (params.loginId) query.set('login_id', params.loginId);
+    if (params.nickname) query.set('nickname', params.nickname);
+
+    const response = await fetch(`${base}/api/auth/local/availability?${query.toString()}`, {
+      headers: getMobileClientHeaders(),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(String(data.error ?? '중복 확인에 실패했습니다.'));
+    }
+    return data as {
+      loginId?: { available: boolean; message: string };
+      nickname?: { available: boolean; message: string };
+    };
+  };
+
+  const sendRegisterVerificationCode = async (email: string) => {
+    const base = getApiBaseUrl();
+    const response = await fetch(`${base}/api/auth/local/email/send-code`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getMobileClientHeaders(),
+      },
+      body: JSON.stringify({ email }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(String(data.error ?? '인증 코드를 보내지 못했습니다.'));
+    }
+  };
+
+  const verifyRegisterVerificationCode = async (email: string, code: string) => {
+    const base = getApiBaseUrl();
+    const response = await fetch(`${base}/api/auth/local/email/verify-code`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getMobileClientHeaders(),
+      },
+      body: JSON.stringify({ email, code }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(String(data.error ?? '인증 코드 확인에 실패했습니다.'));
+    }
+  };
+
   const logout = async () => {
     if (session) {
       try {
@@ -299,6 +439,11 @@ export function useAuth() {
     setError,
     restore,
     login,
+    loginWithPassword,
+    registerWithPassword,
+    checkLocalAvailability,
+    sendRegisterVerificationCode,
+    verifyRegisterVerificationCode,
     logout,
     updateSessionProfile,
     applyAuthCallbackParams,

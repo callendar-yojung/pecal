@@ -1,3 +1,4 @@
+import bcrypt from "bcryptjs";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import pool from "./db";
 
@@ -5,6 +6,8 @@ export interface Member {
   member_id: number;
   provider: string | null;
   provider_id: string | null;
+  login_id?: string | null;
+  password_hash?: string | null;
   created_at: Date | null;
   lasted_at: Date | null;
   email: string | null;
@@ -12,6 +15,8 @@ export interface Member {
   nickname: string | null;
   profile_image_url?: string | null;
 }
+
+let ensureMemberLocalAuthSchemaPromise: Promise<void> | null = null;
 
 function isDuplicateEntryError(error: unknown): error is { code: string } {
   return (
@@ -21,6 +26,54 @@ function isDuplicateEntryError(error: unknown): error is { code: string } {
     typeof (error as { code?: unknown }).code === "string" &&
     (error as { code: string }).code === "ER_DUP_ENTRY"
   );
+}
+
+async function execIgnoreDuplicate(sql: string) {
+  try {
+    await pool.execute(sql);
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Duplicate column name")) {
+      return;
+    }
+    if (error instanceof Error && error.message.includes("Duplicate key name")) {
+      return;
+    }
+    throw error;
+  }
+}
+
+export async function ensureMemberLocalAuthSchema() {
+  if (!ensureMemberLocalAuthSchemaPromise) {
+    ensureMemberLocalAuthSchemaPromise = (async () => {
+      await execIgnoreDuplicate(
+        "ALTER TABLE members ADD COLUMN login_id VARCHAR(64) NULL AFTER provider_id",
+      );
+      await execIgnoreDuplicate(
+        "ALTER TABLE members ADD COLUMN password_hash VARCHAR(255) NULL AFTER login_id",
+      );
+      await execIgnoreDuplicate(
+        "ALTER TABLE members ADD UNIQUE KEY ux_members_login_id (login_id)",
+      );
+    })();
+  }
+
+  await ensureMemberLocalAuthSchemaPromise;
+}
+
+export function normalizeLoginId(loginId: string) {
+  return loginId.trim().toLowerCase();
+}
+
+export function isValidLoginId(loginId: string) {
+  return /^[a-z0-9][a-z0-9._-]{3,31}$/.test(normalizeLoginId(loginId));
+}
+
+export function isValidMemberPassword(password: string) {
+  return password.length >= 8 && /[^A-Za-z0-9]/.test(password);
+}
+
+export function isValidMemberEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim().toLowerCase());
 }
 
 function generateRandomNickname(locale: "ko" | "en"): string {
@@ -245,6 +298,24 @@ export async function updateMemberLastLogin(memberId: number): Promise<void> {
   ]);
 }
 
+export async function findMemberByLoginId(
+  loginId: string,
+): Promise<Member | null> {
+  await ensureMemberLocalAuthSchema();
+  const normalized = normalizeLoginId(loginId);
+  if (!normalized) return null;
+
+  const [rows] = await pool.execute<RowDataPacket[]>(
+    "SELECT * FROM members WHERE login_id = ? LIMIT 1",
+    [normalized],
+  );
+  return (rows[0] as Member) || null;
+}
+
+export async function isLoginIdTaken(loginId: string): Promise<boolean> {
+  return (await findMemberByLoginId(loginId)) !== null;
+}
+
 export async function updateMemberNickname(
   memberId: number,
   nickname: string,
@@ -275,6 +346,117 @@ export async function findOrCreateMember(
   return createMember(provider, providerId, email, profileImageUrl, locale);
 }
 
+export async function createLocalMember(params: {
+  loginId: string;
+  password: string;
+  nickname: string;
+  email: string;
+}): Promise<Member> {
+  await ensureMemberLocalAuthSchema();
+
+  const loginId = normalizeLoginId(params.loginId);
+  const nickname = params.nickname.trim();
+  const email = params.email.trim().toLowerCase();
+  const passwordHash = await bcrypt.hash(params.password, 10);
+  const existing = await findMemberByLoginId(loginId);
+
+  if (existing) {
+    throw new Error("이미 사용 중인 아이디입니다.");
+  }
+  if (isNicknameReserved(nickname)) {
+    throw new Error("사용할 수 없는 닉네임입니다.");
+  }
+  if (await isNicknameTaken(nickname)) {
+    throw new Error("이미 사용 중인 닉네임입니다.");
+  }
+  if (!isValidMemberEmail(email)) {
+    throw new Error("이메일 형식이 올바르지 않습니다.");
+  }
+  if (await isEmailTaken(email)) {
+    throw new Error("이미 사용 중인 이메일입니다.");
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    const now = new Date();
+    const [insertResult] = await connection.execute<ResultSetHeader>(
+      `INSERT INTO members (
+        provider,
+        provider_id,
+        login_id,
+        password_hash,
+        email,
+        nickname,
+        profile_image_url,
+        created_at,
+        lasted_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        "local",
+        loginId,
+        loginId,
+        passwordHash,
+        email,
+        nickname,
+        null,
+        now,
+        now,
+      ],
+    );
+
+    await connection.execute(
+      `INSERT INTO workspaces (type, owner_id, name, created_by, created_at)
+       VALUES ('personal', ?, ?, ?, NOW())`,
+      [insertResult.insertId, `${nickname}의 워크스페이스`, insertResult.insertId],
+    );
+
+    await connection.commit();
+
+    return {
+      member_id: insertResult.insertId,
+      provider: "local",
+      provider_id: loginId,
+      login_id: loginId,
+      password_hash: passwordHash,
+      email,
+      nickname,
+      phone_number: null,
+      created_at: now,
+      lasted_at: now,
+      profile_image_url: null,
+    };
+  } catch (error) {
+    await connection.rollback();
+    if (isDuplicateEntryError(error)) {
+      throw new Error("이미 사용 중인 아이디 또는 닉네임입니다.");
+    }
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function verifyLocalMemberLogin(params: {
+  loginId: string;
+  password: string;
+}): Promise<Member | null> {
+  await ensureMemberLocalAuthSchema();
+  const member = await findMemberByLoginId(params.loginId);
+  if (!member || member.provider !== "local" || !member.password_hash) {
+    return null;
+  }
+
+  const matches = await bcrypt.compare(params.password, member.password_hash);
+  if (!matches) {
+    return null;
+  }
+
+  await updateMemberLastLogin(member.member_id);
+  return member;
+}
+
 export async function updateMemberProfileImage(
   memberId: number,
   profileImageUrl: string | null,
@@ -294,6 +476,21 @@ export async function isNicknameTaken(
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT member_id FROM members WHERE nickname = ? LIMIT 1`,
     [trimmed],
+  );
+  if (rows.length === 0) return false;
+  if (excludeMemberId && rows[0].member_id === excludeMemberId) return false;
+  return true;
+}
+
+export async function isEmailTaken(
+  email: string,
+  excludeMemberId?: number,
+): Promise<boolean> {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return false;
+  const [rows] = await pool.execute<RowDataPacket[]>(
+    `SELECT member_id FROM members WHERE email = ? LIMIT 1`,
+    [normalized],
   );
   if (rows.length === 0) return false;
   if (excludeMemberId && rows[0].member_id === excludeMemberId) return false;

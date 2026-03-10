@@ -25,6 +25,46 @@ export type LoginSessionItem = {
 }
 
 export const authApi = {
+  loginWithPassword: (loginId: string, password: string) =>
+    apiClient.post<AuthResponse>('/api/auth/external/local/login', {
+      login_id: loginId,
+      password,
+    }),
+
+  registerWithPassword: (
+    loginId: string,
+    password: string,
+    nickname: string,
+    email: string,
+  ) =>
+    apiClient.post<AuthResponse>('/api/auth/external/local/register', {
+      login_id: loginId,
+      password,
+      nickname,
+      email,
+    }),
+
+  sendRegisterVerificationCode: (email: string) =>
+    apiClient.post<{ success: boolean }>('/api/auth/local/email/send-code', {
+      email,
+    }),
+
+  verifyRegisterVerificationCode: (email: string, code: string) =>
+    apiClient.post<{ success: boolean }>('/api/auth/local/email/verify-code', {
+      email,
+      code,
+    }),
+
+  checkLocalAvailability: (params: { loginId?: string; nickname?: string }) => {
+    const query = new URLSearchParams()
+    if (params.loginId) query.set('login_id', params.loginId)
+    if (params.nickname) query.set('nickname', params.nickname)
+    return apiClient.get<{
+      loginId?: { available: boolean; message: string }
+      nickname?: { available: boolean; message: string }
+    }>(`/api/auth/local/availability?${query.toString()}`)
+  },
+
   loginWithKakao: (accessToken: string) => {
     console.log('🔑 Kakao Login API Call:', {
       accessToken: accessToken.substring(0, 20) + '...',

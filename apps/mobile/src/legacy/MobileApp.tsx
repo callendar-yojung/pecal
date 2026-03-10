@@ -53,7 +53,18 @@ export function MobileApp() {
   }
 
   if (!auth.session) {
-    return <LoginScreen error={auth.error} authLoading={auth.authLoading} onLogin={auth.login} />;
+    return (
+      <LoginScreen
+        error={auth.error}
+        authLoading={auth.authLoading}
+        onLogin={auth.login}
+        onLocalLogin={auth.loginWithPassword}
+        onLocalRegister={auth.registerWithPassword}
+        onCheckLocalAvailability={auth.checkLocalAvailability}
+        onSendRegisterVerificationCode={auth.sendRegisterVerificationCode}
+        onVerifyRegisterVerificationCode={auth.verifyRegisterVerificationCode}
+      />
+    );
   }
 
   const tabItems: Array<{ key: MainTab; label: string; icon: keyof typeof Ionicons.glyphMap; center?: boolean }> = [

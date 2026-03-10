@@ -2,10 +2,11 @@ import { cookies } from "next/headers";
 import NextAuth from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import Apple from "next-auth/providers/apple";
+import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import Kakao from "next-auth/providers/kakao";
 import { createSessionId, storeBrowserSession } from "./lib/auth-token-store";
-import { findOrCreateMember } from "./lib/member";
+import { findOrCreateMember, verifyLocalMemberLogin } from "./lib/member";
 import { getRequiredEnv } from "./lib/required-env";
 
 declare module "next-auth" {
@@ -67,6 +68,30 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       clientId: getRequiredEnv("AUTH_GOOGLE_ID"),
       clientSecret: getRequiredEnv("AUTH_GOOGLE_SECRET"),
     }),
+    Credentials({
+      name: "Credentials",
+      credentials: {
+        loginId: { label: "Login ID", type: "text" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        const loginId =
+          typeof credentials?.loginId === "string" ? credentials.loginId : "";
+        const password =
+          typeof credentials?.password === "string" ? credentials.password : "";
+        const member = await verifyLocalMemberLogin({ loginId, password });
+        if (!member) return null;
+
+        return {
+          id: String(member.member_id),
+          memberId: member.member_id,
+          nickname: member.nickname,
+          email: member.email,
+          provider: "local",
+          profileImageUrl: member.profile_image_url ?? null,
+        };
+      },
+    }),
     ...(process.env.AUTH_APPLE_ID && process.env.AUTH_APPLE_SECRET
       ? [
           Apple({
@@ -81,6 +106,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (!account) return false;
 
       try {
+        if (account.provider === "credentials") {
+          return true;
+        }
         let locale: "ko" | "en" = "en";
         try {
           const cookieStore = await cookies();
@@ -117,7 +145,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.nickname = (user as Record<string, unknown>).nickname as string;
         token.profileImageUrl = (user as Record<string, unknown>)
           .profileImageUrl as string | null;
-        token.provider = account.provider;
+        token.provider =
+          ((user as Record<string, unknown>).provider as string | undefined) ??
+          account.provider;
         token.email = user.email;
         token.sessionId =
           typeof token.sessionId === "string"

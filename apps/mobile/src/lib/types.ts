@@ -1,4 +1,5 @@
 export type OAuthProvider = 'kakao' | 'google' | 'apple';
+export type AuthProvider = OAuthProvider | 'local';
 export type WorkspaceType = 'personal' | 'team';
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE';
 export type MainTab = 'overview' | 'tasks' | 'calendar' | 'memo' | 'files';
@@ -9,7 +10,7 @@ export type AuthSession = {
   memberId: number;
   nickname: string;
   email?: string;
-  provider: OAuthProvider;
+  provider: AuthProvider;
 };
 
 export type Workspace = {

@@ -7,5 +7,16 @@ export default function LoginPage() {
 
   if (auth.session) return <Redirect href="/(tabs)/overview" />;
 
-  return <LoginScreen error={auth.error} authLoading={auth.authLoading} onLogin={auth.login} />;
+  return (
+    <LoginScreen
+      error={auth.error}
+      authLoading={auth.authLoading}
+      onLogin={auth.login}
+      onLocalLogin={auth.loginWithPassword}
+      onLocalRegister={auth.registerWithPassword}
+      onCheckLocalAvailability={auth.checkLocalAvailability}
+      onSendRegisterVerificationCode={auth.sendRegisterVerificationCode}
+      onVerifyRegisterVerificationCode={auth.verifyRegisterVerificationCode}
+    />
+  );
 }
