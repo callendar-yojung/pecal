@@ -167,6 +167,11 @@ function ProfileTab() {
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(user?.profileImageUrl || null)
   const [isUploading, setIsUploading] = useState(false)
   const [isRemovingImage, setIsRemovingImage] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
+  const [passwordMessage, setPasswordMessage] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   if (!user) return null
@@ -242,6 +247,32 @@ function ProfileTab() {
   const handleLogout = () => {
     closeModal()
     logout()
+  }
+
+  const handleChangePassword = async () => {
+    if (newPassword.length < 8 || !/[^A-Za-z0-9]/.test(newPassword)) {
+      setPasswordMessage(t('settings.passwordRule'))
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage(t('settings.passwordMismatch'))
+      return
+    }
+
+    setIsUpdatingPassword(true)
+    setPasswordMessage(null)
+    try {
+      await authApi.changePassword({ currentPassword, newPassword })
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      setPasswordMessage(t('settings.passwordUpdated'))
+    } catch (err) {
+      console.error('Failed to change password:', err)
+      setPasswordMessage(err instanceof Error ? err.message : t('settings.passwordUpdateFailed'))
+    } finally {
+      setIsUpdatingPassword(false)
+    }
   }
 
   return (
@@ -330,6 +361,48 @@ function ProfileTab() {
         <InfoRow label={t('settings.provider')} value={user.provider} />
         <InfoRow label={t('settings.memberId')} value={`#${user.memberId}`} />
       </div>
+
+      {user.provider === 'local' ? (
+        <div className="space-y-3 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('settings.password')}</h4>
+          <input
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            placeholder={t('settings.currentPassword')}
+            className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-900 dark:text-white outline-none"
+          />
+          <input
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder={t('settings.newPassword')}
+            className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-900 dark:text-white outline-none"
+          />
+          <p className="text-xs text-gray-500 dark:text-gray-400">{t('settings.passwordRule')}</p>
+          <input
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder={t('settings.confirmPassword')}
+            className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-900 dark:text-white outline-none"
+          />
+          {passwordMessage ? (
+            <p className={`text-xs ${passwordMessage === t('settings.passwordUpdated') ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
+              {passwordMessage}
+            </p>
+          ) : null}
+          <div className="flex justify-end">
+            <button
+              onClick={handleChangePassword}
+              disabled={isUpdatingPassword || !currentPassword.trim() || !newPassword.trim() || !confirmPassword.trim()}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {isUpdatingPassword ? '...' : t('settings.updatePassword')}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {/* 로그아웃 */}
       <div className="pt-3 border-t border-gray-200 dark:border-gray-700">

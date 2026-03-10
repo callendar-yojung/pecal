@@ -17,6 +17,7 @@ const APP_DEEPLINK_SCHEME = import.meta.env.VITE_APP_DEEPLINK_SCHEME || DEFAULT_
 type OAuthProvider = 'kakao' | 'google' | 'apple'
 type AvailabilityState = 'idle' | 'available' | 'taken'
 type LocalMode = 'login' | 'register' | 'findId' | 'resetPassword'
+type AuthPanel = 'entry' | 'local' | 'social'
 
 const EMAIL_VERIFICATION_TTL_SECONDS = 3 * 60
 
@@ -52,6 +53,7 @@ export function LoginPage() {
   const appWindow = getCurrentWindow()
 
   const [isLoading, setIsLoading] = useState<OAuthProvider | null>(null)
+  const [authPanel, setAuthPanel] = useState<AuthPanel>('entry')
   const [localMode, setLocalMode] = useState<LocalMode>('login')
   const [loginId, setLoginId] = useState('')
   const [password, setPassword] = useState('')
@@ -197,6 +199,20 @@ export function LoginPage() {
     }
   }, [appWindow, setAuth, t])
 
+  const openLocalPanel = (nextMode: LocalMode = 'login') => {
+    setAuthPanel('local')
+    setLocalMode(nextMode)
+    setError(null)
+    setStatusMessage(null)
+  }
+
+  const openSocialPanel = () => {
+    setAuthPanel('social')
+    setError(null)
+    setStatusMessage(null)
+  }
+
+
   const handleOAuthLogin = async (provider: OAuthProvider) => {
     setIsLoading(provider)
     setError(null)
@@ -319,7 +335,7 @@ export function LoginPage() {
     try {
       const response = await authApi.sendPasswordResetCode(loginId.trim(), email.trim())
       setVerificationExpiresAt(Date.now() + EMAIL_VERIFICATION_TTL_SECONDS * 1000)
-      setStatusMessage(response.message || t('auth.resetCodeSent', '비밀번호 재설정 코드를 보냈습니다.'))
+      setStatusMessage(response.message || t('auth.resetCodeSent', '비밀번호 찾기 코드를 보냈습니다.'))
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       setError(message || t('auth.loginFailed'))
@@ -438,234 +454,290 @@ export function LoginPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-2 rounded-xl bg-gray-100 dark:bg-gray-700 p-1 mb-4">
-            {[
-              ['login', t('auth.localLogin', '일반 로그인')],
-              ['register', t('auth.localRegister', '회원가입')],
-              ['findId', t('auth.findId', '아이디 찾기')],
-              ['resetPassword', t('auth.resetPassword', '비밀번호 재설정')],
-            ].map(([key, label]) => (
+          {authPanel === 'entry' ? (
+            <div className="space-y-4">
               <button
-                key={key}
+                type="button"
+                onClick={() => openLocalPanel('login')}
+                className="w-full rounded-xl bg-gray-900 px-4 py-4 text-base font-semibold text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-gray-900"
+              >
+                {t('auth.entryLocal')}
+              </button>
+              <button
+                type="button"
+                onClick={openSocialPanel}
+                className="flex w-full items-center gap-3 rounded-xl bg-gray-100 dark:bg-gray-700 px-4 py-4 text-base font-semibold text-gray-900 dark:text-white transition-colors hover:bg-gray-200 dark:hover:bg-gray-600"
+              >
+                <span className="min-w-0 flex-1 truncate text-left">{t('auth.entrySocial')}</span>
+                <span className="flex shrink-0 items-center gap-2">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FEE500] shadow-sm ring-1 ring-black/5">
+                    <svg viewBox="0 0 24 24" className="h-4.5 w-4.5 fill-[#191919]" aria-hidden="true">
+                      <path d="M12 4C7.03 4 3 7.13 3 11c0 2.5 1.67 4.68 4.18 5.92L6.3 20.6a.6.6 0 0 0 .88.66l4.28-2.69c.18.01.36.03.54.03 4.97 0 9-3.13 9-7s-4.03-7-9-7Z" />
+                    </svg>
+                  </span>
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-200 dark:ring-gray-600">
+                    <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" aria-hidden="true">
+                      <path fill="#EA4335" d="M12 10.2v3.92h5.45c-.24 1.26-.97 2.33-2.05 3.05l3.32 2.57c1.94-1.79 3.05-4.43 3.05-7.57 0-.72-.07-1.42-.2-2.1H12Z" />
+                      <path fill="#34A853" d="M12 21c2.76 0 5.08-.91 6.77-2.46l-3.32-2.57c-.92.62-2.1.98-3.45.98-2.65 0-4.89-1.79-5.69-4.19l-3.43 2.65A10.23 10.23 0 0 0 12 21Z" />
+                      <path fill="#4A90E2" d="M6.31 12.76A6.13 6.13 0 0 1 6 10.8c0-.68.12-1.34.31-1.96L2.88 6.19A10.23 10.23 0 0 0 1.8 10.8c0 1.65.4 3.21 1.08 4.61l3.43-2.65Z" />
+                      <path fill="#FBBC05" d="M12 4.66c1.5 0 2.85.52 3.92 1.53l2.94-2.94C17.07 1.64 14.76.6 12 .6 7.98.6 4.5 2.9 2.88 6.19l3.43 2.65c.8-2.4 3.04-4.18 5.69-4.18Z" />
+                    </svg>
+                  </span>
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black shadow-sm ring-1 ring-black/10">
+                    <svg viewBox="0 0 24 24" className="h-4.5 w-4.5 fill-white" aria-hidden="true">
+                      <path d="M16.37 12.54c.02 2.21 1.94 2.95 1.96 2.96-.02.05-.31 1.08-1.03 2.15-.62.92-1.27 1.84-2.29 1.86-1 .02-1.32-.59-2.46-.59-1.14 0-1.5.57-2.44.61-1 .04-1.76-1-2.39-1.92-1.29-1.86-2.28-5.25-.95-7.58.66-1.16 1.84-1.9 3.12-1.92.98-.02 1.9.66 2.46.66.56 0 1.62-.81 2.73-.69.47.02 1.78.19 2.62 1.42-.07.04-1.56.91-1.53 3.04ZM14.73 5.55c.52-.63.88-1.5.78-2.37-.75.03-1.66.5-2.2 1.13-.49.57-.92 1.45-.81 2.3.84.06 1.71-.43 2.23-1.06Z" />
+                    </svg>
+                  </span>
+                </span>
+              </button>
+            </div>
+          ) : null}
+
+          {authPanel === 'local' ? (
+            <div className="space-y-4">
+              <button
                 type="button"
                 onClick={() => {
-                  setLocalMode(key as LocalMode)
+                  setAuthPanel('entry')
                   setError(null)
                   setStatusMessage(null)
                 }}
-                className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  localMode === key
-                    ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-500 dark:text-gray-300'
-                }`}
+                className="inline-flex items-center gap-2 self-start rounded-full border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-900 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
               >
-                {label}
+                <span aria-hidden="true">←</span>
+                {t('auth.entryBack')}
               </button>
-            ))}
-          </div>
 
-          <div className="space-y-3 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-            {localMode !== 'findId' ? (
-              <input
-                value={loginId}
-                onChange={(event) => {
-                  setLoginId(event.target.value)
-                  setLoginIdCheck('idle')
-                }}
-                placeholder={t('auth.loginIdPlaceholder', '아이디를 입력하세요')}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-900 dark:text-white outline-none"
-              />
-            ) : null}
+              <div className="grid grid-cols-2 gap-2 rounded-xl bg-gray-100 dark:bg-gray-700 p-1">
+                {[
+                  ['login', t('auth.localLogin')],
+                  ['register', t('auth.localRegister')],
+                ].map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      setLocalMode(key as LocalMode)
+                      setError(null)
+                      setStatusMessage(null)
+                    }}
+                    className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      localMode === key
+                        ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-300'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
 
-            {localMode === 'register' ? (
-              <button
-                type="button"
-                onClick={() => checkAvailability('loginId')}
-                disabled={checkingLoginId || !loginId.trim()}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-200 dark:hover:bg-gray-800"
-              >
-                {checkingLoginId ? t('auth.checking', '확인 중...') : t('auth.checkLoginId', '아이디 중복 확인')}
-              </button>
-            ) : null}
+              <div className="space-y-3 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                {localMode !== 'findId' ? (
+                  <input
+                    value={loginId}
+                    onChange={(event) => {
+                      setLoginId(event.target.value)
+                      setLoginIdCheck('idle')
+                    }}
+                    placeholder={t('auth.loginIdPlaceholder', '아이디를 입력하세요')}
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-900 dark:text-white outline-none"
+                  />
+                ) : null}
 
-            {(localMode === 'login' || localMode === 'register' || localMode === 'resetPassword') ? (
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder={t('auth.passwordPlaceholder', '비밀번호를 입력하세요')}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-900 dark:text-white outline-none"
-              />
-            ) : null}
+                {localMode === 'register' ? (
+                  <>
+                    <button type="button" onClick={() => checkAvailability('loginId')} disabled={checkingLoginId || !loginId.trim()} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-200 dark:hover:bg-gray-800">
+                      {checkingLoginId ? t('auth.checking', '확인 중...') : t('auth.checkLoginId', '아이디 중복 확인')}
+                    </button>
+                    {loginIdCheck === 'available' ? (
+                      <p className="text-sm font-medium text-emerald-600">{t('auth.loginIdAvailable', '사용 가능한 아이디입니다.')}</p>
+                    ) : null}
+                    {loginIdCheck === 'taken' ? (
+                      <p className="text-sm font-medium text-rose-600">{t('auth.loginIdTaken', '이미 사용 중인 아이디입니다.')}</p>
+                    ) : null}
+                  </>
+                ) : null}
 
-            {(localMode === 'register' || localMode === 'resetPassword') ? (
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {t('auth.passwordRule', '비밀번호는 8자 이상이며 특수문자를 포함해야 합니다.')}
-              </p>
-            ) : null}
+                {(localMode === 'login' || localMode === 'register' || localMode === 'resetPassword') ? (
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder={t('auth.passwordPlaceholder', '비밀번호를 입력하세요')}
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-900 dark:text-white outline-none"
+                  />
+                ) : null}
 
-            {(localMode === 'register' || localMode === 'resetPassword') ? (
-              <input
-                type="password"
-                value={passwordConfirm}
-                onChange={(event) => setPasswordConfirm(event.target.value)}
-                placeholder={t('auth.passwordConfirmPlaceholder', '비밀번호를 다시 입력하세요')}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-900 dark:text-white outline-none"
-              />
-            ) : null}
-            {(localMode === 'register' || localMode === 'resetPassword') && !passwordConfirmed && passwordConfirm ? (
-              <p className="text-xs text-red-500">{t('auth.passwordMismatch', '비밀번호 확인이 일치하지 않습니다.')}</p>
-            ) : null}
+                {(localMode === 'register' || localMode === 'resetPassword') ? (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('auth.passwordRule')}</p>
+                ) : null}
 
-            {(localMode === 'register' || localMode === 'findId' || localMode === 'resetPassword') ? (
-              <input
-                value={email}
-                onChange={(event) => {
-                  setEmail(event.target.value)
-                  setEmailVerified(false)
-                  setEmailVerifiedTarget('')
-                  setVerificationExpiresAt(null)
-                }}
-                placeholder={t('auth.emailPlaceholder', '이메일을 입력하세요')}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-900 dark:text-white outline-none"
-              />
-            ) : null}
+                {(localMode === 'register' || localMode === 'resetPassword') ? (
+                  <input
+                    type="password"
+                    value={passwordConfirm}
+                    onChange={(event) => setPasswordConfirm(event.target.value)}
+                    placeholder={t('auth.passwordConfirmPlaceholder', '비밀번호를 다시 입력하세요')}
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-900 dark:text-white outline-none"
+                  />
+                ) : null}
+                {(localMode === 'register' || localMode === 'resetPassword') && !passwordConfirmed && passwordConfirm ? (
+                  <p className="text-xs text-red-500">{t('auth.passwordMismatch')}</p>
+                ) : null}
 
-            {localMode === 'register' ? (
-              <button
-                type="button"
-                onClick={sendVerificationCode}
-                disabled={sendingCode || !email.trim()}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-200 dark:hover:bg-gray-800"
-              >
-                {sendingCode ? t('auth.checking', '확인 중...') : t('auth.sendVerificationCode', '인증 코드 보내기')}
-              </button>
-            ) : null}
+                {(localMode === 'register' || localMode === 'findId' || localMode === 'resetPassword') ? (
+                  <input
+                    value={email}
+                    onChange={(event) => {
+                      setEmail(event.target.value)
+                      setEmailVerified(false)
+                      setEmailVerifiedTarget('')
+                      setVerificationExpiresAt(null)
+                    }}
+                    placeholder={t('auth.emailPlaceholder', '이메일을 입력하세요')}
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-900 dark:text-white outline-none"
+                  />
+                ) : null}
 
-            {localMode === 'findId' ? null : null}
+                {localMode === 'register' ? (
+                  <button type="button" onClick={sendVerificationCode} disabled={sendingCode || !email.trim()} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-200 dark:hover:bg-gray-800">
+                    {sendingCode ? t('auth.checking', '확인 중...') : t('auth.sendVerificationCode')}
+                  </button>
+                ) : null}
 
-            {localMode === 'resetPassword' ? (
-              <button
-                type="button"
-                onClick={sendResetCode}
-                disabled={sendingResetCode || !loginId.trim() || !email.trim()}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-200 dark:hover:bg-gray-800"
-              >
-                {sendingResetCode ? t('auth.checking', '확인 중...') : t('auth.sendResetCode', '재설정 코드 보내기')}
-              </button>
-            ) : null}
+                {localMode === 'resetPassword' ? (
+                  <button type="button" onClick={sendResetCode} disabled={sendingResetCode || !loginId.trim() || !email.trim()} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-200 dark:hover:bg-gray-800">
+                    {sendingResetCode ? t('auth.checking', '확인 중...') : t('auth.sendResetCode')}
+                  </button>
+                ) : null}
 
-            {verificationExpiresAt && (localMode === 'register' || localMode === 'resetPassword') ? (
-              <p className={`text-xs ${verificationRemainingSeconds > 0 ? 'text-gray-500 dark:text-gray-400' : 'text-red-500'}`}>
-                {verificationRemainingSeconds > 0
-                  ? t('auth.verificationExpiresIn', { time: formatCountdown(verificationRemainingSeconds) })
-                  : t('auth.verificationExpired', '인증 코드가 만료되었습니다. 다시 요청해 주세요.')}
-              </p>
-            ) : null}
+                {verificationExpiresAt && (localMode === 'register' || localMode === 'resetPassword') ? (
+                  <p className={`text-xs ${verificationRemainingSeconds > 0 ? 'text-gray-500 dark:text-gray-400' : 'text-red-500'}`}>
+                    {verificationRemainingSeconds > 0 ? t('auth.verificationExpiresIn', { time: formatCountdown(verificationRemainingSeconds) }) : t('auth.verificationExpired')}
+                  </p>
+                ) : null}
 
-            {(localMode === 'register' || localMode === 'resetPassword') ? (
-              <input
-                value={verificationCode}
-                onChange={(event) => setVerificationCode(event.target.value)}
-                placeholder={t('auth.verificationCodePlaceholder', '인증 코드를 입력하세요')}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-900 dark:text-white outline-none"
-              />
-            ) : null}
+                {(localMode === 'register' || localMode === 'resetPassword') ? (
+                  <input
+                    value={verificationCode}
+                    onChange={(event) => setVerificationCode(event.target.value)}
+                    placeholder={t('auth.verificationCodePlaceholder', '인증 코드를 입력하세요')}
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-900 dark:text-white outline-none"
+                  />
+                ) : null}
 
-            {localMode === 'register' ? (
-              <button
-                type="button"
-                onClick={verifyEmailCode}
-                disabled={verifyingCode || !email.trim() || !verificationCode.trim()}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-200 dark:hover:bg-gray-800"
-              >
-                {verifyingCode ? t('auth.checking', '확인 중...') : t('auth.verifyVerificationCode', '인증 코드 확인')}
-              </button>
-            ) : null}
+                {localMode === 'register' ? (
+                  <button type="button" onClick={verifyEmailCode} disabled={verifyingCode || !email.trim() || !verificationCode.trim()} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-200 dark:hover:bg-gray-800">
+                    {verifyingCode ? t('auth.checking', '확인 중...') : t('auth.verifyVerificationCode')}
+                  </button>
+                ) : null}
 
-            {localMode === 'register' && emailVerified && emailVerifiedTarget === email.trim().toLowerCase() ? (
-              <p className="text-xs text-green-600">{t('auth.verificationVerified', '이메일 인증이 완료되었습니다.')}</p>
-            ) : null}
+                {localMode === 'register' && emailVerified && emailVerifiedTarget === email.trim().toLowerCase() ? (
+                  <p className="text-xs text-green-600">{t('auth.verificationVerified')}</p>
+                ) : null}
 
-            {localMode === 'register' ? (
-              <>
-                <input
-                  value={nickname}
-                  onChange={(event) => {
-                    setNickname(event.target.value)
-                    setNicknameCheck('idle')
-                  }}
-                  placeholder={t('auth.nicknamePlaceholder', '닉네임을 입력하세요')}
-                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-900 dark:text-white outline-none"
-                />
+                {localMode === 'register' ? (
+                  <>
+                    <input
+                      value={nickname}
+                      onChange={(event) => {
+                        setNickname(event.target.value)
+                        setNicknameCheck('idle')
+                      }}
+                      placeholder={t('auth.nicknamePlaceholder', '닉네임을 입력하세요')}
+                      className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-900 dark:text-white outline-none"
+                    />
+                    <button type="button" onClick={() => checkAvailability('nickname')} disabled={checkingNickname || !nickname.trim()} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-200 dark:hover:bg-gray-800">
+                      {checkingNickname ? t('auth.checking', '확인 중...') : t('auth.checkNickname', '닉네임 중복 확인')}
+                    </button>
+                    {nicknameCheck === 'available' ? (
+                      <p className="text-sm font-medium text-emerald-600">{t('auth.nicknameAvailable', '사용 가능한 닉네임입니다.')}</p>
+                    ) : null}
+                    {nicknameCheck === 'taken' ? (
+                      <p className="text-sm font-medium text-rose-600">{t('auth.nicknameTaken', '이미 사용 중인 닉네임입니다.')}</p>
+                    ) : null}
+                  </>
+                ) : null}
+
                 <button
                   type="button"
-                  onClick={() => checkAvailability('nickname')}
-                  disabled={checkingNickname || !nickname.trim()}
-                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-200 dark:hover:bg-gray-800"
+                  disabled={submitDisabled || isLoading !== null || findingLoginId || resettingPassword}
+                  onClick={() => void handleLocalSubmit()}
+                  className="w-full rounded-xl bg-gray-900 px-4 py-3 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-gray-900"
                 >
-                  {checkingNickname ? t('auth.checking', '확인 중...') : t('auth.checkNickname', '닉네임 중복 확인')}
+                  {isLoading || findingLoginId || resettingPassword
+                    ? t('auth.processing', '처리 중...')
+                    : localMode === 'login'
+                      ? t('auth.localLoginAction', '로그인')
+                      : localMode === 'register'
+                        ? t('auth.localRegisterAction', '회원가입')
+                        : localMode === 'findId'
+                          ? t('auth.findIdAction', '아이디 찾기')
+                          : t('auth.resetPasswordAction', '비밀번호 찾기')}
                 </button>
-              </>
-            ) : null}
 
-            <button
-              type="button"
-              disabled={submitDisabled || isLoading !== null || findingLoginId || resettingPassword}
-              onClick={() => void handleLocalSubmit()}
-              className="w-full rounded-xl bg-gray-900 px-4 py-3 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-gray-900"
-            >
-              {isLoading || findingLoginId || resettingPassword
-                ? t('auth.processing', '처리 중...')
-                : localMode === 'login'
-                  ? t('auth.localLoginAction', '로그인')
-                  : localMode === 'register'
-                    ? t('auth.localRegisterAction', '회원가입')
-                    : localMode === 'findId'
-                      ? t('auth.findIdAction', '아이디 찾기')
-                      : t('auth.resetPasswordAction', '비밀번호 재설정')}
-            </button>
-          </div>
+                {localMode === 'login' ? (
+                  <div className="flex items-center justify-between pt-1 text-sm text-gray-500 dark:text-gray-400">
+                    <button type="button" onClick={() => setLocalMode('findId')} className="hover:text-gray-900 dark:hover:text-white">
+                      {t('auth.findId')}
+                    </button>
+                    <button type="button" onClick={() => setLocalMode('resetPassword')} className="hover:text-gray-900 dark:hover:text-white">
+                      {t('auth.resetPassword')}
+                    </button>
+                  </div>
+                ) : null}
 
-          <div className="relative py-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200 dark:border-gray-700" />
+                {localMode === 'register' ? (
+                  <div className="flex items-center justify-between pt-1 text-sm text-gray-500 dark:text-gray-400">
+                    <button type="button" onClick={() => setLocalMode('findId')} className="hover:text-gray-900 dark:hover:text-white">
+                      {t('auth.findId')}
+                    </button>
+                    <button type="button" onClick={() => setLocalMode('resetPassword')} className="hover:text-gray-900 dark:hover:text-white">
+                      {t('auth.resetPassword')}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             </div>
-            <div className="relative flex justify-center">
-              <span className="bg-white dark:bg-gray-800 px-4 text-sm text-gray-500 dark:text-gray-400">
-                {t('auth.orContinueWith', '또는 소셜 로그인으로 계속')}
-              </span>
+          ) : null}
+
+          {authPanel === 'social' ? (
+            <div className="space-y-3">
+              <button type="button" onClick={() => setAuthPanel('entry')} className="inline-flex items-center gap-2 self-start rounded-full border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-900 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white">
+                <span aria-hidden="true">←</span>
+                {t('auth.entryBack')}
+              </button>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center">{t('auth.socialDescription')}</p>
+              <button type="button" onClick={() => handleOAuthLogin('kakao')} disabled={isLoading !== null} className="flex w-full items-center justify-center gap-3 rounded-xl bg-[#FEE500] px-4 py-3 font-medium text-[#3C1E1E] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full">
+                  <svg viewBox="0 0 24 24" className="h-4.5 w-4.5 fill-[#191919]" aria-hidden="true">
+                    <path d="M12 4C7.03 4 3 7.13 3 11c0 2.5 1.67 4.68 4.18 5.92L6.3 20.6a.6.6 0 0 0 .88.66l4.28-2.69c.18.01.36.03.54.03 4.97 0 9-3.13 9-7s-4.03-7-9-7Z" />
+                  </svg>
+                </span>
+                <span>{isLoading === 'kakao' ? t('auth.loading', '로딩 중...') : t('auth.kakaoLogin', '카카오로 계속하기')}</span>
+              </button>
+              <button type="button" onClick={() => handleOAuthLogin('google')} disabled={isLoading !== null} className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 font-medium text-gray-900 dark:text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white ring-1 ring-gray-200 dark:ring-gray-600">
+                  <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" aria-hidden="true">
+                    <path fill="#EA4335" d="M12 10.2v3.92h5.45c-.24 1.26-.97 2.33-2.05 3.05l3.32 2.57c1.94-1.79 3.05-4.43 3.05-7.57 0-.72-.07-1.42-.2-2.1H12Z" />
+                    <path fill="#34A853" d="M12 21c2.76 0 5.08-.91 6.77-2.46l-3.32-2.57c-.92.62-2.1.98-3.45.98-2.65 0-4.89-1.79-5.69-4.19l-3.43 2.65A10.23 10.23 0 0 0 12 21Z" />
+                    <path fill="#4A90E2" d="M6.31 12.76A6.13 6.13 0 0 1 6 10.8c0-.68.12-1.34.31-1.96L2.88 6.19A10.23 10.23 0 0 0 1.8 10.8c0 1.65.4 3.21 1.08 4.61l3.43-2.65Z" />
+                    <path fill="#FBBC05" d="M12 4.66c1.5 0 2.85.52 3.92 1.53l2.94-2.94C17.07 1.64 14.76.6 12 .6 7.98.6 4.5 2.9 2.88 6.19l3.43 2.65c.8-2.4 3.04-4.18 5.69-4.18Z" />
+                  </svg>
+                </span>
+                <span>{isLoading === 'google' ? t('auth.loading', '로딩 중...') : t('auth.googleLogin', '구글로 계속하기')}</span>
+              </button>
+              <button type="button" onClick={() => handleOAuthLogin('apple')} disabled={isLoading !== null} className="flex w-full items-center justify-center gap-3 rounded-xl bg-black px-4 py-3 font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full">
+                  <svg viewBox="0 0 24 24" className="h-4.5 w-4.5 fill-white" aria-hidden="true">
+                    <path d="M16.37 12.54c.02 2.21 1.94 2.95 1.96 2.96-.02.05-.31 1.08-1.03 2.15-.62.92-1.27 1.84-2.29 1.86-1 .02-1.32-.59-2.46-.59-1.14 0-1.5.57-2.44.61-1 .04-1.76-1-2.39-1.92-1.29-1.86-2.28-5.25-.95-7.58.66-1.16 1.84-1.9 3.12-1.92.98-.02 1.9.66 2.46.66.56 0 1.62-.81 2.73-.69.47.02 1.78.19 2.62 1.42-.07.04-1.56.91-1.53 3.04ZM14.73 5.55c.52-.63.88-1.5.78-2.37-.75.03-1.66.5-2.2 1.13-.49.57-.92 1.45-.81 2.3.84.06 1.71-.43 2.23-1.06Z" />
+                  </svg>
+                </span>
+                <span>{isLoading === 'apple' ? t('auth.loading', '로딩 중...') : t('auth.appleLogin', 'Apple로 계속하기')}</span>
+              </button>
             </div>
-          </div>
-
-          <div className="space-y-3">
-            <button
-              type="button"
-              onClick={() => handleOAuthLogin('kakao')}
-              disabled={isLoading !== null}
-              className="w-full rounded-xl bg-[#FEE500] px-4 py-3 font-medium text-[#3C1E1E] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isLoading === 'kakao' ? t('auth.loading', '로딩 중...') : t('auth.kakaoLogin', '카카오로 계속하기')}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleOAuthLogin('google')}
-              disabled={isLoading !== null}
-              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 font-medium text-gray-900 dark:text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isLoading === 'google' ? t('auth.loading', '로딩 중...') : t('auth.googleLogin', '구글로 계속하기')}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleOAuthLogin('apple')}
-              disabled={isLoading !== null}
-              className="w-full rounded-xl bg-black px-4 py-3 font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isLoading === 'apple' ? t('auth.loading', '로딩 중...') : t('auth.appleLogin', 'Apple로 계속하기')}
-            </button>
-          </div>
+          ) : null}
 
           <div className="mt-6 flex items-center justify-center gap-3 text-sm text-gray-500 dark:text-gray-400">
             <button

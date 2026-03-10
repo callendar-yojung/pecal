@@ -19,8 +19,14 @@ export default function AccountPage() {
   const [checkResult, setCheckResult] = useState<"ok" | "taken" | "idle">(
     "idle",
   );
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordSaved, setPasswordSaved] = useState(false);
   const [saved, setSaved] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const isLocalAccount = session?.user?.provider === "local";
 
   useEffect(() => {
     if (session?.user?.nickname) {
@@ -176,6 +182,41 @@ export default function AccountPage() {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!isLocalAccount) return;
+    if (newPassword !== confirmPassword) {
+      alert(t("passwordMismatch"));
+      return;
+    }
+    try {
+      setChangingPassword(true);
+      setPasswordSaved(false);
+      const response = await fetch("/api/me/account/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        alert(data.error || t("passwordUpdateFailed"));
+        return;
+      }
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordSaved(true);
+      setTimeout(() => setPasswordSaved(false), 3000);
+    } catch (error) {
+      console.error("Failed to change password:", error);
+      alert(t("passwordUpdateFailed"));
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* 프로필 정보 */}
@@ -295,6 +336,77 @@ export default function AccountPage() {
           </div>
         </div>
       </div>
+
+      {isLocalAccount ? (
+        <div className="dashboard-glass-card premium-noise p-6">
+          <h2 className="text-lg font-semibold text-card-foreground">
+            {t("password")}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t("passwordDesc")}</p>
+
+          <div className="mt-6 space-y-4">
+            <div>
+              <div className="block text-sm font-medium text-subtle-foreground">
+                {t("currentPassword")}
+              </div>
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(event) => setCurrentPassword(event.target.value)}
+                className="mt-1 w-full rounded-xl border border-input/80 bg-background/90 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div>
+              <div className="block text-sm font-medium text-subtle-foreground">
+                {t("newPassword")}
+              </div>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                className="mt-1 w-full rounded-xl border border-input/80 bg-background/90 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t("passwordRule")}
+              </p>
+            </div>
+            <div>
+              <div className="block text-sm font-medium text-subtle-foreground">
+                {t("confirmPassword")}
+              </div>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                className="mt-1 w-full rounded-xl border border-input/80 bg-background/90 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              {confirmPassword && newPassword !== confirmPassword ? (
+                <p className="mt-1 text-xs text-destructive">{t("passwordMismatch")}</p>
+              ) : null}
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleChangePassword}
+                disabled={
+                  changingPassword ||
+                  !currentPassword.trim() ||
+                  !newPassword.trim() ||
+                  !confirmPassword.trim()
+                }
+                className="ui-button-primary px-4 py-2 text-sm disabled:opacity-50"
+              >
+                {changingPassword ? "..." : t("updatePassword")}
+              </button>
+              {passwordSaved ? (
+                <span className="text-sm text-status-done-foreground">
+                  {t("passwordUpdated")}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* 계정 삭제 */}
       <div className="dashboard-glass-card p-6">

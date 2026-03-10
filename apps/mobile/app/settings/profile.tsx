@@ -31,7 +31,12 @@ export default function SettingsProfilePage() {
   const [checkedNickname, setCheckedNickname] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
+  const isLocalAccount = auth.session?.provider === 'local';
 
   useEffect(() => {
     if (!auth.session) return;
@@ -195,6 +200,47 @@ export default function SettingsProfilePage() {
     );
   };
 
+  const onChangePassword = async () => {
+    if (!auth.session || !isLocalAccount) return;
+    if (newPassword.length < 8 || !/[^A-Za-z0-9]/.test(newPassword)) {
+      setMessage(
+        isKo
+          ? '비밀번호는 8자 이상이며 특수문자를 포함해야 합니다.'
+          : 'Password must be at least 8 characters and include a special character.',
+      );
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setMessage(
+        isKo
+          ? '비밀번호 확인이 일치하지 않습니다.'
+          : 'Password confirmation does not match.',
+      );
+      return;
+    }
+
+    try {
+      setChangingPassword(true);
+      setMessage('');
+      await apiFetch<{ success: boolean }>('/api/me/account/password', auth.session, {
+        method: 'POST',
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
+      });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setMessage(isKo ? '비밀번호가 변경되었습니다.' : 'Password updated.');
+    } catch (error: unknown) {
+      const text = error instanceof Error ? error.message : String(error);
+      setMessage(text || (isKo ? '비밀번호 변경에 실패했습니다.' : 'Failed to update password.'));
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   return (
     <ScrollView style={s.content} contentContainerStyle={s.contentContainer}>
       <View style={s.section}>
@@ -281,6 +327,63 @@ export default function SettingsProfilePage() {
           ) : null}
           {message ? <Text style={s.itemMeta}>{message}</Text> : null}
         </View>
+
+        {isLocalAccount ? (
+          <View style={[s.panel, { borderRadius: 13, gap: 10 }]}>
+            <Text style={s.formTitle}>{isKo ? '비밀번호 변경' : 'Change Password'}</Text>
+            <Text style={s.itemMeta}>
+              {isKo
+                ? '현재 비밀번호를 확인한 뒤 새 비밀번호로 변경합니다.'
+                : 'Confirm your current password and set a new one.'}
+            </Text>
+            <TextInput
+              value={currentPassword}
+              onChangeText={setCurrentPassword}
+              placeholder={isKo ? '현재 비밀번호' : 'Current password'}
+              style={s.input}
+              placeholderTextColor={colors.textMuted}
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <TextInput
+              value={newPassword}
+              onChangeText={setNewPassword}
+              placeholder={isKo ? '새 비밀번호' : 'New password'}
+              style={s.input}
+              placeholderTextColor={colors.textMuted}
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <Text style={s.itemMeta}>
+              {isKo ? '8자 이상, 특수문자 포함' : 'At least 8 characters, including a special character'}
+            </Text>
+            <TextInput
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              placeholder={isKo ? '새 비밀번호 확인' : 'Confirm new password'}
+              style={s.input}
+              placeholderTextColor={colors.textMuted}
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <Pressable
+              style={[s.primaryButton, changingPassword ? { opacity: 0.5 } : null]}
+              onPress={() => {
+                void onChangePassword();
+              }}
+              disabled={changingPassword}
+            >
+              <Text style={s.primaryButtonText}>
+                {changingPassword
+                  ? (isKo ? '변경 중...' : 'Updating...')
+                  : (isKo ? '비밀번호 변경' : 'Update Password')}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
 
         <View style={[s.panel, { borderRadius: 13, gap: 10, borderColor: '#FCA5A5' }]}>
           <Text style={[s.formTitle, { color: '#DC2626' }]}>

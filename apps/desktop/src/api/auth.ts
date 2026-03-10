@@ -123,6 +123,12 @@ export const authApi = {
   }) =>
     apiClient.patch<{ success: boolean }>('/api/me/account', data),
 
+  changePassword: (params: { currentPassword: string; newPassword: string }) =>
+    apiClient.post<{ success: boolean }>('/api/me/account/password', {
+      currentPassword: params.currentPassword,
+      newPassword: params.newPassword,
+    }),
+
   checkNickname: (nickname: string) =>
     apiClient.get<{ available: boolean }>(
       `/api/me/account/nickname-check?nickname=${encodeURIComponent(nickname)}`

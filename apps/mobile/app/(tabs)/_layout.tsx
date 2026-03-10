@@ -533,151 +533,224 @@ export default function TabsLayout() {
             style={{
               width: '100%',
               maxWidth: 480,
+              maxHeight: '88%',
               borderRadius: 16,
               borderWidth: 1,
               borderColor: colors.border,
               backgroundColor: colors.card,
-              padding: 16,
-              gap: 10,
+              overflow: 'hidden',
             }}
           >
-            <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800' }}>
-              {t('consentPageTitle')}
-            </Text>
-            <Text style={{ color: colors.textMuted, fontSize: 13, lineHeight: 19 }}>
-              {t('consentPageSubtitle')}
-            </Text>
-
-            <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 10, backgroundColor: colors.cardSoft, gap: 10 }}>
-              <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
-                <Pressable
-                  style={{ flex: 1, flexDirection: 'row', gap: 10, alignItems: 'center' }}
-                  onPress={() => setTermsChecked((value) => !value)}
-                >
-                <View
-                  style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: 4,
-                    borderWidth: 1,
-                    borderColor: colors.primary,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: termsChecked ? colors.primary : 'transparent',
-                }}
-              >
-                {termsChecked ? <Text style={{ color: '#fff', fontSize: 12, lineHeight: 12 }}>✓</Text> : null}
-              </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.text, fontWeight: '700' }}>{t('consentTermsRequiredLabel')}</Text>
-                  <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                    {t('consentTermsRequiredDesc')}
-                  </Text>
-                </View>
-                </Pressable>
-                <Pressable onPress={() => setDetailDocPath('/terms')}>
-                  <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>
-                    {t('consentViewTerms')}
-                  </Text>
-                </Pressable>
+            <ScrollView
+              contentContainerStyle={{ padding: 16, gap: 12 }}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={{ gap: 8 }}>
+                <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800' }}>
+                  {t('consentPageTitle')}
+                </Text>
+                <Text style={{ color: colors.textMuted, fontSize: 13, lineHeight: 20 }}>
+                  {t('consentPageSubtitle')}
+                </Text>
               </View>
 
-              <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
-                <Pressable
-                  style={{ flex: 1, flexDirection: 'row', gap: 10, alignItems: 'center' }}
-                  onPress={() => setPrivacyChecked((value) => !value)}
-                >
-                <View
-                  style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: 4,
-                    borderWidth: 1,
-                    borderColor: colors.primary,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: privacyChecked ? colors.primary : 'transparent',
+              <View
+                style={{
+                  flexDirection: 'row',
+                  gap: 8,
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
                 }}
               >
-                {privacyChecked ? <Text style={{ color: '#fff', fontSize: 12, lineHeight: 12 }}>✓</Text> : null}
-              </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.text, fontWeight: '700' }}>{t('consentPrivacyRequiredLabel')}</Text>
-                  <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                    {t('consentPrivacyRequiredDesc')}
+                <View
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 6,
+                    borderRadius: 999,
+                    backgroundColor: colors.cardSoft,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                  }}
+                >
+                  <Text style={{ color: colors.text, fontSize: 12, fontWeight: '700' }}>
+                    {`필수 ${Number(termsChecked) + Number(privacyChecked)}/2`}
                   </Text>
                 </View>
-                </Pressable>
-                <Pressable onPress={() => setDetailDocPath('/privacy')}>
-                  <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>
-                    {t('consentViewPrivacy')}
+                <View
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 6,
+                    borderRadius: 999,
+                    backgroundColor: marketingChecked ? `${colors.primary}18` : colors.cardSoft,
+                    borderWidth: 1,
+                    borderColor: marketingChecked ? colors.primary : colors.border,
+                  }}
+                >
+                  <Text style={{ color: marketingChecked ? colors.primary : colors.textMuted, fontSize: 12, fontWeight: '700' }}>
+                    {t('consentMarketingOptionalBadge')}
                   </Text>
-                </Pressable>
+                </View>
               </View>
+
+              {[
+                {
+                  key: 'terms',
+                  checked: termsChecked,
+                  onToggle: () => setTermsChecked((value) => !value),
+                  title: t('consentTermsRequiredLabel'),
+                  description: t('consentTermsRequiredDesc'),
+                  actionLabel: t('consentViewTerms'),
+                  onAction: () => setDetailDocPath('/terms'),
+                  required: true,
+                },
+                {
+                  key: 'privacy',
+                  checked: privacyChecked,
+                  onToggle: () => setPrivacyChecked((value) => !value),
+                  title: t('consentPrivacyRequiredLabel'),
+                  description: t('consentPrivacyRequiredDesc'),
+                  actionLabel: t('consentViewPrivacy'),
+                  onAction: () => setDetailDocPath('/privacy'),
+                  required: true,
+                },
+                {
+                  key: 'marketing',
+                  checked: marketingChecked,
+                  onToggle: () => setMarketingChecked((value) => !value),
+                  title: t('consentMarketingOptionalLabel'),
+                  description: t('consentMarketingOptionalDesc'),
+                  actionLabel: t('consentMarketingOptionalHint'),
+                  onAction: null,
+                  required: false,
+                },
+              ].map((item) => (
+                <View
+                  key={item.key}
+                  style={{
+                    borderRadius: 14,
+                    borderWidth: 1,
+                    borderColor: item.checked ? colors.primary : colors.border,
+                    backgroundColor: item.checked ? `${colors.primary}10` : colors.cardSoft,
+                    padding: 12,
+                    gap: 10,
+                  }}
+                >
+                  <Pressable
+                    style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start', width: '100%' }}
+                    onPress={item.onToggle}
+                  >
+                    <View
+                      style={{
+                        width: 24,
+                        height: 24,
+                        marginTop: 2,
+                        borderRadius: 7,
+                        borderWidth: 1.5,
+                        borderColor: item.checked ? colors.primary : colors.textMuted,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: item.checked ? colors.primary : 'transparent',
+                      }}
+                    >
+                      {item.checked ? (
+                        <Ionicons name="checkmark" size={14} color="#fff" />
+                      ) : null}
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', minWidth: 0 }}>
+                        <Text style={{ color: colors.text, fontWeight: '800', fontSize: 16, flexShrink: 1 }}>
+                          {item.title}
+                        </Text>
+                        <Text
+                          style={{
+                            color: item.required ? '#EF4444' : colors.textMuted,
+                            fontSize: 11,
+                            fontWeight: '700',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {item.required ? '필수' : '선택'}
+                        </Text>
+                      </View>
+                      <Text style={{ color: colors.textMuted, fontSize: 13, lineHeight: 19, flexShrink: 1 }}>
+                        {item.description}
+                      </Text>
+                    </View>
+                  </Pressable>
+
+                  {item.onAction ? (
+                    <Pressable
+                      onPress={item.onAction}
+                      style={{
+                        alignSelf: 'flex-start',
+                        paddingHorizontal: 10,
+                        paddingVertical: 8,
+                        borderRadius: 10,
+                        borderWidth: 1,
+                        borderColor: colors.primary,
+                        backgroundColor: colors.card,
+                      }}
+                    >
+                      <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>
+                        {item.actionLabel}
+                      </Text>
+                    </Pressable>
+                  ) : (
+                    <Text style={{ color: colors.textMuted, fontSize: 12, lineHeight: 18 }}>
+                      {item.actionLabel}
+                    </Text>
+                  )}
+                </View>
+              ))}
+            </ScrollView>
+
+            <View
+              style={{
+                borderTopWidth: 1,
+                borderTopColor: colors.border,
+                paddingHorizontal: 16,
+                paddingTop: 12,
+                paddingBottom: 16,
+                gap: 10,
+                backgroundColor: colors.card,
+              }}
+            >
+              <Pressable
+                style={{
+                  borderRadius: 12,
+                  backgroundColor: colors.cardSoft,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  paddingVertical: 12,
+                  alignItems: 'center',
+                }}
+                onPress={agreeAll}
+              >
+                <Text style={{ color: colors.text, fontWeight: '800' }}>{t('consentAgreeAll')}</Text>
+              </Pressable>
+
+              {consentError ? <Text style={{ color: '#ef4444', fontSize: 12 }}>{consentError}</Text> : null}
+              {!privacyChecked || !termsChecked ? (
+                <Text style={{ color: colors.textMuted, fontSize: 12 }}>{t('consentRequiredError')}</Text>
+              ) : null}
 
               <Pressable
-                style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}
-                onPress={() => setMarketingChecked((value) => !value)}
-              >
-                <View
-                  style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: 4,
-                    borderWidth: 1,
-                    borderColor: colors.primary,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: marketingChecked ? colors.primary : 'transparent',
+                style={{
+                  borderRadius: 12,
+                  backgroundColor: termsChecked && privacyChecked ? colors.primary : '#D1D5DB',
+                  paddingVertical: 13,
+                  alignItems: 'center',
                 }}
+                onPress={() => {
+                  void submitConsent();
+                }}
+                disabled={consentLoading || !termsChecked || !privacyChecked}
               >
-                {marketingChecked ? <Text style={{ color: '#fff', fontSize: 12, lineHeight: 12 }}>✓</Text> : null}
-              </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.text, fontWeight: '700' }}>
-                    {t('consentMarketingOptionalLabel')}
-                    <Text style={{ color: colors.textMuted, fontSize: 10, fontWeight: '700', marginLeft: 6 }}>
-                      {`(${t('consentMarketingOptionalBadge')})`}
-                    </Text>
-                  </Text>
-                  <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                    {t('consentMarketingOptionalDesc')}
-                  </Text>
-                  <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: '500' }}>
-                    {t('consentMarketingOptionalHint')}
-                  </Text>
-                </View>
-              </Pressable>
-            </View>
-
-            <Pressable
-              style={{ borderRadius: 10, backgroundColor: colors.cardSoft, borderWidth: 1, borderColor: colors.border, paddingVertical: 9, alignItems: 'center' }}
-              onPress={agreeAll}
-            >
-              <Text style={{ color: colors.text, fontWeight: '700' }}>{t('consentAgreeAll')}</Text>
-            </Pressable>
-
-            {consentError ? <Text style={{ color: '#ef4444', fontSize: 12 }}>{consentError}</Text> : null}
-            {!privacyChecked || !termsChecked ? (
-              <Text style={{ color: colors.textMuted, fontSize: 12 }}>{t('consentRequiredError')}</Text>
-            ) : null}
-
-            <Pressable
-              style={{
-                borderRadius: 10,
-                backgroundColor: termsChecked && privacyChecked ? colors.primary : '#D1D5DB',
-                paddingVertical: 11,
-                alignItems: 'center',
-              }}
-              onPress={() => {
-                void submitConsent();
-              }}
-              disabled={consentLoading || !termsChecked || !privacyChecked}
-            >
-                <Text style={{ color: '#ffffff', fontWeight: '700' }}>
+                <Text style={{ color: '#ffffff', fontWeight: '800' }}>
                   {consentLoading ? t('consentSaving') : t('consentSubmit')}
                 </Text>
-            </Pressable>
+              </Pressable>
+            </View>
           </View>
         </View>
       ) : null}

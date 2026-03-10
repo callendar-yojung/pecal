@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -39,6 +39,8 @@ type AvailabilityState = {
   message: string;
 };
 
+type AuthPanel = 'entry' | 'local' | 'social';
+
 const EMAIL_VERIFICATION_TTL_SECONDS = 3 * 60;
 
 function isValidRegisterPassword(password: string) {
@@ -67,6 +69,7 @@ export function LoginScreen({
   const { t } = useI18n();
   const { colors } = useThemeMode();
   const s = createStyles(colors);
+  const [authPanel, setAuthPanel] = useState<AuthPanel>('entry');
   const [mode, setMode] = useState<'login' | 'register' | 'findId' | 'resetPassword'>('login');
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
@@ -89,6 +92,7 @@ export function LoginScreen({
   const [emailVerifiedTarget, setEmailVerifiedTarget] = useState('');
   const [verificationExpiresAt, setVerificationExpiresAt] = useState<number | null>(null);
   const [verificationRemainingSeconds, setVerificationRemainingSeconds] = useState(0);
+  const [emailMessage, setEmailMessage] = useState<{ text: string; tone: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
     if (!verificationExpiresAt) {
@@ -134,10 +138,26 @@ export function LoginScreen({
         !passwordValid ||
         !passwordConfirmed));
 
+  const openLocalPanel = (nextMode: typeof mode = 'login') => {
+    setAuthPanel('local');
+    setMode(nextMode);
+    setLocalError(null);
+    setLocalStatus(null);
+    setEmailMessage(null);
+  };
+
+  const openSocialPanel = () => {
+    setAuthPanel('social');
+    setLocalError(null);
+    setLocalStatus(null);
+    setEmailMessage(null);
+  };
+
   const checkAvailability = async (field: 'loginId' | 'nickname') => {
     try {
       setLocalError(null);
       setLocalStatus(null);
+      setEmailMessage(null);
       if (field === 'loginId') setCheckingLoginId(true);
       else setCheckingNickname(true);
       const result = await onCheckLocalAvailability(
@@ -167,9 +187,9 @@ export function LoginScreen({
       setEmailVerifiedTarget('');
       setVerificationCode('');
       setVerificationExpiresAt(Date.now() + EMAIL_VERIFICATION_TTL_SECONDS * 1000);
-      setLocalStatus(t('loginVerificationCodeSent'));
+      setEmailMessage({ text: t('loginVerificationCodeSent'), tone: 'success' });
     } catch (e) {
-      setLocalError(e instanceof Error ? e.message : t('loginVerificationFailed'));
+      setEmailMessage({ text: e instanceof Error ? e.message : t('loginVerificationFailed'), tone: 'error' });
     } finally {
       setSendingCode(false);
     }
@@ -179,20 +199,21 @@ export function LoginScreen({
     try {
       setLocalError(null);
       setLocalStatus(null);
+      setEmailMessage(null);
       setVerifyingCode(true);
       if (verificationRemainingSeconds <= 0) {
-        setLocalError(t('loginVerificationExpired'));
+        setEmailMessage({ text: t('loginVerificationExpired'), tone: 'error' });
         return;
       }
       const normalizedEmail = email.trim().toLowerCase();
       await onVerifyRegisterVerificationCode(normalizedEmail, verificationCode.trim());
       setEmailVerified(true);
       setEmailVerifiedTarget(normalizedEmail);
-      setLocalStatus(t('loginVerificationVerified'));
+      setEmailMessage({ text: t('loginVerificationVerified'), tone: 'success' });
     } catch (e) {
       setEmailVerified(false);
       setEmailVerifiedTarget('');
-      setLocalError(e instanceof Error ? e.message : t('loginVerificationFailed'));
+      setEmailMessage({ text: e instanceof Error ? e.message : t('loginVerificationFailed'), tone: 'error' });
     } finally {
       setVerifyingCode(false);
     }
@@ -255,11 +276,25 @@ export function LoginScreen({
   };
 
   return (
-    <SafeAreaView style={s.centerScreen}>
+    <SafeAreaView style={s.screen}>
       <View style={s.loginBackdrop}>
         <View style={[s.loginOrb, s.loginOrbPrimary]} />
         <View style={[s.loginOrb, s.loginOrbSoft]} />
       </View>
+      <ScrollView
+        style={{ flex: 1, width: '100%' }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingHorizontal: 20,
+          paddingTop: authPanel === 'entry' ? 24 : 16,
+          paddingBottom: 40,
+          alignItems: 'center',
+          justifyContent: authPanel === 'entry' ? 'center' : 'flex-start',
+        }}
+        contentInsetAdjustmentBehavior="always"
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
       <View style={s.authCardModern}>
         <View style={s.loginBrandRow}>
           <View style={[s.loginBrandIcon, { backgroundColor: colors.primary }]}>
@@ -273,116 +308,175 @@ export function LoginScreen({
         {error || localError ? <Text style={s.errorText}>{localError || error}</Text> : null}
         {localStatus ? <Text style={[s.subtleText, { color: '#16A34A' }]}>{localStatus}</Text> : null}
 
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          {[
-            ['login', t('loginLocal')],
-            ['register', t('loginSignup')],
-            ['findId', t('loginFindId')],
-            ['resetPassword', t('loginResetPassword')],
-          ].map(([key, label]) => (
+        {authPanel === 'entry' ? (
+          <View style={{ gap: 12 }}>
+            <Pressable style={s.primaryButton} onPress={() => openLocalPanel('login')}>
+              <Text style={s.primaryButtonText}>{t('loginEntryLocal')}</Text>
+            </Pressable>
+            <Pressable style={[s.secondaryButton, { width: '100%', paddingVertical: 14, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }]} onPress={openSocialPanel}>
+              <Text style={[s.secondaryButtonText, { flex: 1, textAlign: 'left' }]} numberOfLines={1}>
+                {t('loginEntrySocial')}
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 8, flexShrink: 0 }}>
+                <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: '#FEE500', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } }}>
+                  <Ionicons name="chatbubble-ellipses" size={15} color="#191919" />
+                </View>
+                <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: '#fff', borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="logo-google" size={15} color="#4285F4" />
+                </View>
+                <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: '#111', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="logo-apple" size={15} color="#fff" />
+                </View>
+              </View>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {authPanel === 'local' ? (
+          <>
             <Pressable
-              key={key}
-              style={[
-                s.secondaryButtonHalf,
-                { flexBasis: '48%' },
-                mode === key ? { borderColor: colors.primary, backgroundColor: colors.card } : null,
-              ]}
-              onPress={() => {
-                setMode(key as typeof mode);
-                setLocalError(null);
-                setLocalStatus(null);
+              onPress={() => setAuthPanel('entry')}
+              style={{
+                alignSelf: 'flex-start',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: 999,
+                backgroundColor: colors.card,
+                borderWidth: 1,
+                borderColor: colors.border,
               }}
             >
-              <Text style={s.secondaryButtonText}>{label}</Text>
+              <Ionicons name="arrow-back" size={14} color={colors.text} />
+              <Text style={[s.subtleText, { color: colors.text }]}>{t('loginEntryBack')}</Text>
             </Pressable>
-          ))}
-        </View>
+            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+              {[
+                ['login', t('loginLocal')],
+                ['register', t('loginSignup')],
+              ].map(([key, label]) => (
+                <Pressable
+                  key={key}
+                  style={[
+                    s.secondaryButtonHalf,
+                    { flexBasis: '48%' },
+                    mode === key ? { borderColor: colors.primary, backgroundColor: colors.card } : null,
+                  ]}
+                  onPress={() => {
+                    setMode(key as typeof mode);
+                    setLocalError(null);
+                    setLocalStatus(null);
+                  }}
+                >
+                  <Text style={s.secondaryButtonText}>{label}</Text>
+                </Pressable>
+              ))}
+            </View>
 
-        <View style={s.panel}>
-          {mode !== 'findId' ? (
-            <>
-              <Text style={s.formTitle}>{t('loginIdLabel')}</Text>
-              <TextInput
-                style={s.input}
-                value={loginId}
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholder={t('loginIdPlaceholder')}
-                onChangeText={(value) => {
-                  setLoginId(value);
-                  setLoginIdCheck(null);
-                }}
-                placeholderTextColor={colors.textMuted}
-              />
-            </>
-          ) : null}
-          {mode === 'register' ? (
-            <>
-              <Pressable
-                style={[s.secondaryButtonHalf, checkingLoginId || !loginId.trim() ? { opacity: 0.5 } : null]}
-                onPress={() => checkAvailability('loginId')}
-                disabled={checkingLoginId || !loginId.trim()}
-              >
-                <Text style={s.secondaryButtonText}>
-                  {checkingLoginId ? t('loginChecking') : t('loginCheckId')}
-                </Text>
-              </Pressable>
-              {loginIdCheck ? (
-                <Text style={[s.subtleText, { color: loginIdCheck.available ? '#16A34A' : '#EF4444' }]}>
-                  {loginIdCheck.message}
-                </Text>
+            <View style={s.panel}>
+              {mode !== 'findId' ? (
+                <>
+                  <Text style={s.formTitle}>{t('loginIdLabel')}</Text>
+                  <TextInput
+                    style={s.input}
+                    value={loginId}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    placeholder={t('loginIdPlaceholder')}
+                    onChangeText={(value) => {
+                      setLoginId(value);
+                      setLoginIdCheck(null);
+                    }}
+                    placeholderTextColor={colors.textMuted}
+                  />
+                </>
               ) : null}
-            </>
-          ) : null}
-          <Text style={s.formTitle}>{t('loginPasswordLabel')}</Text>
-          {mode === 'login' || mode === 'register' || mode === 'resetPassword' ? (
-            <>
-              <TextInput
-                style={s.input}
-                value={password}
-                secureTextEntry
-                placeholder={t('loginPasswordPlaceholder')}
-                onChangeText={setPassword}
-                placeholderTextColor={colors.textMuted}
-              />
-              {(mode === 'register' || mode === 'resetPassword') ? <Text style={s.subtleText}>{t('loginPasswordRule')}</Text> : null}
-            </>
-          ) : null}
-          {(mode === 'register' || mode === 'resetPassword') ? (
-            <>
-              <Text style={s.formTitle}>{t('loginPasswordConfirmLabel')}</Text>
-              <TextInput
-                style={s.input}
-                value={passwordConfirm}
-                secureTextEntry
-                placeholder={t('loginPasswordConfirmPlaceholder')}
-                onChangeText={setPasswordConfirm}
-                placeholderTextColor={colors.textMuted}
-              />
-              {passwordConfirm.trim() && !passwordConfirmed ? (
-                <Text style={[s.subtleText, { color: '#EF4444' }]}>
-                  {t('loginPasswordMismatch')}
-                </Text>
+
+              {mode === 'register' ? (
+                <>
+                  <Pressable
+                    style={[s.secondaryButton, { width: '100%', minHeight: 48, justifyContent: 'center', paddingHorizontal: 14 }, checkingLoginId || !loginId.trim() ? { opacity: 0.5 } : null]}
+                    onPress={() => checkAvailability('loginId')}
+                    disabled={checkingLoginId || !loginId.trim()}
+                  >
+                    <Text style={s.secondaryButtonText}>
+                      {checkingLoginId ? t('loginChecking') : t('loginCheckId')}
+                    </Text>
+                  </Pressable>
+                  {loginIdCheck ? (
+                    <Text style={[s.subtleText, { color: loginIdCheck.available ? '#16A34A' : '#EF4444' }]}>
+                      {loginIdCheck.message}
+                    </Text>
+                  ) : null}
+                </>
               ) : null}
-              <Text style={s.formTitle}>{t('loginEmailLabel')}</Text>
-              <TextInput
-                style={s.input}
-                value={email}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="email-address"
-                placeholder={t('loginEmailPlaceholder')}
-                onChangeText={(value) => {
-                  setEmail(value);
-                  setEmailVerified(false);
-                  setEmailVerifiedTarget('');
-                  setVerificationExpiresAt(null);
-                }}
-                placeholderTextColor={colors.textMuted}
-              />
+
+              {(mode === 'login' || mode === 'register' || mode === 'resetPassword') ? (
+                <>
+                  <Text style={s.formTitle}>{t('loginPasswordLabel')}</Text>
+                  <TextInput
+                    style={s.input}
+                    value={password}
+                    secureTextEntry
+                    placeholder={t('loginPasswordPlaceholder')}
+                    onChangeText={setPassword}
+                    placeholderTextColor={colors.textMuted}
+                  />
+                  {(mode === 'register' || mode === 'resetPassword') ? (
+                    <Text style={s.subtleText}>{t('loginPasswordRule')}</Text>
+                  ) : null}
+                </>
+              ) : null}
+
+              {(mode === 'register' || mode === 'resetPassword') ? (
+                <>
+                  <Text style={s.formTitle}>{t('loginPasswordConfirmLabel')}</Text>
+                  <TextInput
+                    style={s.input}
+                    value={passwordConfirm}
+                    secureTextEntry
+                    placeholder={t('loginPasswordConfirmPlaceholder')}
+                    onChangeText={setPasswordConfirm}
+                    placeholderTextColor={colors.textMuted}
+                  />
+                  {passwordConfirm.trim() && !passwordConfirmed ? (
+                    <Text style={[s.subtleText, { color: '#EF4444' }]}>{t('loginPasswordMismatch')}</Text>
+                  ) : null}
+                </>
+              ) : null}
+
+              {(mode === 'register' || mode === 'findId' || mode === 'resetPassword') ? (
+                <>
+                  <Text style={s.formTitle}>{t('loginEmailLabel')}</Text>
+                  <TextInput
+                    style={s.input}
+                    value={email}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="email-address"
+                    placeholder={t('loginEmailPlaceholder')}
+                    onChangeText={(value) => {
+                      setEmail(value);
+                      setEmailVerified(false);
+                      setEmailVerifiedTarget('');
+                      setVerificationExpiresAt(null);
+                      setEmailMessage(null);
+                    }}
+                    placeholderTextColor={colors.textMuted}
+                  />
+                  {mode === 'register' && emailMessage ? (
+                    <Text style={[s.subtleText, { color: emailMessage.tone === 'success' ? '#16A34A' : '#EF4444' }]}>
+                      {emailMessage.text}
+                    </Text>
+                  ) : null}
+                </>
+              ) : null}
+
               {mode === 'register' ? (
                 <Pressable
-                  style={[s.secondaryButtonHalf, sendingCode || !email.trim() ? { opacity: 0.5 } : null]}
+                  style={[s.secondaryButton, { width: '100%', minHeight: 48, justifyContent: 'center', paddingHorizontal: 14 }, sendingCode || !email.trim() ? { opacity: 0.5 } : null]}
                   onPress={sendVerificationCode}
                   disabled={sendingCode || !email.trim()}
                 >
@@ -390,9 +484,11 @@ export function LoginScreen({
                     {sendingCode ? t('loginChecking') : t('loginSendVerificationCode')}
                   </Text>
                 </Pressable>
-              ) : (
+              ) : null}
+
+              {mode === 'resetPassword' ? (
                 <Pressable
-                  style={[s.secondaryButtonHalf, sendingResetCode || !email.trim() || !loginId.trim() ? { opacity: 0.5 } : null]}
+                  style={[s.secondaryButton, { width: '100%', minHeight: 48, justifyContent: 'center', paddingHorizontal: 14 }, sendingResetCode || !email.trim() || !loginId.trim() ? { opacity: 0.5 } : null]}
                   onPress={sendResetCode}
                   disabled={sendingResetCode || !email.trim() || !loginId.trim()}
                 >
@@ -400,171 +496,203 @@ export function LoginScreen({
                     {sendingResetCode ? t('loginChecking') : t('loginSendResetCode')}
                   </Text>
                 </Pressable>
-              )}
+              ) : null}
+
               {verificationExpiresAt && !emailVerified ? (
-                <Text
-                  style={[
-                    s.subtleText,
-                    { color: verificationRemainingSeconds > 0 ? colors.textMuted : '#EF4444' },
-                  ]}
-                >
+                <Text style={[s.subtleText, { color: verificationRemainingSeconds > 0 ? colors.textMuted : '#EF4444' }]}>
                   {verificationRemainingSeconds > 0
-                    ? t('loginVerificationExpiresIn', {
-                        time: formatCountdown(verificationRemainingSeconds),
-                      })
+                    ? t('loginVerificationExpiresIn', { time: formatCountdown(verificationRemainingSeconds) })
                     : t('loginVerificationExpired')}
                 </Text>
               ) : null}
-              <Text style={s.formTitle}>{t('loginVerificationCodeLabel')}</Text>
-              <TextInput
-                style={s.input}
-                value={verificationCode}
-                keyboardType="number-pad"
-                placeholder={t('loginVerificationCodePlaceholder')}
-                onChangeText={setVerificationCode}
-                placeholderTextColor={colors.textMuted}
-              />
-              <Pressable
-                style={[
-                  s.secondaryButtonHalf,
-                  verifyingCode || !email.trim() || !verificationCode.trim() ? { opacity: 0.5 } : null,
-                ]}
-                onPress={verifyVerificationCode}
-                disabled={verifyingCode || !email.trim() || !verificationCode.trim()}
-              >
-                <Text style={s.secondaryButtonText}>
-                  {verifyingCode ? t('loginChecking') : t('loginVerifyVerificationCode')}
-                </Text>
-              </Pressable>
-              {mode === 'register' && emailVerified && emailVerifiedTarget === email.trim().toLowerCase() ? (
-                <Text style={[s.subtleText, { color: '#16A34A' }]}>
-                  {t('loginVerificationVerified')}
-                </Text>
-              ) : null}
-              {mode === 'register' ? (
+
+              {(mode === 'register' || mode === 'resetPassword') ? (
                 <>
-              <Text style={s.formTitle}>{t('loginNicknameLabel')}</Text>
-              <TextInput
-                style={s.input}
-                value={nickname}
-                placeholder={t('loginNicknamePlaceholder')}
-                onChangeText={(value) => {
-                  setNickname(value);
-                  setNicknameCheck(null);
-                }}
-                placeholderTextColor={colors.textMuted}
-              />
-              <Pressable
-                style={[s.secondaryButtonHalf, checkingNickname || !nickname.trim() ? { opacity: 0.5 } : null]}
-                onPress={() => checkAvailability('nickname')}
-                disabled={checkingNickname || !nickname.trim()}
-              >
-                <Text style={s.secondaryButtonText}>
-                  {checkingNickname ? t('loginChecking') : t('loginCheckNickname')}
-                </Text>
-              </Pressable>
-              {nicknameCheck ? (
-                <Text style={[s.subtleText, { color: nicknameCheck.available ? '#16A34A' : '#EF4444' }]}>
-                  {nicknameCheck.message}
-                </Text>
-              ) : null}
+                  <Text style={s.formTitle}>{t('loginVerificationCodeLabel')}</Text>
+                  <TextInput
+                    style={s.input}
+                    value={verificationCode}
+                    keyboardType="number-pad"
+                    placeholder={t('loginVerificationCodePlaceholder')}
+                    onChangeText={setVerificationCode}
+                    placeholderTextColor={colors.textMuted}
+                  />
+                  {mode === 'register' ? (
+                    <Pressable
+                      style={[s.secondaryButton, { width: '100%', minHeight: 48, justifyContent: 'center', paddingHorizontal: 14 }, verifyingCode || !email.trim() || !verificationCode.trim() ? { opacity: 0.5 } : null]}
+                      onPress={verifyVerificationCode}
+                      disabled={verifyingCode || !email.trim() || !verificationCode.trim()}
+                    >
+                      <Text style={s.secondaryButtonText}>
+                        {verifyingCode ? t('loginChecking') : t('loginVerifyVerificationCode')}
+                      </Text>
+                    </Pressable>
+                  ) : null}
                 </>
               ) : null}
-            </>
-          ) : null}
-          {mode === 'findId' ? (
-            <>
-              <Text style={s.formTitle}>{t('loginEmailLabel')}</Text>
-              <TextInput
-                style={s.input}
-                value={email}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="email-address"
-                placeholder={t('loginEmailPlaceholder')}
-                onChangeText={setEmail}
-                placeholderTextColor={colors.textMuted}
-              />
-            </>
-          ) : null}
-          <Pressable
-            style={[s.primaryButton, submitDisabled ? { opacity: 0.5 } : null]}
-            disabled={
-              submitDisabled ||
-              authLoading === 'local-login' ||
-              authLoading === 'local-register' ||
-              findingLoginId ||
-              resettingPassword
-            }
-            onPress={() => {
-              if (mode === 'login') {
-                onLocalLogin({ loginId, password });
-                return;
-              }
-              if (mode === 'register') {
-                onLocalRegister({ loginId, password, nickname, email });
-                return;
-              }
-              if (mode === 'findId') {
-                void findLoginId();
-                return;
-              }
-              void resetPassword();
-            }}
-          >
-            {authLoading === 'local-login' || authLoading === 'local-register' || findingLoginId || resettingPassword ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={s.primaryButtonText}>
-                {mode === 'login'
-                  ? t('loginLocalAction')
-                  : mode === 'register'
-                    ? t('loginSignupAction')
-                    : mode === 'findId'
-                      ? t('loginFindIdAction')
-                      : t('loginResetPasswordAction')}
-              </Text>
-            )}
-          </Pressable>
-        </View>
 
-        <Text style={[s.subtleText, { textAlign: 'center' }]}>{t('loginDivider')}</Text>
+              {mode === 'register' ? (
+                <>
+                  <Text style={s.formTitle}>{t('loginNicknameLabel')}</Text>
+                  <TextInput
+                    style={s.input}
+                    value={nickname}
+                    placeholder={t('loginNicknamePlaceholder')}
+                    onChangeText={(value) => {
+                      setNickname(value);
+                      setNicknameCheck(null);
+                    }}
+                    placeholderTextColor={colors.textMuted}
+                  />
+                  <Pressable
+                    style={[s.secondaryButton, { width: '100%', minHeight: 48, justifyContent: 'center', paddingHorizontal: 14 }, checkingNickname || !nickname.trim() ? { opacity: 0.5 } : null]}
+                    onPress={() => checkAvailability('nickname')}
+                    disabled={checkingNickname || !nickname.trim()}
+                  >
+                    <Text style={s.secondaryButtonText}>
+                      {checkingNickname ? t('loginChecking') : t('loginCheckNickname')}
+                    </Text>
+                  </Pressable>
+                  {nicknameCheck ? (
+                    <Text style={[s.subtleText, { color: nicknameCheck.available ? '#16A34A' : '#EF4444' }]}>
+                      {nicknameCheck.message}
+                    </Text>
+                  ) : null}
+                </>
+              ) : null}
 
-        <Pressable style={[s.oauthButtonModern, s.kakaoButton]} onPress={() => onLogin('kakao')}>
-          {authLoading === 'kakao' ? (
-            <ActivityIndicator color="#111" />
-          ) : (
-            <View style={s.oauthRow}>
-              <Ionicons name="chatbubbles-outline" size={16} color="#111" />
-              <Text style={s.kakaoText}>{t('loginKakao')}</Text>
+              {mode === 'findId' ? (
+                <>
+                  <Text style={s.formTitle}>{t('loginEmailLabel')}</Text>
+                  <TextInput
+                    style={s.input}
+                    value={email}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="email-address"
+                    placeholder={t('loginEmailPlaceholder')}
+                    onChangeText={setEmail}
+                    placeholderTextColor={colors.textMuted}
+                  />
+                </>
+              ) : null}
+
+              <Pressable
+                style={[s.primaryButton, submitDisabled ? { opacity: 0.5 } : null]}
+                disabled={submitDisabled || authLoading === 'local-login' || authLoading === 'local-register' || findingLoginId || resettingPassword}
+                onPress={() => {
+                  if (mode === 'login') {
+                    onLocalLogin({ loginId, password });
+                    return;
+                  }
+                  if (mode === 'register') {
+                    onLocalRegister({ loginId, password, nickname, email });
+                    return;
+                  }
+                  if (mode === 'findId') {
+                    void findLoginId();
+                    return;
+                  }
+                  void resetPassword();
+                }}
+              >
+                {authLoading === 'local-login' || authLoading === 'local-register' || findingLoginId || resettingPassword ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={s.primaryButtonText}>
+                    {mode === 'login'
+                      ? t('loginLocalAction')
+                      : mode === 'register'
+                        ? t('loginSignupAction')
+                        : mode === 'findId'
+                          ? t('loginFindIdAction')
+                          : t('loginResetPasswordAction')}
+                  </Text>
+                )}
+              </Pressable>
+
+              {mode === 'login' ? (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
+                  <Pressable onPress={() => setMode('findId')}>
+                    <Text style={s.subtleText}>{t('loginFindId')}</Text>
+                  </Pressable>
+                  <Pressable onPress={() => setMode('resetPassword')}>
+                    <Text style={s.subtleText}>{t('loginResetPassword')}</Text>
+                  </Pressable>
+                </View>
+              ) : null}
+
+              {mode === 'register' ? (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
+                  <Pressable onPress={() => setMode('findId')}>
+                    <Text style={s.subtleText}>{t('loginFindId')}</Text>
+                  </Pressable>
+                  <Pressable onPress={() => setMode('resetPassword')}>
+                    <Text style={s.subtleText}>{t('loginResetPassword')}</Text>
+                  </Pressable>
+                </View>
+              ) : null}
             </View>
-          )}
-        </Pressable>
+          </>
+        ) : null}
 
-        <Pressable style={[s.oauthButtonModern, s.googleButton]} onPress={() => onLogin('google')}>
-          {authLoading === 'google' ? (
-            <ActivityIndicator color={colors.text} />
-          ) : (
-            <View style={s.oauthRow}>
-              <Ionicons name="logo-google" size={16} color={colors.text} />
-              <Text style={[s.googleText, { color: colors.text }]}>{t('loginGoogle')}</Text>
-            </View>
-          )}
-        </Pressable>
-
-        {Platform.OS === 'ios' ? (
-          <Pressable style={[s.oauthButtonModern, s.appleButton]} onPress={() => onLogin('apple')}>
-            {authLoading === 'apple' ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <View style={s.oauthRow}>
-                <Ionicons name="logo-apple" size={16} color="#fff" />
-                <Text style={s.appleText}>{t('loginApple')}</Text>
-              </View>
-            )}
-          </Pressable>
+        {authPanel === 'social' ? (
+          <>
+            <Pressable
+              onPress={() => setAuthPanel('entry')}
+              style={{
+                alignSelf: 'flex-start',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: 999,
+                backgroundColor: colors.card,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+            >
+              <Ionicons name="arrow-back" size={14} color={colors.text} />
+              <Text style={[s.subtleText, { color: colors.text }]}>{t('loginEntryBack')}</Text>
+            </Pressable>
+            <Text style={[s.subtleText, { textAlign: 'center' }]}>{t('loginSocialDescription')}</Text>
+            <Pressable style={[s.oauthButtonModern, s.kakaoButton]} onPress={() => onLogin('kakao')}>
+              {authLoading === 'kakao' ? (
+                <ActivityIndicator color="#111" />
+              ) : (
+                <View style={s.oauthRow}>
+                  <Ionicons name="chatbubbles-outline" size={16} color="#111" />
+                  <Text style={s.kakaoText}>{t('loginKakao')}</Text>
+                </View>
+              )}
+            </Pressable>
+            <Pressable style={[s.oauthButtonModern, s.googleButton]} onPress={() => onLogin('google')}>
+              {authLoading === 'google' ? (
+                <ActivityIndicator color={colors.text} />
+              ) : (
+                <View style={s.oauthRow}>
+                  <Ionicons name="logo-google" size={16} color={colors.text} />
+                  <Text style={[s.googleText, { color: colors.text }]}>{t('loginGoogle')}</Text>
+                </View>
+              )}
+            </Pressable>
+            {Platform.OS === 'ios' ? (
+              <Pressable style={[s.oauthButtonModern, s.appleButton]} onPress={() => onLogin('apple')}>
+                {authLoading === 'apple' ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <View style={s.oauthRow}>
+                    <Ionicons name="logo-apple" size={16} color="#fff" />
+                    <Text style={s.appleText}>{t('loginApple')}</Text>
+                  </View>
+                )}
+              </Pressable>
+            ) : null}
+          </>
         ) : null}
       </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

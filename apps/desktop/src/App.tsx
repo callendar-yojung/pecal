@@ -20,6 +20,7 @@ import { useWorkspaces } from './hooks'
 import { useThemeStore, useAuthStore, useViewStore } from './stores'
 import { authApi } from './api'
 import { isTauriApp } from './utils/tauri'
+import { openExternal } from './lib/openExternal'
 
 interface AlarmTriggeredPayload {
   alarm_id: string
@@ -214,12 +215,10 @@ function App() {
 
   const openConsentPage = () => {
     const locale = i18n.language === 'ko' ? 'ko' : 'en'
-    const callback = encodeURIComponent(`/${locale}/dashboard`)
+    const callback = encodeURIComponent(`/${locale}/consent/desktop-complete`)
     const token = encodeURIComponent(accessToken ?? '')
-    window.open(
+    void openExternal(
       `https://pecal.site/${locale}/consent?token=${token}&callback=${callback}`,
-      '_blank',
-      'noopener,noreferrer',
     )
   }
 
