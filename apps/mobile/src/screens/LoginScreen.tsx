@@ -14,6 +14,14 @@ type Props = {
   onLogin: (provider: OAuthProvider) => void;
   onLocalLogin: (params: { loginId: string; password: string }) => void;
   onLocalRegister: (params: { loginId: string; password: string; nickname: string; email: string }) => void;
+  onFindLoginId: (email: string) => Promise<{ success: boolean; message?: string }>;
+  onSendPasswordResetCode: (loginId: string, email: string) => Promise<{ success: boolean; message?: string }>;
+  onResetPassword: (params: {
+    loginId: string;
+    email: string;
+    code: string;
+    password: string;
+  }) => Promise<{ success: boolean }>;
   onCheckLocalAvailability: (params: {
     loginId?: string;
     nickname?: string;
@@ -49,6 +57,9 @@ export function LoginScreen({
   onLogin,
   onLocalLogin,
   onLocalRegister,
+  onFindLoginId,
+  onSendPasswordResetCode,
+  onResetPassword,
   onCheckLocalAvailability,
   onSendRegisterVerificationCode,
   onVerifyRegisterVerificationCode,
@@ -56,7 +67,7 @@ export function LoginScreen({
   const { t } = useI18n();
   const { colors } = useThemeMode();
   const s = createStyles(colors);
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [mode, setMode] = useState<'login' | 'register' | 'findId' | 'resetPassword'>('login');
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
@@ -69,6 +80,9 @@ export function LoginScreen({
   const [checkingNickname, setCheckingNickname] = useState(false);
   const [sendingCode, setSendingCode] = useState(false);
   const [verifyingCode, setVerifyingCode] = useState(false);
+  const [findingLoginId, setFindingLoginId] = useState(false);
+  const [sendingResetCode, setSendingResetCode] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
   const [loginIdCheck, setLoginIdCheck] = useState<AvailabilityState | null>(null);
   const [nicknameCheck, setNicknameCheck] = useState<AvailabilityState | null>(null);
   const [emailVerified, setEmailVerified] = useState(false);
@@ -92,11 +106,12 @@ export function LoginScreen({
     return () => clearInterval(timer);
   }, [verificationExpiresAt]);
 
-  const passwordValid = mode !== 'register' || isValidRegisterPassword(password);
-  const passwordConfirmed = mode !== 'register' || password === passwordConfirm;
+  const registerMode = mode === 'register';
+  const resetMode = mode === 'resetPassword';
+  const passwordValid = (!registerMode && !resetMode) || isValidRegisterPassword(password);
+  const passwordConfirmed = (!registerMode && !resetMode) || password === passwordConfirm;
   const submitDisabled =
-    !loginId.trim() ||
-    !password.trim() ||
+    (mode === 'login' && (!loginId.trim() || !password.trim())) ||
     (mode === 'register' &&
       (!email.trim() ||
         !nickname.trim() ||
@@ -108,7 +123,16 @@ export function LoginScreen({
         loginIdCheck?.available !== true ||
         loginIdCheck.value !== loginId.trim().toLowerCase() ||
         nicknameCheck?.available !== true ||
-        nicknameCheck.value !== nickname.trim()));
+        nicknameCheck.value !== nickname.trim())) ||
+    (mode === 'findId' && !email.trim()) ||
+    (mode === 'resetPassword' &&
+      (!loginId.trim() ||
+        !email.trim() ||
+        !verificationCode.trim() ||
+        !password.trim() ||
+        !passwordConfirm.trim() ||
+        !passwordValid ||
+        !passwordConfirmed));
 
   const checkAvailability = async (field: 'loginId' | 'nickname') => {
     try {
@@ -174,6 +198,62 @@ export function LoginScreen({
     }
   };
 
+  const findLoginId = async () => {
+    try {
+      setLocalError(null);
+      setLocalStatus(null);
+      setFindingLoginId(true);
+      const result = await onFindLoginId(email.trim());
+      setLocalStatus(result.message ?? t('loginFindIdSent'));
+    } catch (e) {
+      setLocalError(e instanceof Error ? e.message : t('loginFindIdFailed'));
+    } finally {
+      setFindingLoginId(false);
+    }
+  };
+
+  const sendResetCode = async () => {
+    try {
+      setLocalError(null);
+      setLocalStatus(null);
+      setSendingResetCode(true);
+      const result = await onSendPasswordResetCode(loginId.trim(), email.trim());
+      setVerificationExpiresAt(Date.now() + EMAIL_VERIFICATION_TTL_SECONDS * 1000);
+      setLocalStatus(result.message ?? t('loginResetCodeSent'));
+    } catch (e) {
+      setLocalError(e instanceof Error ? e.message : t('loginResetCodeFailed'));
+    } finally {
+      setSendingResetCode(false);
+    }
+  };
+
+  const resetPassword = async () => {
+    try {
+      setLocalError(null);
+      setLocalStatus(null);
+      setResettingPassword(true);
+      if (verificationRemainingSeconds <= 0) {
+        setLocalError(t('loginVerificationExpired'));
+        return;
+      }
+      await onResetPassword({
+        loginId: loginId.trim(),
+        email: email.trim(),
+        code: verificationCode.trim(),
+        password,
+      });
+      setLocalStatus(t('loginResetPasswordSuccess'));
+      setMode('login');
+      setVerificationCode('');
+      setPassword('');
+      setPasswordConfirm('');
+    } catch (e) {
+      setLocalError(e instanceof Error ? e.message : t('loginResetPasswordFailed'));
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
   return (
     <SafeAreaView style={s.centerScreen}>
       <View style={s.loginBackdrop}>
@@ -194,40 +274,48 @@ export function LoginScreen({
         {localStatus ? <Text style={[s.subtleText, { color: '#16A34A' }]}>{localStatus}</Text> : null}
 
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <Pressable
-            style={[
-              s.secondaryButtonHalf,
-              mode === 'login' ? { borderColor: colors.primary, backgroundColor: colors.card } : null,
-            ]}
-            onPress={() => setMode('login')}
-          >
-            <Text style={s.secondaryButtonText}>{t('loginLocal')}</Text>
-          </Pressable>
-          <Pressable
-            style={[
-              s.secondaryButtonHalf,
-              mode === 'register' ? { borderColor: colors.primary, backgroundColor: colors.card } : null,
-            ]}
-            onPress={() => setMode('register')}
-          >
-            <Text style={s.secondaryButtonText}>{t('loginSignup')}</Text>
-          </Pressable>
+          {[
+            ['login', t('loginLocal')],
+            ['register', t('loginSignup')],
+            ['findId', t('loginFindId')],
+            ['resetPassword', t('loginResetPassword')],
+          ].map(([key, label]) => (
+            <Pressable
+              key={key}
+              style={[
+                s.secondaryButtonHalf,
+                { flexBasis: '48%' },
+                mode === key ? { borderColor: colors.primary, backgroundColor: colors.card } : null,
+              ]}
+              onPress={() => {
+                setMode(key as typeof mode);
+                setLocalError(null);
+                setLocalStatus(null);
+              }}
+            >
+              <Text style={s.secondaryButtonText}>{label}</Text>
+            </Pressable>
+          ))}
         </View>
 
         <View style={s.panel}>
-          <Text style={s.formTitle}>{t('loginIdLabel')}</Text>
-          <TextInput
-            style={s.input}
-            value={loginId}
-            autoCapitalize="none"
-            autoCorrect={false}
-            placeholder={t('loginIdPlaceholder')}
-            onChangeText={(value) => {
-              setLoginId(value);
-              setLoginIdCheck(null);
-            }}
-            placeholderTextColor={colors.textMuted}
-          />
+          {mode !== 'findId' ? (
+            <>
+              <Text style={s.formTitle}>{t('loginIdLabel')}</Text>
+              <TextInput
+                style={s.input}
+                value={loginId}
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder={t('loginIdPlaceholder')}
+                onChangeText={(value) => {
+                  setLoginId(value);
+                  setLoginIdCheck(null);
+                }}
+                placeholderTextColor={colors.textMuted}
+              />
+            </>
+          ) : null}
           {mode === 'register' ? (
             <>
               <Pressable
@@ -247,16 +335,20 @@ export function LoginScreen({
             </>
           ) : null}
           <Text style={s.formTitle}>{t('loginPasswordLabel')}</Text>
-          <TextInput
-            style={s.input}
-            value={password}
-            secureTextEntry
-            placeholder={t('loginPasswordPlaceholder')}
-            onChangeText={setPassword}
-            placeholderTextColor={colors.textMuted}
-          />
-          {mode === 'register' ? <Text style={s.subtleText}>{t('loginPasswordRule')}</Text> : null}
-          {mode === 'register' ? (
+          {mode === 'login' || mode === 'register' || mode === 'resetPassword' ? (
+            <>
+              <TextInput
+                style={s.input}
+                value={password}
+                secureTextEntry
+                placeholder={t('loginPasswordPlaceholder')}
+                onChangeText={setPassword}
+                placeholderTextColor={colors.textMuted}
+              />
+              {(mode === 'register' || mode === 'resetPassword') ? <Text style={s.subtleText}>{t('loginPasswordRule')}</Text> : null}
+            </>
+          ) : null}
+          {(mode === 'register' || mode === 'resetPassword') ? (
             <>
               <Text style={s.formTitle}>{t('loginPasswordConfirmLabel')}</Text>
               <TextInput
@@ -288,15 +380,27 @@ export function LoginScreen({
                 }}
                 placeholderTextColor={colors.textMuted}
               />
-              <Pressable
-                style={[s.secondaryButtonHalf, sendingCode || !email.trim() ? { opacity: 0.5 } : null]}
-                onPress={sendVerificationCode}
-                disabled={sendingCode || !email.trim()}
-              >
-                <Text style={s.secondaryButtonText}>
-                  {sendingCode ? t('loginChecking') : t('loginSendVerificationCode')}
-                </Text>
-              </Pressable>
+              {mode === 'register' ? (
+                <Pressable
+                  style={[s.secondaryButtonHalf, sendingCode || !email.trim() ? { opacity: 0.5 } : null]}
+                  onPress={sendVerificationCode}
+                  disabled={sendingCode || !email.trim()}
+                >
+                  <Text style={s.secondaryButtonText}>
+                    {sendingCode ? t('loginChecking') : t('loginSendVerificationCode')}
+                  </Text>
+                </Pressable>
+              ) : (
+                <Pressable
+                  style={[s.secondaryButtonHalf, sendingResetCode || !email.trim() || !loginId.trim() ? { opacity: 0.5 } : null]}
+                  onPress={sendResetCode}
+                  disabled={sendingResetCode || !email.trim() || !loginId.trim()}
+                >
+                  <Text style={s.secondaryButtonText}>
+                    {sendingResetCode ? t('loginChecking') : t('loginSendResetCode')}
+                  </Text>
+                </Pressable>
+              )}
               {verificationExpiresAt && !emailVerified ? (
                 <Text
                   style={[
@@ -332,11 +436,13 @@ export function LoginScreen({
                   {verifyingCode ? t('loginChecking') : t('loginVerifyVerificationCode')}
                 </Text>
               </Pressable>
-              {emailVerified && emailVerifiedTarget === email.trim().toLowerCase() ? (
+              {mode === 'register' && emailVerified && emailVerifiedTarget === email.trim().toLowerCase() ? (
                 <Text style={[s.subtleText, { color: '#16A34A' }]}>
                   {t('loginVerificationVerified')}
                 </Text>
               ) : null}
+              {mode === 'register' ? (
+                <>
               <Text style={s.formTitle}>{t('loginNicknameLabel')}</Text>
               <TextInput
                 style={s.input}
@@ -362,22 +468,61 @@ export function LoginScreen({
                   {nicknameCheck.message}
                 </Text>
               ) : null}
+                </>
+              ) : null}
+            </>
+          ) : null}
+          {mode === 'findId' ? (
+            <>
+              <Text style={s.formTitle}>{t('loginEmailLabel')}</Text>
+              <TextInput
+                style={s.input}
+                value={email}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                placeholder={t('loginEmailPlaceholder')}
+                onChangeText={setEmail}
+                placeholderTextColor={colors.textMuted}
+              />
             </>
           ) : null}
           <Pressable
             style={[s.primaryButton, submitDisabled ? { opacity: 0.5 } : null]}
-            disabled={submitDisabled || authLoading === 'local-login' || authLoading === 'local-register'}
-            onPress={() =>
-              mode === 'login'
-                ? onLocalLogin({ loginId, password })
-                : onLocalRegister({ loginId, password, nickname, email })
+            disabled={
+              submitDisabled ||
+              authLoading === 'local-login' ||
+              authLoading === 'local-register' ||
+              findingLoginId ||
+              resettingPassword
             }
+            onPress={() => {
+              if (mode === 'login') {
+                onLocalLogin({ loginId, password });
+                return;
+              }
+              if (mode === 'register') {
+                onLocalRegister({ loginId, password, nickname, email });
+                return;
+              }
+              if (mode === 'findId') {
+                void findLoginId();
+                return;
+              }
+              void resetPassword();
+            }}
           >
-            {authLoading === 'local-login' || authLoading === 'local-register' ? (
+            {authLoading === 'local-login' || authLoading === 'local-register' || findingLoginId || resettingPassword ? (
               <ActivityIndicator color="#fff" />
             ) : (
               <Text style={s.primaryButtonText}>
-                {mode === 'login' ? t('loginLocalAction') : t('loginSignupAction')}
+                {mode === 'login'
+                  ? t('loginLocalAction')
+                  : mode === 'register'
+                    ? t('loginSignupAction')
+                    : mode === 'findId'
+                      ? t('loginFindIdAction')
+                      : t('loginResetPasswordAction')}
               </Text>
             )}
           </Pressable>

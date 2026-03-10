@@ -7,6 +7,9 @@ import { resolve } from 'path'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   clearScreen: false,
+  build: {
+    chunkSizeWarningLimit: 1200,
+  },
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),

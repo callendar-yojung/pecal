@@ -65,6 +65,7 @@ Authorization: Bearer <access_token>
   tags: [
     { name: "Auth - External", description: "외부 앱용 인증 API (JWT)" },
     { name: "Auth - OAuth", description: "OAuth 인증 흐름 API" },
+    { name: "Auth - Local", description: "아이디/비밀번호 및 계정 복구 API" },
     { name: "Tasks", description: "태스크 CRUD API" },
     { name: "Workspaces", description: "워크스페이스 관리 API" },
     { name: "Teams", description: "팀 관리 API" },
@@ -426,6 +427,148 @@ Authorization: Bearer <access_token>
     },
   },
   paths: {
+    // ==================== Auth - Local ====================
+    "/api/auth/local/recovery/find-login-id": {
+      post: {
+        tags: ["Auth - Local"],
+        summary: "이메일로 아이디 안내 메일 발송",
+        description: "로컬 계정에 연결된 이메일로 로그인 아이디 안내 메일을 발송합니다.",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["email"],
+                properties: {
+                  email: { type: "string", format: "email", description: "가입한 이메일" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "메일 발송 요청 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean" },
+                    message: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "잘못된 요청",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/auth/local/recovery/send-reset-code": {
+      post: {
+        tags: ["Auth - Local"],
+        summary: "비밀번호 재설정 인증코드 발송",
+        description: "아이디와 이메일이 일치하는 로컬 계정에 비밀번호 재설정 인증코드를 보냅니다.",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["login_id", "email"],
+                properties: {
+                  login_id: { type: "string", description: "로그인 아이디" },
+                  email: { type: "string", format: "email", description: "가입한 이메일" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "코드 발송 요청 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean" },
+                    message: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "잘못된 요청",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/auth/local/recovery/reset-password": {
+      post: {
+        tags: ["Auth - Local"],
+        summary: "비밀번호 재설정 완료",
+        description: "아이디, 이메일, 인증코드, 새 비밀번호를 받아 로컬 계정 비밀번호를 변경합니다.",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["login_id", "email", "code", "password"],
+                properties: {
+                  login_id: { type: "string", description: "로그인 아이디" },
+                  email: { type: "string", format: "email", description: "가입한 이메일" },
+                  code: { type: "string", description: "이메일 인증코드" },
+                  password: {
+                    type: "string",
+                    description: "새 비밀번호 (8자 이상, 특수문자 포함)",
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "비밀번호 재설정 성공",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean" },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "검증 실패",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
+              },
+            },
+          },
+        },
+      },
+    },
     // ==================== Auth - External ====================
     "/api/auth/external/kakao": {
       post: {

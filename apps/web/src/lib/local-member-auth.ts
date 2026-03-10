@@ -4,6 +4,8 @@ import { generateTokenPair } from "@/lib/jwt";
 import { getSessionClientMeta } from "@/lib/session-client-meta";
 import {
   createLocalMember,
+  findLocalMemberByEmail,
+  findLocalMemberByLoginIdAndEmail,
   isEmailTaken,
   isMemberLoginEnabled,
   isLoginIdTaken,
@@ -13,11 +15,15 @@ import {
   isValidMemberEmail,
   isValidMemberPassword,
   normalizeLoginId,
+  updateLocalMemberPassword,
   verifyLocalMemberLogin,
 } from "@/lib/member";
 import {
+  consumePasswordResetVerificationCode,
   consumeVerifiedRegisterEmail,
+  sendPasswordResetVerificationCode,
 } from "@/lib/local-email-verification";
+import { sendLocalLoginIdReminderEmail } from "@/lib/mailer";
 
 const ACCESS_TOKEN_COOKIE_NAME = "PECAL_ACCESS_TOKEN";
 const REFRESH_TOKEN_COOKIE_NAME = "PECAL_REFRESH_TOKEN";
@@ -169,6 +175,84 @@ export async function loginLocalMember(params: {
   }
 
   return issueMemberTokens(params.request, member);
+}
+
+export async function sendLocalLoginIdReminder(rawEmail: string) {
+  const email = rawEmail.trim().toLowerCase();
+
+  if (!isValidMemberEmail(email)) {
+    throw new Error("이메일 형식이 올바르지 않습니다.");
+  }
+
+  const member = await findLocalMemberByEmail(email);
+  if (!member || !member.login_id) {
+    return;
+  }
+
+  await sendLocalLoginIdReminderEmail({
+    email,
+    loginId: member.login_id,
+  });
+}
+
+export async function requestLocalPasswordReset(params: {
+  loginId: string;
+  email: string;
+}) {
+  const loginId = normalizeLoginId(params.loginId);
+  const email = params.email.trim().toLowerCase();
+
+  if (!isValidLoginId(loginId)) {
+    throw new Error("아이디 형식이 올바르지 않습니다.");
+  }
+  if (!isValidMemberEmail(email)) {
+    throw new Error("이메일 형식이 올바르지 않습니다.");
+  }
+
+  await sendPasswordResetVerificationCode({ loginId, email });
+}
+
+export async function resetLocalPassword(params: {
+  loginId: string;
+  email: string;
+  code: string;
+  password: string;
+}) {
+  const loginId = normalizeLoginId(params.loginId);
+  const email = params.email.trim().toLowerCase();
+
+  if (!isValidLoginId(loginId)) {
+    return { error: "아이디 형식이 올바르지 않습니다.", status: 400 as const };
+  }
+  if (!isValidMemberEmail(email)) {
+    return { error: "이메일 형식이 올바르지 않습니다.", status: 400 as const };
+  }
+  if (!isValidMemberPassword(params.password)) {
+    return {
+      error: "비밀번호는 8자 이상이며 특수문자를 포함해야 합니다.",
+      status: 400 as const,
+    };
+  }
+
+  const member = await findLocalMemberByLoginIdAndEmail({ loginId, email });
+  if (!member || !member.member_id) {
+    return {
+      error: "입력한 아이디와 이메일에 해당하는 계정을 찾을 수 없습니다.",
+      status: 404 as const,
+    };
+  }
+
+  await consumePasswordResetVerificationCode({
+    loginId,
+    email,
+    code: params.code,
+  });
+  await updateLocalMemberPassword({
+    memberId: member.member_id,
+    password: params.password,
+  });
+
+  return { success: true as const };
 }
 
 async function issueMemberTokens(

@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { open } from '@tauri-apps/plugin-shell'
 import { ask } from '@tauri-apps/plugin-dialog'
 import { Modal, Input, TextArea, Button } from '../common'
 import { useModalStore } from '../../stores'
 import { useWorkspaceStore } from '../../stores'
 import { teamApi } from '../../api'
+import { openExternal } from '../../lib/openExternal'
 
 type TeamPlan = 'free' | 'paid'
 type ModalStep = 'details' | 'plan'
@@ -65,12 +65,7 @@ export function TeamCreateModal() {
 
       const ownerId = createdTeamId
       const billingUrl = `https://pecal.site/dashboard/settings/billing/plans/team?owner_id=${ownerId}`
-      try {
-        await open(billingUrl)
-      } catch (openError) {
-        console.error('Failed to open billing page:', openError)
-        window.open(billingUrl, '_blank', 'noopener,noreferrer')
-      }
+      await openExternal(billingUrl)
       setMode('TEAM', createdTeamId)
       resetAndClose()
       return

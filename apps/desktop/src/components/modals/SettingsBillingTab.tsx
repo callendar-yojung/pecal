@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { open } from '@tauri-apps/plugin-shell'
 import { useTranslation } from 'react-i18next'
 import { apiClient } from '../../api'
 import { resolveApiBaseUrl } from '../../lib/apiBaseUrl'
+import { openExternal } from '../../lib/openExternal'
 import { useAuthStore, useWorkspaceStore } from '../../stores'
 
 type OwnerType = 'personal' | 'team'
@@ -83,15 +83,6 @@ export function SettingsBillingTab() {
   }
 
   const formatAmount = (amount: number) => `₩${amount.toLocaleString()}`
-
-  const openExternal = async (url: string) => {
-    try {
-      await open(url)
-    } catch (err) {
-      console.error('Failed to open url via tauri shell:', err)
-      window.open(url, '_blank', 'noopener,noreferrer')
-    }
-  }
 
   const loadPlans = async () => {
     const list = await apiClient.get<Plan[]>('/api/plans')

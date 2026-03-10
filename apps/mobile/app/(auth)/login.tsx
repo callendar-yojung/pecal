@@ -14,6 +14,9 @@ export default function LoginPage() {
       onLogin={auth.login}
       onLocalLogin={auth.loginWithPassword}
       onLocalRegister={auth.registerWithPassword}
+      onFindLoginId={auth.findLoginId}
+      onSendPasswordResetCode={auth.sendPasswordResetCode}
+      onResetPassword={auth.resetPassword}
       onCheckLocalAvailability={auth.checkLocalAvailability}
       onSendRegisterVerificationCode={auth.sendRegisterVerificationCode}
       onVerifyRegisterVerificationCode={auth.verifyRegisterVerificationCode}

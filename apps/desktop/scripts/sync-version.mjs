@@ -6,13 +6,16 @@ const root = resolve(process.cwd())
 
 const getLatestTag = () => {
   try {
-    const tag = execSync('git describe --tags --abbrev=0', {
+    const tags = execSync('git tag --sort=-v:refname', {
       cwd: root,
       stdio: ['ignore', 'pipe', 'ignore'],
     })
       .toString()
       .trim()
-    return tag
+      .split('\n')
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+    return tags.find((tag) => /^v\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/.test(tag)) || null
   } catch {
     return null
   }

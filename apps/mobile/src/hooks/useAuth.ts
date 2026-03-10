@@ -377,6 +377,67 @@ export function useAuth() {
     }
   };
 
+  const findLoginId = async (email: string) => {
+    const base = getApiBaseUrl();
+    const response = await fetch(`${base}/api/auth/local/recovery/find-login-id`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getMobileClientHeaders(),
+      },
+      body: JSON.stringify({ email }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(String(data.error ?? '아이디 찾기에 실패했습니다.'));
+    }
+    return data as { success: boolean; message?: string };
+  };
+
+  const sendPasswordResetCode = async (loginId: string, email: string) => {
+    const base = getApiBaseUrl();
+    const response = await fetch(`${base}/api/auth/local/recovery/send-reset-code`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getMobileClientHeaders(),
+      },
+      body: JSON.stringify({ login_id: loginId, email }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(String(data.error ?? '비밀번호 재설정 코드 발송에 실패했습니다.'));
+    }
+    return data as { success: boolean; message?: string };
+  };
+
+  const resetPassword = async (params: {
+    loginId: string;
+    email: string;
+    code: string;
+    password: string;
+  }) => {
+    const base = getApiBaseUrl();
+    const response = await fetch(`${base}/api/auth/local/recovery/reset-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getMobileClientHeaders(),
+      },
+      body: JSON.stringify({
+        login_id: params.loginId,
+        email: params.email,
+        code: params.code,
+        password: params.password,
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(String(data.error ?? '비밀번호 재설정에 실패했습니다.'));
+    }
+    return data as { success: boolean };
+  };
+
   const logout = async () => {
     if (session) {
       try {
@@ -444,6 +505,9 @@ export function useAuth() {
     checkLocalAvailability,
     sendRegisterVerificationCode,
     verifyRegisterVerificationCode,
+    findLoginId,
+    sendPasswordResetCode,
+    resetPassword,
     logout,
     updateSessionProfile,
     applyAuthCallbackParams,

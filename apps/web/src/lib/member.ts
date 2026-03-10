@@ -312,6 +312,41 @@ export async function findMemberByLoginId(
   return (rows[0] as Member) || null;
 }
 
+export async function findLocalMemberByEmail(
+  email: string,
+): Promise<Member | null> {
+  await ensureMemberLocalAuthSchema();
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return null;
+
+  const [rows] = await pool.execute<RowDataPacket[]>(
+    "SELECT * FROM members WHERE provider = 'local' AND email = ? LIMIT 1",
+    [normalized],
+  );
+  return (rows[0] as Member) || null;
+}
+
+export async function findLocalMemberByLoginIdAndEmail(params: {
+  loginId: string;
+  email: string;
+}): Promise<Member | null> {
+  await ensureMemberLocalAuthSchema();
+  const normalizedLoginId = normalizeLoginId(params.loginId);
+  const normalizedEmail = params.email.trim().toLowerCase();
+  if (!normalizedLoginId || !normalizedEmail) return null;
+
+  const [rows] = await pool.execute<RowDataPacket[]>(
+    `SELECT *
+     FROM members
+     WHERE provider = 'local'
+       AND login_id = ?
+       AND email = ?
+     LIMIT 1`,
+    [normalizedLoginId, normalizedEmail],
+  );
+  return (rows[0] as Member) || null;
+}
+
 export async function isLoginIdTaken(loginId: string): Promise<boolean> {
   return (await findMemberByLoginId(loginId)) !== null;
 }
@@ -455,6 +490,21 @@ export async function verifyLocalMemberLogin(params: {
 
   await updateMemberLastLogin(member.member_id);
   return member;
+}
+
+export async function updateLocalMemberPassword(params: {
+  memberId: number;
+  password: string;
+}) {
+  await ensureMemberLocalAuthSchema();
+  const passwordHash = await bcrypt.hash(params.password, 10);
+  await pool.execute(
+    `UPDATE members
+     SET password_hash = ?
+     WHERE member_id = ?
+       AND provider = 'local'`,
+    [passwordHash, params.memberId],
+  );
 }
 
 export async function updateMemberProfileImage(

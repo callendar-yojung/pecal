@@ -55,6 +55,30 @@ export const authApi = {
       code,
     }),
 
+  findLoginId: (email: string) =>
+    apiClient.post<{ success: boolean; message?: string }>('/api/auth/local/recovery/find-login-id', {
+      email,
+    }),
+
+  sendPasswordResetCode: (loginId: string, email: string) =>
+    apiClient.post<{ success: boolean; message?: string }>('/api/auth/local/recovery/send-reset-code', {
+      login_id: loginId,
+      email,
+    }),
+
+  resetPassword: (params: {
+    loginId: string
+    email: string
+    code: string
+    password: string
+  }) =>
+    apiClient.post<{ success: boolean }>('/api/auth/local/recovery/reset-password', {
+      login_id: params.loginId,
+      email: params.email,
+      code: params.code,
+      password: params.password,
+    }),
+
   checkLocalAvailability: (params: { loginId?: string; nickname?: string }) => {
     const query = new URLSearchParams()
     if (params.loginId) query.set('login_id', params.loginId)
