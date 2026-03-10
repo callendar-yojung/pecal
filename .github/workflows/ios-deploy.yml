@@ -1,15 +1,18 @@
-name: iOS EAS Build & Submit
+name: iOS Build & TestFlight
 
 on:
   workflow_dispatch:
     inputs:
-      submit:
-        description: "Submit latest build to TestFlight"
-        required: false
-        default: true
-        type: boolean
-      message:
-        description: "Release note for EAS build"
+      lane:
+        description: "fastlane lane to run"
+        required: true
+        default: "beta"
+        type: choice
+        options:
+          - beta
+          - release
+      changelog:
+        description: "TestFlight changelog (beta lane only)"
         required: false
         default: ""
         type: string
@@ -27,9 +30,22 @@ jobs:
     env:
       LANG: en_US.UTF-8
       LC_ALL: en_US.UTF-8
+      IOS_APP_IDENTIFIER: com.pecal.mobile
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APP_STORE_CONNECT_TEAM_ID: ${{ secrets.APP_STORE_CONNECT_TEAM_ID }}
+      APP_STORE_CONNECT_APPLE_ID: ${{ secrets.APP_STORE_CONNECT_APPLE_ID }}
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+      MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+      MATCH_READONLY: ${{ secrets.MATCH_READONLY || 'true' }}
+      KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+      KEYCHAIN_NAME: ci.keychain
+      KEYCHAIN_PATH: /Users/runner/Library/Keychains/ci.keychain-db
+      FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT: "120"
+      FASTLANE_XCODEBUILD_SETTINGS_RETRIES: "10"
       CI: true
-      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      EAS_NO_VCS: 1
 
     steps:
       - name: Checkout
@@ -54,43 +70,78 @@ jobs:
       - name: Install JS dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Setup Expo and EAS
-        run: pnpm dlx eas-cli --version
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
 
-      - name: Validate Expo token
+      - name: Select Xcode 16
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "16.4"
+
+      - name: Ensure iOS platform SDK is installed
         run: |
-          if [[ -z "${EXPO_TOKEN}" ]]; then
-            echo "::error::EXPO_TOKEN secret is not set."
+          xcodebuild -showsdks
+          sudo xcodebuild -downloadPlatform iOS || true
+          xcodebuild -showsdks
+
+      - name: Install fastlane
+        run: |
+          cd apps/mobile
+          bundle install
+
+      - name: Install CocoaPods
+        run: |
+          cd apps/mobile
+          bundle exec ruby -e 'require "xcodeproj"; puts Xcodeproj::VERSION'
+          bundle exec pod install --repo-update --project-directory=ios
+
+      - name: Validate keychain secret
+        run: |
+          if [[ -z "${KEYCHAIN_PASSWORD}" ]]; then
+            echo "::error::KEYCHAIN_PASSWORD secret is not set. Add it in repo secrets."
             exit 1
           fi
 
-      - name: Build iOS on EAS
+      - name: Run fastlane
         run: |
           cd apps/mobile
           if [[ "${{ github.event_name }}" == "push" ]]; then
-            BUILD_MESSAGE="${{ github.ref_name }}"
+            bundle exec fastlane ios beta changelog:"${{ github.ref_name }}"
           else
-            BUILD_MESSAGE="${{ github.event.inputs.message }}"
+            bundle exec fastlane ios ${{ github.event.inputs.lane }} changelog:"${{ github.event.inputs.changelog }}"
           fi
-          pnpm dlx eas-cli build \
-            --platform ios \
-            --profile production \
-            --non-interactive \
-            --wait \
-            --message "${BUILD_MESSAGE:-iOS release build}"
 
-      - name: Submit to TestFlight
-        if: ${{ github.event_name == 'push' || github.event.inputs.submit == 'true' }}
-        run: |
-          cd apps/mobile
-          pnpm dlx eas-cli submit \
-            --platform ios \
-            --profile production \
-            --non-interactive
-
-      - name: Print EAS diagnostics
+      - name: Print gym log
         if: always()
         run: |
-          cd apps/mobile
-          pnpm dlx eas-cli whoami || true
-          pnpm dlx eas-cli build:list --platform ios --limit 5 --non-interactive || true
+          echo "=== gym logs ==="
+          ls -la /Users/runner/Library/Logs/gym || true
+          echo
+          for log in /Users/runner/Library/Logs/gym/app-PecalMobile.log /Users/runner/Library/Logs/gym/PecalMobile-PecalMobile.log; do
+            if [[ -f "$log" ]]; then
+              echo "=== $log (tail -n 200) ==="
+              tail -n 200 "$log" || true
+              echo
+              echo "=== filtered errors from $log ==="
+              grep -n -A8 -B8 "ARCHIVE FAILED\\|error:\\|No profiles\\|Provisioning\\|Command PhaseScriptExecution failed\\|duplicate symbol\\|SwiftCompile\\|CompileC" "$log" | tail -n 200 || true
+              echo
+            fi
+          done
+
+      - name: Upload gym logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-gym-logs
+          path: /Users/runner/Library/Logs/gym/*.log
+          if-no-files-found: ignore
+
+      - name: Upload IPA artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: apps/mobile/build/ios/*.ipa
+          if-no-files-found: ignore

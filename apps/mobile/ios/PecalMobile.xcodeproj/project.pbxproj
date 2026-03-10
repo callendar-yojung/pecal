@@ -63,12 +63,12 @@
 		900E66442F4D2C5000CA6FFC /* PecalWidgetExtensionExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PecalWidgetExtensionExtension.entitlements; sourceTree = "<group>"; };
 		A1B2C3D62F60000100CA6FFC /* PecalWidgetBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = PecalWidgetBridge.m; path = PecalMobile/PecalWidgetBridge.m; sourceTree = "<group>"; };
 		A1B2C3D72F60000100CA6FFC /* PecalWidgetBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PecalWidgetBridge.swift; path = PecalMobile/PecalWidgetBridge.swift; sourceTree = "<group>"; };
-		A70100112F4C8FD200CA6FFC /* AppIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PecalWidgetExtension/AppIntent.swift; sourceTree = "<group>"; };
-		A70100122F4C8FD200CA6FFC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = PecalWidgetExtension/Assets.xcassets; sourceTree = "<group>"; };
-		A70100132F4C8FD200CA6FFC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PecalWidgetExtension/Info.plist; sourceTree = "<group>"; };
-		A70100142F4C8FD200CA6FFC /* PecalWidgetExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PecalWidgetExtension/PecalWidgetExtension.swift; sourceTree = "<group>"; };
-		A70100152F4C8FD200CA6FFC /* PecalWidgetExtensionBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PecalWidgetExtension/PecalWidgetExtensionBundle.swift; sourceTree = "<group>"; };
-		A70100162F4C8FD200CA6FFC /* PecalWidgetExtensionControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PecalWidgetExtension/PecalWidgetExtensionControl.swift; sourceTree = "<group>"; };
+		A70100112F4C8FD200CA6FFC /* AppIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIntent.swift; sourceTree = "<group>"; };
+		A70100122F4C8FD200CA6FFC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A70100132F4C8FD200CA6FFC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A70100142F4C8FD200CA6FFC /* PecalWidgetExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PecalWidgetExtension.swift; sourceTree = "<group>"; };
+		A70100152F4C8FD200CA6FFC /* PecalWidgetExtensionBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PecalWidgetExtensionBundle.swift; sourceTree = "<group>"; };
+		A70100162F4C8FD200CA6FFC /* PecalWidgetExtensionControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PecalWidgetExtensionControl.swift; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = PecalMobile/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
 		E319AA2184049CADD0731E42 /* Pods-PecalMobile.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-PecalMobile.release.xcconfig"; path = "Target Support Files/Pods-PecalMobile/Pods-PecalMobile.release.xcconfig"; sourceTree = "<group>"; };

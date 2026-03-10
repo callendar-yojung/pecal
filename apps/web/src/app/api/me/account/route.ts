@@ -272,11 +272,60 @@ export async function DELETE(request: NextRequest) {
       [user.memberId],
     );
     await connection.execute(
+      `DELETE FROM member_consent_history WHERE member_id = ?`,
+      [user.memberId],
+    );
+    await connection.execute(
+      `DELETE FROM mobile_client_event_logs WHERE member_id = ?`,
+      [user.memberId],
+    );
+    await connection.execute(
       `DELETE FROM team_invitations WHERE invited_member_id = ? OR invited_by = ?`,
       [user.memberId, user.memberId],
     );
     await connection.execute(
       `DELETE FROM task_export_access WHERE member_id = ?`,
+      [user.memberId],
+    );
+    await connection.execute(
+      `DELETE tea FROM task_export_access tea
+       INNER JOIN task_exports te ON te.export_id = tea.export_id
+       WHERE te.task_id IN (
+         SELECT workspaceTasks.task_id
+         FROM (
+           SELECT t.task_id
+           FROM tasks t
+           INNER JOIN workspaces w ON w.workspace_id = t.workspace_id
+           WHERE w.type = 'personal' AND w.owner_id = ?
+         ) AS workspaceTasks
+       )`,
+      [user.memberId],
+    );
+    await connection.execute(
+      `DELETE FROM task_exports
+       WHERE created_by = ?
+          OR task_id IN (
+            SELECT workspaceTasks.task_id
+            FROM (
+              SELECT t.task_id
+              FROM tasks t
+              INNER JOIN workspaces w ON w.workspace_id = t.workspace_id
+              WHERE w.type = 'personal' AND w.owner_id = ?
+            ) AS workspaceTasks
+          )`,
+      [user.memberId, user.memberId],
+    );
+    await connection.execute(
+      `DELETE FROM task_attachments
+       WHERE task_id IN (
+         SELECT workspaceTasks.task_id
+         FROM (
+           SELECT t.task_id
+           FROM tasks t
+           INNER JOIN workspaces w ON w.workspace_id = t.workspace_id
+           WHERE w.type = 'personal' AND w.owner_id = ?
+         ) AS workspaceTasks
+       )`,
       [user.memberId],
     );
     await connection.execute(`DELETE FROM team_members WHERE member_id = ?`, [
@@ -309,27 +358,20 @@ export async function DELETE(request: NextRequest) {
       [user.memberId],
     );
     await connection.execute(
+      `DELETE FROM payment_history WHERE owner_type = 'personal' AND owner_id = ?`,
+      [user.memberId],
+    );
+    await connection.execute(
       `DELETE FROM workspaces WHERE type = 'personal' AND owner_id = ?`,
       [user.memberId],
     );
     await connection.execute(
-      `UPDATE billing_keys SET status = 'REMOVED' WHERE member_id = ?`,
+      `DELETE FROM billing_keys WHERE member_id = ?`,
       [user.memberId],
     );
-
-    const deletedNickname = `deleted_user_${user.memberId}`;
-    const deletedProviderId = `deleted:${user.memberId}:${Date.now()}`;
     await connection.execute(
-      `UPDATE members
-       SET provider = 'deleted',
-           provider_id = ?,
-           email = NULL,
-           phone_number = NULL,
-           nickname = ?,
-           profile_image_url = NULL,
-           lasted_at = NOW()
-       WHERE member_id = ?`,
-      [deletedProviderId, deletedNickname, user.memberId],
+      `DELETE FROM members WHERE member_id = ?`,
+      [user.memberId],
     );
 
     await connection.commit();
