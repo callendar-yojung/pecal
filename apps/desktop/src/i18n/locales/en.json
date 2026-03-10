@@ -367,5 +367,10 @@
   "taskDetail.back": "Back to list",
   "settings": {
     "password": "Password"
-  }
+  },
+  "settings.deleteAccount": "Delete Account",
+  "settings.deleteAccountDesc": "Deleting your account permanently removes all data. This action cannot be undone.",
+  "settings.deleteButton": "Delete Account",
+  "settings.deleteAccountFailed": "Failed to delete account.",
+  "settings.deleteAccountTeamOwnerBlocked": "You cannot delete the account while owning a team. Transfer or delete the team first."
 }

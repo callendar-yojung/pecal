@@ -305,6 +305,10 @@ export async function DELETE(request: NextRequest) {
       [user.memberId],
     );
     await connection.execute(
+      `DELETE FROM subscriptions WHERE owner_type = 'personal' AND owner_id = ?`,
+      [user.memberId],
+    );
+    await connection.execute(
       `DELETE FROM workspaces WHERE type = 'personal' AND owner_id = ?`,
       [user.memberId],
     );
@@ -350,6 +354,27 @@ export async function DELETE(request: NextRequest) {
       path: "/",
       maxAge: 0,
     });
+    response.cookies.set("PECAL_REFRESH_TOKEN", "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 0,
+    });
+    for (const cookieName of [
+      "next-auth.session-token",
+      "__Secure-next-auth.session-token",
+      "authjs.session-token",
+      "__Secure-authjs.session-token",
+    ]) {
+      response.cookies.set(cookieName, "", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 0,
+      });
+    }
     return response;
   } catch (error) {
     await connection.rollback();

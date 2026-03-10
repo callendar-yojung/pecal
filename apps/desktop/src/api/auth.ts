@@ -129,6 +129,9 @@ export const authApi = {
       newPassword: params.newPassword,
     }),
 
+  deleteAccount: () =>
+    apiClient.delete<{ success: boolean }>('/api/me/account'),
+
   checkNickname: (nickname: string) =>
     apiClient.get<{ available: boolean }>(
       `/api/me/account/nickname-check?nickname=${encodeURIComponent(nickname)}`

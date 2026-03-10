@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, getApiBaseUrl, getMobileClientHeaders, setApiAuthHandlers } from '../lib/api';
 import { clearSession, loadSession, saveSession } from '../lib/auth-storage';
 import type { AuthProvider, AuthSession, OAuthProvider } from '../lib/types';
+import { clearWidgetData } from '../lib/widget-bridge';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -65,7 +66,7 @@ export function useAuth() {
       setSession(next);
       return;
     }
-    await clearSession();
+    await Promise.all([clearSession(), clearWidgetData()]);
     sessionRef.current = null;
     setSession(null);
   };

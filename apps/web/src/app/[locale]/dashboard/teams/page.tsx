@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import { PERMISSIONS } from "@/lib/permissions";
@@ -51,6 +51,7 @@ interface TeamRole {
 export default function TeamSettingsPage() {
   const t = useTranslations("dashboard.teamSettings");
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -102,7 +103,13 @@ export default function TeamSettingsPage() {
         const list = data.teams || [];
         setTeams(list);
         if (list.length > 0) {
-          setSelectedTeamId(list[0].id);
+          const requestedTeamId = Number(searchParams.get("team_id"));
+          const preferredTeam =
+            Number.isFinite(requestedTeamId) &&
+            list.some((team: Team) => team.id === requestedTeamId)
+              ? requestedTeamId
+              : list[0].id;
+          setSelectedTeamId(preferredTeam);
         }
       } catch (err) {
         console.error(err);
@@ -111,7 +118,7 @@ export default function TeamSettingsPage() {
       }
     };
     fetchTeams();
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!selectedTeamId) return;

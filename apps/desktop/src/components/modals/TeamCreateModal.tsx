@@ -4,7 +4,7 @@ import { ask } from '@tauri-apps/plugin-dialog'
 import { Modal, Input, TextArea, Button } from '../common'
 import { useModalStore } from '../../stores'
 import { useWorkspaceStore } from '../../stores'
-import { teamApi } from '../../api'
+import { teamApi, workspaceApi } from '../../api'
 import { openExternal } from '../../lib/openExternal'
 
 type TeamPlan = 'free' | 'paid'
@@ -13,7 +13,7 @@ type ModalStep = 'details' | 'plan'
 export function TeamCreateModal() {
   const { t } = useTranslation()
   const { openedModal, closeModal } = useModalStore()
-  const { setMode } = useWorkspaceStore()
+  const { setMode, setTeams, setWorkspaces } = useWorkspaceStore()
 
   const [step, setStep] = useState<ModalStep>('details')
   const [name, setName] = useState('')
@@ -66,12 +66,40 @@ export function TeamCreateModal() {
       const ownerId = createdTeamId
       const billingUrl = `https://pecal.site/dashboard/settings/billing/plans/team?owner_id=${ownerId}`
       await openExternal(billingUrl)
-      setMode('TEAM', createdTeamId)
+      try {
+        const [teamsResponse, workspacesResponse] = await Promise.all([
+          teamApi.getMyTeams(),
+          workspaceApi.getMyWorkspaces(),
+        ])
+        const teamWorkspaces = workspacesResponse.workspaces.filter(
+          (workspace) => workspace.type === 'team' && workspace.owner_id === createdTeamId
+        )
+        setTeams(teamsResponse.teams)
+        setMode('TEAM', createdTeamId)
+        setWorkspaces(teamWorkspaces)
+      } catch (refreshError) {
+        console.error('Failed to refresh team state after create:', refreshError)
+        setMode('TEAM', createdTeamId)
+      }
       resetAndClose()
       return
     }
 
-    setMode('TEAM', createdTeamId)
+    try {
+      const [teamsResponse, workspacesResponse] = await Promise.all([
+        teamApi.getMyTeams(),
+        workspaceApi.getMyWorkspaces(),
+      ])
+      const teamWorkspaces = workspacesResponse.workspaces.filter(
+        (workspace) => workspace.type === 'team' && workspace.owner_id === createdTeamId
+      )
+      setTeams(teamsResponse.teams)
+      setMode('TEAM', createdTeamId)
+      setWorkspaces(teamWorkspaces)
+    } catch (refreshError) {
+      console.error('Failed to refresh team state after create:', refreshError)
+      setMode('TEAM', createdTeamId)
+    }
     resetAndClose()
   }
 

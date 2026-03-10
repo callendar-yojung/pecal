@@ -165,7 +165,46 @@ export async function deleteTeam(teamId: number): Promise<boolean> {
   try {
     await connection.beginTransaction();
 
-    // 1. team_role_permissions 삭제
+    // 1. 팀 초대 삭제
+    await connection.execute(`DELETE FROM team_invitations WHERE team_id = ?`, [
+      teamId,
+    ]);
+
+    // 2. 팀 워크스페이스 하위 데이터 삭제
+    await connection.execute(
+      `DELETE FROM tasks
+       WHERE workspace_id IN (
+         SELECT workspace_id FROM workspaces WHERE type = 'team' AND owner_id = ?
+       )`,
+      [teamId],
+    );
+    await connection.execute(
+      `DELETE FROM memos WHERE owner_type = 'team' AND owner_id = ?`,
+      [teamId],
+    );
+    await connection.execute(
+      `DELETE FROM files WHERE owner_type = 'team' AND owner_id = ?`,
+      [teamId],
+    );
+    await connection.execute(
+      `DELETE FROM tags WHERE owner_type = 'team' AND owner_id = ?`,
+      [teamId],
+    );
+    await connection.execute(
+      `DELETE FROM storage_usage WHERE owner_type = 'team' AND owner_id = ?`,
+      [teamId],
+    );
+    await connection.execute(
+      `DELETE FROM subscriptions WHERE owner_type = 'team' AND owner_id = ?`,
+      [teamId],
+    );
+
+    // 3. team_members가 team_roles를 참조하므로 먼저 삭제
+    await connection.execute(`DELETE FROM team_members WHERE team_id = ?`, [
+      teamId,
+    ]);
+
+    // 4. team_role_permissions 삭제
     await connection.execute(
       `DELETE trp FROM team_role_permissions trp
        JOIN team_roles tr ON trp.team_role_id = tr.team_role_id
@@ -173,23 +212,18 @@ export async function deleteTeam(teamId: number): Promise<boolean> {
       [teamId],
     );
 
-    // 2. team_roles 삭제
+    // 5. team_roles 삭제
     await connection.execute(`DELETE FROM team_roles WHERE team_id = ?`, [
       teamId,
     ]);
 
-    // 3. team_members 삭제
-    await connection.execute(`DELETE FROM team_members WHERE team_id = ?`, [
-      teamId,
-    ]);
-
-    // 4. workspaces 삭제 (팀 워크스페이스)
+    // 6. workspaces 삭제 (팀 워크스페이스)
     await connection.execute(
       `DELETE FROM workspaces WHERE type = 'team' AND owner_id = ?`,
       [teamId],
     );
 
-    // 5. teams 삭제
+    // 7. teams 삭제
     const [result] = await connection.execute<ResultSetHeader>(
       `DELETE FROM teams WHERE team_id = ?`,
       [teamId],

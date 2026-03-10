@@ -66,6 +66,7 @@ export default function TabsLayout() {
   const [detailDocPath, setDetailDocPath] = useState<'/terms' | '/privacy' | null>(null);
   const embeddedDocQuery = { embedded: 'mobile' };
   const [consentError, setConsentError] = useState<string | null>(null);
+  const [selectedTeamAdmin, setSelectedTeamAdmin] = useState(false);
   const WORKSPACE_NAME_MAX_LENGTH = 10;
   const truncateWorkspaceName = (value: string, maxLength = WORKSPACE_NAME_MAX_LENGTH) => {
     if (value.length <= maxLength) return value;
@@ -118,6 +119,38 @@ export default function TabsLayout() {
     }
     void checkPrivacyConsent();
   }, [auth.session?.memberId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const session = auth.session;
+
+    if (!session || data.selectedWorkspace?.type !== 'team' || !data.selectedWorkspace.owner_id) {
+      setSelectedTeamAdmin(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void (async () => {
+      try {
+        const response = await apiFetch<{ team?: { created_by?: number } }>(
+          `/api/teams/${data.selectedWorkspace?.owner_id}`,
+          session,
+        );
+        if (!cancelled) {
+          setSelectedTeamAdmin(response.team?.created_by === session.memberId);
+        }
+      } catch {
+        if (!cancelled) {
+          setSelectedTeamAdmin(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [auth.session, data.selectedWorkspace?.type, data.selectedWorkspace?.owner_id]);
 
   const openConsentPage = async () => {
     if (!auth.session?.accessToken) return;
@@ -251,6 +284,11 @@ export default function TabsLayout() {
           <Text style={s.appTitle}>{t('appName')}</Text>
         </Pressable>
         <View style={s.headerActions}>
+          {data.selectedWorkspace?.type === 'team' && selectedTeamAdmin ? (
+            <Pressable style={s.headerActionButton} onPress={() => router.push('/team/settings')}>
+              <Ionicons name="people-outline" size={16} color={colors.text} />
+            </Pressable>
+          ) : null}
           <Pressable
             style={s.modeDropdownButton}
             onPress={() => data.setWorkspacePickerOpen(!data.workspacePickerOpen)}
@@ -523,7 +561,10 @@ export default function TabsLayout() {
             position: 'absolute',
             inset: 0,
             backgroundColor: 'rgba(15, 23, 42, 0.72)',
-            padding: 14,
+            paddingTop: Math.max(insets.top + 12, 20),
+            paddingBottom: Math.max(insets.bottom + 12, 20),
+            paddingLeft: Math.max(insets.left + 16, 20),
+            paddingRight: Math.max(insets.right + 16, 20),
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 1000,
@@ -531,14 +572,15 @@ export default function TabsLayout() {
         >
           <View
             style={{
-              width: '100%',
-              maxWidth: 480,
+              width: Math.min(width - 40, 360),
+              maxWidth: 360,
               maxHeight: '88%',
               borderRadius: 16,
               borderWidth: 1,
               borderColor: colors.border,
               backgroundColor: colors.card,
               overflow: 'hidden',
+              alignSelf: 'center',
             }}
           >
             <ScrollView
@@ -633,16 +675,18 @@ export default function TabsLayout() {
                     backgroundColor: item.checked ? `${colors.primary}10` : colors.cardSoft,
                     padding: 12,
                     gap: 10,
+                    overflow: 'hidden',
                   }}
                 >
                   <Pressable
-                    style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start', width: '100%' }}
+                    style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start', width: '100%', overflow: 'hidden' }}
                     onPress={item.onToggle}
                   >
                     <View
                       style={{
                         width: 24,
                         height: 24,
+                        flexShrink: 0,
                         marginTop: 2,
                         borderRadius: 7,
                         borderWidth: 1.5,
@@ -656,9 +700,9 @@ export default function TabsLayout() {
                         <Ionicons name="checkmark" size={14} color="#fff" />
                       ) : null}
                     </View>
-                    <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', minWidth: 0 }}>
-                        <Text style={{ color: colors.text, fontWeight: '800', fontSize: 16, flexShrink: 1 }}>
+                    <View style={{ flex: 1, minWidth: 0, maxWidth: '100%', gap: 6, paddingRight: 8, overflow: 'hidden' }}>
+                      <View style={{ minWidth: 0, gap: 4, overflow: 'hidden' }}>
+                        <Text style={{ color: colors.text, fontWeight: '800', fontSize: 15, flexShrink: 1, flexWrap: 'wrap' }}>
                           {item.title}
                         </Text>
                         <Text
@@ -666,13 +710,13 @@ export default function TabsLayout() {
                             color: item.required ? '#EF4444' : colors.textMuted,
                             fontSize: 11,
                             fontWeight: '700',
-                            flexShrink: 0,
+                            alignSelf: 'flex-start',
                           }}
                         >
                           {item.required ? '필수' : '선택'}
                         </Text>
                       </View>
-                      <Text style={{ color: colors.textMuted, fontSize: 13, lineHeight: 19, flexShrink: 1 }}>
+                      <Text style={{ color: colors.textMuted, fontSize: 13, lineHeight: 19, width: '100%', flexShrink: 1 }}>
                         {item.description}
                       </Text>
                     </View>

@@ -709,14 +709,6 @@ export default function LoginPage() {
 
           {authPanel === "social" ? (
             <div className="space-y-4 rounded-xl border border-border bg-muted/30 p-4">
-              <button
-                type="button"
-                onClick={() => setAuthPanel("entry")}
-                className="inline-flex items-center gap-2 rounded-lg bg-background px-3 py-2 text-sm font-medium text-foreground shadow-sm ring-1 ring-border"
-              >
-                <span aria-hidden="true">←</span>
-                {t("entryBack")}
-              </button>
               <p className="text-sm text-muted-foreground">{t("socialDescription")}</p>
 
               {hasProvider("kakao") ? (
@@ -725,6 +717,11 @@ export default function LoginPage() {
                   onClick={() => signIn("kakao", { callbackUrl: successCallbackUrl })}
                   className="flex w-full items-center justify-center gap-3 rounded-xl bg-[#FEE500] px-4 py-3 font-medium text-[#191919] transition-all duration-200 hover:bg-[#FDD800] hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
                 >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#191919]/10">
+                    <svg viewBox="0 0 24 24" className="h-4.5 w-4.5 fill-[#191919]" aria-hidden="true">
+                      <path d="M12 4C7.03 4 3 7.13 3 11c0 2.5 1.67 4.68 4.18 5.92L6.3 20.6a.6.6 0 0 0 .88.66l4.28-2.69c.18.01.36.03.54.03 4.97 0 9-3.13 9-7s-4.03-7-9-7Z" />
+                    </svg>
+                  </span>
                   {t("kakao")}
                 </button>
               ) : null}
@@ -735,6 +732,14 @@ export default function LoginPage() {
                   onClick={() => signIn("google", { callbackUrl: successCallbackUrl })}
                   className="flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-background px-4 py-3 font-medium text-foreground transition-colors hover:bg-muted"
                 >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-border">
+                    <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" aria-hidden="true">
+                      <path fill="#EA4335" d="M12 10.2v3.92h5.45c-.24 1.26-.97 2.33-2.05 3.05l3.32 2.57c1.94-1.79 3.05-4.43 3.05-7.57 0-.72-.07-1.42-.2-2.1H12Z" />
+                      <path fill="#34A853" d="M12 21c2.76 0 5.08-.91 6.77-2.46l-3.32-2.57c-.92.62-2.1.98-3.45.98-2.65 0-4.89-1.79-5.69-4.19l-3.43 2.65A10.23 10.23 0 0 0 12 21Z" />
+                      <path fill="#4A90E2" d="M6.31 12.76A6.13 6.13 0 0 1 6 10.8c0-.68.12-1.34.31-1.96L2.88 6.19A10.23 10.23 0 0 0 1.8 10.8c0 1.65.4 3.21 1.08 4.61l3.43-2.65Z" />
+                      <path fill="#FBBC05" d="M12 4.66c1.5 0 2.85.52 3.92 1.53l2.94-2.94C17.07 1.64 14.76.6 12 .6 7.98.6 4.5 2.9 2.88 6.19l3.43 2.65c.8-2.4 3.04-4.18 5.69-4.18Z" />
+                    </svg>
+                  </span>
                   {t("google")}
                 </button>
               ) : null}
@@ -745,6 +750,11 @@ export default function LoginPage() {
                   onClick={() => signIn("apple", { callbackUrl: successCallbackUrl })}
                   className="flex w-full items-center justify-center gap-3 rounded-xl bg-foreground px-4 py-3 font-medium text-background transition-colors hover:opacity-90"
                 >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black/20">
+                    <svg viewBox="0 0 24 24" className="h-4.5 w-4.5 fill-white" aria-hidden="true">
+                      <path d="M16.37 12.54c.02 2.21 1.94 2.95 1.96 2.96-.02.05-.31 1.08-1.03 2.15-.62.92-1.27 1.84-2.29 1.86-1 .02-1.32-.59-2.46-.59-1.14 0-1.5.57-2.44.61-1 .04-1.76-1-2.39-1.92-1.29-1.86-2.28-5.25-.95-7.58.66-1.16 1.84-1.9 3.12-1.92.98-.02 1.9.66 2.46.66.56 0 1.62-.81 2.73-.69.47.02 1.78.19 2.62 1.42-.07.04-1.56.91-1.53 3.04ZM14.73 5.55c.52-.63.88-1.5.78-2.37-.75.03-1.66.5-2.2 1.13-.49.57-.92 1.45-.81 2.3.84.06 1.71-.43 2.23-1.06Z" />
+                    </svg>
+                  </span>
                   {t("apple")}
                 </button>
               ) : null}

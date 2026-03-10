@@ -172,6 +172,7 @@ function ProfileTab() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null)
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   if (!user) return null
@@ -247,6 +248,28 @@ function ProfileTab() {
   const handleLogout = () => {
     closeModal()
     logout()
+  }
+
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(t('settings.deleteAccountDesc'))
+    if (!confirmed) return
+
+    setIsDeletingAccount(true)
+    try {
+      await authApi.deleteAccount()
+      closeModal()
+      await logout()
+    } catch (err) {
+      console.error('Failed to delete account:', err)
+      const message = err instanceof Error ? err.message : String(err)
+      if (message.includes('owned team') || message.includes('TEAM_OWNER_BLOCKED') || message.includes('transfer your owned team')) {
+        window.alert(t('settings.deleteAccountTeamOwnerBlocked'))
+      } else {
+        window.alert(message || t('settings.deleteAccountFailed'))
+      }
+    } finally {
+      setIsDeletingAccount(false)
+    }
   }
 
   const handleChangePassword = async () => {
@@ -415,6 +438,18 @@ function ProfileTab() {
               d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>
           {t('auth.logout')}
+        </button>
+      </div>
+
+      <div className="space-y-2 rounded-xl border border-red-200 dark:border-red-900/40 bg-red-50/70 dark:bg-red-950/20 p-4">
+        <h4 className="text-sm font-semibold text-red-700 dark:text-red-300">{t('settings.deleteAccount')}</h4>
+        <p className="text-xs text-red-600/80 dark:text-red-300/80">{t('settings.deleteAccountDesc')}</p>
+        <button
+          onClick={handleDeleteAccount}
+          disabled={isDeletingAccount}
+          className="w-full flex items-center justify-center rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+        >
+          {isDeletingAccount ? '...' : t('settings.deleteButton')}
         </button>
       </div>
     </div>

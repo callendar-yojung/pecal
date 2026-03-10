@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore, useWorkspaceStore } from '../../stores'
-import { teamApi } from '../../api'
+import { teamApi, workspaceApi } from '../../api'
 import type {
   MemberSearchResult,
   TeamMemberInfo,
@@ -27,7 +27,14 @@ const PERMISSIONS: PermissionDefinition[] = [
 export function TeamManageView() {
   const { t } = useTranslation()
   const { user } = useAuthStore()
-  const { selectedTeamId, teams, currentMode } = useWorkspaceStore()
+  const {
+    selectedTeamId,
+    teams,
+    currentMode,
+    setTeams,
+    setWorkspaces,
+    setMode,
+  } = useWorkspaceStore()
 
   const [members, setMembers] = useState<TeamMemberInfo[]>([])
   const [roles, setRoles] = useState<TeamRoleInfo[]>([])
@@ -48,6 +55,8 @@ export function TeamManageView() {
   const [loadingRolePermissions, setLoadingRolePermissions] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [teamName, setTeamName] = useState('')
+  const [teamDescription, setTeamDescription] = useState('')
 
   const selectedTeam = selectedTeamId
     ? teams.find((team) => team.id === selectedTeamId) ?? null
@@ -57,10 +66,18 @@ export function TeamManageView() {
     user && selectedTeam && Number(selectedTeam.created_by) === Number(user.memberId)
   )
 
+  useEffect(() => {
+    setTeamName(selectedTeam?.name ?? '')
+    setTeamDescription(selectedTeam?.description ?? '')
+  }, [selectedTeam?.id, selectedTeam?.name, selectedTeam?.description])
+
   const selectedRole = useMemo(
     () => roles.find((role) => role.team_role_id === selectedRoleId) || null,
     [roles, selectedRoleId]
   )
+  const selectedRoleSummary = selectedRole
+    ? `${selectedRole.name}${selectedRole.memberCount ? ` · ${selectedRole.memberCount}명 배정` : ''}`
+    : '선택된 역할 없음'
 
   const assignedCodes = useMemo(() => new Set(draftPermissionCodes), [draftPermissionCodes])
 
@@ -104,6 +121,29 @@ export function TeamManageView() {
     } finally {
       setLoadingRoles(false)
     }
+  }
+
+  const refreshTeamContext = async (teamId: number | null) => {
+    const [teamsResponse, workspacesResponse] = await Promise.all([
+      teamApi.getMyTeams(),
+      workspaceApi.getMyWorkspaces(),
+    ])
+    setTeams(teamsResponse.teams)
+
+    if (!teamId) {
+      setMode('PERSONAL', null)
+      const personalWorkspaces = workspacesResponse.workspaces.filter(
+        (workspace) => workspace.type === 'personal'
+      )
+      setWorkspaces(personalWorkspaces)
+      return
+    }
+
+    const teamWorkspaces = workspacesResponse.workspaces.filter(
+      (workspace) => workspace.type === 'team' && workspace.owner_id === teamId
+    )
+    setMode('TEAM', teamId)
+    setWorkspaces(teamWorkspaces)
   }
 
   const loadRolePermissions = async (roleId: number) => {
@@ -293,6 +333,37 @@ export function TeamManageView() {
     }
   }
 
+  const handleUpdateTeam = async () => {
+    if (!selectedTeamId || !teamName.trim() || submitting) return
+    setSubmitting(true)
+    setError(null)
+    try {
+      await teamApi.updateTeam(selectedTeamId, teamName.trim(), teamDescription.trim() || undefined)
+      await refreshTeamContext(selectedTeamId)
+    } catch (err) {
+      console.error('Failed to update team:', err)
+      setError(err instanceof Error ? err.message : '팀 정보 저장에 실패했습니다.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleDeleteTeam = async () => {
+    if (!selectedTeamId || submitting) return
+    if (!window.confirm('이 팀을 삭제하시겠습니까?')) return
+    setSubmitting(true)
+    setError(null)
+    try {
+      await teamApi.deleteTeam(selectedTeamId)
+      await refreshTeamContext(null)
+    } catch (err) {
+      console.error('Failed to delete team:', err)
+      setError(err instanceof Error ? err.message : '팀 삭제에 실패했습니다.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   if (currentMode !== 'TEAM' || !selectedTeamId) {
     return (
       <div className="h-full w-full flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
@@ -322,6 +393,41 @@ export function TeamManageView() {
             {error}
           </div>
         )}
+
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 space-y-3">
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">팀 정보</p>
+          <div className="grid grid-cols-1 gap-3">
+            <input
+              value={teamName}
+              onChange={(e) => setTeamName(e.target.value)}
+              placeholder="팀 이름"
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <textarea
+              value={teamDescription}
+              onChange={(e) => setTeamDescription(e.target.value)}
+              placeholder="팀 설명"
+              rows={3}
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleUpdateTeam}
+              disabled={!teamName.trim() || submitting}
+              className="px-3 py-2 text-sm font-medium rounded-lg bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50"
+            >
+              저장
+            </button>
+            <button
+              onClick={handleDeleteTeam}
+              disabled={submitting}
+              className="px-3 py-2 text-sm font-medium rounded-lg bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50"
+            >
+              팀 삭제
+            </button>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 space-y-3">
@@ -402,24 +508,58 @@ export function TeamManageView() {
               <p className="text-sm text-gray-400 dark:text-gray-500">불러오는 중...</p>
             ) : (
               <div className="space-y-2">
+                <div className="rounded-xl border border-blue-200 bg-blue-50/80 px-3 py-3 dark:border-blue-900/60 dark:bg-blue-950/30">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">
+                    현재 편집 중인 역할
+                  </div>
+                  <div className="mt-1 flex items-center gap-2 text-blue-950 dark:text-blue-50">
+                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm text-white">
+                      ✓
+                    </span>
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold">{selectedRoleSummary}</div>
+                      <div className="text-xs text-blue-700 dark:text-blue-300">
+                        역할 칩을 눌러 편집 대상을 전환합니다.
+                      </div>
+                    </div>
+                  </div>
+                  {selectedRole?.name === 'Owner' ? (
+                    <p className="mt-2 text-xs text-blue-700 dark:text-blue-300">Owner 역할은 모든 권한을 가집니다.</p>
+                  ) : null}
+                </div>
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900/40">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    편집할 역할 선택
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {roles.map((role) => {
+                      const active = selectedRoleId === role.team_role_id
+                      return (
+                        <button
+                          key={role.team_role_id}
+                          type="button"
+                          onClick={() => setSelectedRoleId(role.team_role_id)}
+                          className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition ${
+                            active
+                              ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
+                              : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'
+                          }`}
+                        >
+                          {active ? <span className="text-xs">✓</span> : null}
+                          <span>{role.name}</span>
+                          {role.memberCount ? <span className={`text-xs ${active ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'}`}>{role.memberCount}명</span> : null}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
                 <div className="flex gap-2">
-                  <select
-                    value={selectedRoleId ?? ''}
-                    onChange={(e) => setSelectedRoleId(Number(e.target.value) || null)}
-                    className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
-                  >
-                    {roles.map((role) => (
-                      <option key={role.team_role_id} value={role.team_role_id}>
-                        {role.name}
-                      </option>
-                    ))}
-                  </select>
                   <button
                     onClick={handleDeleteRole}
                     disabled={!selectedRoleId || submitting}
                     className="px-3 py-2 text-sm font-medium rounded-lg bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50"
                   >
-                    삭제
+                    선택한 역할 삭제
                   </button>
                 </div>
                 <button
@@ -491,7 +631,27 @@ export function TeamManageView() {
           ) : !selectedRoleId ? (
             <p className="text-sm text-gray-400 dark:text-gray-500">역할을 선택하세요.</p>
           ) : (
-            <div className="grid gap-3 md:grid-cols-[1fr_auto_1fr]">
+            <div className="space-y-3">
+              <div className="rounded-xl border border-blue-200 bg-blue-50/80 px-3 py-3 dark:border-blue-900/60 dark:bg-blue-950/30">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">
+                  권한 편집 대상
+                </div>
+                <div className="mt-1 flex items-center gap-2 text-blue-950 dark:text-blue-50">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm text-white">
+                    ✓
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold">{selectedRoleSummary}</div>
+                    <div className="text-xs text-blue-700 dark:text-blue-300">
+                      좌우 목록으로 권한을 이동해 역할 권한을 조정합니다.
+                    </div>
+                  </div>
+                </div>
+                {selectedRole?.name === 'Owner' ? (
+                  <p className="mt-2 text-xs text-blue-700 dark:text-blue-300">Owner 역할은 모든 권한을 가집니다.</p>
+                ) : null}
+              </div>
+              <div className="grid gap-3 md:grid-cols-[1fr_auto_1fr]">
               <div>
                 <div className="text-xs font-medium text-gray-500 dark:text-gray-400">할당 가능 권한</div>
                 <div className="mt-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30">
@@ -563,6 +723,7 @@ export function TeamManageView() {
                     )}
                   </div>
                 </div>
+              </div>
               </div>
             </div>
           )}

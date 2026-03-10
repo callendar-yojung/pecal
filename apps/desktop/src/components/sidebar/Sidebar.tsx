@@ -98,6 +98,13 @@ function SidebarNav() {
     selectedTeam &&
     Number(selectedTeam.created_by) === Number(user.memberId)
   )
+
+  useEffect(() => {
+    if (activeView === 'team_manage' && !isTeamAdmin) {
+      setView('overview')
+    }
+  }, [activeView, isTeamAdmin, setView])
+
   const navBase =
     'flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-sm transition-colors'
   const navActive =
