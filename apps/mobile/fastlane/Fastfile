@@ -101,6 +101,11 @@ platform :ios do
       build_number: build_number
     ) if build_number && !build_number.empty?
 
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "ios/PecalMobile.xcodeproj"
+    )
+
     build_app(
       workspace: "ios/PecalMobile.xcworkspace",
       scheme: "PecalMobile",
@@ -115,7 +120,7 @@ platform :ios do
         provisioningProfiles: provisioning_profiles
       }.compact,
       xcargs: [
-        
+        "CODE_SIGN_STYLE=Manual",
         "DEVELOPMENT_TEAM=#{team_id}",
         "-allowProvisioningUpdates",
         "-authenticationKeyPath #{auth_key_path}",
@@ -195,6 +200,11 @@ platform :ios do
     provisioning_profiles = Actions.lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING]
     use_manual_signing = provisioning_profiles && !provisioning_profiles.empty?
 
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "ios/PecalMobile.xcodeproj"
+    )
+
     build_app(
       workspace: "ios/PecalMobile.xcworkspace",
       scheme: "PecalMobile",
@@ -208,7 +218,7 @@ platform :ios do
         provisioningProfiles: provisioning_profiles
       }.compact,
       xcargs: [
-        
+        "CODE_SIGN_STYLE=Manual"
       ].join(" "),
       output_directory: "build/ios",
       output_name: "PecalMobile.ipa"
