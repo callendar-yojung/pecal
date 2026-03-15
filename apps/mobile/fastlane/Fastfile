@@ -101,9 +101,18 @@ platform :ios do
       build_number: build_number
     ) if build_number && !build_number.empty?
 
+    # 각 타겟별로 프로비저닝 프로필을 정확하게 지정
     update_code_signing_settings(
       use_automatic_signing: false,
-      path: "ios/PecalMobile.xcodeproj"
+      path: "ios/PecalMobile.xcodeproj",
+      targets: ["PecalMobile"],
+      profile_name: provisioning_profiles["com.pecal.mobile"]
+    )
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "ios/PecalMobile.xcodeproj",
+      targets: ["PecalWidgetExtensionExtension"],
+      profile_name: provisioning_profiles["com.pecal.mobile.PecalWidgetExtension"]
     )
 
     build_app(
@@ -122,8 +131,6 @@ platform :ios do
       xcargs: [
         "CODE_SIGN_STYLE=Manual",
         "DEVELOPMENT_TEAM=#{team_id}",
-        "PROVISIONING_PROFILE_SPECIFIER=\047#{provisioning_profiles["com.pecal.mobile"]}\047",
-        "PROVISIONING_PROFILE_SPECIFIER[PecalWidgetExtensionExtension]=\047#{provisioning_profiles["com.pecal.mobile.PecalWidgetExtension"]}\047",
         "-allowProvisioningUpdates",
         "-authenticationKeyPath #{auth_key_path}",
         "-authenticationKeyID #{auth_key_id}",
@@ -204,7 +211,15 @@ platform :ios do
 
     update_code_signing_settings(
       use_automatic_signing: false,
-      path: "ios/PecalMobile.xcodeproj"
+      path: "ios/PecalMobile.xcodeproj",
+      targets: ["PecalMobile"],
+      profile_name: provisioning_profiles["com.pecal.mobile"]
+    )
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "ios/PecalMobile.xcodeproj",
+      targets: ["PecalWidgetExtensionExtension"],
+      profile_name: provisioning_profiles["com.pecal.mobile.PecalWidgetExtension"]
     )
 
     build_app(
@@ -220,9 +235,7 @@ platform :ios do
         provisioningProfiles: provisioning_profiles
       }.compact,
       xcargs: [
-        "CODE_SIGN_STYLE=Manual",
-        "PROVISIONING_PROFILE_SPECIFIER=\047#{provisioning_profiles["com.pecal.mobile"]}\047",
-        "PROVISIONING_PROFILE_SPECIFIER[PecalWidgetExtensionExtension]=\047#{provisioning_profiles["com.pecal.mobile.PecalWidgetExtension"]}\047"
+        "CODE_SIGN_STYLE=Manual"
       ].join(" "),
       output_directory: "build/ios",
       output_name: "PecalMobile.ipa"
