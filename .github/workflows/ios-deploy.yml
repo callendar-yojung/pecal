@@ -30,7 +30,7 @@ jobs:
     env:
       LANG: en_US.UTF-8
       LC_ALL: en_US.UTF-8
-      IOS_APP_IDENTIFIER: com.pecal.mobile
+      IOS_APP_IDENTIFIER: com.pecal.mobile,com.pecal.mobile.PecalWidgetExtension
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       APP_STORE_CONNECT_TEAM_ID: ${{ secrets.APP_STORE_CONNECT_TEAM_ID }}
       APP_STORE_CONNECT_APPLE_ID: ${{ secrets.APP_STORE_CONNECT_APPLE_ID }}
