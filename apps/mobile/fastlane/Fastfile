@@ -1,3 +1,4 @@
+require "xcodeproj"
 default_platform(:ios)
 
 def upload_to_testflight_with_retry(params, max_attempts: 3, wait_seconds: 20)
@@ -21,7 +22,8 @@ def load_app_store_api_credentials!
 
   key_content =
     if raw_key.include?("BEGIN PRIVATE KEY")
-      raw_key.gsub("\\n", "\n")
+      raw_key.gsub("\n", "
+")
     else
       require "base64"
       Base64.strict_decode64(raw_key)
@@ -98,26 +100,32 @@ platform :ios do
     # 태그에서 버전 추출 및 모든 타겟에 적용
     tag_name = ENV["GITHUB_REF_NAME"]
     if tag_name && tag_name.start_with?("ios-v")
-      version_from_tag = tag_name.gsub("ios-v", "")
-      
-      # xcodeproj 파일을 열어 모든 타겟의 MARKETING_VERSION과 CURRENT_PROJECT_VERSION 수정
-      require "xcodeproj"
-      project = Xcodeproj::Project.open("ios/PecalMobile.xcodeproj")
-      project.targets.each do |target|
-        target.build_configurations.each do |config|
-          config.build_settings["MARKETING_VERSION"] = version_from_tag
-          config.build_settings["CURRENT_PROJECT_VERSION"] = version_from_tag
+      begin
+        version_from_tag = tag_name.gsub("ios-v", "")
+        UI.message("Syncing version to #{version_from_tag} for all targets...")
+        
+        project_path = "ios/PecalMobile.xcodeproj"
+        if File.exist?(project_path)
+          project = Xcodeproj::Project.open(project_path)
+          project.targets.each do |target|
+            target.build_configurations.each do |config|
+              config.build_settings["MARKETING_VERSION"] = version_from_tag
+              config.build_settings["CURRENT_PROJECT_VERSION"] = version_from_tag
+            end
+          end
+          project.save
+          UI.success("Successfully updated .xcodeproj build settings.")
         end
-      end
-      project.save
 
-      # 하위 호환성을 위해 Info.plist도 수정
-      plists = ["ios/PecalMobile/Info.plist", "ios/PecalWidgetExtension/Info.plist"]
-      plists.each do |plist|
-        if File.exist?(plist)
-          set_info_plist_value(path: plist, key: "CFBundleShortVersionString", value: version_from_tag)
-          set_info_plist_value(path: plist, key: "CFBundleVersion", value: version_from_tag)
+        plists = ["ios/PecalMobile/Info.plist", "ios/PecalWidgetExtension/Info.plist"]
+        plists.each do |plist|
+          if File.exist?(plist)
+            set_info_plist_value(path: plist, key: "CFBundleShortVersionString", value: version_from_tag)
+            set_info_plist_value(path: plist, key: "CFBundleVersion", value: version_from_tag)
+          end
         end
+      rescue => e
+        UI.error("Failed to sync versions: #{e.message}")
       end
     end
 
