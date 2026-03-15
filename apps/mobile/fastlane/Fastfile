@@ -95,13 +95,29 @@ platform :ios do
     provisioning_profiles = Actions.lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING]
     use_manual_signing = provisioning_profiles && !provisioning_profiles.empty?
 
-    build_number = ENV["IOS_BUILD_NUMBER"]
-    increment_build_number(
-      xcodeproj: "ios/PecalMobile.xcodeproj",
-      build_number: build_number
-    ) if build_number && !build_number.empty?
+    # 태그에서 버전 추출 (ios-v1.0.26 -> 1.0.26)
+    tag_name = ENV["GITHUB_REF_NAME"]
+    if tag_name && tag_name.start_with?("ios-v")
+      version_from_tag = tag_name.gsub("ios-v", "")
+      increment_version_number(
+        xcodeproj: "ios/PecalMobile.xcodeproj",
+        version_number: version_from_tag
+      )
+      increment_build_number(
+        xcodeproj: "ios/PecalMobile.xcodeproj",
+        build_number: version_from_tag
+      )
+    else
+      build_number = ENV["IOS_BUILD_NUMBER"]
+      if build_number && !build_number.empty?
+        increment_build_number(
+          xcodeproj: "ios/PecalMobile.xcodeproj",
+          build_number: build_number
+        )
+      end
+    end
 
-    # 각 타겟별로 프로비저닝 프로필을 정확하게 지정
+    # 모든 타겟의 코드 사이닝 설정을 수동으로 강제 및 프로필 매핑
     update_code_signing_settings(
       use_automatic_signing: false,
       path: "ios/PecalMobile.xcodeproj",
