@@ -122,8 +122,8 @@ platform :ios do
       xcargs: [
         "CODE_SIGN_STYLE=Manual",
         "DEVELOPMENT_TEAM=#{team_id}",
-        "PROVISIONING_PROFILE_SPECIFIER=\047#{provisioning_profiles[\"com.pecal.mobile\"]}\047",
-        "PROVISIONING_PROFILE_SPECIFIER[PecalWidgetExtensionExtension]=\047#{provisioning_profiles[\"com.pecal.mobile.PecalWidgetExtension\"]}\047",
+        "PROVISIONING_PROFILE_SPECIFIER=\047#{provisioning_profiles["com.pecal.mobile"]}\047",
+        "PROVISIONING_PROFILE_SPECIFIER[PecalWidgetExtensionExtension]=\047#{provisioning_profiles["com.pecal.mobile.PecalWidgetExtension"]}\047",
         "-allowProvisioningUpdates",
         "-authenticationKeyPath #{auth_key_path}",
         "-authenticationKeyID #{auth_key_id}",
@@ -221,8 +221,8 @@ platform :ios do
       }.compact,
       xcargs: [
         "CODE_SIGN_STYLE=Manual",
-        "PROVISIONING_PROFILE_SPECIFIER=\047#{provisioning_profiles[\"com.pecal.mobile\"]}\047",
-        "PROVISIONING_PROFILE_SPECIFIER[PecalWidgetExtensionExtension]=\047#{provisioning_profiles[\"com.pecal.mobile.PecalWidgetExtension\"]}\047"
+        "PROVISIONING_PROFILE_SPECIFIER=\047#{provisioning_profiles["com.pecal.mobile"]}\047",
+        "PROVISIONING_PROFILE_SPECIFIER[PecalWidgetExtensionExtension]=\047#{provisioning_profiles["com.pecal.mobile.PecalWidgetExtension"]}\047"
       ].join(" "),
       output_directory: "build/ios",
       output_name: "PecalMobile.ipa"
