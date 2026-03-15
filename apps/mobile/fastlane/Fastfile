@@ -21,7 +21,8 @@ def load_app_store_api_credentials!
 
   key_content =
     if raw_key.include?("BEGIN PRIVATE KEY")
-      raw_key.gsub("\\n", "\n")
+      raw_key.gsub("\n", "
+")
     else
       require "base64"
       Base64.strict_decode64(raw_key)
@@ -99,21 +100,18 @@ platform :ios do
     tag_name = ENV["GITHUB_REF_NAME"]
     if tag_name && tag_name.start_with?("ios-v")
       version_from_tag = tag_name.gsub("ios-v", "")
-      increment_version_number(
-        xcodeproj: "ios/PecalMobile.xcodeproj",
-        version_number: version_from_tag
-      )
-      increment_build_number(
-        xcodeproj: "ios/PecalMobile.xcodeproj",
-        build_number: version_from_tag
-      )
-    else
-      build_number = ENV["IOS_BUILD_NUMBER"]
-      if build_number && !build_number.empty?
-        increment_build_number(
-          xcodeproj: "ios/PecalMobile.xcodeproj",
-          build_number: build_number
-        )
+      
+      # 메인 앱 및 위젯의 Info.plist 파일 경로
+      plists = [
+        "ios/PecalMobile/Info.plist",
+        "ios/PecalWidgetExtension/Info.plist"
+      ]
+      
+      plists.each do |plist|
+        if File.exist?(plist)
+          set_info_plist_value(path: plist, key: "CFBundleShortVersionString", value: version_from_tag)
+          set_info_plist_value(path: plist, key: "CFBundleVersion", value: version_from_tag)
+        end
       end
     end
 
