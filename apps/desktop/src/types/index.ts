@@ -365,7 +365,6 @@ export type Mode = 'PERSONAL' | 'TEAM'
 // Modal type
 export type ModalType =
   | 'DETAIL'
-  | 'EDIT'
   | 'CREATE'
   | 'TEAM_CREATE'
   | 'SETTINGS'

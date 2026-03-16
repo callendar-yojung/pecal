@@ -156,6 +156,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_http::init())
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
             let alarm_state = alarm::load_alarm_manager(app.handle());
             app.manage(std::sync::Mutex::new(alarm_state));
@@ -201,7 +202,7 @@ pub fn run() {
             });
 
             // ── Restore window state (position + size) ──────────────────
-            position::restore_state(app.handle());
+            // position::restore_state(app.handle());
 
             // ── Restore opacity (Windows) ────────────────────────────────
             #[cfg(target_os = "windows")]
@@ -255,10 +256,10 @@ pub fn run() {
                 let app_handle = app.handle().clone();
                 window.on_window_event(move |event| match event {
                     tauri::WindowEvent::Moved(pos) => {
-                        position::save_position(&app_handle, pos.x as f64, pos.y as f64);
+                        // position::save_position(&app_handle, pos.x as f64, pos.y as f64);
                     }
                     tauri::WindowEvent::Resized(size) => {
-                        position::save_size(&app_handle, size.width as f64, size.height as f64);
+                        // position::save_size(&app_handle, size.width as f64, size.height as f64);
                     }
                     _ => {}
                 });
@@ -289,6 +290,10 @@ pub fn run() {
             }
 
             alarm::start_alarm_scheduler(app.handle().clone());
+
+                        if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+            }
 
             Ok(())
         })

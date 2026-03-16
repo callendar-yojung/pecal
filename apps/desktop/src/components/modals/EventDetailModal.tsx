@@ -23,7 +23,8 @@ function getFileIcon(mimeType: string | null) {
 
 export function EventDetailModal() {
   const { t } = useTranslation()
-  const { openedModal, selectedEvent, closeModal, openEditModal } = useModalStore()
+  const { openedModal, selectedEvent, closeModal } = useModalStore()
+  const { openTaskEdit } = useViewStore()
   const { openTaskExport } = useViewStore()
   const { setEvents, events } = useCalendarStore()
   const { currentMode, selectedTeamId } = useWorkspaceStore()
@@ -83,7 +84,7 @@ export function EventDetailModal() {
   }
 
   const handleEdit = () => {
-    if (selectedEvent) openEditModal(selectedEvent)
+    if (selectedEvent) { closeModal(); openTaskEdit(selectedEvent); }
   }
 
   const handleExport = () => {

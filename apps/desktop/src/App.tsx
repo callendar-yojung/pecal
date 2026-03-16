@@ -5,10 +5,9 @@ import { ask } from '@tauri-apps/plugin-dialog'
 import { invoke } from '@tauri-apps/api/core'
 import { Sidebar } from './components/sidebar'
 import { Calendar } from './components/calendar'
-import { TaskListView, FileListView, MemoView, TaskCreateView, TeamManageView, TaskExportView, OverviewView, TaskDetailView } from './components/views'
+import { TaskListView, FileListView, MemoView, TaskCreateView, TeamManageView, TaskExportView, OverviewView, TaskDetailView, TaskEditView } from './components/views'
 import { TitleBar } from './components/common'
 import {
-  EventEditModal,
   EventCreateModal,
   TeamCreateModal,
   SettingsModal,
@@ -62,6 +61,8 @@ function MainContent() {
       return <TaskExportView />
     case 'task_detail':
       return <TaskDetailView />
+    case 'task_edit':
+      return <TaskEditView />
     default:
       return <Calendar />
   }
@@ -140,7 +141,6 @@ function AppContent() {
         </main>
       </div>
 
-      <EventEditModal />
       <EventCreateModal />
       <TeamCreateModal />
       <SettingsModal />

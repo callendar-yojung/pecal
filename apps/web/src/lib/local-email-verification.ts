@@ -223,7 +223,7 @@ export async function sendPasswordResetVerificationCode(params: {
 }) {
   await ensureEmailVerificationSchema();
   const email = normalizeEmail(params.email);
-  const loginId = params.loginId.trim().toLowerCase();
+  const loginId = params.loginId.trim();
 
   if (!isValidEmail(email)) {
     throw new Error("이메일 형식이 올바르지 않습니다.");
@@ -274,7 +274,7 @@ export async function consumePasswordResetVerificationCode(params: {
 }) {
   await ensureEmailVerificationSchema();
   const email = normalizeEmail(params.email);
-  const loginId = params.loginId.trim().toLowerCase();
+  const loginId = params.loginId.trim();
   const code = params.code.trim();
 
   if (!isValidEmail(email)) {

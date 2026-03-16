@@ -10,6 +10,7 @@ export type ViewType =
   | 'task_create'
   | 'team_manage'
   | 'task_detail'
+  | 'task_edit'
   | 'task_export'
 
 interface ViewState {
@@ -18,6 +19,7 @@ interface ViewState {
   createTaskDate: Date | null
   detailTask: Task | null
   exportTask: Task | null
+  editTask: Task | null
   setView: (view: ViewType) => void
   openTaskCreate: (date: Date) => void
   closeTaskCreate: () => void
@@ -25,6 +27,8 @@ interface ViewState {
   closeTaskExport: () => void
   openTaskDetail: (task: Task) => void
   closeTaskDetail: () => void
+  openTaskEdit: (task: Task) => void
+  closeTaskEdit: () => void
 }
 
 export const useViewStore = create<ViewState>((set) => ({
@@ -33,6 +37,7 @@ export const useViewStore = create<ViewState>((set) => ({
   createTaskDate: null,
   detailTask: null,
   exportTask: null,
+  editTask: null,
   setView: (activeView) =>
     set({
       activeView,
@@ -69,5 +74,17 @@ export const useViewStore = create<ViewState>((set) => ({
       activeView: state.previousView ?? 'overview',
       previousView: null,
       detailTask: null,
+    })),
+  openTaskEdit: (task) =>
+    set((state) => ({
+      previousView: state.activeView,
+      activeView: 'task_edit',
+      editTask: task,
+    })),
+  closeTaskEdit: () =>
+    set((state) => ({
+      activeView: state.previousView ?? 'overview',
+      previousView: null,
+      editTask: null,
     })),
 }))

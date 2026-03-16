@@ -107,7 +107,7 @@ export default function LoginPage() {
         !emailVerified ||
         emailVerifiedTarget !== email.trim().toLowerCase() ||
         loginIdCheck?.available !== true ||
-        loginIdCheck.value !== loginId.trim().toLowerCase() ||
+        loginIdCheck.value !== loginId.trim() ||
         nicknameCheck?.available !== true ||
         nicknameCheck.value !== nickname.trim())) ||
     (mode === "findId" && !email.trim()) ||
@@ -138,7 +138,7 @@ export default function LoginPage() {
       }
       if (field === "loginId" && data.loginId) {
         setLoginIdCheck({
-          value: loginId.trim().toLowerCase(),
+          value: loginId.trim(),
           available: Boolean(data.loginId.available),
           message: String(data.loginId.message ?? ""),
         });
@@ -394,6 +394,13 @@ export default function LoginPage() {
   };
 
   const goToPreviousPage = () => {
+    if (authPanel !== "entry") {
+      setAuthPanel("entry");
+      setMode("login");
+      setLocalError(null);
+      setLocalStatus(null);
+      return;
+    }
     if (typeof window !== "undefined" && window.history.length > 1) {
       router.back();
       return;

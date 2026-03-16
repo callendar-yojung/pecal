@@ -41,7 +41,7 @@ export function validateLocalRegisterInput(input: {
   const email = input.email.trim().toLowerCase();
 
   if (!isValidLoginId(loginId)) {
-    return "아이디는 영문 소문자, 숫자, ., _, - 조합으로 4자 이상이어야 합니다.";
+    return "아이디는 4자 이상이어야 합니다.";
   }
   if (!isValidMemberPassword(input.password)) {
     return "비밀번호는 8자 이상이며 특수문자를 포함해야 합니다.";
@@ -65,7 +65,7 @@ export function validateLocalLoginInput(input: {
 }) {
   const loginId = normalizeLoginId(input.loginId);
   if (!isValidLoginId(loginId)) {
-    return "아이디 형식이 올바르지 않습니다.";
+    return "아이디는 4자 이상이어야 합니다.";
   }
   if (!input.password.trim()) {
     return "비밀번호를 입력해 주세요.";
@@ -89,7 +89,7 @@ export async function checkLocalRegisterAvailability(input: {
     } else if (!isValidLoginId(loginId)) {
       result.loginId = {
         available: false,
-        message: "아이디는 영문 소문자, 숫자, ., _, - 조합으로 4자 이상이어야 합니다.",
+        message: "아이디는 4자 이상이어야 합니다.",
       };
     } else if (await isLoginIdTaken(loginId)) {
       result.loginId = { available: false, message: "이미 사용 중인 아이디입니다." };
@@ -203,7 +203,7 @@ export async function requestLocalPasswordReset(params: {
   const email = params.email.trim().toLowerCase();
 
   if (!isValidLoginId(loginId)) {
-    throw new Error("아이디 형식이 올바르지 않습니다.");
+    throw new Error("아이디는 4자 이상이어야 합니다.");
   }
   if (!isValidMemberEmail(email)) {
     throw new Error("이메일 형식이 올바르지 않습니다.");
@@ -222,7 +222,7 @@ export async function resetLocalPassword(params: {
   const email = params.email.trim().toLowerCase();
 
   if (!isValidLoginId(loginId)) {
-    return { error: "아이디 형식이 올바르지 않습니다.", status: 400 as const };
+    return { error: "아이디는 4자 이상이어야 합니다.", status: 400 as const };
   }
   if (!isValidMemberEmail(email)) {
     return { error: "이메일 형식이 올바르지 않습니다.", status: 400 as const };

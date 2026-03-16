@@ -23,8 +23,8 @@ function getFileIcon(mimeType: string | null) {
 
 export function TaskDetailView() {
   const { t } = useTranslation()
-  const { detailTask, closeTaskDetail, openTaskExport } = useViewStore()
-  const { openEditModal } = useModalStore()
+  const { detailTask, closeTaskDetail, openTaskExport, openTaskEdit } = useViewStore()
+  
   const { setEvents, events } = useCalendarStore()
   const { currentMode, selectedTeamId } = useWorkspaceStore()
   const { user } = useAuthStore()
@@ -83,7 +83,7 @@ export function TaskDetailView() {
 
   const handleEdit = () => {
     if (!detailTask) return
-    openEditModal(detailTask)
+    openTaskEdit(detailTask)
   }
 
   const handleExport = () => {

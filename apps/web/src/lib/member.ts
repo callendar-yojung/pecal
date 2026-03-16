@@ -61,11 +61,11 @@ export async function ensureMemberLocalAuthSchema() {
 }
 
 export function normalizeLoginId(loginId: string) {
-  return loginId.trim().toLowerCase();
+  return loginId.trim();
 }
 
 export function isValidLoginId(loginId: string) {
-  return /^[a-z0-9][a-z0-9._-]{3,31}$/.test(normalizeLoginId(loginId));
+  return loginId.trim().length >= 4;
 }
 
 export function isValidMemberPassword(password: string) {
