@@ -10,7 +10,8 @@
     "format": "biome format --write",
     "i18n:check": "node scripts/check-i18n.mjs",
     "test:session-store": "node scripts/test-session-store.mjs",
-    "test:refresh-flow": "node scripts/test-refresh-flow.mjs"
+    "test:refresh-flow": "node scripts/test-refresh-flow.mjs",
+    "scheduler": "node scripts/task-reminders-scheduler.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.986.0",
