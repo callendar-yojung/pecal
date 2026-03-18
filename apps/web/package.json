@@ -43,13 +43,13 @@
     "lowlight": "^2.9.0",
     "lucide-react": "^0.564.0",
     "mysql2": "^3.16.1",
-    "next": "16.1.5",
+    "next": "15.1.5",
     "next-auth": "^5.0.0-beta.30",
     "next-intl": "^4.7.0",
-    "nodemailer": "^7.0.13",
+    "nodemailer": "^6.10.0",
     "qrcode": "^1.5.4",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
     "speakeasy": "^2.0.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-react": "^5.32.0",
@@ -66,7 +66,10 @@
       "minimatch": "3.1.4"
     },
     "immutable": "3.8.3",
-    "dompurify": "3.3.2"
+    "dompurify": "3.3.2",
+    "react": "$react",
+    "react-dom": "$react-dom",
+    "nodemailer": "^6.10.0"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.0",
