@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "NODE_PATH= next dev",
-    "build": "NODE_PATH= next build --webpack",
+    "build": "NODE_PATH= next build",
     "start": "NODE_PATH= next start",
     "lint": "biome check",
     "format": "biome format --write",
