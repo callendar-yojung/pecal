@@ -30,6 +30,7 @@
       "backgroundColor": "#FFFFFF"
     },
     "plugins": [
+      "react-native-reanimated",
       "expo-notifications",
       "expo-router",
       "expo-font",
