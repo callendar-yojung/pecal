@@ -16,7 +16,7 @@ import { isUploadLimitError } from '../../../../src/lib/plan-limits';
 import type { TaskAttachmentItem, TaskStatus } from '../../../../src/lib/types';
 import { createStyles } from '../../../../src/styles/createStyles';
 import { TaskEditorForm } from '../../../../src/components/task/TaskEditorForm';
-import { apiFetch, getApiBaseUrl, invalidateApiCache } from '../../../../src/lib/api';
+import { apiFetch, invalidateApiCache } from '../../../../src/lib/api';
 
 export default function TaskEditPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -73,14 +73,10 @@ export default function TaskEditPage() {
     let cancelled = false;
     void (async () => {
       try {
-        const response = await fetch(`${getApiBaseUrl()}/api/tasks/attachments?task_id=${taskId}`, {
-          headers: { Authorization: `Bearer ${session.accessToken}` },
-        });
-        if (!response.ok) {
-          if (!cancelled) setAttachments([]);
-          return;
-        }
-        const data = (await response.json()) as { attachments?: TaskAttachmentItem[] };
+        const data = await apiFetch<{ attachments?: TaskAttachmentItem[] }>(
+          `/api/tasks/attachments?task_id=${taskId}`,
+          session,
+        );
         if (!cancelled) setAttachments(Array.isArray(data.attachments) ? data.attachments : []);
       } catch {
         if (!cancelled) setAttachments([]);

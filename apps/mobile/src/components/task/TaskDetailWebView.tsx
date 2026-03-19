@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Alert, Linking, Pressable, Text, View } from 'react-native';
 import { useI18n } from '../../contexts/I18nContext';
 import { useThemeMode } from '../../contexts/ThemeContext';
-import { getApiBaseUrl } from '../../lib/api';
+import { apiFetch, getApiBaseUrl } from '../../lib/api';
 import {
   deleteTaskAttachment,
   downloadAndShareAttachment,
@@ -108,14 +108,10 @@ export function TaskDetailWebView({
     void (async () => {
       onAttachmentsLoadingChange?.(true);
       try {
-        const response = await fetch(`${getApiBaseUrl()}/api/tasks/attachments?task_id=${task.id}`, {
-          headers: { Authorization: `Bearer ${session.accessToken}` },
-        });
-        if (!response.ok) {
-          if (!cancelled) setAttachments([]);
-          return;
-        }
-        const data = (await response.json()) as { attachments?: TaskAttachmentItem[] };
+        const data = await apiFetch<{ attachments?: TaskAttachmentItem[] }>(
+          `/api/tasks/attachments?task_id=${task.id}`,
+          session,
+        );
         if (!cancelled) setAttachments(Array.isArray(data.attachments) ? data.attachments : []);
       } catch {
         if (!cancelled) setAttachments([]);
