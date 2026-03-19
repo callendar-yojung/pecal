@@ -1,5 +1,5 @@
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMaybeMobileApp } from '../../../src/contexts/MobileAppContext';
@@ -155,19 +155,15 @@ export default function TaskCreatePage() {
     }
   };
 
-  const attachmentItems = useMemo(
-    () =>
-      pendingAttachments.map((item) => ({
-        attachment_id: item.localId,
-        file_id: item.localId,
-        original_name: item.name,
-        file_size: item.size,
-        file_size_formatted: undefined,
-        preview_uri: item.uri,
-        mime_type: item.mimeType,
-      })),
-    [pendingAttachments],
-  );
+  const attachmentItems = pendingAttachments.map((item) => ({
+    attachment_id: item.localId,
+    file_id: item.localId,
+    original_name: item.name,
+    file_size: item.size,
+    file_size_formatted: undefined,
+    preview_uri: item.uri,
+    mime_type: item.mimeType,
+  }));
 
   const pickNewAttachments = async () => {
     const handlePicked = async (picked: PickedAttachment[]) => {

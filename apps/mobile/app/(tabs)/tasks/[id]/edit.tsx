@@ -1,5 +1,5 @@
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMaybeMobileApp } from '../../../../src/contexts/MobileAppContext';
@@ -166,7 +166,7 @@ export default function TaskEditPage() {
     }
   };
 
-  const attachmentItems = useMemo(() => attachments, [attachments]);
+  const attachmentItems = attachments;
 
   const pickAndUploadAttachments = async () => {
     const handlePicked = async (picked: Awaited<ReturnType<typeof pickAttachments>>) => {

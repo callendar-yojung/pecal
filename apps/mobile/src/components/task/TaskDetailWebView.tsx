@@ -1,6 +1,7 @@
 import { isRichTextDocLike } from '@repo/utils';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Alert, Linking, Pressable, Text, View } from 'react-native';
 import { useI18n } from '../../contexts/I18nContext';
 import { useThemeMode } from '../../contexts/ThemeContext';
@@ -28,6 +29,8 @@ type Props = {
   onBackToList?: () => void;
   onOpenEdit?: () => void;
   onOpenExport?: () => void;
+  onOpenDuplicate?: () => void;
+  onDelete?: () => void;
   onAttachmentsLoadingChange?: (loading: boolean) => void;
 };
 
@@ -59,6 +62,8 @@ export function TaskDetailWebView({
   onBackToList,
   onOpenEdit,
   onOpenExport,
+  onOpenDuplicate,
+  onDelete,
   onAttachmentsLoadingChange,
 }: Props) {
   const router = useRouter();
@@ -68,6 +73,7 @@ export function TaskDetailWebView({
   const [attachments, setAttachments] = useState<TaskAttachmentItem[]>([]);
   const [removingAttachmentIds, setRemovingAttachmentIds] = useState<number[]>([]);
   const [uploadingAttachmentIds, setUploadingAttachmentIds] = useState<string[]>([]);
+  const [actionMenuOpen, setActionMenuOpen] = useState(false);
   const s = createStyles(colors);
 
   const borderColor = resolvedMode === 'black' ? '#2D3443' : '#D9E0EF';
@@ -243,12 +249,52 @@ export function TaskDetailWebView({
       }}
     >
       <View style={{ gap: 6 }}>
-        <Text style={{ color: textColor, fontSize: 24, fontWeight: '800', letterSpacing: -0.6 }}>
-          {task.title}
-        </Text>
-        <Text style={{ color: softColor, fontSize: 14 }}>
-          {task.start_time} - {task.end_time}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, flex: 1 }}>
+            {onBackToList ? (
+              <Pressable
+                onPress={onBackToList}
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  borderColor,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: resolvedMode === 'black' ? '#1B2231' : '#F3F6FF',
+                }}
+              >
+                <Ionicons name="list-outline" size={18} color={textColor} />
+              </Pressable>
+            ) : null}
+            <View style={{ flex: 1, gap: 6 }}>
+              <Text style={{ color: textColor, fontSize: 24, fontWeight: '800', letterSpacing: -0.6 }}>
+                {task.title}
+              </Text>
+              <Text style={{ color: softColor, fontSize: 14 }}>
+                {task.start_time} - {task.end_time}
+              </Text>
+            </View>
+          </View>
+          {onOpenEdit ? (
+            <Pressable
+              onPress={onOpenEdit}
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 10,
+                borderWidth: 1,
+                borderColor: colors.primary,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: `${colors.primary}18`,
+              }}
+            >
+              <Ionicons name="create-outline" size={18} color={colors.primary} />
+            </Pressable>
+          ) : null}
+        </View>
       </View>
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -300,11 +346,6 @@ export function TaskDetailWebView({
             </Pressable>
           ) : null}
         </View>
-        <Text style={{ color: softColor, fontSize: 12 }}>
-          {isKo
-            ? '허용 형식: JPG, PNG, WEBP, PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, CSV, ZIP, HWP'
-            : 'Allowed: JPG, PNG, WEBP, PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, CSV, ZIP, HWP'}
-        </Text>
         {uploadingAttachmentIds.length > 0 ? (
           <Text style={{ color: softColor, fontSize: 12 }}>
             {isKo ? '첨부파일 업로드 중...' : 'Uploading attachments...'}
@@ -336,22 +377,74 @@ export function TaskDetailWebView({
       </View>
 
       <View style={{ gap: 8 }}>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          {onBackToList ? (
-            <Pressable style={s.secondaryButtonHalf} onPress={onBackToList}>
-              <Text style={s.secondaryButtonText}>{isKo ? '목록으로' : 'Back to list'}</Text>
-            </Pressable>
-          ) : null}
-          {onOpenEdit ? (
-            <Pressable style={s.primaryButtonHalf} onPress={onOpenEdit}>
-              <Text style={s.primaryButtonText}>{isKo ? '수정' : 'Edit'}</Text>
-            </Pressable>
-          ) : null}
-        </View>
-        {onOpenExport ? (
-          <Pressable style={s.secondaryButton} onPress={onOpenExport}>
-            <Text style={s.secondaryButtonText}>{isKo ? '내보내기' : 'Export'}</Text>
-          </Pressable>
+        {onOpenExport || onOpenDuplicate || onDelete ? (
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+            {onOpenExport || onOpenDuplicate ? (
+              <View style={{ flex: 1, gap: 8 }}>
+                <Pressable
+                  style={s.secondaryButtonHalf}
+                  onPress={() => setActionMenuOpen((prev) => !prev)}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingHorizontal: 4 }}>
+                    <Text style={s.secondaryButtonText}>{isKo ? '추가 작업' : 'More actions'}</Text>
+                    <Ionicons name={actionMenuOpen ? 'chevron-up' : 'chevron-down'} size={16} color={colors.text} />
+                  </View>
+                </Pressable>
+                {actionMenuOpen ? (
+                  <View
+                    style={{
+                      borderWidth: 1,
+                      borderColor,
+                      borderRadius: 12,
+                      backgroundColor: resolvedMode === 'black' ? '#1A2230' : '#F8FAFF',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {onOpenExport ? (
+                      <Pressable
+                        onPress={() => {
+                          setActionMenuOpen(false);
+                          onOpenExport();
+                        }}
+                        style={{ paddingHorizontal: 12, paddingVertical: 12, borderBottomWidth: onOpenDuplicate ? 1 : 0, borderBottomColor: borderColor }}
+                      >
+                        <Text style={{ color: textColor, fontSize: 14, fontWeight: '700' }}>{isKo ? '내보내기' : 'Export'}</Text>
+                      </Pressable>
+                    ) : null}
+                    {onOpenDuplicate ? (
+                      <Pressable
+                        onPress={() => {
+                          setActionMenuOpen(false);
+                          onOpenDuplicate();
+                        }}
+                        style={{ paddingHorizontal: 12, paddingVertical: 12 }}
+                      >
+                        <Text style={{ color: textColor, fontSize: 14, fontWeight: '700' }}>{isKo ? '일정 복제' : 'Duplicate'}</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
+            {onDelete ? (
+              <Pressable
+                onPress={onDelete}
+                style={{
+                  flex: 1,
+                  borderRadius: 10,
+                  alignItems: 'center',
+                  paddingVertical: 11,
+                  borderWidth: 1,
+                  borderColor: '#FCA5A5',
+                  backgroundColor: resolvedMode === 'black' ? '#351414' : '#FFF1F1',
+                }}
+              >
+                <Text style={{ color: '#DC2626', fontWeight: '800', fontSize: 13 }}>
+                  {isKo ? '일정 삭제' : 'Delete task'}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
         ) : null}
       </View>
     </View>

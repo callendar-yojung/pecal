@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { format } from 'date-fns'
+import { format, setHours, setMinutes } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '../common'
 import RichTextEditor from '../editor/RichTextEditor'
-import { useAuthStore, useCalendarStore, useModalStore, useViewStore, useWorkspaceStore } from '../../stores'
+import { useAuthStore, useCalendarStore, useViewStore, useWorkspaceStore } from '../../stores'
 import { attachmentApi, tagApi, taskApi } from '../../api'
 import type { Attachment, Tag } from '../../types'
 import { parseApiDateTime } from '../../utils/datetime'
@@ -23,7 +23,7 @@ function getFileIcon(mimeType: string | null) {
 
 export function TaskDetailView() {
   const { t } = useTranslation()
-  const { detailTask, closeTaskDetail, openTaskExport, openTaskEdit } = useViewStore()
+  const { detailTask, closeTaskDetail, openTaskExport, openTaskEdit, openTaskDetail } = useViewStore()
   
   const { setEvents, events } = useCalendarStore()
   const { currentMode, selectedTeamId } = useWorkspaceStore()
@@ -35,6 +35,10 @@ export function TaskDetailView() {
   const [isTagsLoading, setIsTagsLoading] = useState(false)
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [isAttachmentsLoading, setIsAttachmentsLoading] = useState(false)
+  const [showDuplicatePanel, setShowDuplicatePanel] = useState(false)
+  const [duplicateStartDate, setDuplicateStartDate] = useState<Date>(new Date())
+  const [duplicateEndDate, setDuplicateEndDate] = useState<Date>(new Date())
+  const [isDuplicating, setIsDuplicating] = useState(false)
 
   const ownerType = currentMode === 'TEAM' ? 'team' : 'personal'
   const ownerId = currentMode === 'TEAM' ? selectedTeamId : user?.memberId
@@ -71,6 +75,15 @@ export function TaskDetailView() {
     loadAttachments()
   }, [detailTask?.id])
 
+  useEffect(() => {
+    if (!detailTask) return
+    const sourceStart = parseApiDateTime(detailTask.start_time)
+    const sourceEnd = parseApiDateTime(detailTask.end_time)
+    setDuplicateStartDate(sourceStart)
+    setDuplicateEndDate(sourceEnd)
+    setShowDuplicatePanel(false)
+  }, [detailTask?.id, detailTask?.start_time, detailTask?.end_time])
+
   const handleOpenFile = async (url: string) => {
     try {
       const { open } = await import('@tauri-apps/plugin-shell')
@@ -104,6 +117,81 @@ export function TaskDetailView() {
     } finally {
       setIsDeleting(false)
       setShowDeleteConfirm(false)
+    }
+  }
+
+  const buildDatetime = (date: Date, hour: number, minute: number) =>
+    setMinutes(setHours(date, hour), minute)
+
+  const toMysqlDatetime = (date: Date) => format(date, 'yyyy-MM-dd HH:mm:ss')
+
+  const parseDateInput = (value: string) => {
+    const [year, month, day] = value.split('-').map(Number)
+    return new Date(year, month - 1, day)
+  }
+
+  const handleDuplicate = async () => {
+    if (!detailTask || isDuplicating) return
+    const sourceStart = parseApiDateTime(detailTask.start_time)
+    const sourceEnd = parseApiDateTime(detailTask.end_time)
+    if (Number.isNaN(sourceStart.getTime()) || Number.isNaN(sourceEnd.getTime())) {
+      alert(t('event.duplicateFailed'))
+      return
+    }
+
+    const clonedStart = buildDatetime(
+      duplicateStartDate,
+      sourceStart.getHours(),
+      sourceStart.getMinutes()
+    )
+    const clonedEnd = buildDatetime(
+      duplicateEndDate,
+      sourceEnd.getHours(),
+      sourceEnd.getMinutes()
+    )
+
+    if (clonedEnd.getTime() <= clonedStart.getTime()) {
+      alert(t('event.invalidTimeRange'))
+      return
+    }
+
+    setIsDuplicating(true)
+    try {
+      const backendStatusMap = {
+        todo: 'TODO',
+        in_progress: 'IN_PROGRESS',
+        done: 'DONE',
+      } as const
+
+      const response = await taskApi.createTask({
+        title: detailTask.title,
+        content: detailTask.content,
+        start_time: toMysqlDatetime(clonedStart),
+        end_time: toMysqlDatetime(clonedEnd),
+        color: detailTask.color || '#3b82f6',
+        reminder_minutes: detailTask.reminder_minutes ?? null,
+        tag_ids: detailTask.tag_ids || [],
+        status: backendStatusMap[(detailTask.status || 'todo') as keyof typeof backendStatusMap],
+        workspace_id: detailTask.workspace_id,
+      })
+
+      const duplicatedTask = {
+        ...detailTask,
+        id: response.taskId,
+        start_time: clonedStart.toISOString(),
+        end_time: clonedEnd.toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+
+      setEvents([...events, duplicatedTask])
+      setShowDuplicatePanel(false)
+      openTaskDetail(duplicatedTask)
+    } catch (err) {
+      console.error('Failed to duplicate task:', err)
+      alert(t('event.duplicateFailed'))
+    } finally {
+      setIsDuplicating(false)
     }
   }
 
@@ -257,6 +345,48 @@ export function TaskDetailView() {
                 </div>
               )}
             </div>
+
+            {showDuplicatePanel && (
+              <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-900/40 p-4 space-y-3">
+                <div className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('event.duplicateEvent')}</div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="flex flex-col gap-1.5 text-sm">
+                    <span className="text-gray-700 dark:text-gray-300">{t('event.startTime')}</span>
+                    <input
+                      type="date"
+                      value={format(duplicateStartDate, 'yyyy-MM-dd')}
+                      onChange={(e) => {
+                        const next = parseDateInput(e.target.value)
+                        setDuplicateStartDate(next)
+                        if (next > duplicateEndDate) setDuplicateEndDate(next)
+                      }}
+                      className="px-2 py-1.5 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-sm"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5 text-sm">
+                    <span className="text-gray-700 dark:text-gray-300">{t('event.endTime')}</span>
+                    <input
+                      type="date"
+                      value={format(duplicateEndDate, 'yyyy-MM-dd')}
+                      onChange={(e) => {
+                        const next = parseDateInput(e.target.value)
+                        setDuplicateEndDate(next)
+                        if (next < duplicateStartDate) setDuplicateStartDate(next)
+                      }}
+                      className="px-2 py-1.5 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-sm"
+                    />
+                  </label>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="secondary" onClick={() => setShowDuplicatePanel(false)} disabled={isDuplicating}>
+                    {t('event.cancel')}
+                  </Button>
+                  <Button variant="primary" onClick={handleDuplicate} disabled={isDuplicating}>
+                    {isDuplicating ? t('common.loading') : t('event.duplicate')}
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
           <CardFooter className="justify-between">
             <div className="flex items-center gap-2">
@@ -265,6 +395,9 @@ export function TaskDetailView() {
               </Button>
               <Button variant="secondary" onClick={handleExport}>
                 {t('event.export')}
+              </Button>
+              <Button variant="secondary" onClick={() => setShowDuplicatePanel((prev) => !prev)}>
+                {t('event.duplicate')}
               </Button>
             </div>
             <Button variant="primary" onClick={handleEdit} className="min-w-[120px]">

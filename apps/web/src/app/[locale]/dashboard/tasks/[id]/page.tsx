@@ -64,6 +64,7 @@ export default function TaskDetailPage() {
         ownerId={currentWorkspace.owner_id}
         onEdit={() => router.push(`/dashboard/tasks/${taskId}/edit`)}
         onExport={() => router.push(`/dashboard/tasks/${taskId}/export`)}
+        onDuplicate={() => router.push(`/dashboard/tasks/${taskId}/duplicate`)}
       />
     </div>
   );

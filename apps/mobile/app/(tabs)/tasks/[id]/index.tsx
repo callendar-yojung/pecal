@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useMobileApp } from '../../../../src/contexts/MobileAppContext';
 import { useThemeMode } from '../../../../src/contexts/ThemeContext';
 import { useI18n } from '../../../../src/contexts/I18nContext';
@@ -18,6 +18,26 @@ export default function TaskDetailPage() {
 
   const taskId = Number(id);
   const task = useMemo(() => data.tasks.find((item) => item.id === taskId), [data.tasks, taskId]);
+  const removeTask = useCallback(() => {
+    Alert.alert('일정 삭제', '이 일정을 삭제하시겠습니까?', [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '삭제',
+        style: 'destructive',
+        onPress: () => {
+          void (async () => {
+            try {
+              await data.deleteTask(taskId);
+              router.replace('/tasks');
+            } catch (error) {
+              Alert.alert('오류', error instanceof Error ? error.message : '일정을 삭제하지 못했습니다.');
+            }
+          })();
+        },
+      },
+    ]);
+  }, [data, taskId, router]);
+
   const onRefresh = useCallback(async () => {
     if (!data.selectedWorkspace) return;
     setRefreshing(true);
@@ -54,6 +74,8 @@ export default function TaskDetailPage() {
           onBackToList={() => router.replace('/tasks')}
           onOpenEdit={() => router.push(`/tasks/${taskId}/edit`)}
           onOpenExport={() => router.push(`/tasks/${taskId}/export`)}
+          onOpenDuplicate={() => router.push(`/tasks/${taskId}/duplicate`)}
+          onDelete={removeTask}
           onAttachmentsLoadingChange={setAttachmentsLoading}
         />
       </ScrollView>

@@ -7,7 +7,9 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 const nextConfig: NextConfig = {
   output: "standalone",
   outputFileTracingRoot: path.join(__dirname, "../../"),
-  reactCompiler: true,
+  experimental: {
+    reactCompiler: true,
+  },
   serverExternalPackages: [
     "@aws-sdk/client-s3",
     "@aws-sdk/core",

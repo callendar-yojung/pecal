@@ -8,34 +8,59 @@ import { createFileRecord } from "@/lib/file";
 import { createOpsEvent } from "@/lib/ops-event-log";
 import { canUploadFile, formatBytes, type OwnerType } from "@/lib/storage";
 
-// 허용된 파일 타입
-const ALLOWED_TYPES = [
-  // 이미지
-  "image/jpeg",
-  "image/png",
-  "image/gif",
-  "image/webp",
+// 위험한 실행/스크립트 성격 파일은 차단하고, 그 외는 허용한다.
+const BLOCKED_EXTENSIONS = new Set([
+  ".exe",
+  ".msi",
+  ".dll",
+  ".com",
+  ".scr",
+  ".bat",
+  ".cmd",
+  ".ps1",
+  ".vbs",
+  ".js",
+  ".mjs",
+  ".cjs",
+  ".jar",
+  ".apk",
+  ".app",
+  ".dmg",
+  ".iso",
+  ".php",
+  ".phtml",
+  ".sh",
+  ".zsh",
+  ".bash",
+  ".ksh",
+  ".csh",
+  ".html",
+  ".htm",
+  ".xhtml",
+  ".svg",
+  ".svgz",
+]);
+
+const BLOCKED_MIME_TYPES = new Set([
+  "application/x-msdownload",
+  "application/x-msdos-program",
+  "application/vnd.microsoft.portable-executable",
+  "application/x-dosexec",
+  "application/x-sh",
+  "application/x-bat",
+  "application/x-csh",
+  "application/x-httpd-php",
+  "application/javascript",
+  "text/javascript",
+  "text/html",
   "image/svg+xml",
-  // 문서
-  "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.ms-excel",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "application/vnd.ms-powerpoint",
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  "application/haansofthwp", // 한글(HWP) MIME 타입
-  "application/x-hwp", // 일부 브라우저에서 전송하는 타입
-  // 텍스트
-  "text/plain",
-  "text/plain; charset=utf-8", // 한글 텍스트 포함
-  "text/csv",
-  "text/markdown",
-  // 압축
-  "application/zip",
-  "application/x-rar-compressed",
-  "application/x-7z-compressed",
-];
+]);
+
+function isBlockedUpload(file: File): boolean {
+  const ext = path.extname(file.name || "").toLowerCase();
+  const mime = (file.type || "").toLowerCase();
+  return BLOCKED_EXTENSIONS.has(ext) || BLOCKED_MIME_TYPES.has(mime);
+}
 // POST /api/files/upload
 export async function POST(request: NextRequest): Promise<Response> {
   try {
@@ -65,9 +90,12 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (access instanceof Response) return access;
     const { user } = access;
 
-    // 파일 타입 검증
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return jsonError(`File type not allowed: ${file.type}`, 400);
+    // 파일 타입 검증(위험 파일 차단)
+    if (isBlockedUpload(file)) {
+      return jsonError(
+        `Blocked file type: ${file.type || "unknown"} (${path.extname(file.name || "").toLowerCase() || "no-ext"})`,
+        400,
+      );
     }
 
     const fileSizeBytes = file.size;

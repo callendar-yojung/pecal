@@ -53,15 +53,9 @@ export function TaskEditView() {
   const [reminderMinutes, setReminderMinutes] = useState<number | null>(10)
   const [tags, setTags] = useState<Tag[]>([])
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
-  const [isTagsLoading, setIsTagsLoading] = useState(false)
-  const [newTagName, setNewTagName] = useState('')
-  const [newTagColor, setNewTagColor] = useState('#6366f1')
-  const [isTagCreating, setIsTagCreating] = useState(false)
 
   const [attachments, setAttachments] = useState<Attachment[]>([])
-  const [loadingAttachments, setLoadingAttachments] = useState(false)
   const [uploadingFile, setUploadingFile] = useState(false)
-  const [uploadError, setUploadError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const buildDatetime = (date: Date, hour: number, minute: number) =>
@@ -90,23 +84,17 @@ export function TaskEditView() {
           : null
       )
       setSelectedTagIds(editTask.tag_ids || [])
-      setNewTagName('')
-      setNewTagColor('#6366f1')
-      setUploadError(null)
     }
   }, [editTask])
 
   useEffect(() => {
     const loadAttachments = async () => {
       if (!editTask) return
-      setLoadingAttachments(true)
       try {
         const res = await attachmentApi.getAttachments(editTask.id)
         setAttachments(res.attachments || [])
       } catch (err) {
         console.error('Failed to load attachments:', err)
-      } finally {
-        setLoadingAttachments(false)
       }
     }
     loadAttachments()
@@ -118,14 +106,11 @@ export function TaskEditView() {
   useEffect(() => {
     const loadTags = async () => {
       if (!ownerId) return
-      setIsTagsLoading(true)
       try {
         const response = await tagApi.getTags(ownerType, ownerId)
         setTags(response.tags)
       } catch (err) {
         console.error('Failed to load tags:', err)
-      } finally {
-        setIsTagsLoading(false)
       }
     }
     loadTags()
@@ -150,14 +135,13 @@ export function TaskEditView() {
     const file = e.target.files?.[0]
     if (!file || !ownerId) return
     setUploadingFile(true)
-    setUploadError(null)
     try {
       await fileApi.uploadFile(file, ownerType, ownerId, editTask.id)
       const res = await attachmentApi.getAttachments(editTask.id)
       setAttachments(res.attachments || [])
     } catch (err: any) {
       console.error('File upload error:', err)
-      setUploadError(err?.message || t('file.uploadError'))
+      alert(err?.message || t('file.uploadError'))
     } finally {
       setUploadingFile(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -231,27 +215,6 @@ ${err?.message || String(err)}`)
     setSelectedTagIds((prev) =>
       prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
     )
-  }
-
-  const handleCreateTag = async () => {
-    if (!newTagName.trim() || !ownerId || isTagCreating) return
-    setIsTagCreating(true)
-    try {
-      await tagApi.createTag({
-        name: newTagName.trim(),
-        color: newTagColor,
-        owner_type: ownerType,
-        owner_id: ownerId,
-      })
-      setNewTagName('')
-      const response = await tagApi.getTags(ownerType, ownerId)
-      setTags(response.tags)
-    } catch (err) {
-      console.error('Failed to create tag:', err)
-      alert(t('tag.createError'))
-    } finally {
-      setIsTagCreating(false)
-    }
   }
 
   return (

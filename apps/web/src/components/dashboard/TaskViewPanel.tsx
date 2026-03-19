@@ -55,6 +55,7 @@ interface TaskViewPanelProps {
   onDelete?: (taskId: number) => void;
   onStatusChange?: (status: TaskViewData["status"]) => void;
   onExport?: () => void;
+  onDuplicate?: () => void;
   showActions?: boolean;
   showTags?: boolean;
   showAttachments?: boolean;
@@ -70,6 +71,7 @@ export default function TaskViewPanel({
   onDelete,
   onStatusChange,
   onExport,
+  onDuplicate,
   showActions = true,
   showTags = true,
   showAttachments = true,
@@ -364,6 +366,15 @@ export default function TaskViewPanel({
                 className="rounded-lg border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted inline-flex items-center gap-2"
               >
                 {t("export")}
+              </button>
+            )}
+            {onDuplicate && (
+              <button
+                type="button"
+                onClick={onDuplicate}
+                className="rounded-lg border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted inline-flex items-center gap-2"
+              >
+                {t("duplicate")}
               </button>
             )}
             {onEdit && (

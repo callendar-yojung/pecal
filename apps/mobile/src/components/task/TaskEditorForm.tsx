@@ -379,7 +379,6 @@ export function TaskEditorForm({
                 ? '일정을 저장한 뒤 선택한 파일이 함께 업로드됩니다.'
                 : '현재 일정에 첨부할 파일을 추가하거나 제거할 수 있습니다.'}
             </Text>
-            <Text style={s.itemMeta}>허용 형식: JPG, PNG, WEBP, PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, CSV, ZIP, HWP</Text>
           </View>
           {onPickAttachment ? (
             <Pressable
