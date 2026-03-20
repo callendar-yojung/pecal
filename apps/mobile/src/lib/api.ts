@@ -126,7 +126,19 @@ export async function apiFetch<T>(path: string, session: AuthSession | null, opt
   // 401 자동 재발급 + 1회 재시도
   if (first.status === 401 && activeSession && authHandlers) {
     const refreshBaseSession = authHandlers.getSession() ?? activeSession;
-    const refreshed = await authHandlers.refreshSession(refreshBaseSession);
+    let refreshed: AuthSession | null = null;
+    try {
+      refreshed = await authHandlers.refreshSession(refreshBaseSession);
+    } catch {
+      throw new ApiError({
+        message: '세션 갱신 중 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
+        status: 0,
+        code: 'NETWORK_ERROR',
+        retryable: true,
+        source: SOURCE,
+        details: first.data,
+      });
+    }
     if (refreshed?.accessToken) {
       const retried = await requestJson(path, refreshed, options);
       if (retried.ok) return retried.data as T;

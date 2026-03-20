@@ -92,7 +92,10 @@ export function useAuth() {
         });
 
         if (!res.ok) {
-          return null;
+          // 401/400은 실제 refresh 만료/무효로 간주한다.
+          if (res.status === 401 || res.status === 400) return null;
+          // 일시 장애(5xx, 네트워크/게이트웨이 이슈)는 로그아웃으로 연결하지 않는다.
+          throw new Error(`REFRESH_TEMPORARY_FAILURE:${res.status}`);
         }
 
         const data = (await res.json()) as {

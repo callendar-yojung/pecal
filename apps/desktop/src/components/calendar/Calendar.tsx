@@ -116,14 +116,16 @@ export function Calendar() {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-white dark:bg-gray-900 p-4">
+    <div className="flex-1 flex flex-col bg-[#f8fafc] dark:bg-gray-950 p-4">
       {error && (
         <div className="mb-3 px-3 py-2 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-xs text-red-600 dark:text-red-300">
           {error}
         </div>
       )}
       <CalendarHeader onToggleDrawer={toggleDrawer} />
-      <CalendarGrid onOpenTaskDetail={openTaskDetailWithRefresh} />
+      <div className="flex-1 min-h-0 rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:border-gray-700/70 dark:bg-gray-900">
+        <CalendarGrid onOpenTaskDetail={openTaskDetailWithRefresh} />
+      </div>
       <TaskDrawer isOpen={isDrawerOpen} onClose={closeDrawer} onOpenTaskDetail={openTaskDetailWithRefresh} />
     </div>
   )

@@ -103,11 +103,6 @@ private struct PecalTasksResponse: Decodable {
   let tasks: [PecalWidgetTask]?
 }
 
-private struct PecalTokenRefreshResponse: Decodable {
-  let accessToken: String
-  let refreshToken: String
-}
-
 struct PecalWidgetEntry: TimelineEntry {
   let date: Date
   let payload: PecalWidgetPayload?
@@ -118,6 +113,28 @@ private struct MonthDayCell: Identifiable {
   let id: Int
   let date: Date?
   let inCurrentMonth: Bool
+}
+
+private struct MonthTaskSegment: Identifiable {
+  let id: String
+  let task: PecalWidgetTask
+  let row: Int
+  let startCol: Int
+  let endCol: Int
+  let lane: Int
+  let isStart: Bool
+  let isEnd: Bool
+}
+
+private struct MonthDayRenderData {
+  let visibleSingleTasks: [PecalWidgetTask]
+  let hiddenCount: Int
+  let visibleMultiCount: Int
+}
+
+private struct MonthRenderLayout {
+  let visibleSegmentsByRow: [Int: [MonthTaskSegment]]
+  let dayDataByKey: [String: MonthDayRenderData]
 }
 
 struct PecalWidgetProvider: AppIntentTimelineProvider {
@@ -151,6 +168,7 @@ struct PecalWidgetEntryView: View {
   var entry: PecalWidgetProvider.Entry
   @Environment(\.colorScheme) private var colorScheme
   @Environment(\.widgetFamily) private var family
+  private let maxVisibleTasksPerDay = 2
 
   private var calendar: Calendar {
     var cal = Calendar(identifier: .gregorian)
@@ -272,6 +290,135 @@ struct PecalWidgetEntryView: View {
     }
 
     return cells
+  }
+
+  private func monthRenderLayout(for workspace: PecalWidgetWorkspace?) -> MonthRenderLayout {
+    let tasks = dedupeTasksByID(workspace?.tasks ?? [])
+    if tasks.isEmpty {
+      return MonthRenderLayout(visibleSegmentsByRow: [:], dayDataByKey: [:])
+    }
+
+    let datedCells = dayCells.enumerated().compactMap { index, cell -> (index: Int, key: String)? in
+      guard let date = cell.date else { return nil }
+      return (index, dayKey(date))
+    }
+    if datedCells.isEmpty {
+      return MonthRenderLayout(visibleSegmentsByRow: [:], dayDataByKey: [:])
+    }
+
+    let firstVisibleKey = datedCells.first?.key ?? ""
+    let lastVisibleKey = datedCells.last?.key ?? ""
+    var indexByDayKey: [String: Int] = [:]
+    for item in datedCells {
+      indexByDayKey[item.key] = item.index
+    }
+
+    var singleTasksByDay: [String: [PecalWidgetTask]] = [:]
+    var allSegments: [MonthTaskSegment] = []
+    var laneRangesByRow: [Int: [[ClosedRange<Int>]]] = [:]
+
+    func laneFor(row: Int, startCol: Int, endCol: Int) -> Int {
+      var lanes = laneRangesByRow[row] ?? []
+      let targetRange = startCol...endCol
+      for lane in lanes.indices {
+        let hasConflict = lanes[lane].contains { existing in
+          existing.overlaps(targetRange)
+        }
+        if !hasConflict {
+          lanes[lane].append(targetRange)
+          laneRangesByRow[row] = lanes
+          return lane
+        }
+      }
+      lanes.append([targetRange])
+      laneRangesByRow[row] = lanes
+      return lanes.count - 1
+    }
+
+    let sortedTasks = tasks.sorted { lhs, rhs in
+      let l = parseISO(lhs.start_time) ?? .distantPast
+      let r = parseISO(rhs.start_time) ?? .distantPast
+      return l < r
+    }
+
+    for task in sortedTasks {
+      guard let startDate = parseISO(task.start_time) else { continue }
+      let endDate = parseISO(task.end_time) ?? startDate
+      let startKey = dayKey(calendar.startOfDay(for: startDate))
+      let endKey = dayKey(calendar.startOfDay(for: max(endDate, startDate)))
+
+      if startKey == endKey {
+        if startKey >= firstVisibleKey && startKey <= lastVisibleKey {
+          singleTasksByDay[startKey, default: []].append(task)
+        }
+        continue
+      }
+
+      let clippedStartKey = max(startKey, firstVisibleKey)
+      let clippedEndKey = min(endKey, lastVisibleKey)
+      if clippedStartKey > clippedEndKey { continue }
+
+      guard
+        let clippedStartIndex = indexByDayKey[clippedStartKey],
+        let clippedEndIndex = indexByDayKey[clippedEndKey]
+      else { continue }
+
+      let startRow = clippedStartIndex / 7
+      let endRow = clippedEndIndex / 7
+
+      for row in startRow...endRow {
+        let rowStart = row * 7
+        let rowEnd = rowStart + 6
+        let segmentStartIndex = max(clippedStartIndex, rowStart)
+        let segmentEndIndex = min(clippedEndIndex, rowEnd)
+        let startCol = segmentStartIndex % 7
+        let endCol = segmentEndIndex % 7
+        let lane = laneFor(row: row, startCol: startCol, endCol: endCol)
+        allSegments.append(
+          MonthTaskSegment(
+            id: "\(task.id)-\(row)-\(startCol)-\(endCol)-\(lane)",
+            task: task,
+            row: row,
+            startCol: startCol,
+            endCol: endCol,
+            lane: lane,
+            isStart: segmentStartIndex == clippedStartIndex,
+            isEnd: segmentEndIndex == clippedEndIndex
+          )
+        )
+      }
+    }
+
+    let visibleSegments = allSegments.filter { $0.lane < maxVisibleTasksPerDay }
+    var visibleSegmentsByRow: [Int: [MonthTaskSegment]] = [:]
+    for segment in visibleSegments {
+      visibleSegmentsByRow[segment.row, default: []].append(segment)
+    }
+
+    var dayDataByKey: [String: MonthDayRenderData] = [:]
+    for item in datedCells {
+      let key = item.key
+      let row = item.index / 7
+      let col = item.index % 7
+      let allMultiCount = allSegments.filter { $0.row == row && $0.startCol <= col && $0.endCol >= col }.count
+      let visibleMultiCount = visibleSegments.filter { $0.row == row && $0.startCol <= col && $0.endCol >= col }.count
+      let maxSingleVisible = max(0, maxVisibleTasksPerDay - visibleMultiCount)
+      let singles = (singleTasksByDay[key] ?? []).sorted { lhs, rhs in
+        let l = parseISO(lhs.start_time) ?? .distantPast
+        let r = parseISO(rhs.start_time) ?? .distantPast
+        return l < r
+      }
+      let visibleSingles = Array(singles.prefix(maxSingleVisible))
+      let hiddenSingle = max(0, singles.count - maxSingleVisible)
+      let hiddenMulti = max(0, allMultiCount - visibleMultiCount)
+      dayDataByKey[key] = MonthDayRenderData(
+        visibleSingleTasks: visibleSingles,
+        hiddenCount: hiddenSingle + hiddenMulti,
+        visibleMultiCount: visibleMultiCount
+      )
+    }
+
+    return MonthRenderLayout(visibleSegmentsByRow: visibleSegmentsByRow, dayDataByKey: dayDataByKey)
   }
 
   private func tasksByDayKey(for workspace: PecalWidgetWorkspace?) -> [String: [PecalWidgetTask]] {
@@ -537,7 +684,8 @@ struct PecalWidgetEntryView: View {
   }
 
   private func workspacePage(_ workspace: PecalWidgetWorkspace) -> some View {
-    VStack(alignment: .leading, spacing: 8) {
+    let layout = monthRenderLayout(for: workspace)
+    return VStack(alignment: .leading, spacing: 8) {
       HStack(alignment: .top) {
         VStack(alignment: .leading, spacing: 2) {
           Text(monthTitle)
@@ -567,11 +715,46 @@ struct PecalWidgetEntryView: View {
       }
 
       VStack(spacing: 0) {
-        ForEach(Array(dayRows.enumerated()), id: \.offset) { _, row in
-          HStack(spacing: 0) {
-            ForEach(row) { cell in
-              dayCellView(cell, workspace: workspace)
+        ForEach(Array(dayRows.enumerated()), id: \.offset) { rowIndex, row in
+          ZStack(alignment: .topLeading) {
+            HStack(spacing: 0) {
+              ForEach(row) { cell in
+                let dayData: MonthDayRenderData? = {
+                  guard let date = cell.date else { return nil }
+                  return layout.dayDataByKey[dayKey(date)]
+                }()
+                dayCellView(cell, dayData: dayData)
+              }
             }
+
+            GeometryReader { geo in
+              let columnWidth = geo.size.width / 7.0
+              ForEach(layout.visibleSegmentsByRow[rowIndex] ?? []) { segment in
+                let span = CGFloat(segment.endCol - segment.startCol + 1)
+                let left = CGFloat(segment.startCol) * columnWidth + 1
+                let width = max(0, span * columnWidth - 2)
+                let top = 22 + CGFloat(segment.lane) * 11
+                let showTitle = segment.isStart || segment.startCol == 0
+
+                RoundedRectangle(
+                  cornerRadius: segment.isStart || segment.isEnd ? 6 : 2,
+                  style: .continuous
+                )
+                  .fill(colorFromHex(segment.task.color).opacity(0.9))
+                  .frame(width: width, height: 9)
+                  .overlay(alignment: .leading) {
+                    if showTitle {
+                      Text(segment.task.title)
+                        .font(.system(size: 6.0, weight: .bold))
+                        .lineLimit(1)
+                        .foregroundStyle(Color.white)
+                        .padding(.horizontal, 3)
+                    }
+                  }
+                  .offset(x: left, y: top)
+              }
+            }
+            .allowsHitTesting(false)
           }
         }
       }
@@ -581,27 +764,33 @@ struct PecalWidgetEntryView: View {
   }
 
   @ViewBuilder
-  private func dayCellView(_ cell: MonthDayCell, workspace: PecalWidgetWorkspace?) -> some View {
+  private func dayCellView(_ cell: MonthDayCell, dayData: MonthDayRenderData?) -> some View {
     VStack(alignment: .leading, spacing: 1) {
       if let date = cell.date {
         let key = dayKey(date)
         let isToday = key == todayKey
+        let visibleSingleTasks = dayData?.visibleSingleTasks ?? []
+        let hiddenCount = dayData?.hiddenCount ?? 0
+        let visibleMultiCount = dayData?.visibleMultiCount ?? 0
+        let reservedTopSpacing = visibleMultiCount > 0 ? CGFloat(visibleMultiCount) * 11 - 1 : 0
 
         dayNumberBadge(day: calendar.component(.day, from: date), isToday: isToday)
-        let dayTasks = tasksByDayKey(for: workspace)[key] ?? []
-        ForEach(Array(dayTasks.prefix(2)), id: \.id) { task in
-          dayTaskChip(task, cellDateKey: key)
+        VStack(alignment: .leading, spacing: 1) {
+          ForEach(visibleSingleTasks, id: \.id) { task in
+          dayTaskChip(task, cellDate: date, cellDateKey: key)
+          }
+          if hiddenCount > 0 {
+            Text("+\(hiddenCount) more")
+              .font(.system(size: 7, weight: .semibold))
+              .foregroundColor(Color.gray.opacity(0.85))
+              .lineLimit(1)
+          }
         }
-        if dayTasks.count > 2 {
-          Text("+\(dayTasks.count - 2) more")
-            .font(.system(size: 7, weight: .semibold))
-            .foregroundColor(Color.gray.opacity(0.85))
-            .lineLimit(1)
-        }
+        .padding(.top, reservedTopSpacing)
       }
       Spacer(minLength: 0)
     }
-    .padding(.horizontal, 3)
+    .padding(.horizontal, 1.5)
     .padding(.vertical, 2)
     .frame(maxWidth: .infinity, minHeight: 46, alignment: .topLeading)
     .background(
@@ -633,19 +822,23 @@ struct PecalWidgetEntryView: View {
       )
   }
 
-  private func dayTaskChip(_ task: PecalWidgetTask, cellDateKey: String) -> some View {
+  private func dayTaskChip(_ task: PecalWidgetTask, cellDate: Date, cellDateKey: String) -> some View {
     let startKey = rawDayKey(task.start_time) ?? parseISO(task.start_time).map(dayKey) ?? ""
     let endKey = rawDayKey(task.end_time) ?? parseISO(task.end_time).map(dayKey) ?? ""
     let isStart = startKey == cellDateKey
     let isEnd = endKey == cellDateKey
     let isSingle = isStart && isEnd
+    let isMultiDay = !isSingle
+    let isWeekStart = calendar.component(.weekday, from: cellDate) == calendar.firstWeekday
+    let showTitle = isSingle || isStart || isWeekStart
 
-    return Text(task.title)
+    return Text(showTitle ? task.title : " ")
       .font(.system(size: 6.0, weight: .semibold))
       .lineLimit(1)
       .foregroundColor(primaryTextColor)
       .frame(maxWidth: .infinity, alignment: .leading)
-      .padding(.horizontal, 4)
+      .padding(.leading, isMultiDay && !isStart ? 1 : 4)
+      .padding(.trailing, isMultiDay && !isEnd ? 1 : 4)
       .padding(.vertical, 1)
       .background(
         RoundedRectangle(
@@ -705,6 +898,18 @@ struct PecalWidgetEntryView: View {
     return nil
   }
 
+  private func dedupeTasksByID(_ tasks: [PecalWidgetTask]) -> [PecalWidgetTask] {
+    var seen: Set<Int> = []
+    var deduped: [PecalWidgetTask] = []
+    deduped.reserveCapacity(tasks.count)
+    for task in tasks {
+      if seen.contains(task.id) { continue }
+      seen.insert(task.id)
+      deduped.append(task)
+    }
+    return deduped
+  }
+
   private func colorFromHex(_ hex: String) -> Color {
     var cleaned = hex.trimmingCharacters(in: .whitespacesAndNewlines)
     if cleaned.hasPrefix("#") { cleaned.removeFirst() }
@@ -755,8 +960,6 @@ func resolvePecalWidgetPayload() async -> PecalWidgetPayload? {
   guard
     let baseURLRaw = current.api_base_url?.trimmingCharacters(in: .whitespacesAndNewlines),
     !baseURLRaw.isEmpty,
-    let refreshToken = current.refresh_token,
-    !refreshToken.isEmpty,
     !current.workspaces.isEmpty
   else {
     return current
@@ -764,8 +967,6 @@ func resolvePecalWidgetPayload() async -> PecalWidgetPayload? {
 
   let baseURL = baseURLRaw.hasSuffix("/") ? String(baseURLRaw.dropLast()) : baseURLRaw
   var accessToken = current.access_token ?? ""
-  var latestRefreshToken = refreshToken
-  var refreshedToken = false
 
   func fetchWorkspaceTasks(token: String, workspaceId: Int) async throws -> [PecalWidgetTask] {
     guard let url = URL(string: "\(baseURL)/api/tasks?workspace_id=\(workspaceId)&limit=200&sort_by=start_time&sort_order=ASC") else {
@@ -784,26 +985,6 @@ func resolvePecalWidgetPayload() async -> PecalWidgetPayload? {
     return decoded.tasks ?? []
   }
 
-  func refreshAccessToken(refreshToken: String) async -> (String, String)? {
-    guard let url = URL(string: "\(baseURL)/api/auth/external/refresh") else { return nil }
-    var req = URLRequest(url: url)
-    req.httpMethod = "POST"
-    req.timeoutInterval = 10
-    req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    let body = ["refresh_token": refreshToken]
-    guard let bodyData = try? JSONSerialization.data(withJSONObject: body) else { return nil }
-    req.httpBody = bodyData
-
-    do {
-      let (data, response) = try await URLSession.shared.data(for: req)
-      guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { return nil }
-      let decoded = try JSONDecoder().decode(PecalTokenRefreshResponse.self, from: data)
-      return (decoded.accessToken, decoded.refreshToken)
-    } catch {
-      return nil
-    }
-  }
-
   var updatedWorkspaces: [PecalWidgetWorkspace] = []
   updatedWorkspaces.reserveCapacity(current.workspaces.count)
 
@@ -818,25 +999,7 @@ func resolvePecalWidgetPayload() async -> PecalWidgetPayload? {
         )
       )
     } catch {
-      if (error as NSError).code == 401, let refreshed = await refreshAccessToken(refreshToken: latestRefreshToken) {
-        accessToken = refreshed.0
-        latestRefreshToken = refreshed.1
-        refreshedToken = true
-        do {
-          let tasks = try await fetchWorkspaceTasks(token: accessToken, workspaceId: workspace.workspace_id)
-          updatedWorkspaces.append(
-            PecalWidgetWorkspace(
-              workspace_id: workspace.workspace_id,
-              workspace_name: workspace.workspace_name,
-              tasks: tasks
-            )
-          )
-          continue
-        } catch {
-          updatedWorkspaces.append(workspace)
-          continue
-        }
-      }
+      // Widget must not rotate auth tokens independently from the app session.
       updatedWorkspaces.append(workspace)
     }
   }
@@ -848,7 +1011,7 @@ func resolvePecalWidgetPayload() async -> PecalWidgetPayload? {
     theme: current.theme,
     api_base_url: current.api_base_url,
     access_token: accessToken.isEmpty ? current.access_token : accessToken,
-    refresh_token: refreshedToken ? latestRefreshToken : current.refresh_token,
+    refresh_token: nil,
     member_id: current.member_id,
     workspace_name: current.workspace_name,
     tasks: selectedTasks,

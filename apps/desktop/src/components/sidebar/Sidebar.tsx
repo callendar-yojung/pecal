@@ -39,19 +39,19 @@ function SidebarFooter() {
   if (!user) return null
 
   return (
-    <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+    <div className="px-4 py-3 border-t border-slate-200/70 dark:border-gray-700/70 flex items-center justify-between">
       <div className="flex items-center gap-2 min-w-0">
         <div className="w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium shrink-0">
           {user.nickname?.charAt(0) || 'U'}
         </div>
-        <span className="text-sm text-gray-700 dark:text-gray-300 truncate">
+        <span className="text-sm text-slate-700 dark:text-gray-300 truncate">
           {user.nickname}
         </span>
       </div>
       <div className="flex items-center gap-1 shrink-0">
         <button
           onClick={openNotificationsModal}
-          className="relative p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          className="relative p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-gray-300 hover:bg-slate-100/80 dark:hover:bg-gray-700 rounded-lg transition-colors"
           title={t('notification.title')}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -70,7 +70,7 @@ function SidebarFooter() {
         </button>
         <button
           onClick={openSettingsModal}
-          className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-gray-300 hover:bg-slate-100/80 dark:hover:bg-gray-700 rounded-lg transition-colors"
           title={t('settings.title')}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -106,15 +106,15 @@ function SidebarNav() {
   }, [activeView, isTeamAdmin, setView])
 
   const navBase =
-    'flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-sm transition-colors'
+    'flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm transition-all'
   const navActive =
-    'bg-white/75 dark:bg-gray-800/70 text-gray-900 dark:text-gray-100 ring-1 ring-black/5 dark:ring-white/10 shadow-sm font-medium'
+    'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-100 ring-1 ring-blue-100 dark:ring-blue-800/50 shadow-sm font-semibold'
   const navIdle =
-    'text-gray-600 dark:text-gray-400 hover:bg-white/65 dark:hover:bg-gray-800/45 hover:text-gray-900 dark:hover:text-gray-200'
+    'text-slate-600 dark:text-gray-400 hover:bg-slate-100/80 dark:hover:bg-gray-800/45 hover:text-slate-900 dark:hover:text-gray-200'
 
   return (
-    <div className="space-y-1">
-      <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-2 mb-1">
+    <div className="space-y-1.5">
+      <h3 className="text-[10px] font-semibold text-slate-400 dark:text-gray-400 uppercase tracking-[0.2em] px-2 mb-1">
         {t('sidebar.menu')}
       </h3>
       <button
@@ -204,19 +204,26 @@ export function Sidebar() {
   return (
     <div className="relative flex-shrink-0 flex">
       <aside
-        className={`h-full app-glass-card border-r border-gray-200/70 dark:border-gray-700/70 flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${
+        className={`h-full border border-slate-200/70 bg-white/70 backdrop-blur-xl shadow-[0_12px_32px_rgba(15,23,42,0.08)] dark:border-gray-700/70 dark:bg-gray-900/70 flex flex-col overflow-hidden transition-all duration-300 ease-in-out rounded-3xl ${
           collapsed ? 'w-0 border-r-0' : 'w-64'
         }`}
       >
         <div className="w-64 min-w-[256px] flex flex-col h-full">
-          <div className="p-4 border-b border-gray-200/70 dark:border-gray-700/70">
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-              Pecal
-            </h1>
+          <div className="p-5 border-b border-slate-200/70 dark:border-gray-700/70">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/20">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h1 className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                Pecal
+              </h1>
+            </div>
             <ModeSelector />
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 overflow-y-auto p-4 space-y-5">
             <WorkspaceList />
             <SidebarNav />
           </div>
@@ -228,7 +235,7 @@ export function Sidebar() {
       {/* 접기/펼기 토글 버튼 */}
       <button
         onClick={toggleCollapsed}
-        className="absolute -right-3.5 top-1/2 -translate-y-1/2 z-20 w-7 h-7 bg-white/90 dark:bg-gray-800/90 border border-gray-200/80 dark:border-gray-700/80 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm backdrop-blur"
+        className="absolute -right-3.5 top-8 z-20 w-7 h-7 bg-white/95 dark:bg-gray-800/95 border border-slate-200/80 dark:border-gray-700/80 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm backdrop-blur"
         title={collapsed ? '사이드바 열기' : '사이드바 접기'}
       >
         <svg

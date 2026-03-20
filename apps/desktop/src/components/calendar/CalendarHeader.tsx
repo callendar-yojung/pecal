@@ -61,171 +61,160 @@ export function CalendarHeader({ onToggleDrawer }: CalendarHeaderProps) {
       : format(selectedDate, 'MMMM yyyy')
 
   return (
-    <div className="flex items-center justify-between mb-4">
-      <div className="flex items-center gap-2">
-        <button
-          data-tauri-drag-region
-          onMouseDown={(e) => {
-            e.preventDefault()
-            getCurrentWindow().startDragging()
-          }}
-          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-grab active:cursor-grabbing"
-          title="Drag to move"
-        >
-          <svg
-            className="w-5 h-5 text-gray-400 pointer-events-none"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 8h16M4 16h16"
-            />
-          </svg>
-        </button>
-        <button
-          onClick={goToPrevMonth}
-          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        >
-          <svg
-            className="w-5 h-5 text-gray-600 dark:text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-        </button>
-        <div className="relative">
+    <div className="sticky top-0 z-20 mb-4 rounded-2xl border border-slate-200/70 bg-white/80 px-4 py-3 backdrop-blur-md dark:border-gray-700/70 dark:bg-gray-900/80">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setIsPickerOpen((prev) => !prev)}
-            className="inline-flex items-center gap-1 text-xl font-semibold text-gray-900 dark:text-white min-w-[180px] justify-center rounded-lg px-3 py-1 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            data-tauri-drag-region
+            onMouseDown={(e) => {
+              e.preventDefault()
+              getCurrentWindow().startDragging()
+            }}
+            className="cursor-grab rounded-lg p-2 transition-colors hover:bg-slate-100 active:cursor-grabbing dark:hover:bg-gray-800"
+            title="Drag to move"
           >
-            <span>{monthDisplay}</span>
-            <svg
-              className={`w-4 h-4 transition-transform ${isPickerOpen ? 'rotate-180' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            <svg className="pointer-events-none h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
             </svg>
           </button>
-          {isPickerOpen && (
-            <div className="absolute top-full left-1/2 mt-2 -translate-x-1/2 z-50 w-[320px] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-xl p-3">
-              <div className="mb-2 flex items-center justify-end">
-                <button
-                  onClick={() => setIsPickerOpen(false)}
-                  className="rounded-md p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-                  aria-label="Close picker"
-                >
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 6l12 12M18 6l-12 12" />
-                  </svg>
-                </button>
+          <button
+            onClick={goToPrevMonth}
+            className="rounded-lg p-2 transition-colors hover:bg-slate-100 dark:hover:bg-gray-800"
+          >
+            <svg className="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <div className="relative">
+            <button
+              onClick={() => setIsPickerOpen((prev) => !prev)}
+              className="inline-flex min-w-[190px] items-center justify-center gap-1 rounded-lg px-3 py-1 text-xl font-extrabold tracking-tight text-slate-900 transition-colors hover:bg-slate-100 dark:text-white dark:hover:bg-gray-800"
+            >
+              <span>{monthDisplay}</span>
+              <svg
+                className={`h-4 w-4 transition-transform ${isPickerOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {isPickerOpen && (
+              <div className="absolute left-1/2 top-full z-50 mt-2 w-[320px] -translate-x-1/2 rounded-xl border border-slate-200 bg-white p-3 shadow-xl dark:border-gray-700 dark:bg-gray-900">
+                <div className="mb-2 flex items-center justify-end">
+                  <button
+                    onClick={() => setIsPickerOpen(false)}
+                    className="rounded-md p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+                    aria-label="Close picker"
+                  >
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 6l12 12M18 6l-12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <div className="mb-3">
+                  <div className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">
+                    {i18n.language === 'ko' ? '연도' : 'Year'}
+                  </div>
+                  <div className="grid max-h-40 grid-cols-4 gap-1.5 overflow-y-auto pr-1">
+                    {years.map((year) => {
+                      const isSelected = year === currentYear
+                      return (
+                        <button
+                          key={year}
+                          onClick={() => handleYearSelect(year)}
+                          className={`rounded-md px-2 py-1 text-xs transition-colors ${
+                            isSelected
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                          }`}
+                        >
+                          {year}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <div className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">
+                    {i18n.language === 'ko' ? '월' : 'Month'}
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {months.map((monthLabel, monthIndex) => {
+                      const isSelected = monthIndex === selectedDate.getMonth()
+                      return (
+                        <button
+                          key={monthLabel}
+                          onClick={() => handleMonthSelect(monthIndex)}
+                          className={`rounded-md px-2 py-1 text-xs transition-colors ${
+                            isSelected
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                          }`}
+                        >
+                          {monthLabel}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
               </div>
-              <div className="mb-3">
-                <div className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">
-                  {i18n.language === 'ko' ? '연도' : 'Year'}
-                </div>
-                <div className="grid grid-cols-4 gap-1.5 max-h-40 overflow-y-auto pr-1">
-                  {years.map((year) => {
-                    const isSelected = year === currentYear
-                    return (
-                      <button
-                        key={year}
-                        onClick={() => handleYearSelect(year)}
-                        className={`rounded-md px-2 py-1 text-xs transition-colors ${
-                          isSelected
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
-                        }`}
-                      >
-                        {year}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-              <div>
-                <div className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">
-                  {i18n.language === 'ko' ? '월' : 'Month'}
-                </div>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {months.map((monthLabel, monthIndex) => {
-                    const isSelected = monthIndex === selectedDate.getMonth()
-                    return (
-                      <button
-                        key={monthLabel}
-                        onClick={() => handleMonthSelect(monthIndex)}
-                        className={`rounded-md px-2 py-1 text-xs transition-colors ${
-                          isSelected
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
-                        }`}
-                      >
-                        {monthLabel}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
+          <button
+            onClick={goToNextMonth}
+            className="rounded-lg p-2 transition-colors hover:bg-slate-100 dark:hover:bg-gray-800"
+          >
+            <svg className="h-5 w-5 text-slate-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+          <button
+            onClick={goToToday}
+            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+          >
+            {t('calendar.today')}
+          </button>
         </div>
-        <button
-          onClick={goToNextMonth}
-          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        >
-          <svg
-            className="w-5 h-5 text-gray-600 dark:text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 5l7 7-7 7"
+
+        <div className="hidden items-center rounded-xl bg-slate-100 p-1 md:flex">
+          {['Day', 'Week', 'Month', 'Year'].map((label) => (
+            <button
+              key={label}
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                label === 'Month' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="relative hidden lg:block">
+            <input
+              type="text"
+              placeholder={i18n.language === 'ko' ? '일정 찾기...' : 'Find event...'}
+              className="h-9 w-56 rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-xs text-slate-700 placeholder:text-slate-400 focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
-          </svg>
-        </button>
-      </div>
-      <div className="flex items-center gap-2">
-        <Button variant="primary" size="sm" onClick={() => openTaskCreate(selectedDate)}>
-          {t('calendar.add')}
-        </Button>
-        <Button variant="secondary" size="sm" onClick={goToToday}>
-          {t('calendar.today')}
-        </Button>
-        <button
-          onClick={onToggleDrawer}
-          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          title="Task summary"
-        >
-          <svg
-            className="w-5 h-5 text-gray-600 dark:text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+            <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35m1.35-5.65a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <Button variant="primary" size="sm" onClick={() => openTaskCreate(selectedDate)}>
+            {t('calendar.add')}
+          </Button>
+          <button
+            onClick={onToggleDrawer}
+            className="rounded-lg p-2 transition-colors hover:bg-slate-100 dark:hover:bg-gray-800"
+            title="Task summary"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
-        </button>
+            <svg className="h-5 w-5 text-slate-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   )

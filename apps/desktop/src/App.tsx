@@ -132,11 +132,11 @@ function AppContent() {
   }, [t])
 
   return (
-    <div className="app-canvas flex h-screen flex-col overflow-hidden rounded-lg bg-gray-50 dark:bg-gray-900">
+    <div className="app-canvas flex h-screen flex-col overflow-hidden bg-[#f8fafc] dark:bg-gray-950">
       <TitleBar />
-      <div className="flex flex-1 gap-3 overflow-hidden p-3 pt-0">
+      <div className="flex flex-1 overflow-hidden p-4 pt-2 gap-4">
         <Sidebar />
-        <main className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-black/5 bg-white/45 backdrop-blur-sm dark:border-white/10 dark:bg-gray-900/35">
+        <main className="flex flex-1 flex-col overflow-hidden rounded-3xl border border-slate-200/70 bg-white/75 backdrop-blur-xl shadow-[0_12px_40px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-gray-900/60">
           <MainContent />
         </main>
       </div>

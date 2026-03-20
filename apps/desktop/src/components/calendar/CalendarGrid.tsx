@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  addDays,
   format,
   startOfMonth,
   endOfMonth,
@@ -23,6 +22,9 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
   const MAX_VISIBLE_TASKS_PER_DAY = 8
   const MIN_VISIBLE_TASKS_PER_DAY = 1
   const EVENT_ROW_HEIGHT = 20
+  const MULTI_EVENT_HEIGHT = 32
+  const MULTI_EVENT_VERTICAL_GAP = 8
+  const MULTI_EVENT_TOP_OFFSET = 42
   const DAY_HEADER_HEIGHT = 32
   const DAY_CELL_PADDING = 12
   const { i18n } = useTranslation()
@@ -51,69 +53,131 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
       ? ['일', '월', '화', '수', '목', '금', '토']
       : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-  const eventsByDate = useMemo(() => {
+  const toStartOfDay = (date: Date) => {
+    const d = new Date(date)
+    d.setHours(0, 0, 0, 0)
+    return d
+  }
+
+  const singleDayEventsByDate = useMemo(() => {
     const map = new Map<string, Task[]>()
     if (!days.length) return map
 
-    const visibleStart = days[0]
-    const visibleEnd = days[days.length - 1]
-
-    const toStartOfDay = (date: Date) => {
-      const d = new Date(date)
-      d.setHours(0, 0, 0, 0)
-      return d
-    }
-
     for (const event of events) {
-      const eventStartRaw = parseApiDateTime(event.start_time)
-      const eventEndRaw = parseApiDateTime(event.end_time || event.start_time)
-      const eventStart = toStartOfDay(eventStartRaw)
-      const eventEnd = toStartOfDay(eventEndRaw)
-      const rangeStart = eventStart > visibleStart ? eventStart : visibleStart
-      const rangeEnd = eventEnd < visibleEnd ? eventEnd : visibleEnd
-
-      if (rangeStart > rangeEnd) continue
-
-      for (let cursor = new Date(rangeStart); cursor <= rangeEnd; cursor = addDays(cursor, 1)) {
-        const dateKey = format(cursor, 'yyyy-MM-dd')
-        const existing = map.get(dateKey)
-        if (existing) {
-          existing.push(event)
-        } else {
-          map.set(dateKey, [event])
-        }
+      const eventStart = toStartOfDay(parseApiDateTime(event.start_time))
+      const eventEnd = toStartOfDay(parseApiDateTime(event.end_time || event.start_time))
+      if (eventStart.getTime() !== eventEnd.getTime()) continue
+      const dateKey = format(eventStart, 'yyyy-MM-dd')
+      const existing = map.get(dateKey)
+      if (existing) {
+        existing.push(event)
+      } else {
+        map.set(dateKey, [event])
       }
     }
 
     for (const [dateKey, list] of map.entries()) {
       map.set(
         dateKey,
-        list.sort((a, b) => {
-          return parseApiDateTime(a.start_time).getTime() - parseApiDateTime(b.start_time).getTime()
-        }),
+        list.sort(
+          (a, b) =>
+            parseApiDateTime(a.start_time).getTime() - parseApiDateTime(b.start_time).getTime(),
+        ),
       )
     }
 
     return map
   }, [events, days])
 
-  const getEventMarkerState = (event: Task, day: Date) => {
-    const eventStart = format(parseApiDateTime(event.start_time), 'yyyy-MM-dd')
-    const eventEnd = format(parseApiDateTime(event.end_time || event.start_time), 'yyyy-MM-dd')
-    const cell = format(day, 'yyyy-MM-dd')
-    const isStart = eventStart === cell
-    const isEnd = eventEnd === cell
-    const isSingle = isStart && isEnd
-    return { isStart, isEnd, isSingle }
-  }
+  const multiDaySegments = useMemo(() => {
+    const segments: Array<{
+      key: string
+      event: Task
+      row: number
+      startCol: number
+      endCol: number
+      lane: number
+      isStart: boolean
+      isEnd: boolean
+    }> = []
+    if (!days.length) return segments
 
-  const eventShapeClass = (event: Task, day: Date) => {
-    const state = getEventMarkerState(event, day)
-    if (state.isSingle) return 'rounded-full'
-    if (state.isStart) return 'rounded-l-full rounded-r-md'
-    if (state.isEnd) return 'rounded-r-full rounded-l-md'
-    return 'rounded-md'
-  }
+    const visibleStart = days[0]
+    const visibleEnd = days[days.length - 1]
+    const dayIndex = new Map<string, number>()
+    for (let i = 0; i < days.length; i += 1) {
+      dayIndex.set(format(days[i], 'yyyy-MM-dd'), i)
+    }
+    const laneRangesByRow = new Map<number, Array<Array<{ start: number; end: number }>>>()
+
+    const hasOverlap = (aStart: number, aEnd: number, bStart: number, bEnd: number) => {
+      return Math.max(aStart, bStart) <= Math.min(aEnd, bEnd)
+    }
+
+    const getLane = (row: number, start: number, end: number) => {
+      const rowLanes = laneRangesByRow.get(row) ?? []
+      for (let lane = 0; lane < rowLanes.length; lane += 1) {
+        const occupied = rowLanes[lane]
+        const conflict = occupied.some((range) => hasOverlap(start, end, range.start, range.end))
+        if (!conflict) {
+          occupied.push({ start, end })
+          laneRangesByRow.set(row, rowLanes)
+          return lane
+        }
+      }
+      rowLanes.push([{ start, end }])
+      laneRangesByRow.set(row, rowLanes)
+      return rowLanes.length - 1
+    }
+
+    const visibleMultiEvents = events
+      .map((event) => {
+        const start = toStartOfDay(parseApiDateTime(event.start_time))
+        const end = toStartOfDay(parseApiDateTime(event.end_time || event.start_time))
+        return { event, start, end }
+      })
+      .filter(({ start, end }) => end.getTime() > start.getTime())
+      .sort((a, b) => {
+        if (a.start.getTime() !== b.start.getTime()) return a.start.getTime() - b.start.getTime()
+        return a.end.getTime() - b.end.getTime()
+      })
+
+    for (const { event, start: eventStart, end: eventEnd } of visibleMultiEvents) {
+      const rangeStart = eventStart > visibleStart ? eventStart : visibleStart
+      const rangeEnd = eventEnd < visibleEnd ? eventEnd : visibleEnd
+
+      if (rangeStart > rangeEnd) continue
+
+      const startIdx = dayIndex.get(format(rangeStart, 'yyyy-MM-dd'))
+      const endIdx = dayIndex.get(format(rangeEnd, 'yyyy-MM-dd'))
+      if (startIdx == null || endIdx == null) continue
+
+      const startRow = Math.floor(startIdx / 7)
+      const endRow = Math.floor(endIdx / 7)
+
+      for (let row = startRow; row <= endRow; row += 1) {
+        const rowStartIdx = row * 7
+        const rowEndIdx = rowStartIdx + 6
+        const segStartIdx = Math.max(startIdx, rowStartIdx)
+        const segEndIdx = Math.min(endIdx, rowEndIdx)
+        const startCol = segStartIdx % 7
+        const endCol = segEndIdx % 7
+        const lane = getLane(row, startCol, endCol)
+        segments.push({
+          key: `${event.id}-${row}-${startCol}-${endCol}-${lane}`,
+          event,
+          row,
+          startCol,
+          endCol,
+          lane,
+          isStart: segStartIdx === startIdx,
+          isEnd: segEndIdx === endIdx,
+        })
+      }
+    }
+
+    return segments
+  }, [events, days])
 
   const getEventStyle = (event: Task) => {
     const color = event.color || '#93c5fd'
@@ -127,7 +191,7 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
   const getEventTitle = (event: Task) => event.title
 
   const getReadableTextColor = (hexColor?: string) => {
-    if (!hexColor || !hexColor.startsWith('#')) return '#1f2937'
+    if (!hexColor || !hexColor.startsWith('#')) return '#ffffff'
     const hex = hexColor.replace('#', '')
     const normalized = hex.length === 3
       ? hex.split('').map((c) => c + c).join('')
@@ -206,16 +270,16 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <div className="grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-700">
+      <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/40 dark:border-gray-700 dark:bg-gray-900/50">
         {weekDays.map((day, index) => (
           <div
             key={day}
-            className={`px-2 py-3 text-center text-sm font-medium bg-gray-50 dark:bg-gray-800 ${
+            className={`py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] ${
               index === 0
-                ? 'text-red-500'
+                ? 'text-red-400'
                 : index === 6
-                  ? 'text-blue-500'
-                  : 'text-gray-700 dark:text-gray-300'
+                  ? 'text-slate-400'
+                  : 'text-slate-400'
             }`}
           >
             {day}
@@ -223,13 +287,14 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
         ))}
       </div>
 
-      <div
-        ref={gridRef}
-        className="flex-1 min-h-[360px] grid grid-cols-7 grid-rows-6 gap-px bg-gray-200 dark:bg-gray-700"
-      >
+      <div className="relative flex-1 min-h-[520px]">
+        <div
+          ref={gridRef}
+          className="grid h-full min-h-[520px] grid-cols-7 grid-rows-6 gap-px bg-slate-100 dark:bg-gray-700"
+        >
         {days.map((day) => {
           const dayDateKey = format(day, 'yyyy-MM-dd')
-          const dayEvents = eventsByDate.get(dayDateKey) ?? []
+          const dayEvents = singleDayEventsByDate.get(dayDateKey) ?? []
           const visibleEvents = dayEvents.slice(0, visibleTaskLimit)
           const hiddenEvents = dayEvents.slice(visibleTaskLimit)
           const hiddenCount = Math.max(0, dayEvents.length - visibleTaskLimit)
@@ -241,22 +306,22 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
             <div
               key={day.toISOString()}
               onClick={() => isCurrentMonth && openTaskCreate(day)}
-              className={`group relative min-h-[72px] p-2 transition-colors flex flex-col overflow-visible min-w-0 ${
+              className={`group relative min-h-[92px] p-2.5 transition-colors flex flex-col overflow-visible min-w-0 ${
                 isCurrentMonth
-                  ? 'bg-white dark:bg-gray-900 hover:bg-blue-50 dark:hover:bg-blue-950/30 cursor-pointer'
-                  : 'bg-white dark:bg-gray-900 opacity-40'
+                  ? 'bg-white dark:bg-gray-900 hover:bg-slate-50 dark:hover:bg-blue-950/30 cursor-pointer'
+                  : 'bg-slate-50/40 dark:bg-gray-900/80 opacity-50'
               }`}
             >
               <div className="flex items-center justify-between mb-1">
                 <span
-                  className={`text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full ${
+                  className={`text-xs font-semibold w-7 h-7 flex items-center justify-center rounded-full ${
                     isToday(day)
-                      ? 'bg-blue-500 text-white'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
                       : dayOfWeek === 0
                         ? 'text-red-500'
                         : dayOfWeek === 6
-                          ? 'text-blue-500'
-                          : 'text-gray-700 dark:text-gray-300'
+                          ? 'text-slate-600 dark:text-slate-300'
+                          : 'text-slate-700 dark:text-gray-300'
                   }`}
                 >
                   {format(day, 'd')}
@@ -282,7 +347,7 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
                       }
                       openTaskDetail(event)
                     }}
-                    className={`w-full text-left px-2 py-1 text-xs truncate border transition-opacity hover:opacity-90 ${eventShapeClass(event, day)}`}
+                    className="w-full truncate rounded-md border px-2 py-1 text-left text-[11px] shadow-sm transition-opacity hover:opacity-90"
                     style={getEventStyle(event)}
                   >
                     {getEventTitle(event)}
@@ -295,7 +360,7 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
                       setOpenMoreDateKey((prev) => (prev === dayDateKey ? null : dayDateKey))
                     }}
                     data-more-trigger="true"
-                    className="px-1 text-[11px] font-medium text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 text-left"
+                    className="px-1 text-[11px] font-semibold text-slate-400 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 text-left"
                   >
                     +{hiddenCount} more
                   </button>
@@ -305,7 +370,7 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
               {isCurrentMonth && isMoreOpen && hiddenEvents.length > 0 && (
                 <div
                   ref={morePopoverRef}
-                  className="absolute left-1 right-1 top-[72px] z-30 max-h-40 overflow-y-auto rounded-lg border border-gray-200 bg-white/95 p-1.5 shadow-xl backdrop-blur dark:border-gray-700 dark:bg-gray-900/95"
+                  className="absolute left-1 right-1 top-[84px] z-30 max-h-40 overflow-y-auto rounded-lg border border-slate-200 bg-white/95 p-1.5 shadow-xl backdrop-blur dark:border-gray-700 dark:bg-gray-900/95"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="space-y-1">
@@ -321,7 +386,7 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
                           }
                           openTaskDetail(event)
                         }}
-                        className={`w-full text-left px-2 py-1 text-xs truncate border transition-opacity hover:opacity-90 ${eventShapeClass(event, day)}`}
+                        className="w-full truncate rounded-md border px-2 py-1 text-left text-xs transition-opacity hover:opacity-90"
                         style={getEventStyle(event)}
                       >
                         {getEventTitle(event)}
@@ -333,6 +398,43 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
             </div>
           )
         })}
+        </div>
+
+        <div className="pointer-events-none absolute inset-0">
+          {multiDaySegments.map((segment) => {
+            const spanDays = segment.endCol - segment.startCol + 1
+            const color = segment.event.color || '#0ea5e9'
+            const textColor = getReadableTextColor(color)
+            return (
+              <button
+                key={segment.key}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (onOpenTaskDetail) {
+                    void onOpenTaskDetail(segment.event)
+                    return
+                  }
+                  openTaskDetail(segment.event)
+                }}
+                className="pointer-events-auto absolute flex items-center px-3 text-left text-[11px] font-semibold shadow-sm transition-opacity hover:opacity-95"
+                style={{
+                  top: `calc(${segment.row} * (100% / 6) + ${MULTI_EVENT_TOP_OFFSET + segment.lane * (MULTI_EVENT_HEIGHT + MULTI_EVENT_VERTICAL_GAP)}px)`,
+                  left: `calc(${(segment.startCol / 7) * 100}% + 6px)`,
+                  width: `calc(${(spanDays / 7) * 100}% - 12px)`,
+                  height: `${MULTI_EVENT_HEIGHT}px`,
+                  backgroundColor: color,
+                  color: textColor,
+                  borderTopLeftRadius: segment.isStart ? '8px' : '4px',
+                  borderBottomLeftRadius: segment.isStart ? '8px' : '4px',
+                  borderTopRightRadius: segment.isEnd ? '8px' : '4px',
+                  borderBottomRightRadius: segment.isEnd ? '8px' : '4px',
+                }}
+              >
+                {segment.isStart ? getEventTitle(segment.event) : ''}
+              </button>
+            )
+          })}
+        </div>
       </div>
     </div>
   )

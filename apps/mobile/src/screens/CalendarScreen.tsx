@@ -78,6 +78,9 @@ export function CalendarScreen({
   const [showSwipeHint, setShowSwipeHint] = useState(false);
   const [openMoreDateKey, setOpenMoreDateKey] = useState<string | null>(null);
   const monthSlideX = useRef(new Animated.Value(0)).current;
+  const multiBarHeight = 15;
+  const multiBarTopOffset = 33;
+  const multiBarLaneGap = 4;
 
   useEffect(() => {
     setYear(selectedDate.getFullYear());
@@ -131,6 +134,110 @@ export function CalendarScreen({
   for (let i = 0; i < 6; i++) rows.push(cells.slice(i * 7, i * 7 + 7));
 
   const schedulesByDate = useMemo(() => tasksByDate, [tasksByDate]);
+  const allTasks = useMemo(() => {
+    const map = new Map<number, TaskItem>();
+    Object.values(schedulesByDate).forEach((dayTasks) => {
+      dayTasks.forEach((task) => {
+        map.set(task.id, task);
+      });
+    });
+    return Array.from(map.values());
+  }, [schedulesByDate]);
+
+  const singleDaySchedulesByDate = useMemo(() => {
+    const result: Record<string, TaskItem[]> = {};
+    Object.entries(schedulesByDate).forEach(([dateKey, dayTasks]) => {
+      const singleDay = dayTasks
+        .filter((task) => {
+          const startKey = dateKeyFromDateTime(task.start_time);
+          const endKey = dateKeyFromDateTime(task.end_time || task.start_time);
+          return !!startKey && startKey === endKey;
+        })
+        .slice()
+        .sort((a, b) => a.start_time.localeCompare(b.start_time));
+      result[dateKey] = singleDay;
+    });
+    return result;
+  }, [schedulesByDate]);
+
+  const multiDaySegments = useMemo(() => {
+    const segments: Array<{
+      key: string;
+      task: TaskItem;
+      row: number;
+      startCol: number;
+      endCol: number;
+      lane: number;
+      isStart: boolean;
+      isEnd: boolean;
+    }> = [];
+    if (!cells.length) return segments;
+
+    const firstVisibleKey = cells[0].dateStr;
+    const lastVisibleKey = cells[cells.length - 1].dateStr;
+    const dayIndex = new Map<string, number>();
+    cells.forEach((cell, idx) => {
+      dayIndex.set(cell.dateStr, idx);
+    });
+    const laneRangesByRow = new Map<number, Array<Array<{ start: number; end: number }>>>();
+    const hasOverlap = (aStart: number, aEnd: number, bStart: number, bEnd: number) =>
+      Math.max(aStart, bStart) <= Math.min(aEnd, bEnd);
+    const getLane = (row: number, start: number, end: number) => {
+      const lanes = laneRangesByRow.get(row) ?? [];
+      for (let lane = 0; lane < lanes.length; lane += 1) {
+        const conflict = lanes[lane].some((range) => hasOverlap(start, end, range.start, range.end));
+        if (!conflict) {
+          lanes[lane].push({ start, end });
+          laneRangesByRow.set(row, lanes);
+          return lane;
+        }
+      }
+      lanes.push([{ start, end }]);
+      laneRangesByRow.set(row, lanes);
+      return lanes.length - 1;
+    };
+
+    allTasks
+      .map((task) => {
+        const startKey = dateKeyFromDateTime(task.start_time);
+        const endKey = dateKeyFromDateTime(task.end_time || task.start_time);
+        return { task, startKey, endKey };
+      })
+      .filter(({ startKey, endKey }) => !!startKey && !!endKey && endKey > startKey)
+      .sort((a, b) => (a.startKey === b.startKey ? a.endKey.localeCompare(b.endKey) : a.startKey.localeCompare(b.startKey)))
+      .forEach(({ task, startKey, endKey }) => {
+        const rangeStart = startKey < firstVisibleKey ? firstVisibleKey : startKey;
+        const rangeEnd = endKey > lastVisibleKey ? lastVisibleKey : endKey;
+        if (rangeEnd < rangeStart) return;
+        const startIdx = dayIndex.get(rangeStart);
+        const endIdx = dayIndex.get(rangeEnd);
+        if (startIdx == null || endIdx == null) return;
+
+        const startRow = Math.floor(startIdx / 7);
+        const endRow = Math.floor(endIdx / 7);
+        for (let row = startRow; row <= endRow; row += 1) {
+          const rowStartIdx = row * 7;
+          const rowEndIdx = rowStartIdx + 6;
+          const segStartIdx = Math.max(startIdx, rowStartIdx);
+          const segEndIdx = Math.min(endIdx, rowEndIdx);
+          const startCol = segStartIdx % 7;
+          const endCol = segEndIdx % 7;
+          const lane = getLane(row, startCol, endCol);
+          segments.push({
+            key: `${task.id}-${row}-${startCol}-${endCol}-${lane}`,
+            task,
+            row,
+            startCol,
+            endCol,
+            lane,
+            isStart: segStartIdx === startIdx,
+            isEnd: segEndIdx === endIdx,
+          });
+        }
+      });
+
+    return segments;
+  }, [allTasks, cells]);
 
   const dismissSwipeHint = useCallback(() => {
     if (!showSwipeHint) return;
@@ -350,94 +457,142 @@ export function CalendarScreen({
           ))}
         </View>
 
-        {rows.map((row, rowIdx) => (
-          <View key={rowIdx} style={{ flexDirection: 'row', borderBottomWidth: rowIdx < 5 ? 0.5 : 0, borderBottomColor: colors.border }}>
-            {row.map((cell, colIdx) => {
-              const isToday = cell.dateStr === todayStr;
-              const schedules = schedulesByDate[cell.dateStr] ?? [];
-              const daySchedules = schedules
-                .slice()
-                .sort((a, b) => a.start_time.localeCompare(b.start_time));
-              const visibleSchedules = daySchedules.slice(0, 2);
-              const hiddenCount = Math.max(0, daySchedules.length - visibleSchedules.length);
-              const isWeekend = colIdx === 0 || colIdx === 6;
-              return (
-                <Pressable
-                  key={cell.dateStr}
-                  onPress={() => {
-                    onSelectDate(cell.dateObj);
-                    onOpenTaskFromDate(cell.dateObj);
-                    onCreateTaskFromDate?.(cell.dateObj);
-                  }}
-                  style={({ pressed }) => ({
-                    flex: 1,
-                    minHeight: 92,
-                    paddingTop: 6,
-                    paddingBottom: 6,
-                    paddingHorizontal: 2,
-                    gap: 4,
-                    borderRightWidth: colIdx < 6 ? 0.5 : 0,
-                    borderRightColor: colors.border,
-                    backgroundColor: pressed ? `${colors.primary}1E` : 'transparent',
-                  })}
-                >
-                  <View style={{ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: isToday ? colors.primary : 'transparent' }}>
-                    <Text style={{ fontSize: 13, fontWeight: isToday ? '800' : '500', color: isToday ? '#fff' : !cell.isCurrentMonth ? colors.border : isWeekend ? (colIdx === 0 ? '#EF4444' : '#5B6CF6') : colors.text }}>{cell.day}</Text>
-                  </View>
-                  {visibleSchedules.map((task) => (
-                    (() => {
-                      const startKey = dateKeyFromDateTime(task.start_time);
-                      const endKey = dateKeyFromDateTime(task.end_time || task.start_time);
-                      const spanStart = startKey === cell.dateStr;
-                      const spanEnd = endKey === cell.dateStr;
-                      const isSingle = spanStart && spanEnd;
-                      const radiusStyle = isSingle
-                        ? { borderRadius: 999 }
-                        : spanStart
-                          ? { borderTopLeftRadius: 999, borderBottomLeftRadius: 999, borderTopRightRadius: 3, borderBottomRightRadius: 3 }
-                          : spanEnd
-                            ? { borderTopRightRadius: 999, borderBottomRightRadius: 999, borderTopLeftRadius: 3, borderBottomLeftRadius: 3 }
-                            : { borderRadius: 3 };
-                      return (
+        {rows.map((row, rowIdx) => {
+          const rowSegments = multiDaySegments.filter((segment) => segment.row === rowIdx);
+          const maxDailyVisible = 3;
+          const visibleRowSegments = rowSegments.filter((segment) => segment.lane < maxDailyVisible);
+
+          return (
+            <View
+              key={rowIdx}
+              style={{
+                position: 'relative',
+                borderBottomWidth: rowIdx < 5 ? 0.5 : 0,
+                borderBottomColor: colors.border,
+              }}
+            >
+              <View style={{ flexDirection: 'row' }}>
+                {row.map((cell, colIdx) => {
+                  const isToday = cell.dateStr === todayStr;
+                  const daySchedules = (singleDaySchedulesByDate[cell.dateStr] ?? [])
+                    .slice()
+                    .sort((a, b) => a.start_time.localeCompare(b.start_time));
+                  const allMultiEventsOnCell = rowSegments.filter(
+                    (segment) => segment.startCol <= colIdx && segment.endCol >= colIdx,
+                  ).length;
+                  const visibleMultiEventsOnCell = visibleRowSegments.filter(
+                    (segment) => segment.startCol <= colIdx && segment.endCol >= colIdx,
+                  ).length;
+                  const maxSingleVisible = Math.max(0, maxDailyVisible - visibleMultiEventsOnCell);
+                  const visibleSchedules = daySchedules.slice(0, maxSingleVisible);
+                  const hiddenSingleCount = Math.max(0, daySchedules.length - maxSingleVisible);
+                  const hiddenMultiCount = Math.max(0, allMultiEventsOnCell - visibleMultiEventsOnCell);
+                  const hiddenCount = hiddenSingleCount + hiddenMultiCount;
+                  const cellMultiLaneReservedHeight =
+                    visibleMultiEventsOnCell > 0
+                      ? visibleMultiEventsOnCell * (multiBarHeight + multiBarLaneGap) - 6
+                      : 0;
+                  const isWeekend = colIdx === 0 || colIdx === 6;
+                  return (
                     <Pressable
-                      key={task.id}
+                      key={cell.dateStr}
                       onPress={() => {
-                        onSelectTask(task.id);
-                        onOpenTask?.(task.id);
+                        onSelectDate(cell.dateObj);
+                        onOpenTaskFromDate(cell.dateObj);
+                        onCreateTaskFromDate?.(cell.dateObj);
+                      }}
+                      style={({ pressed }) => ({
+                        flex: 1,
+                        minHeight: 92,
+                        paddingTop: 6,
+                        paddingBottom: 6,
+                        paddingHorizontal: 2,
+                        gap: 4,
+                        borderRightWidth: colIdx < 6 ? 0.5 : 0,
+                        borderRightColor: colors.border,
+                        backgroundColor: pressed ? `${colors.primary}1E` : 'transparent',
+                      })}
+                    >
+                      <View style={{ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: isToday ? colors.primary : 'transparent', zIndex: 3 }}>
+                        <Text style={{ fontSize: 13, fontWeight: isToday ? '800' : '500', color: isToday ? '#fff' : !cell.isCurrentMonth ? colors.border : isWeekend ? (colIdx === 0 ? '#EF4444' : '#5B6CF6') : colors.text }}>{cell.day}</Text>
+                      </View>
+                      <View style={{ marginTop: cellMultiLaneReservedHeight, gap: 4, zIndex: 2 }}>
+                        {visibleSchedules.map((task) => (
+                          <Pressable
+                            key={task.id}
+                            onPress={() => {
+                              onSelectTask(task.id);
+                              onOpenTask?.(task.id);
+                            }}
+                            style={{
+                              width: '100%',
+                              backgroundColor: `${getTaskAccentColor(task)}44`,
+                              paddingHorizontal: 5,
+                              paddingVertical: 3,
+                              borderRadius: 999,
+                            }}
+                          >
+                            <Text style={{ fontSize: 9, lineHeight: 11, color: colors.text, fontWeight: '700' }} numberOfLines={1}>
+                              {task.title}
+                            </Text>
+                          </Pressable>
+                        ))}
+                        {hiddenCount > 0 ? (
+                          <Pressable
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              setOpenMoreDateKey(cell.dateStr);
+                            }}
+                            style={{ alignSelf: 'flex-start', paddingHorizontal: 2, paddingVertical: 2 }}
+                          >
+                            <Text style={{ fontSize: 9, color: colors.textMuted, fontWeight: '700' }}>+{hiddenCount} more</Text>
+                          </Pressable>
+                        ) : null}
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+                {visibleRowSegments.map((segment) => {
+                  const spanDays = segment.endCol - segment.startCol + 1;
+                  const accentColor = getTaskAccentColor(segment.task);
+                  return (
+                    <Pressable
+                      key={segment.key}
+                      onPress={() => {
+                        onSelectTask(segment.task.id);
+                        onOpenTask?.(segment.task.id);
                       }}
                       style={{
-                        width: '100%',
-                        backgroundColor: `${getTaskAccentColor(task)}44`,
-                        marginLeft: isSingle || spanStart ? 0 : -1,
-                        marginRight: isSingle || spanEnd ? 0 : -1,
-                        paddingHorizontal: 5,
-                        paddingVertical: 3,
-                        ...radiusStyle,
+                        position: 'absolute',
+                        left: `${(segment.startCol * 100) / 7}%`,
+                        width: `${(spanDays * 100) / 7}%`,
+                        height: multiBarHeight,
+                        top: multiBarTopOffset + segment.lane * (multiBarHeight + multiBarLaneGap),
+                        backgroundColor: accentColor,
+                        borderTopLeftRadius: segment.isStart ? 6 : 2,
+                        borderBottomLeftRadius: segment.isStart ? 6 : 2,
+                        borderTopRightRadius: segment.isEnd ? 6 : 2,
+                        borderBottomRightRadius: segment.isEnd ? 6 : 2,
+                        justifyContent: 'center',
+                        paddingHorizontal: 6,
+                        zIndex: 1,
                       }}
                     >
-                      <Text style={{ fontSize: 9, lineHeight: 11, color: colors.text, fontWeight: '700' }} numberOfLines={1}>
-                        {task.title}
-                      </Text>
+                      {segment.isStart || segment.startCol === 0 ? (
+                        <Text style={{ fontSize: 9, lineHeight: 11, color: '#fff', fontWeight: '800' }} numberOfLines={1}>
+                          {segment.task.title}
+                        </Text>
+                      ) : null}
                     </Pressable>
-                      );
-                    })()
-                  ))}
-                  {hiddenCount > 0 ? (
-                    <Pressable
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        setOpenMoreDateKey(cell.dateStr);
-                      }}
-                      style={{ alignSelf: 'flex-start', paddingHorizontal: 2, paddingVertical: 2 }}
-                    >
-                      <Text style={{ fontSize: 9, color: colors.textMuted, fontWeight: '700' }}>+{hiddenCount} more</Text>
-                    </Pressable>
-                  ) : null}
-                </Pressable>
-              );
-            })}
-          </View>
-        ))}
+                  );
+                })}
+              </View>
+            </View>
+          );
+        })}
         </Animated.View>
       ) : null}
 
