@@ -7,9 +7,11 @@ import { Button } from '../common'
 
 interface CalendarHeaderProps {
   onToggleDrawer: () => void
+  viewMode: 'day' | 'week' | 'month' | 'year'
+  onChangeViewMode: (mode: 'day' | 'week' | 'month' | 'year') => void
 }
 
-export function CalendarHeader({ onToggleDrawer }: CalendarHeaderProps) {
+export function CalendarHeader({ onToggleDrawer, viewMode, onChangeViewMode }: CalendarHeaderProps) {
   const { t, i18n } = useTranslation()
   const { selectedDate, setSelectedDate } = useCalendarStore()
   const { openTaskCreate } = useViewStore()
@@ -179,14 +181,20 @@ export function CalendarHeader({ onToggleDrawer }: CalendarHeaderProps) {
         </div>
 
         <div className="hidden items-center rounded-xl bg-slate-100 p-1 md:flex">
-          {['Day', 'Week', 'Month', 'Year'].map((label) => (
+          {[
+            { key: 'day', label: i18n.language === 'ko' ? '일' : 'Day' },
+            { key: 'week', label: i18n.language === 'ko' ? '주' : 'Week' },
+            { key: 'month', label: i18n.language === 'ko' ? '월' : 'Month' },
+            { key: 'year', label: i18n.language === 'ko' ? '년' : 'Year' },
+          ].map((item) => (
             <button
-              key={label}
+              key={item.key}
+              onClick={() => onChangeViewMode(item.key as 'day' | 'week' | 'month' | 'year')}
               className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-                label === 'Month' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                viewMode === item.key ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              {label}
+              {item.label}
             </button>
           ))}
         </div>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { invoke } from '@tauri-apps/api/core'
+import { addDays, format, startOfWeek } from 'date-fns'
 import { CalendarHeader } from './CalendarHeader'
 import { CalendarGrid } from './CalendarGrid'
 import { TaskDrawer } from './TaskDrawer'
@@ -15,11 +16,22 @@ export function Calendar() {
   const { t } = useTranslation()
   const { selectedWorkspaceId } = useWorkspaceStore()
   const { openTaskDetail } = useViewStore()
-  const { selectedDate, setEvents, setLoading, setError, clearEvents, error } = useCalendarStore()
+  const { selectedDate, setSelectedDate, events, setEvents, setLoading, setError, clearEvents, error } = useCalendarStore()
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'year'>('month')
 
   const toggleDrawer = useCallback(() => setIsDrawerOpen((prev) => !prev), [])
   const closeDrawer = useCallback(() => setIsDrawerOpen(false), [])
+  const occursOnDate = useCallback((task: Task, date: Date) => {
+    const start = parseApiDateTime(task.start_time)
+    const end = parseApiDateTime(task.end_time || task.start_time)
+    const dayStart = new Date(date)
+    dayStart.setHours(0, 0, 0, 0)
+    const dayEnd = new Date(date)
+    dayEnd.setHours(23, 59, 59, 999)
+    return start <= dayEnd && end >= dayStart
+  }, [])
+
   const openTaskDetailWithRefresh = useCallback(
     async (task: Task) => {
       try {
@@ -31,6 +43,96 @@ export function Calendar() {
     },
     [openTaskDetail],
   )
+
+  const dayTasks = events.filter((task) => occursOnDate(task, selectedDate))
+  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 })
+  const weekDays = Array.from({ length: 7 }, (_, idx) => addDays(weekStart, idx))
+  const weekTasksByDay = weekDays.map((day) => ({
+    day,
+    tasks: events.filter((task) => occursOnDate(task, day)),
+  }))
+  const year = selectedDate.getFullYear()
+  const monthStats = Array.from({ length: 12 }, (_, month) => {
+    const monthStart = new Date(year, month, 1)
+    const monthEnd = new Date(year, month + 1, 0, 23, 59, 59, 999)
+    const count = events.filter((task) => {
+      const start = parseApiDateTime(task.start_time)
+      const end = parseApiDateTime(task.end_time || task.start_time)
+      return start <= monthEnd && end >= monthStart
+    }).length
+    return { month, count }
+  })
+
+  const renderBody = () => {
+    if (viewMode === 'month') {
+      return <CalendarGrid onOpenTaskDetail={openTaskDetailWithRefresh} />
+    }
+
+    if (viewMode === 'day') {
+      return (
+        <div className="h-full overflow-y-auto p-4 space-y-2">
+          <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">{format(selectedDate, 'yyyy-MM-dd')}</div>
+          {dayTasks.length === 0 ? (
+            <div className="text-sm text-slate-500 dark:text-slate-400">{t('calendar.empty')}</div>
+          ) : (
+            dayTasks.map((task) => (
+              <button
+                key={task.id}
+                onClick={() => void openTaskDetailWithRefresh(task)}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+              >
+                {task.title}
+              </button>
+            ))
+          )}
+        </div>
+      )
+    }
+
+    if (viewMode === 'week') {
+      return (
+        <div className="h-full overflow-y-auto p-4 grid grid-cols-7 gap-2">
+          {weekTasksByDay.map(({ day, tasks }) => (
+            <div key={day.toISOString()} className="rounded-xl border border-slate-200 bg-white p-2 dark:border-gray-700 dark:bg-gray-900">
+              <div className="mb-2 text-xs font-bold text-slate-500 dark:text-slate-400">{format(day, 'EEE d')}</div>
+              <div className="space-y-1">
+                {tasks.slice(0, 3).map((task) => (
+                  <button
+                    key={`${task.id}-${day.toISOString()}`}
+                    onClick={() => void openTaskDetailWithRefresh(task)}
+                    className="w-full h-6 truncate rounded-md border border-slate-200 px-2 text-left text-[11px] font-medium text-slate-700 dark:border-gray-700 dark:text-gray-200"
+                  >
+                    {task.title}
+                  </button>
+                ))}
+                {tasks.length > 3 && (
+                  <div className="text-[11px] font-semibold text-slate-400">+{tasks.length - 3} more</div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )
+    }
+
+    return (
+      <div className="h-full overflow-y-auto p-4 grid grid-cols-4 gap-3">
+        {monthStats.map(({ month, count }) => (
+          <button
+            key={month}
+            onClick={() => {
+              setSelectedDate(new Date(year, month, 1))
+              setViewMode('month')
+            }}
+            className="rounded-xl border border-slate-200 bg-white p-4 text-left hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800"
+          >
+            <div className="text-sm font-bold text-slate-800 dark:text-gray-100">{format(new Date(year, month, 1), 'MMM')}</div>
+            <div className="mt-1 text-xs text-slate-500 dark:text-gray-400">{count} tasks</div>
+          </button>
+        ))}
+      </div>
+    )
+  }
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -122,9 +224,9 @@ export function Calendar() {
           {error}
         </div>
       )}
-      <CalendarHeader onToggleDrawer={toggleDrawer} />
+      <CalendarHeader onToggleDrawer={toggleDrawer} viewMode={viewMode} onChangeViewMode={setViewMode} />
       <div className="flex-1 min-h-0 rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:border-gray-700/70 dark:bg-gray-900">
-        <CalendarGrid onOpenTaskDetail={openTaskDetailWithRefresh} />
+        {renderBody()}
       </div>
       <TaskDrawer isOpen={isDrawerOpen} onClose={closeDrawer} onOpenTaskDetail={openTaskDetailWithRefresh} />
     </div>

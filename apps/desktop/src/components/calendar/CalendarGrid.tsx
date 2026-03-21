@@ -19,12 +19,12 @@ interface CalendarGridProps {
 }
 
 export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
-  const MAX_VISIBLE_TASKS_PER_DAY = 8
+  const MAX_VISIBLE_TASKS_PER_DAY = 3
   const MIN_VISIBLE_TASKS_PER_DAY = 1
-  const EVENT_ROW_HEIGHT = 20
-  const MULTI_EVENT_HEIGHT = 32
+  const EVENT_ROW_HEIGHT = 24
+  const MULTI_EVENT_HEIGHT = 24
   const MULTI_EVENT_VERTICAL_GAP = 8
-  const MULTI_EVENT_TOP_OFFSET = 42
+  const MULTI_EVENT_TOP_OFFSET = 38
   const DAY_HEADER_HEIGHT = 32
   const DAY_CELL_PADDING = 12
   const { i18n } = useTranslation()
@@ -62,12 +62,59 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
   const singleDayEventsByDate = useMemo(() => {
     const map = new Map<string, Task[]>()
     if (!days.length) return map
+    const visibleStart = days[0]
+    const visibleEnd = days[days.length - 1]
+
+    type SingleEntry = {
+      key: string
+      dayKey: string
+    }
+    const singleEntriesByGroup = new Map<string, SingleEntry[]>()
+    for (const event of events) {
+      const eventStart = toStartOfDay(parseApiDateTime(event.start_time))
+      const eventEnd = toStartOfDay(parseApiDateTime(event.end_time || event.start_time))
+      if (eventStart.getTime() !== eventEnd.getTime()) continue
+      if (eventStart < visibleStart || eventStart > visibleEnd) continue
+      const dayKey = format(eventStart, 'yyyy-MM-dd')
+      const groupKey = `${event.id}::${event.title}::${event.color || ''}`
+      const entry = { key: `${event.id}-${dayKey}`, dayKey }
+      const existing = singleEntriesByGroup.get(groupKey)
+      if (existing) {
+        existing.push(entry)
+      } else {
+        singleEntriesByGroup.set(groupKey, [entry])
+      }
+    }
+
+    const mergedSingleKeys = new Set<string>()
+    const dayMs = 24 * 60 * 60 * 1000
+    const keyToTime = (dayKey: string) => new Date(`${dayKey}T00:00:00`).getTime()
+
+    for (const entries of singleEntriesByGroup.values()) {
+      const sorted = entries
+        .slice()
+        .sort((a, b) => keyToTime(a.dayKey) - keyToTime(b.dayKey))
+
+      let runStart = 0
+      for (let i = 1; i <= sorted.length; i += 1) {
+        const prev = sorted[i - 1]
+        const curr = sorted[i]
+        const isConsecutive = curr && keyToTime(curr.dayKey) - keyToTime(prev.dayKey) === dayMs
+        if (isConsecutive) continue
+        const run = sorted.slice(runStart, i)
+        if (run.length >= 2) {
+          for (const item of run) mergedSingleKeys.add(item.key)
+        }
+        runStart = i
+      }
+    }
 
     for (const event of events) {
       const eventStart = toStartOfDay(parseApiDateTime(event.start_time))
       const eventEnd = toStartOfDay(parseApiDateTime(event.end_time || event.start_time))
       if (eventStart.getTime() !== eventEnd.getTime()) continue
       const dateKey = format(eventStart, 'yyyy-MM-dd')
+      if (mergedSingleKeys.has(`${event.id}-${dateKey}`)) continue
       const existing = map.get(dateKey)
       if (existing) {
         existing.push(event)
@@ -104,6 +151,9 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
 
     const visibleStart = days[0]
     const visibleEnd = days[days.length - 1]
+    const dayMs = 24 * 60 * 60 * 1000
+    const keyToTime = (dayKey: string) => new Date(`${dayKey}T00:00:00`).getTime()
+
     const dayIndex = new Map<string, number>()
     for (let i = 0; i < days.length; i += 1) {
       dayIndex.set(format(days[i], 'yyyy-MM-dd'), i)
@@ -130,7 +180,7 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
       return rowLanes.length - 1
     }
 
-    const visibleMultiEvents = events
+    const realMultiEvents = events
       .map((event) => {
         const start = toStartOfDay(parseApiDateTime(event.start_time))
         const end = toStartOfDay(parseApiDateTime(event.end_time || event.start_time))
@@ -141,6 +191,46 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
         if (a.start.getTime() !== b.start.getTime()) return a.start.getTime() - b.start.getTime()
         return a.end.getTime() - b.end.getTime()
       })
+
+    const syntheticMultiEvents: Array<{ event: Task; start: Date; end: Date }> = []
+    const singleEntriesByGroup = new Map<string, Array<{ event: Task; dayKey: string }>>()
+    for (const event of events) {
+      const start = toStartOfDay(parseApiDateTime(event.start_time))
+      const end = toStartOfDay(parseApiDateTime(event.end_time || event.start_time))
+      if (start.getTime() !== end.getTime()) continue
+      if (start < visibleStart || start > visibleEnd) continue
+      const dayKey = format(start, 'yyyy-MM-dd')
+      const groupKey = `${event.id}::${event.title}::${event.color || ''}`
+      const bucket = singleEntriesByGroup.get(groupKey)
+      if (bucket) bucket.push({ event, dayKey })
+      else singleEntriesByGroup.set(groupKey, [{ event, dayKey }])
+    }
+    for (const entries of singleEntriesByGroup.values()) {
+      const sorted = entries
+        .slice()
+        .sort((a, b) => keyToTime(a.dayKey) - keyToTime(b.dayKey))
+      let runStart = 0
+      for (let i = 1; i <= sorted.length; i += 1) {
+        const prev = sorted[i - 1]
+        const curr = sorted[i]
+        const isConsecutive = curr && keyToTime(curr.dayKey) - keyToTime(prev.dayKey) === dayMs
+        if (isConsecutive) continue
+        const run = sorted.slice(runStart, i)
+        if (run.length >= 2) {
+          syntheticMultiEvents.push({
+            event: run[0].event,
+            start: new Date(`${run[0].dayKey}T00:00:00`),
+            end: new Date(`${run[run.length - 1].dayKey}T00:00:00`),
+          })
+        }
+        runStart = i
+      }
+    }
+
+    const visibleMultiEvents = [...realMultiEvents, ...syntheticMultiEvents].sort((a, b) => {
+      if (a.start.getTime() !== b.start.getTime()) return a.start.getTime() - b.start.getTime()
+      return a.end.getTime() - b.end.getTime()
+    })
 
     for (const { event, start: eventStart, end: eventEnd } of visibleMultiEvents) {
       const rangeStart = eventStart > visibleStart ? eventStart : visibleStart
@@ -218,10 +308,7 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
       const heightBasedLimit = Math.floor(availableHeight / EVENT_ROW_HEIGHT)
       const widthBasedCap =
         cellWidth < 80 ? 1 :
-        cellWidth < 96 ? 2 :
-        cellWidth < 118 ? 3 :
-        cellWidth < 140 ? 4 :
-        cellWidth < 160 ? 5 : 6
+        cellWidth < 96 ? 2 : 3
       const dynamicLimit = Math.min(heightBasedLimit, widthBasedCap)
       const next = Math.max(
         MIN_VISIBLE_TASKS_PER_DAY,
@@ -294,13 +381,39 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
         >
         {days.map((day) => {
           const dayDateKey = format(day, 'yyyy-MM-dd')
+          const dayIndexInGrid = days.findIndex((d) => format(d, 'yyyy-MM-dd') === dayDateKey)
+          const rowIndex = dayIndexInGrid >= 0 ? Math.floor(dayIndexInGrid / 7) : 0
+          const colIndex = dayIndexInGrid >= 0 ? dayIndexInGrid % 7 : 0
+          const visibleMultiForDay = multiDaySegments.filter(
+            (segment) =>
+              segment.lane < MAX_VISIBLE_TASKS_PER_DAY &&
+              segment.row === rowIndex &&
+              segment.startCol <= colIndex &&
+              segment.endCol >= colIndex,
+          ).length
+          const allMultiForDay = multiDaySegments.filter(
+            (segment) =>
+              segment.row === rowIndex &&
+              segment.startCol <= colIndex &&
+              segment.endCol >= colIndex,
+          ).length
           const dayEvents = singleDayEventsByDate.get(dayDateKey) ?? []
-          const visibleEvents = dayEvents.slice(0, visibleTaskLimit)
-          const hiddenEvents = dayEvents.slice(visibleTaskLimit)
-          const hiddenCount = Math.max(0, dayEvents.length - visibleTaskLimit)
+          const maxSingleVisible = Math.max(
+            MIN_VISIBLE_TASKS_PER_DAY - 1,
+            Math.min(visibleTaskLimit, MAX_VISIBLE_TASKS_PER_DAY - visibleMultiForDay),
+          )
+          const visibleEvents = dayEvents.slice(0, maxSingleVisible)
+          const hiddenEvents = dayEvents.slice(maxSingleVisible)
+          const hiddenSingleCount = Math.max(0, dayEvents.length - maxSingleVisible)
+          const hiddenMultiCount = Math.max(0, allMultiForDay - visibleMultiForDay)
+          const hiddenCount = hiddenSingleCount + hiddenMultiCount
           const isMoreOpen = openMoreDateKey === dayDateKey
           const isCurrentMonth = isSameMonth(day, selectedDate)
           const dayOfWeek = day.getDay()
+          const reservedTopSpacing =
+            visibleMultiForDay > 0
+              ? visibleMultiForDay * (MULTI_EVENT_HEIGHT + MULTI_EVENT_VERTICAL_GAP) - 4
+              : 0
 
           return (
             <div
@@ -335,7 +448,7 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
                 )}
               </div>
 
-              <div className="space-y-1 overflow-y-auto flex-1 min-h-0">
+              <div className="space-y-1 overflow-y-auto flex-1 min-h-0" style={{ marginTop: reservedTopSpacing }}>
                 {visibleEvents.map((event) => (
                   <button
                     key={event.id}
@@ -347,7 +460,7 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
                       }
                       openTaskDetail(event)
                     }}
-                    className="w-full truncate rounded-md border px-2 py-1 text-left text-[11px] shadow-sm transition-opacity hover:opacity-90"
+                    className="w-full h-6 truncate rounded-md border px-2 text-left text-[11px] shadow-sm transition-opacity hover:opacity-90"
                     style={getEventStyle(event)}
                   >
                     {getEventTitle(event)}
@@ -386,7 +499,7 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
                           }
                           openTaskDetail(event)
                         }}
-                        className="w-full truncate rounded-md border px-2 py-1 text-left text-xs transition-opacity hover:opacity-90"
+                        className="w-full h-6 truncate rounded-md border px-2 text-left text-xs transition-opacity hover:opacity-90"
                         style={getEventStyle(event)}
                       >
                         {getEventTitle(event)}
@@ -401,10 +514,14 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
         </div>
 
         <div className="pointer-events-none absolute inset-0">
-          {multiDaySegments.map((segment) => {
+          {multiDaySegments
+            .filter((segment) => segment.lane < MAX_VISIBLE_TASKS_PER_DAY)
+            .map((segment) => {
             const spanDays = segment.endCol - segment.startCol + 1
             const color = segment.event.color || '#0ea5e9'
             const textColor = getReadableTextColor(color)
+            const isWeekSegmentStart = segment.startCol === 0
+            const showSegmentTitle = segment.isStart || isWeekSegmentStart
             return (
               <button
                 key={segment.key}
@@ -416,7 +533,7 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
                   }
                   openTaskDetail(segment.event)
                 }}
-                className="pointer-events-auto absolute flex items-center px-3 text-left text-[11px] font-semibold shadow-sm transition-opacity hover:opacity-95"
+                className="pointer-events-auto absolute flex items-center px-2 text-left text-[11px] font-semibold shadow-sm transition-opacity hover:opacity-95"
                 style={{
                   top: `calc(${segment.row} * (100% / 6) + ${MULTI_EVENT_TOP_OFFSET + segment.lane * (MULTI_EVENT_HEIGHT + MULTI_EVENT_VERTICAL_GAP)}px)`,
                   left: `calc(${(segment.startCol / 7) * 100}% + 6px)`,
@@ -424,13 +541,13 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
                   height: `${MULTI_EVENT_HEIGHT}px`,
                   backgroundColor: color,
                   color: textColor,
-                  borderTopLeftRadius: segment.isStart ? '8px' : '4px',
-                  borderBottomLeftRadius: segment.isStart ? '8px' : '4px',
+                  borderTopLeftRadius: showSegmentTitle ? '8px' : '4px',
+                  borderBottomLeftRadius: showSegmentTitle ? '8px' : '4px',
                   borderTopRightRadius: segment.isEnd ? '8px' : '4px',
                   borderBottomRightRadius: segment.isEnd ? '8px' : '4px',
                 }}
               >
-                {segment.isStart ? getEventTitle(segment.event) : ''}
+                {showSegmentTitle ? getEventTitle(segment.event) : ''}
               </button>
             )
           })}
