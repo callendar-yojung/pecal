@@ -33,7 +33,10 @@ function getRedis(): Redis | null {
     global.__pecalRedisClient = new Redis(redisUrl, {
       maxRetriesPerRequest: 1,
       lazyConnect: true,
-      enableOfflineQueue: false,
+      // Reminder/cron paths issue commands right after cold starts.
+      // Allow buffering until the socket becomes writable to avoid transient
+      // "Stream isn't writeable" failures.
+      enableOfflineQueue: true,
     });
   }
   return global.__pecalRedisClient;
