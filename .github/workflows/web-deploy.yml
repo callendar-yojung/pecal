@@ -32,6 +32,7 @@ jobs:
       AUTH_URL: ${{ secrets.NEXTAUTH_URL }}
       AUTH_TRUST_HOST: "true"
       CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      INTERNAL_API_URL: ${{ secrets.INTERNAL_API_URL }}
 
       # Kakao OAuth
       AUTH_KAKAO_ID: ${{ secrets.KAKAO_CLIENT_ID }}
@@ -130,6 +131,8 @@ jobs:
           mkdir -p .deploy-web/apps/web/.next
           cp -R apps/web/.next/static .deploy-web/apps/web/.next/static
           cp -R apps/web/public .deploy-web/apps/web/public
+          mkdir -p .deploy-web/apps/web/scripts
+          cp -R apps/web/scripts/task-reminders-scheduler.mjs .deploy-web/apps/web/scripts/task-reminders-scheduler.mjs
 
       - name: Setup SSH key
         run: |
@@ -218,6 +221,7 @@ jobs:
             AUTH_URL=${{ secrets.NEXTAUTH_URL }}
             AUTH_TRUST_HOST=true
             CRON_SECRET=${{ secrets.CRON_SECRET }}
+            INTERNAL_API_URL=${{ secrets.INTERNAL_API_URL }}
             AUTH_KAKAO_ID=${{ secrets.KAKAO_CLIENT_ID }}
             AUTH_KAKAO_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }}
             AUTH_GOOGLE_ID=${{ secrets.AUTH_GOOGLE_ID }}
@@ -295,6 +299,24 @@ jobs:
 
             if command -v pm2 >/dev/null 2>&1; then
               pm2 start "$ENTRY" --name pecal-web --cwd "$APP_DIR" -i max
+
+              SCHEDULER_ENTRY="$APP_DIR/apps/web/scripts/task-reminders-scheduler.mjs"
+              if [ -f "$SCHEDULER_ENTRY" ]; then
+                if pm2 describe pecal-scheduler >/dev/null 2>&1; then
+                  pm2 delete pecal-scheduler || true
+                fi
+
+                SCHEDULER_BASE_URL="${{ secrets.INTERNAL_API_URL }}"
+                if [ -z "$SCHEDULER_BASE_URL" ]; then
+                  SCHEDULER_BASE_URL="${{ secrets.NEXTAUTH_URL }}"
+                fi
+
+                INTERNAL_API_URL="$SCHEDULER_BASE_URL" CRON_SECRET="${{ secrets.CRON_SECRET }}" \
+                  pm2 start "$SCHEDULER_ENTRY" --name pecal-scheduler --cwd "$APP_DIR/apps/web" --update-env
+              else
+                echo "WARN: Scheduler entry not found: $SCHEDULER_ENTRY"
+              fi
+
               pm2 save || true
             else
               pkill -f "node .*apps/api/server.js" || true
