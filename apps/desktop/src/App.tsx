@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { listen } from '@tauri-apps/api/event'
 import { ask } from '@tauri-apps/plugin-dialog'
@@ -157,6 +157,8 @@ function App() {
   const [showLoginSuccess, setShowLoginSuccess] = useState(false)
   const [privacyConsentRequired, setPrivacyConsentRequired] = useState(false)
   const [consentLoading, setConsentLoading] = useState(true)
+  const [consentFlowStarted, setConsentFlowStarted] = useState(false)
+  const [consentCompletedOnWeb, setConsentCompletedOnWeb] = useState(false)
 
   useEffect(() => {
     document.documentElement.classList.remove('dark', 'pink')
@@ -184,42 +186,76 @@ function App() {
     return () => window.clearTimeout(id)
   }, [isAuthenticated])
 
-  const checkPrivacyConsent = async () => {
+  const checkPrivacyConsent = useCallback(async () => {
     if (!isAuthenticated) {
       setPrivacyConsentRequired(false)
       setConsentLoading(false)
+      setConsentCompletedOnWeb(false)
       return
     }
     setConsentLoading(true)
     try {
       const account = await authApi.getAccount() as AccountWithConsent
-      setPrivacyConsentRequired(!account.privacy_consent)
+      const required = !account.privacy_consent
+      setPrivacyConsentRequired(required)
+      if (!required) {
+        setConsentCompletedOnWeb(false)
+        setConsentFlowStarted(false)
+      }
     } catch (error) {
       console.error('Failed to check privacy consent:', error)
       setPrivacyConsentRequired(false)
     } finally {
       setConsentLoading(false)
     }
-  }
+  }, [isAuthenticated])
 
   useEffect(() => {
     void checkPrivacyConsent()
-  }, [isAuthenticated])
+  }, [checkPrivacyConsent])
 
   useEffect(() => {
     if (!privacyConsentRequired) return
     const onFocus = () => { void checkPrivacyConsent() }
     window.addEventListener('focus', onFocus)
     return () => window.removeEventListener('focus', onFocus)
-  }, [privacyConsentRequired, isAuthenticated])
+  }, [privacyConsentRequired, checkPrivacyConsent])
+
+  useEffect(() => {
+    if (!isAuthenticated || !privacyConsentRequired || !consentFlowStarted || consentCompletedOnWeb) return
+    let cancelled = false
+    const timer = window.setInterval(async () => {
+      try {
+        const account = await authApi.getAccount() as AccountWithConsent
+        if (!cancelled && account.privacy_consent) {
+          setConsentCompletedOnWeb(true)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to poll privacy consent:', error)
+        }
+      }
+    }, 2000)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [isAuthenticated, privacyConsentRequired, consentFlowStarted, consentCompletedOnWeb])
 
   const openConsentPage = () => {
     const locale = i18n.language === 'ko' ? 'ko' : 'en'
     const callback = encodeURIComponent(`/${locale}/consent/desktop-complete`)
     const token = encodeURIComponent(accessToken ?? '')
+    setConsentFlowStarted(true)
+    setConsentCompletedOnWeb(false)
     void openExternal(
       `https://pecal.site/${locale}/consent?token=${token}&callback=${callback}`,
     )
+  }
+
+  const finishConsentFlow = async () => {
+    await checkPrivacyConsent()
   }
 
   // Show loading spinner while checking auth (but not during OAuth callback)
@@ -259,6 +295,16 @@ function App() {
             >
               {t('settings.privacyConsentOpenPage')}
             </button>
+            {consentCompletedOnWeb && (
+              <button
+                type="button"
+                onClick={() => void finishConsentFlow()}
+                disabled={consentLoading}
+                className="mt-2 inline-flex h-10 w-full items-center justify-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-60"
+              >
+                {t('status.done')}
+              </button>
+            )}
             <button
               type="button"
               onClick={logout}

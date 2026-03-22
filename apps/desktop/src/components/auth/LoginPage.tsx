@@ -70,6 +70,7 @@ export function LoginPage() {
   const [findingLoginId, setFindingLoginId] = useState(false)
   const [sendingResetCode, setSendingResetCode] = useState(false)
   const [resettingPassword, setResettingPassword] = useState(false)
+  const [submittingLocal, setSubmittingLocal] = useState(false)
   const [loginIdCheck, setLoginIdCheck] = useState<AvailabilityState>('idle')
   const [nicknameCheck, setNicknameCheck] = useState<AvailabilityState>('idle')
   const [emailVerified, setEmailVerified] = useState(false)
@@ -77,6 +78,7 @@ export function LoginPage() {
   const [verificationExpiresAt, setVerificationExpiresAt] = useState<number | null>(null)
   const [verificationRemainingSeconds, setVerificationRemainingSeconds] = useState(0)
   const pendingProviderRef = useRef<OAuthProvider | null>(null)
+  const isAuthPending = isLoading !== null || submittingLocal
 
   useEffect(() => {
     if (!verificationExpiresAt) {
@@ -346,6 +348,7 @@ export function LoginPage() {
 
   const handleLocalSubmit = async () => {
     setIsLoading(null)
+    setSubmittingLocal(true)
     setError(null)
     setStatusMessage(null)
 
@@ -409,6 +412,7 @@ export function LoginPage() {
     } finally {
       setFindingLoginId(false)
       setResettingPassword(false)
+      setSubmittingLocal(false)
     }
   }
 
@@ -459,6 +463,7 @@ export function LoginPage() {
               <button
                 type="button"
                 onClick={() => openLocalPanel('login')}
+                disabled={isAuthPending}
                 className="w-full rounded-xl bg-gray-900 px-4 py-4 text-base font-semibold text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-gray-900"
               >
                 {t('auth.entryLocal')}
@@ -466,6 +471,7 @@ export function LoginPage() {
               <button
                 type="button"
                 onClick={openSocialPanel}
+                disabled={isAuthPending}
                 className="flex w-full items-center gap-3 rounded-xl bg-gray-100 dark:bg-gray-700 px-4 py-4 text-base font-semibold text-gray-900 dark:text-white transition-colors hover:bg-gray-200 dark:hover:bg-gray-600"
               >
                 <span className="min-w-0 flex-1 truncate text-left">{t('auth.entrySocial')}</span>
@@ -662,11 +668,11 @@ export function LoginPage() {
 
                 <button
                   type="button"
-                  disabled={submitDisabled || isLoading !== null || findingLoginId || resettingPassword}
+                  disabled={submitDisabled || isAuthPending || findingLoginId || resettingPassword}
                   onClick={() => void handleLocalSubmit()}
                   className="w-full rounded-xl bg-gray-900 px-4 py-3 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-gray-900"
                 >
-                  {isLoading || findingLoginId || resettingPassword
+                  {isAuthPending || findingLoginId || resettingPassword
                     ? t('auth.processing', '처리 중...')
                     : localMode === 'login'
                       ? t('auth.localLoginAction', '로그인')
@@ -709,7 +715,7 @@ export function LoginPage() {
                 {t('auth.entryBack')}
               </button>
               <p className="text-sm text-gray-500 dark:text-gray-400 text-center">{t('auth.socialDescription')}</p>
-              <button type="button" onClick={() => handleOAuthLogin('kakao')} disabled={isLoading !== null} className="flex w-full items-center justify-center gap-3 rounded-xl bg-[#FEE500] px-4 py-3 font-medium text-[#3C1E1E] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">
+              <button type="button" onClick={() => handleOAuthLogin('kakao')} disabled={isAuthPending} className="flex w-full items-center justify-center gap-3 rounded-xl bg-[#FEE500] px-4 py-3 font-medium text-[#3C1E1E] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">
                 <span className="flex h-8 w-8 items-center justify-center rounded-full">
                   <svg viewBox="0 0 24 24" className="h-4.5 w-4.5 fill-[#191919]" aria-hidden="true">
                     <path d="M12 4C7.03 4 3 7.13 3 11c0 2.5 1.67 4.68 4.18 5.92L6.3 20.6a.6.6 0 0 0 .88.66l4.28-2.69c.18.01.36.03.54.03 4.97 0 9-3.13 9-7s-4.03-7-9-7Z" />
@@ -717,7 +723,7 @@ export function LoginPage() {
                 </span>
                 <span>{isLoading === 'kakao' ? t('auth.loading', '로딩 중...') : t('auth.kakaoLogin', '카카오로 계속하기')}</span>
               </button>
-              <button type="button" onClick={() => handleOAuthLogin('google')} disabled={isLoading !== null} className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 font-medium text-gray-900 dark:text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">
+              <button type="button" onClick={() => handleOAuthLogin('google')} disabled={isAuthPending} className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 font-medium text-gray-900 dark:text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white ring-1 ring-gray-200 dark:ring-gray-600">
                   <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" aria-hidden="true">
                     <path fill="#EA4335" d="M12 10.2v3.92h5.45c-.24 1.26-.97 2.33-2.05 3.05l3.32 2.57c1.94-1.79 3.05-4.43 3.05-7.57 0-.72-.07-1.42-.2-2.1H12Z" />
@@ -728,7 +734,7 @@ export function LoginPage() {
                 </span>
                 <span>{isLoading === 'google' ? t('auth.loading', '로딩 중...') : t('auth.googleLogin', '구글로 계속하기')}</span>
               </button>
-              <button type="button" onClick={() => handleOAuthLogin('apple')} disabled={isLoading !== null} className="flex w-full items-center justify-center gap-3 rounded-xl bg-black px-4 py-3 font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">
+              <button type="button" onClick={() => handleOAuthLogin('apple')} disabled={isAuthPending} className="flex w-full items-center justify-center gap-3 rounded-xl bg-black px-4 py-3 font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">
                 <span className="flex h-8 w-8 items-center justify-center rounded-full">
                   <svg viewBox="0 0 24 24" className="h-4.5 w-4.5 fill-white" aria-hidden="true">
                     <path d="M16.37 12.54c.02 2.21 1.94 2.95 1.96 2.96-.02.05-.31 1.08-1.03 2.15-.62.92-1.27 1.84-2.29 1.86-1 .02-1.32-.59-2.46-.59-1.14 0-1.5.57-2.44.61-1 .04-1.76-1-2.39-1.92-1.29-1.86-2.28-5.25-.95-7.58.66-1.16 1.84-1.9 3.12-1.92.98-.02 1.9.66 2.46.66.56 0 1.62-.81 2.73-.69.47.02 1.78.19 2.62 1.42-.07.04-1.56.91-1.53 3.04ZM14.73 5.55c.52-.63.88-1.5.78-2.37-.75.03-1.66.5-2.2 1.13-.49.57-.92 1.45-.81 2.3.84.06 1.71-.43 2.23-1.06Z" />
@@ -750,6 +756,14 @@ export function LoginPage() {
           </div>
         </div>
       </div>
+      {isAuthPending ? (
+        <div className="fixed inset-0 z-[160] flex items-center justify-center bg-black/45">
+          <div className="flex items-center gap-3 rounded-xl border border-white/20 bg-white/95 px-4 py-3 text-sm font-medium text-gray-800 shadow-xl dark:border-white/10 dark:bg-gray-900/95 dark:text-gray-100">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-blue-500 dark:border-gray-600 dark:border-t-blue-400" />
+            <span>{t('auth.processing', '처리 중...')}</span>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
