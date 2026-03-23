@@ -165,8 +165,7 @@ export function TaskEditorForm({
     } else {
       const hours = String(selected.getHours()).padStart(2, '0');
       const minutes = String(selected.getMinutes()).padStart(2, '0');
-      const snappedMinutes = Number(minutes) >= 30 ? '30' : '00';
-      const nextTime = `${hours}:${snappedMinutes}`;
+      const nextTime = `${hours}:${minutes}`;
 
       if (pickerTarget === 'startTime') {
         onStartTimeChange(buildDateTime(startParts.date, nextTime, startTime));
@@ -618,7 +617,7 @@ export function TaskEditorForm({
               <Text style={{ color: colors.textMuted, fontSize: 13, fontWeight: '600' }}>
                 {pickerTarget === 'startDate' || pickerTarget === 'endDate'
                   ? '직접 입력 없이 날짜를 선택합니다'
-                  : '30분 단위로 자동 보정됩니다'}
+                  : '1분 단위로 선택할 수 있습니다'}
               </Text>
             </View>
             <DateTimePicker
@@ -631,7 +630,7 @@ export function TaskEditorForm({
                     : 'spinner'
                   : 'default'
               }
-              minuteInterval={pickerTarget === 'startDate' || pickerTarget === 'endDate' ? undefined : 30}
+              minuteInterval={pickerTarget === 'startDate' || pickerTarget === 'endDate' ? undefined : 1}
               onChange={handleTimePickerChange}
               style={{
                 alignSelf: 'stretch',

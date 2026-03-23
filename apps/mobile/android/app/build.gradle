@@ -68,6 +68,14 @@ react {
  */
 def enableMinifyInReleaseBuilds = (findProperty('android.enableMinifyInReleaseBuilds') ?: false).toBoolean()
 
+def signingProp = { String key ->
+    def value = findProperty(key)
+    if (value == null || value.toString().trim().isEmpty()) {
+        value = System.getenv(key)
+    }
+    return value
+}
+
 /**
  * The preferred build flavor of JavaScriptCore (JSC)
  *
@@ -92,7 +100,7 @@ android {
         applicationId 'com.pecal.mobile'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
+        versionCode 3
         versionName "1.0.2"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
@@ -104,6 +112,15 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            def uploadStoreFile = signingProp("MYAPP_UPLOAD_STORE_FILE")
+            if (uploadStoreFile) {
+                storeFile file(uploadStoreFile)
+            }
+            storePassword signingProp("MYAPP_UPLOAD_STORE_PASSWORD")
+            keyAlias signingProp("MYAPP_UPLOAD_KEY_ALIAS")
+            keyPassword signingProp("MYAPP_UPLOAD_KEY_PASSWORD")
+        }
     }
     buildTypes {
         debug {
@@ -112,7 +129,7 @@ android {
         release {
             // Caution! In production, you need to generate your own keystore file.
             // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
             shrinkResources enableShrinkResources.toBoolean()
             minifyEnabled enableMinifyInReleaseBuilds

@@ -133,9 +133,9 @@ export async function POST(request: NextRequest) {
     }
 
     const registerOrderId = generateMoid(`PECAL_RG_${ownerId}`);
-    const fakeBuyer = {
-      buyerName: "TESTUSER",
-      buyerEmail: "testuser@example.com",
+    const buyer = {
+      buyerName: user.nickname || `member-${user.memberId}`,
+      buyerEmail: user.email || "no-reply@pecal.site",
       buyerTel: "01000000000",
     };
     const registerResult = await registerBillingKeyByCard({
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
       expMonth: rawExpMonth,
       idNo: rawIdNo,
       cardPw: rawCardPw,
-      ...fakeBuyer,
+      ...buyer,
     });
 
     const payOrderId = generateMoid(`PECAL_AP_${ownerId}`);
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
       orderId: payOrderId,
       amount: plan.price,
       goodsName: `Pecal ${plan.name}`,
-      ...fakeBuyer,
+      ...buyer,
     });
 
     await saveBillingKey(

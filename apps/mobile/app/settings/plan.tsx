@@ -1,11 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useMobileApp } from '../../src/contexts/MobileAppContext';
 import { useI18n } from '../../src/contexts/I18nContext';
 import { useThemeMode } from '../../src/contexts/ThemeContext';
-import { apiFetch, getApiBaseUrl } from '../../src/lib/api';
+import { apiFetch } from '../../src/lib/api';
 import { type WorkspaceUsageData } from '../../src/lib/plan-limits';
 import { createStyles } from '../../src/styles/createStyles';
 import type { TeamItem, Workspace } from '../../src/lib/types';
@@ -226,7 +226,6 @@ export default function SettingsPlanPage() {
   }, [ownerType, plans]);
 
   const isPaidSubscription = Boolean(subscription && (subscription.id || subscription.subscription_id));
-  const baseUrl = getApiBaseUrl();
 
   useEffect(() => {
     if (!auth.session || !activeWorkspace?.workspace_id) return;
@@ -268,22 +267,6 @@ export default function SettingsPlanPage() {
 
     void run();
   }, [activeWorkspace?.workspace_id, auth.session, isKo, ownerId, ownerType]);
-
-  const openExternal = async (url: string) => {
-    await Linking.openURL(url);
-  };
-
-  const openPlansPage = async () => {
-    if (!ownerId) return;
-    await openExternal(`${baseUrl}/dashboard/settings/billing/plans/${ownerType}?owner_id=${ownerId}`);
-  };
-
-  const openCheckoutForPlan = async (planId: number) => {
-    if (!ownerId) return;
-    await openExternal(
-      `${baseUrl}/dashboard/settings/billing/checkout?plan_id=${planId}&owner_type=${ownerType}&owner_id=${ownerId}`
-    );
-  };
 
   const handleCancelSubscription = async () => {
     const subscriptionId = subscription?.id ?? subscription?.subscription_id;
@@ -446,14 +429,11 @@ export default function SettingsPlanPage() {
           ) : null}
 
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            <Pressable style={s.secondaryButtonHalf} onPress={() => void openPlansPage()} disabled={!ownerId}>
-              <Text style={s.secondaryButtonText}>{isKo ? '플랜 페이지 열기' : 'Open plans'}</Text>
-            </Pressable>
             {subscription ? (
               <Pressable
                 style={[
                   s.secondaryButtonHalf,
-                  { borderColor: '#FCA5A5', backgroundColor: '#FEF2F2' },
+                  { width: '100%', borderColor: '#FCA5A5', backgroundColor: '#FEF2F2' },
                 ]}
                 onPress={() => void handleCancelSubscription()}
                 disabled={canceling}

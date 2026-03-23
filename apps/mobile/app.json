@@ -19,7 +19,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
+        "foregroundImage": "./assets/icon-ad.png",
         "backgroundColor": "#FFFFFF"
       },
       "package": "com.pecal.mobile"

@@ -1,7 +1,6 @@
-import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ApiError, apiFetch, cachedApiFetch, getApiBaseUrl, invalidateApiCache } from '../lib/api';
+import { ApiError, apiFetch, cachedApiFetch, invalidateApiCache } from '../lib/api';
 import { defaultTaskRangeByDate, groupTasksByDate, toLocalDateTimeString } from '../lib/date';
 import {
   enqueueMemoOffline,
@@ -992,8 +991,9 @@ export function useDashboardData(session: AuthSession | null) {
   };
 
   const selectPlan = async (plan: 'free' | 'paid') => {
-    if (plan === 'paid' && createdTeamId) {
-      await Linking.openURL(`${getApiBaseUrl()}/dashboard/settings/billing/plans/team?owner_id=${createdTeamId}`);
+    if (plan === 'paid') {
+      setError('모바일 앱에서는 결제 기능을 지원하지 않습니다.');
+      return;
     }
     setTeamCreateOpen(false);
     setTeamCreateStep('details');
