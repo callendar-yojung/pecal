@@ -2,7 +2,7 @@
   "expo": {
     "name": "피켈",
     "slug": "pecal-mobile",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "scheme": "myapp",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",

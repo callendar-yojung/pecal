@@ -14,6 +14,7 @@ export default defineConfig({
     alias: {
       '@': resolve(__dirname, 'src'),
       '@repo/api-client': resolve(__dirname, '../../packages/api-client/src/index.ts'),
+      '@repo/utils': resolve(__dirname, '../../packages/utils/src/index.ts'),
     },
   },
   server: {

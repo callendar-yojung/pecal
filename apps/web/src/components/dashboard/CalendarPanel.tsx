@@ -8,6 +8,7 @@ import {
   ChevronUp,
   Plus,
 } from "lucide-react"; // 아이콘 라이브러리 추가 권장
+import { getKoreanSpecialDaysForDateKey } from "@repo/utils";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -316,6 +317,10 @@ export default function CalendarPanel() {
                 const cellDate = day
                   ? `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
                   : "";
+                const specialDayLabel =
+                  day && locale === "ko"
+                    ? (getKoreanSpecialDaysForDateKey(cellDate)[0]?.name ?? null)
+                    : null;
                 const isSelected =
                   selectedDate?.getDate() === day &&
                   selectedDate?.getMonth() === month;
@@ -354,6 +359,11 @@ export default function CalendarPanel() {
                         >
                           {day}
                         </span>
+                        {specialDayLabel && (
+                          <span className="mt-0.5 truncate text-[10px] font-semibold leading-tight text-red-500/90">
+                            {specialDayLabel}
+                          </span>
+                        )}
                         <div className="mt-2 space-y-1">
                           {dayTasks.slice(0, 2).map((task) => (
                             (() => {

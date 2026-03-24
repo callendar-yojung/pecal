@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { getKoreanSpecialDaysForDateKey } from '@repo/utils'
 import {
   format,
   startOfMonth,
@@ -409,6 +410,10 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
           const hiddenCount = hiddenSingleCount + hiddenMultiCount
           const isMoreOpen = openMoreDateKey === dayDateKey
           const isCurrentMonth = isSameMonth(day, selectedDate)
+          const specialDayLabel =
+            isCurrentMonth && i18n.language === 'ko'
+              ? (getKoreanSpecialDaysForDateKey(dayDateKey)[0]?.name ?? null)
+              : null
           const dayOfWeek = day.getDay()
           const reservedTopSpacing =
             visibleMultiForDay > 0
@@ -447,6 +452,11 @@ export function CalendarGrid({ onOpenTaskDetail }: CalendarGridProps) {
                   </span>
                 )}
               </div>
+              {specialDayLabel && (
+                <div className="mb-1 truncate text-[10px] font-semibold leading-tight text-red-500/90">
+                  {specialDayLabel}
+                </div>
+              )}
 
               <div className="space-y-1 overflow-y-auto flex-1 min-h-0" style={{ marginTop: reservedTopSpacing }}>
                 {visibleEvents.map((event) => (

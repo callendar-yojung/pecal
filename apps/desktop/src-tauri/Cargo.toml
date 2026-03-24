@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "1.2.30"
+version = "1.2.32"
 description = "Pecal desktop calendar and collaboration app"
 authors = ["Pecal Team"]
 license = "Proprietary"

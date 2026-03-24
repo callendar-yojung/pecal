@@ -5,3 +5,4 @@ export function isNonEmptyString(value: unknown): value is string {
 export * from "./rich-text";
 export * from "./rich-text-plain";
 export * from "./rich-text-toolbar";
+export * from "./korean-special-days";

@@ -460,6 +460,10 @@ importers:
         version: 5.9.3
 
   packages/utils:
+    dependencies:
+      '@hyunbinseo/holidays-kr':
+        specifier: ^3.2026.2
+        version: 3.2026.2
     devDependencies:
       typescript:
         specifier: ^5.9.3
@@ -1559,6 +1563,10 @@ packages:
 
   '@formatjs/intl-localematcher@0.8.1':
     resolution: {integrity: sha512-xwEuwQFdtSq1UKtQnyTZWC+eHdv7Uygoa+H2k/9uzBVQjDyp9r20LNDNKedWXll7FssT3GRHvqsdJGYSUWqYFA==}
+
+  '@hyunbinseo/holidays-kr@3.2026.2':
+    resolution: {integrity: sha512-BzdulKmQk2GZd0E3TOcNuDpImkqeIQzULdVKuRTTy3DDZvpbKefpYNgEMKFctZjq/aKSukHeU6HzY/CdHgS0bw==}
+    engines: {node: '>=18'}
 
   '@ide/backoff@1.0.0':
     resolution: {integrity: sha512-F0YfUDjvT+Mtt/R4xdl2X0EYCHMMiJqNLdxHD++jDT5ydEFIyqbCHh51Qx2E211dgZprPKhV7sHmnXKpLuvc5g==}
@@ -8461,6 +8469,8 @@ snapshots:
     dependencies:
       '@formatjs/fast-memoize': 3.1.0
       tslib: 2.8.1
+
+  '@hyunbinseo/holidays-kr@3.2026.2': {}
 
   '@ide/backoff@1.0.0': {}
 

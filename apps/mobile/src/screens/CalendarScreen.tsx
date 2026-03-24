@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Modal, PanResponder, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getKoreanSpecialDaysForDateKey } from '@repo/utils';
 import type { TagItem, TaskItem } from '../lib/types';
 import { getTaskAccentColor, getTaskStatusColor } from '../lib/task-colors';
 import { useThemeMode } from '../contexts/ThemeContext';
@@ -493,6 +494,10 @@ export function CalendarScreen({
                       ? visibleMultiEventsOnCell * (multiBarHeight + multiBarLaneGap) - 6
                       : 0;
                   const isWeekend = colIdx === 0 || colIdx === 6;
+                  const specialDayLabel =
+                    locale === 'ko' && cell.isCurrentMonth
+                      ? getKoreanSpecialDaysForDateKey(cell.dateStr)[0]?.name ?? null
+                      : null;
                   return (
                     <Pressable
                       key={cell.dateStr}
@@ -516,6 +521,20 @@ export function CalendarScreen({
                       <View style={{ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: isToday ? colors.primary : 'transparent', zIndex: 3 }}>
                         <Text style={{ fontSize: 13, fontWeight: isToday ? '800' : '500', color: isToday ? '#fff' : !cell.isCurrentMonth ? colors.border : isWeekend ? (colIdx === 0 ? '#EF4444' : '#5B6CF6') : colors.text }}>{cell.day}</Text>
                       </View>
+                      {specialDayLabel ? (
+                        <Text
+                          numberOfLines={1}
+                          style={{
+                            marginTop: 1,
+                            fontSize: 9,
+                            fontWeight: '800',
+                            color: '#EF4444',
+                            paddingHorizontal: 2,
+                          }}
+                        >
+                          {specialDayLabel}
+                        </Text>
+                      ) : null}
                       <View style={{ marginTop: cellMultiLaneReservedHeight, gap: 4, zIndex: 2 }}>
                         {visibleSchedules.map((task) => (
                           <Pressable
