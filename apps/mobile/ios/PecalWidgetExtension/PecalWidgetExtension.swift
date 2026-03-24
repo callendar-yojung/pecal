@@ -31,6 +31,7 @@ struct PecalWidgetPayload: Codable {
   let workspace_name: String?
   let tasks: [PecalWidgetTask]?
   let workspaces: [PecalWidgetWorkspace]
+  let special_days_by_date: [String: [String]]?
 
   private enum CodingKeys: String, CodingKey {
     case generated_at
@@ -43,6 +44,7 @@ struct PecalWidgetPayload: Codable {
     case workspaces
     case workspace_name
     case tasks
+    case special_days_by_date
   }
 
   init(
@@ -55,7 +57,8 @@ struct PecalWidgetPayload: Codable {
     member_id: Int?,
     workspace_name: String?,
     tasks: [PecalWidgetTask]?,
-    workspaces: [PecalWidgetWorkspace]
+    workspaces: [PecalWidgetWorkspace],
+    special_days_by_date: [String: [String]]?
   ) {
     self.generated_at = generated_at
     self.nickname = nickname
@@ -67,6 +70,7 @@ struct PecalWidgetPayload: Codable {
     self.workspace_name = workspace_name
     self.tasks = tasks
     self.workspaces = workspaces
+    self.special_days_by_date = special_days_by_date
   }
 
   init(from decoder: Decoder) throws {
@@ -78,6 +82,7 @@ struct PecalWidgetPayload: Codable {
     access_token = try container.decodeIfPresent(String.self, forKey: .access_token)
     refresh_token = try container.decodeIfPresent(String.self, forKey: .refresh_token)
     member_id = try container.decodeIfPresent(Int.self, forKey: .member_id)
+    special_days_by_date = try container.decodeIfPresent([String: [String]].self, forKey: .special_days_by_date)
     let legacyWorkspaceName = try container.decodeIfPresent(String.self, forKey: .workspace_name)
     let legacyTasks = try container.decodeIfPresent([PecalWidgetTask].self, forKey: .tasks)
     workspace_name = legacyWorkspaceName
@@ -169,6 +174,11 @@ struct PecalWidgetEntryView: View {
   @Environment(\.colorScheme) private var colorScheme
   @Environment(\.widgetFamily) private var family
   private let maxVisibleTasksPerDay = 2
+  private let widgetMultiLaneStep: CGFloat = 11
+  private let widgetMultiBarTopOffset: CGFloat = 28
+  private let widgetDayHeaderHeight: CGFloat = 26
+  private let widgetSpecialDayFontSize: CGFloat = 6.5
+  private let widgetSpecialDayLineHeight: CGFloat = 2
 
   private var calendar: Calendar {
     var cal = Calendar(identifier: .gregorian)
@@ -733,7 +743,7 @@ struct PecalWidgetEntryView: View {
                 let span = CGFloat(segment.endCol - segment.startCol + 1)
                 let left = CGFloat(segment.startCol) * columnWidth + 1
                 let width = max(0, span * columnWidth - 2)
-                let top = 22 + CGFloat(segment.lane) * 11
+                let top = widgetMultiBarTopOffset + CGFloat(segment.lane) * widgetMultiLaneStep
                 let showTitle = segment.isStart || segment.startCol == 0
 
                 RoundedRectangle(
@@ -769,12 +779,25 @@ struct PecalWidgetEntryView: View {
       if let date = cell.date {
         let key = dayKey(date)
         let isToday = key == todayKey
+        let specialDayText = cell.inCurrentMonth ? specialDayLabel(for: date) : nil
         let visibleSingleTasks = dayData?.visibleSingleTasks ?? []
         let hiddenCount = dayData?.hiddenCount ?? 0
         let visibleMultiCount = dayData?.visibleMultiCount ?? 0
-        let reservedTopSpacing = visibleMultiCount > 0 ? CGFloat(visibleMultiCount) * 11 - 1 : 0
+        let reservedTopSpacing = visibleMultiCount > 0 ? CGFloat(visibleMultiCount) * widgetMultiLaneStep - 1 : 0
 
-        dayNumberBadge(day: calendar.component(.day, from: date), isToday: isToday)
+        VStack(alignment: .leading, spacing: 0) {
+          dayNumberBadge(day: calendar.component(.day, from: date), isToday: isToday)
+          if let specialDayText {
+            Text(specialDayText)
+              .font(.system(size: widgetSpecialDayFontSize, weight: .bold))
+              .lineLimit(1)
+              .foregroundStyle(Color.red.opacity(0.9))
+              .frame(height: widgetSpecialDayLineHeight, alignment: .leading)
+          } else {
+            Spacer(minLength: widgetSpecialDayLineHeight)
+          }
+        }
+        .frame(height: widgetDayHeaderHeight, alignment: .topLeading)
         VStack(alignment: .leading, spacing: 1) {
           ForEach(visibleSingleTasks, id: \.id) { task in
           dayTaskChip(task, cellDate: date, cellDateKey: key)
@@ -799,6 +822,11 @@ struct PecalWidgetEntryView: View {
     .overlay(
       Rectangle().stroke(dayBorderColor, lineWidth: 0.5)
     )
+  }
+
+  private func specialDayLabel(for date: Date) -> String? {
+    let key = dayKey(date)
+    return entry.payload?.special_days_by_date?[key]?.first
   }
 
   private func timeLabel(_ task: PecalWidgetTask) -> String {
@@ -1015,7 +1043,8 @@ func resolvePecalWidgetPayload() async -> PecalWidgetPayload? {
     member_id: current.member_id,
     workspace_name: current.workspace_name,
     tasks: selectedTasks,
-    workspaces: updatedWorkspaces
+    workspaces: updatedWorkspaces,
+    special_days_by_date: current.special_days_by_date
   )
 
   savePecalWidgetPayload(merged)

@@ -36,24 +36,6 @@ type Subscription = {
   plan_price?: number;
 };
 
-type SavedCard = {
-  id: number;
-  cardCode?: string;
-  cardName?: string;
-  cardNoMasked?: string;
-  createdAt?: string;
-};
-
-type PaymentRecord = {
-  payment_id: number;
-  amount: number;
-  status: 'SUCCESS' | 'FAILED' | 'REFUNDED';
-  payment_type: 'FIRST' | 'RECURRING' | 'RETRY';
-  plan_name?: string;
-  tid?: string | null;
-  created_at: string;
-};
-
 function formatBytes(bytes: number) {
   if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
   const units = ['B', 'KB', 'MB', 'GB'];
@@ -65,10 +47,6 @@ function formatBytes(bytes: number) {
 function formatDate(date?: string | null) {
   if (!date) return '-';
   return new Date(date).toLocaleDateString();
-}
-
-function formatAmount(amount: number) {
-  return `₩${amount.toLocaleString()}`;
 }
 
 function getBarColor(ratio: number) {
@@ -184,14 +162,11 @@ export default function SettingsPlanPage() {
   const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [savedCard, setSavedCard] = useState<SavedCard | null>(null);
-  const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [usage, setUsage] = useState<WorkspaceUsageData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [canceling, setCanceling] = useState(false);
-  const [removingCard, setRemovingCard] = useState(false);
 
   useEffect(() => {
     if (data.teams.length > 0 && !selectedTeamId) {
@@ -234,7 +209,7 @@ export default function SettingsPlanPage() {
       setError('');
       setSuccess('');
       try {
-        const [plansRes, usageRes, subscriptionRes, billingRes, paymentsRes] = await Promise.all([
+        const [plansRes, usageRes, subscriptionRes] = await Promise.all([
           apiFetch<Plan[]>('/api/plans', auth.session),
           apiFetch<WorkspaceUsageData>(`/api/me/usage?workspace_id=${activeWorkspace.workspace_id}`, auth.session),
           ownerId
@@ -243,20 +218,11 @@ export default function SettingsPlanPage() {
                 auth.session
               )
             : Promise.resolve(null),
-          apiFetch<{ billingKey?: SavedCard }>('/api/nicepay/billing/register', auth.session).catch(() => ({ billingKey: null })),
-          ownerId
-            ? apiFetch<{ payments: PaymentRecord[] }>(
-                `/api/payments?owner_id=${ownerId}&owner_type=${ownerType}`,
-                auth.session
-              ).catch(() => ({ payments: [] }))
-            : Promise.resolve({ payments: [] as PaymentRecord[] }),
         ]);
 
         setPlans(Array.isArray(plansRes) ? plansRes : []);
         setUsage(usageRes);
         setSubscription(subscriptionRes ?? null);
-        setSavedCard(billingRes.billingKey ?? null);
-        setPayments(paymentsRes.payments ?? []);
       } catch (loadError) {
         console.error('Failed to load mobile plan settings:', loadError);
         setError(isKo ? '플랜 정보를 불러오지 못했습니다.' : 'Failed to load plan details.');
@@ -286,25 +252,6 @@ export default function SettingsPlanPage() {
       setError(isKo ? '구독 해지에 실패했습니다.' : 'Failed to cancel subscription.');
     } finally {
       setCanceling(false);
-    }
-  };
-
-  const handleRemoveCard = async () => {
-    if (!auth.session || removingCard || isPaidSubscription) return;
-    setRemovingCard(true);
-    setError('');
-    setSuccess('');
-    try {
-      await apiFetch<{ success: boolean }>('/api/nicepay/billing/remove', auth.session, {
-        method: 'DELETE',
-      });
-      setSavedCard(null);
-      setSuccess(isKo ? '저장된 카드가 제거되었습니다.' : 'Saved card removed.');
-    } catch (removeError) {
-      console.error('Failed to remove billing key:', removeError);
-      setError(isKo ? '카드 제거에 실패했습니다.' : 'Failed to remove saved card.');
-    } finally {
-      setRemovingCard(false);
     }
   };
 
@@ -502,61 +449,6 @@ export default function SettingsPlanPage() {
           )}
         </View>
 
-        <View style={[s.panel, { borderRadius: 13, gap: 12 }]}>
-          <Text style={s.formTitle}>{isKo ? '결제 수단' : 'Payment method'}</Text>
-          {savedCard ? (
-            <>
-              <Text style={s.itemMeta}>
-                {(savedCard.cardName || (isKo ? '저장된 카드' : 'Saved card'))}
-                {savedCard.cardNoMasked ? ` · ${savedCard.cardNoMasked}` : ''}
-              </Text>
-              <Pressable
-                style={[s.secondaryButtonHalf, { width: '100%' }]}
-                onPress={() => void handleRemoveCard()}
-                disabled={removingCard || isPaidSubscription}
-              >
-                <Text style={s.secondaryButtonText}>
-                  {removingCard
-                    ? isKo
-                      ? '제거 중...'
-                      : 'Removing...'
-                    : isPaidSubscription
-                      ? isKo
-                        ? '유료 구독 해지 후 제거 가능'
-                        : 'Cancel paid subscription first'
-                      : isKo
-                        ? '카드 제거'
-                        : 'Remove card'}
-                </Text>
-              </Pressable>
-            </>
-          ) : (
-            <Text style={s.itemMeta}>{isKo ? '저장된 카드가 없습니다.' : 'No saved card.'}</Text>
-          )}
-        </View>
-
-        <View style={[s.panel, { borderRadius: 13, gap: 12 }]}>
-          <Text style={s.formTitle}>{isKo ? '결제 내역' : 'Payment history'}</Text>
-          {payments.length === 0 ? (
-            <Text style={s.itemMeta}>{isKo ? '결제 내역이 없습니다.' : 'No payment history.'}</Text>
-          ) : (
-            payments.slice(0, 8).map((payment) => (
-              <View key={payment.payment_id} style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, gap: 4 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
-                  <Text style={{ color: colors.text, fontSize: 14, fontWeight: '700', flex: 1 }}>
-                    {payment.plan_name || (isKo ? '플랜 결제' : 'Plan payment')}
-                  </Text>
-                  <Text style={{ color: colors.text, fontSize: 14, fontWeight: '800' }}>
-                    {formatAmount(payment.amount)}
-                  </Text>
-                </View>
-                <Text style={s.itemMeta}>
-                  {payment.status} · {formatDate(payment.created_at)}
-                </Text>
-              </View>
-            ))
-          )}
-        </View>
       </View>
     </ScrollView>
   );

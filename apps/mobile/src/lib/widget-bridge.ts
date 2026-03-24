@@ -1,4 +1,5 @@
 import { NativeModules, Platform } from 'react-native';
+import { getKoreanSpecialDaysForDateParts } from '@repo/utils';
 import type { TaskItem } from './types';
 
 type WidgetTask = {
@@ -27,6 +28,7 @@ type WidgetPayload = {
   workspace_name?: string;
   tasks?: WidgetTask[];
   workspaces?: WidgetWorkspace[];
+  special_days_by_date?: Record<string, string[]>;
 };
 
 type WidgetBridgeModule = {
@@ -85,6 +87,29 @@ function pickTasksForWidget(tasks: TaskItem[], limit: number): WidgetTask[] {
     }));
 }
 
+function formatDateKey(year: number, month: number, day: number) {
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function buildSpecialDaysByDateMap(referenceDate = new Date()) {
+  const map: Record<string, string[]> = {};
+  const startYear = referenceDate.getFullYear() - 1;
+  const endYear = referenceDate.getFullYear() + 1;
+
+  for (let year = startYear; year <= endYear; year += 1) {
+    for (let month = 1; month <= 12; month += 1) {
+      const daysInMonth = new Date(year, month, 0).getDate();
+      for (let day = 1; day <= daysInMonth; day += 1) {
+        const labels = getKoreanSpecialDaysForDateParts(year, month, day).map((item) => item.name);
+        if (labels.length === 0) continue;
+        map[formatDateKey(year, month, day)] = labels;
+      }
+    }
+  }
+
+  return map;
+}
+
 export async function syncWidgetData(params: {
   tasks: TaskItem[];
   workspaceName?: string;
@@ -123,6 +148,7 @@ export async function syncWidgetData(params: {
           Math.max(1, params.maxItems ?? 180)
         ),
       })),
+    special_days_by_date: buildSpecialDaysByDateMap(new Date()),
   };
 
   if (!payload.workspaces?.length && params.workspaceName) {

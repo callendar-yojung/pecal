@@ -79,9 +79,17 @@ export function CalendarScreen({
   const [showSwipeHint, setShowSwipeHint] = useState(false);
   const [openMoreDateKey, setOpenMoreDateKey] = useState<string | null>(null);
   const monthSlideX = useRef(new Animated.Value(0)).current;
-  const multiBarHeight = 15;
-  const multiBarTopOffset = 33;
-  const multiBarLaneGap = 4;
+  const multiBarHeight = 16;
+  const cellPaddingTop = 6;
+  const dayBadgeHeight = 28;
+  const specialDayLineHeight = locale === 'ko' ? 10 : 0;
+  const dayHeaderHeight = dayBadgeHeight + specialDayLineHeight;
+  // 일반일정 시작 위치(다일정이 없을 때도 적용)
+  const singleScheduleBaseTopGap = 0;
+  // 다일정 영역 아래 일반일정과의 추가 간격(다일정이 있을 때만 적용)
+  const singleScheduleGapAfterMulti = 5;
+  const multiBarTopOffset = cellPaddingTop + dayHeaderHeight;
+  const multiBarLaneGap = 5;
 
   useEffect(() => {
     setYear(selectedDate.getFullYear());
@@ -493,6 +501,9 @@ export function CalendarScreen({
                     visibleMultiEventsOnCell > 0
                       ? visibleMultiEventsOnCell * (multiBarHeight + multiBarLaneGap) - 6
                       : 0;
+                  const singleScheduleTopGap =
+                    singleScheduleBaseTopGap +
+                    (visibleMultiEventsOnCell > 0 ? singleScheduleGapAfterMulti : 0);
                   const isWeekend = colIdx === 0 || colIdx === 6;
                   const specialDayLabel =
                     locale === 'ko' && cell.isCurrentMonth
@@ -509,33 +520,35 @@ export function CalendarScreen({
                       style={({ pressed }) => ({
                         flex: 1,
                         minHeight: 92,
-                        paddingTop: 6,
+                        paddingTop: cellPaddingTop,
                         paddingBottom: 6,
                         paddingHorizontal: 2,
-                        gap: 4,
                         borderRightWidth: colIdx < 6 ? 0.5 : 0,
                         borderRightColor: colors.border,
                         backgroundColor: pressed ? `${colors.primary}1E` : 'transparent',
                       })}
                     >
-                      <View style={{ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: isToday ? colors.primary : 'transparent', zIndex: 3 }}>
-                        <Text style={{ fontSize: 13, fontWeight: isToday ? '800' : '500', color: isToday ? '#fff' : !cell.isCurrentMonth ? colors.border : isWeekend ? (colIdx === 0 ? '#EF4444' : '#5B6CF6') : colors.text }}>{cell.day}</Text>
+                      <View style={{ height: dayHeaderHeight, justifyContent: 'flex-start', zIndex: 3 }}>
+                        <View style={{ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: isToday ? colors.primary : 'transparent' }}>
+                          <Text style={{ fontSize: 13, fontWeight: isToday ? '800' : '500', color: isToday ? '#fff' : !cell.isCurrentMonth ? colors.border : isWeekend ? (colIdx === 0 ? '#EF4444' : '#5B6CF6') : colors.text }}>{cell.day}</Text>
+                        </View>
+                        {specialDayLabel ? (
+                          <Text
+                            numberOfLines={1}
+                            style={{
+                              marginTop: 0,
+                              fontSize: 9,
+                              lineHeight: specialDayLineHeight,
+                              fontWeight: '800',
+                              color: '#EF4444',
+                              paddingHorizontal: 2,
+                            }}
+                          >
+                            {specialDayLabel}
+                          </Text>
+                        ) : null}
                       </View>
-                      {specialDayLabel ? (
-                        <Text
-                          numberOfLines={1}
-                          style={{
-                            marginTop: 1,
-                            fontSize: 9,
-                            fontWeight: '800',
-                            color: '#EF4444',
-                            paddingHorizontal: 2,
-                          }}
-                        >
-                          {specialDayLabel}
-                        </Text>
-                      ) : null}
-                      <View style={{ marginTop: cellMultiLaneReservedHeight, gap: 4, zIndex: 2 }}>
+                      <View style={{ marginTop: singleScheduleTopGap + cellMultiLaneReservedHeight, gap: 4, zIndex: 2 }}>
                         {visibleSchedules.map((task) => (
                           <Pressable
                             key={task.id}
