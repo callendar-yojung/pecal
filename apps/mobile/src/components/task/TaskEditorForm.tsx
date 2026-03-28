@@ -306,40 +306,42 @@ export function TaskEditorForm({
           s.input,
           {
             flex: 1,
-            minHeight: 84,
-            borderRadius: 14,
+            minHeight: 74,
+            borderRadius: 12,
             paddingHorizontal: 14,
-            paddingVertical: 10,
-            justifyContent: "flex-start",
-            backgroundColor: colors.cardSoft,
-            borderColor: `${colors.border}CC`,
+            paddingVertical: 9,
+            justifyContent: "center",
+            backgroundColor: colors.card,
+            borderColor: colors.border,
           },
         ]}
       >
-        <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: "700" }}>
-          {isDate ? "DATE" : "TIME"}
+        <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: "700", marginBottom: 2 }}>
+          {isDate ? "날짜" : "시간"}
         </Text>
-        <View style={{ marginTop: 2, gap: 6 }}>
+        <View style={{ gap: 4 }}>
           <Text
             numberOfLines={1}
             adjustsFontSizeToFit
-            minimumFontScale={0.72}
+            minimumFontScale={0.8}
             style={{
               color: colors.text,
-              fontSize: isDate ? 18 : 24,
+              fontSize: isDate ? 17 : 22,
               fontWeight: "800",
-              letterSpacing: isDate ? 0 : 0.3,
+              letterSpacing: isDate ? -0.2 : 0.2,
             }}
           >
             {params.value || params.placeholder}
           </Text>
-          <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: "600" }}>
+          <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: "600" }}>
             {isDate ? "날짜 선택" : "시간 선택"}
           </Text>
         </View>
       </Pressable>
     );
   };
+  const helperTextStyle = { color: colors.textMuted, fontSize: 12, fontWeight: '600' as const };
+  const errorTextStyle = { color: '#DC2626', fontSize: 12, fontWeight: '700' as const };
   const handleTimePickerChange = (event: DateTimePickerEvent, selected?: Date) => {
     if (event.type === 'dismissed') {
       setPickerTarget(null);
@@ -454,21 +456,16 @@ export function TaskEditorForm({
         <View
           style={{
             borderWidth: 1,
-            borderColor: `${colors.border}AA`,
-            borderRadius: 16,
+            borderColor: colors.border,
+            borderRadius: 14,
             padding: 10,
             backgroundColor: colors.card,
-            gap: 8,
+            gap: 6,
           }}
         >
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <Text style={{ color: colors.text, fontSize: 12, fontWeight: "700" }}>
-              {scheduleMode === 'recurring' ? '반복 시작 시간 설정' : '시작 일정 설정'}
-            </Text>
-            <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: "600" }}>
-              {scheduleMode === 'recurring' ? '매 반복 일정 시간' : '정확한 시간 설정'}
-            </Text>
-          </View>
+          <Text style={helperTextStyle}>
+            {scheduleMode === 'recurring' ? '반복 일정 시작 시각' : '일정 시작 날짜와 시각'}
+          </Text>
           <View style={[s.row, { alignItems: "stretch", gap: 8 }]}>
             {scheduleMode !== 'recurring'
               ? renderDateTimeField({
@@ -493,19 +490,14 @@ export function TaskEditorForm({
         <View
           style={{
             borderWidth: 1,
-            borderColor: `${colors.border}AA`,
-            borderRadius: 16,
+            borderColor: colors.border,
+            borderRadius: 14,
             padding: 10,
             backgroundColor: colors.card,
-            gap: 8,
+            gap: 6,
           }}
         >
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <Text style={{ color: colors.text, fontSize: 12, fontWeight: "700" }}>
-              {scheduleMode === 'recurring' ? '반복 종료 시간 설정' : '종료 일정 설정'}
-            </Text>
-            <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: "600" }}>시작 시간 이후로 설정</Text>
-          </View>
+          <Text style={helperTextStyle}>시작 시간 이후로 선택</Text>
           <View style={[s.row, { alignItems: "stretch", gap: 8 }]}>
             {scheduleMode !== 'recurring'
               ? renderDateTimeField({
@@ -603,7 +595,7 @@ export function TaskEditorForm({
               </Pressable>
             </View>
             <Text style={s.itemMeta}>{pickerRgbText ? `${pickerRgbText} · ${customColorInput || color}` : customColorInput || color}</Text>
-            {customColorError ? <Text style={[s.itemMeta, { color: '#DC2626' }]}>{customColorError}</Text> : null}
+            {customColorError ? <Text style={errorTextStyle}>{customColorError}</Text> : null}
           </View>
         ) : null}
       </View>
@@ -647,7 +639,7 @@ export function TaskEditorForm({
             <Text style={s.secondaryButtonText}>카테고리 추가</Text>
           </Pressable>
         )}
-        {categoryError ? <Text style={[s.itemMeta, { color: '#DC2626' }]}>{categoryError}</Text> : null}
+        {categoryError ? <Text style={errorTextStyle}>{categoryError}</Text> : null}
         <View style={[s.row, { flexWrap: 'wrap', gap: 8 }]}>
           {availableCategories.length === 0 ? (
             <Text style={s.subtleText}>선택 가능한 카테고리가 없습니다.</Text>
@@ -758,7 +750,7 @@ export function TaskEditorForm({
             <Text style={s.secondaryButtonText}>태그 추가</Text>
           </Pressable>
         )}
-        {tagError ? <Text style={[s.itemMeta, { color: '#DC2626' }]}>{tagError}</Text> : null}
+        {tagError ? <Text style={errorTextStyle}>{tagError}</Text> : null}
         <View style={[s.row, { flexWrap: 'wrap', gap: 8 }]}>
           {availableTags.length === 0 ? (
             <Text style={s.subtleText}>선택 가능한 태그가 없습니다.</Text>
@@ -964,6 +956,8 @@ export function TaskEditorForm({
           <GsxButton
             label={saving ? '저장 중...' : submitLabel}
             variant="primary"
+            loading={saving}
+            disabled={saving}
             className="w-full py-3"
             onPress={onSubmit}
           />
@@ -973,6 +967,7 @@ export function TaskEditorForm({
             <GsxButton
               label="삭제"
               variant="danger"
+              disabled={saving}
               className="w-full py-3"
               onPress={onDelete}
             />

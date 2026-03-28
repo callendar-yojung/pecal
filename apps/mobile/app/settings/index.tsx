@@ -68,6 +68,7 @@ const SETTINGS_ITEMS: MenuItem[] = [
     icon: 'color-palette-outline',
   },
 ];
+const SHOW_PLAN_SETTINGS = false;
 
 export default function SettingsHomePage() {
   const router = useRouter();
@@ -77,9 +78,12 @@ export default function SettingsHomePage() {
   const isKo = locale === 'ko';
   const groupedItems = {
     account: SETTINGS_ITEMS.filter((item) => item.section === 'account'),
-    plan: SETTINGS_ITEMS.filter((item) => item.section === 'plan'),
+    plan: SHOW_PLAN_SETTINGS ? SETTINGS_ITEMS.filter((item) => item.section === 'plan') : [],
     preferences: SETTINGS_ITEMS.filter((item) => item.section === 'preferences'),
   } as const;
+  const visibleSections = (['account', 'plan', 'preferences'] as const).filter(
+    (section) => groupedItems[section].length > 0,
+  );
 
   const sectionTitle = (section: keyof typeof groupedItems) => {
     if (section === 'account') return isKo ? '계정' : 'Account';
@@ -119,7 +123,7 @@ export default function SettingsHomePage() {
           {isKo ? '설정' : 'Settings'}
         </Text>
 
-        {(['account', 'plan', 'preferences'] as const).map((section) => (
+        {visibleSections.map((section) => (
           <View key={section} style={{ gap: 8 }}>
             <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: '700', paddingHorizontal: 4 }}>
               {sectionTitle(section)}

@@ -8,7 +8,6 @@ import { useThemeMode } from '../contexts/ThemeContext';
 import { useI18n } from '../contexts/I18nContext';
 import { createStyles } from '../styles/createStyles';
 import { OptionSheet } from '../components/common/OptionSheet';
-import { SelectDropdown } from '../components/common/SelectDropdown';
 import { GsxButton, GsxCard, GsxChip, GsxHeading } from '../ui/gsx';
 
 function normalizeTaskStatus(status?: TaskStatus): 'TODO' | 'DONE' {
@@ -53,7 +52,6 @@ export function TasksScreen({
   const [tagFilter, setTagFilter] = useState<number | 'ALL'>('ALL');
   const [sortBy, setSortBy] = useState<'START_ASC' | 'START_DESC' | 'TITLE_ASC' | 'TITLE_DESC'>('START_DESC');
   const [activeFilterSheet, setActiveFilterSheet] = useState<'status' | 'sort' | 'tag' | null>(null);
-  const [statusDropdownTaskId, setStatusDropdownTaskId] = useState<number | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedTaskIds, setSelectedTaskIds] = useState<number[]>([]);
   const [deletingSelected, setDeletingSelected] = useState(false);
@@ -103,11 +101,6 @@ export function TasksScreen({
     { key: 'ALL' as const, label: '카테고리 전체' },
     ...categories.map((category) => ({ key: category.category_id, label: category.name })),
   ];
-  const taskStatusOptions = [
-    { key: 'TODO', label: '완료 전' },
-    { key: 'DONE', label: '완료' },
-  ] as const satisfies ReadonlyArray<{ key: 'TODO' | 'DONE'; label: string }>;
-
   const totalPages = Math.max(1, Math.ceil(filteredTasks.length / pageSize));
   const pagedTasks = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -185,39 +178,60 @@ export function TasksScreen({
   return (
     <View style={s.section}>
       <GsxCard className="mb-1">
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+        <View style={{ gap: 10 }}>
           <View style={{ gap: 3 }}>
             <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: '600' }}>{t('tasksHeaderSub')}</Text>
             <GsxHeading className="text-3xl">{t('commonTasks')}</GsxHeading>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <GsxButton
-              label={selectionMode ? '선택 취소' : '선택'}
-              onPress={() => {
-                if (selectionMode) {
-                  exitSelectionMode();
-                } else {
-                  setSelectionMode(true);
-                }
-              }}
-            />
-            {selectionMode ? (
+
+          {selectionMode ? (
+            <View style={{ gap: 8 }}>
+              <View
+                style={{
+                  alignSelf: 'flex-start',
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  backgroundColor: `${colors.primary}12`,
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                }}
+              >
+                <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '800' }}>
+                  선택됨 {selectedTaskIds.length}개
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <GsxButton
+                  label="선택해제"
+                  onPress={exitSelectionMode}
+                />
+                <GsxButton
+                  label={areAllPagedSelected ? '현재 페이지 해제' : '현재 페이지 모두선택'}
+                  onPress={toggleSelectAllFiltered}
+                />
+                <GsxButton
+                  label={deletingSelected ? '삭제 중...' : `삭제 (${selectedTaskIds.length})`}
+                  variant="danger"
+                  loading={deletingSelected}
+                  disabled={selectedTaskIds.length === 0 || deletingSelected}
+                  onPress={() => void deleteSelectedTasks()}
+                />
+              </View>
+            </View>
+          ) : (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <GsxButton
-                label={deletingSelected ? '삭제 중...' : `삭제 (${selectedTaskIds.length})`}
-                variant="danger"
-                className={selectedTaskIds.length === 0 || deletingSelected ? 'opacity-50' : undefined}
-                disabled={selectedTaskIds.length === 0 || deletingSelected}
-                onPress={() => void deleteSelectedTasks()}
+                label={`+ ${t('commonCreate')}`}
+                variant="primary"
+                onPress={onOpenCreateTask}
               />
-            ) : null}
-            {selectionMode ? (
               <GsxButton
-                label={areAllPagedSelected ? '선택해제' : '모두선택'}
-                onPress={toggleSelectAllFiltered}
+                label="선택"
+                onPress={() => setSelectionMode(true)}
               />
-            ) : null}
-            <GsxButton label={`+ ${t('commonCreate')}`} variant="primary" onPress={onOpenCreateTask} />
-          </View>
+            </View>
+          )}
         </View>
       </GsxCard>
 
@@ -255,14 +269,14 @@ export function TasksScreen({
       <View style={{ gap: 8 }}>
         {pagedTasks.map((task) => {
           const accentColor = getTaskAccentColor(task);
-          const statusMenuOpen = statusDropdownTaskId === task.id;
           const selected = selectedTaskIds.includes(task.id);
+          const done = normalizeTaskStatus(task.status) === 'DONE';
           return (
             <View
               key={task.id}
               style={{
                 position: 'relative',
-                zIndex: statusMenuOpen ? 100 : 1,
+                zIndex: 1,
                 borderRadius: 14,
                 borderWidth: 1,
                 borderColor: colors.border,
@@ -284,39 +298,78 @@ export function TasksScreen({
                 style={{ gap: 6 }}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                  {selectionMode ? (
+                  <Pressable
+                    onPress={() => {
+                      if (selectionMode) {
+                        toggleSelectTask(task.id);
+                        return;
+                      }
+                      onChangeTaskStatus?.(task.id, done ? 'TODO' : 'DONE');
+                    }}
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 12,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderWidth: selectionMode
+                        ? selected ? 0 : 1.5
+                        : done ? 0 : 1.5,
+                      borderColor: selectionMode
+                        ? selected ? colors.primary : colors.border
+                        : done ? '#10B981' : colors.border,
+                      backgroundColor: selectionMode
+                        ? selected ? colors.primary : 'transparent'
+                        : done ? '#10B981' : 'transparent',
+                    }}
+                  >
+                    {(selectionMode && selected) || (!selectionMode && done) ? (
+                      <Ionicons name="checkmark" size={15} color="#fff" />
+                    ) : null}
+                  </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      if (selectionMode) {
+                        toggleSelectTask(task.id);
+                        return;
+                      }
+                      onOpenTask?.(task.id);
+                    }}
+                    style={{ flex: 1, gap: 6 }}
+                  >
+                    <Text
+                      style={[
+                        s.itemTitle,
+                        {
+                          textDecorationLine: done ? 'line-through' : 'none',
+                          color: done ? colors.textMuted : colors.text,
+                        },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {task.title}
+                    </Text>
+                    <Text style={s.itemMeta}>{formatDateTime(task.start_time)} - {formatDateTime(task.end_time)}</Text>
+                  </Pressable>
+                  {!selectionMode ? (
                     <View
                       style={{
-                        width: 22,
-                        height: 22,
-                        borderRadius: 11,
+                        borderRadius: 999,
+                        paddingHorizontal: 9,
+                        paddingVertical: 4,
+                        borderWidth: 1,
+                        borderColor: done ? '#86EFAC' : colors.border,
+                        backgroundColor: done ? '#ECFDF5' : colors.cardSoft,
                         alignItems: 'center',
                         justifyContent: 'center',
-                        borderWidth: selected ? 0 : 1.5,
-                        borderColor: selected ? colors.primary : colors.border,
-                        backgroundColor: selected ? colors.primary : 'transparent',
                       }}
                     >
-                      {selected ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
+                      <Text style={{ fontSize: 11, fontWeight: '800', color: done ? '#059669' : colors.textMuted }}>
+                        {done ? '완료' : '완료 전'}
+                      </Text>
                     </View>
                   ) : null}
-                  <Text style={[s.itemTitle, { flex: 1 }]} numberOfLines={1}>{task.title}</Text>
-                  {!selectionMode ? (
-                    <SelectDropdown
-                      value={normalizeTaskStatus(task.status)}
-                      options={taskStatusOptions}
-                      open={statusDropdownTaskId === task.id}
-                      onToggle={() => setStatusDropdownTaskId((prev) => (prev === task.id ? null : task.id))}
-                      onSelect={(value) => {
-                        setStatusDropdownTaskId(null);
-                        onChangeTaskStatus?.(task.id, value);
-                      }}
-                      style="pill"
-                      menuMode="overlay"
-                    />
-                  ) : null}
                 </View>
-                <Text style={s.itemMeta}>{formatDateTime(task.start_time)} - {formatDateTime(task.end_time)}</Text>
               </Pressable>
             </View>
           );

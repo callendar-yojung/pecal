@@ -57,7 +57,8 @@ function isRecurringTask(task: TaskItem) {
         parsed.weekdays.length > 0,
     );
   } catch {
-    return false;
+    const legacy = String(task.rrule).toUpperCase();
+    return legacy.includes('FREQ=WEEKLY') || legacy.includes('WEEKLY_RANGE');
   }
 }
 
@@ -87,6 +88,7 @@ export function OverviewScreen({ tasks, onPressTask, onToggleTaskDone }: Props) 
         return { ...task, __start: start, __end: end } as TaskWithDate;
       })
       .filter((task) => {
+        if (isRecurringTask(task)) return false;
         const start = task.__start;
         const end = task.__end;
         if (!start || !end) return false;
@@ -125,10 +127,7 @@ export function OverviewScreen({ tasks, onPressTask, onToggleTaskDone }: Props) 
         return { ...task, __start: start, __end: end } as TaskWithDate;
       })
       .filter((task) => {
-        const start = task.__start;
-        if (!start) return false;
-        if (task.status === 'DONE') return false;
-        return isRecurringTask(task) && start.getTime() >= now.getTime();
+        return isRecurringTask(task);
       })
       .sort((a, b) => (a.__start?.getTime() ?? 0) - (b.__start?.getTime() ?? 0))
       .slice(0, 20);
@@ -200,9 +199,10 @@ export function OverviewScreen({ tasks, onPressTask, onToggleTaskDone }: Props) 
     day: 'numeric',
     weekday: 'long',
   });
+  const equalSectionCardStyle = { minHeight: 100 };
 
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: 10 }}>
       <GsxCard className="gap-2">
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <GsxHeading className="text-2xl">{localizedTopDate}</GsxHeading>
@@ -224,7 +224,7 @@ export function OverviewScreen({ tasks, onPressTask, onToggleTaskDone }: Props) 
         </Text>
       </GsxCard>
 
-      <GsxCard className="gap-2">
+      <GsxCard className="gap-2" style={equalSectionCardStyle}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Ionicons name="today-outline" size={16} color={colors.primary} />
           <GsxHeading className="text-lg">오늘 일정</GsxHeading>
@@ -301,7 +301,7 @@ export function OverviewScreen({ tasks, onPressTask, onToggleTaskDone }: Props) 
         </View>
       </GsxCard>
 
-      <GsxCard className="gap-2">
+      <GsxCard className="gap-2" style={equalSectionCardStyle}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Ionicons name="repeat-outline" size={16} color={colors.primary} />
           <GsxHeading className="text-lg">반복 일정</GsxHeading>

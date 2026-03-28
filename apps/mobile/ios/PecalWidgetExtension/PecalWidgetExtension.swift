@@ -32,6 +32,9 @@ struct PecalWidgetPayload: Codable {
   let tasks: [PecalWidgetTask]?
   let workspaces: [PecalWidgetWorkspace]
   let special_days_by_date: [String: [String]]?
+  let widget_feedback_task_id: Int?
+  let widget_feedback_until: String?
+  let widget_skip_network_until: String?
 
   private enum CodingKeys: String, CodingKey {
     case generated_at
@@ -45,6 +48,9 @@ struct PecalWidgetPayload: Codable {
     case workspace_name
     case tasks
     case special_days_by_date
+    case widget_feedback_task_id
+    case widget_feedback_until
+    case widget_skip_network_until
   }
 
   init(
@@ -58,7 +64,10 @@ struct PecalWidgetPayload: Codable {
     workspace_name: String?,
     tasks: [PecalWidgetTask]?,
     workspaces: [PecalWidgetWorkspace],
-    special_days_by_date: [String: [String]]?
+    special_days_by_date: [String: [String]]?,
+    widget_feedback_task_id: Int? = nil,
+    widget_feedback_until: String? = nil,
+    widget_skip_network_until: String? = nil
   ) {
     self.generated_at = generated_at
     self.nickname = nickname
@@ -71,6 +80,9 @@ struct PecalWidgetPayload: Codable {
     self.tasks = tasks
     self.workspaces = workspaces
     self.special_days_by_date = special_days_by_date
+    self.widget_feedback_task_id = widget_feedback_task_id
+    self.widget_feedback_until = widget_feedback_until
+    self.widget_skip_network_until = widget_skip_network_until
   }
 
   init(from decoder: Decoder) throws {
@@ -83,6 +95,9 @@ struct PecalWidgetPayload: Codable {
     refresh_token = try container.decodeIfPresent(String.self, forKey: .refresh_token)
     member_id = try container.decodeIfPresent(Int.self, forKey: .member_id)
     special_days_by_date = try container.decodeIfPresent([String: [String]].self, forKey: .special_days_by_date)
+    widget_feedback_task_id = try container.decodeIfPresent(Int.self, forKey: .widget_feedback_task_id)
+    widget_feedback_until = try container.decodeIfPresent(String.self, forKey: .widget_feedback_until)
+    widget_skip_network_until = try container.decodeIfPresent(String.self, forKey: .widget_skip_network_until)
     let legacyWorkspaceName = try container.decodeIfPresent(String.self, forKey: .workspace_name)
     let legacyTasks = try container.decodeIfPresent([PecalWidgetTask].self, forKey: .tasks)
     workspace_name = legacyWorkspaceName
@@ -499,17 +514,45 @@ struct PecalWidgetEntryView: View {
       } else {
         VStack(alignment: .leading, spacing: 6) {
           ForEach(Array(currentDayTasks.prefix(5)), id: \.id) { task in
+            let isDone = task.status.uppercased() == "DONE"
+            let showTapFeedback = shouldShowWidgetFeedback(for: task.id)
             HStack(spacing: 8) {
-              Circle()
-                .fill(colorFromHex(task.color))
-                .frame(width: 7, height: 7)
+              if #available(iOSApplicationExtension 17.0, *) {
+                Button(intent: ToggleTaskCompletionIntent(taskId: task.id, done: !isDone)) {
+                  ZStack {
+                    Circle()
+                      .stroke(showTapFeedback ? Color.orange.opacity(0.65) : Color.clear, lineWidth: 2)
+                      .frame(width: 20, height: 20)
+                    Circle()
+                      .stroke(isDone ? Color.clear : Color.gray.opacity(0.45), lineWidth: 1.2)
+                      .frame(width: 16, height: 16)
+                    Circle()
+                      .fill(isDone ? Color.green.opacity(0.88) : Color.clear)
+                      .frame(width: 16, height: 16)
+                    if isDone {
+                      Image(systemName: "checkmark")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.white)
+                    }
+                  }
+                }
+                .buttonStyle(.plain)
+              } else {
+                Circle()
+                  .fill(colorFromHex(task.color))
+                  .frame(width: 7, height: 7)
+              }
               Text(timeLabel(task))
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(primaryTextColor)
-                .frame(width: 68, alignment: .leading)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .monospacedDigit()
+                .frame(width: 86, alignment: .leading)
               Text(task.title)
                 .font(.system(size: 12, weight: .bold))
                 .lineLimit(1)
+                .strikethrough(isDone, color: primaryTextColor.opacity(0.7))
                 .foregroundStyle(primaryTextColor)
             }
           }
@@ -601,6 +644,13 @@ struct PecalWidgetEntryView: View {
           .foregroundStyle(.secondary)
       }
     }
+  }
+
+  private func shouldShowWidgetFeedback(for taskId: Int) -> Bool {
+    guard entry.payload?.widget_feedback_task_id == taskId else { return false }
+    guard let untilRaw = entry.payload?.widget_feedback_until,
+          let untilDate = parseISO8601Flexible(untilRaw) else { return false }
+    return Date() <= untilDate
   }
 
   private var deepLinkURL: URL? {
@@ -985,6 +1035,18 @@ func savePecalWidgetPayload(_ payload: PecalWidgetPayload) {
 
 func resolvePecalWidgetPayload() async -> PecalWidgetPayload? {
   guard let current = loadPecalWidgetPayload() else { return nil }
+  if let skipUntilRaw = current.widget_skip_network_until,
+     let skipUntil = parseISO8601Flexible(skipUntilRaw),
+     Date() <= skipUntil {
+    return current
+  }
+  // If payload was updated moments ago (e.g., widget checkbox interaction),
+  // render immediately from local cache instead of waiting for network sync.
+  if let generatedAt = parseISO8601Flexible(current.generated_at) {
+    if Date().timeIntervalSince(generatedAt) < 30 {
+      return current
+    }
+  }
   guard
     let baseURLRaw = current.api_base_url?.trimmingCharacters(in: .whitespacesAndNewlines),
     !baseURLRaw.isEmpty,
@@ -1001,7 +1063,7 @@ func resolvePecalWidgetPayload() async -> PecalWidgetPayload? {
       return []
     }
     var req = URLRequest(url: url)
-    req.timeoutInterval = 10
+    req.timeoutInterval = 4
     req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
     let (data, response) = try await URLSession.shared.data(for: req)
     guard let http = response as? HTTPURLResponse else { return [] }
@@ -1044,9 +1106,23 @@ func resolvePecalWidgetPayload() async -> PecalWidgetPayload? {
     workspace_name: current.workspace_name,
     tasks: selectedTasks,
     workspaces: updatedWorkspaces,
-    special_days_by_date: current.special_days_by_date
+    special_days_by_date: current.special_days_by_date,
+    widget_feedback_task_id: current.widget_feedback_task_id,
+    widget_feedback_until: current.widget_feedback_until,
+    widget_skip_network_until: current.widget_skip_network_until
   )
 
   savePecalWidgetPayload(merged)
   return merged
+}
+
+private func parseISO8601Flexible(_ raw: String) -> Date? {
+  if raw.isEmpty { return nil }
+  let plain = ISO8601DateFormatter()
+  plain.formatOptions = [.withInternetDateTime]
+  if let parsed = plain.date(from: raw) { return parsed }
+
+  let fractional = ISO8601DateFormatter()
+  fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+  return fractional.date(from: raw)
 }

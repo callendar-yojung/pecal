@@ -26,13 +26,13 @@ type ThemeContextValue = {
 
 const palettes: Record<ResolvedThemeMode, ThemeColors> = {
   light: {
-    bg: '#F2F4FB',
+    bg: '#F8FAFC',
     card: '#FFFFFF',
-    cardSoft: '#ECEFF7',
+    cardSoft: '#F1F5F9',
     text: '#0F172A',
-    textMuted: '#7C8599',
-    border: '#E5EAF5',
-    primary: '#5B6CFF',
+    textMuted: '#64748B',
+    border: '#E2E8F0',
+    primary: '#2563EB',
     nav: '#FFFFFF',
   },
   black: {

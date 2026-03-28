@@ -1,5 +1,5 @@
-import "../global.css";
 import 'react-native-gesture-handler';
+import "../global.css";
 import { Slot } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
