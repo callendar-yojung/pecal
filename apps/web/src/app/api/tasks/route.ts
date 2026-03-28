@@ -6,6 +6,7 @@ import {
 } from "@/lib/access";
 import {
   createTask,
+  deleteTaskRecurrence,
   deleteTask,
   getTaskById,
   getTasksByWorkspaceIdPaginated,
@@ -352,6 +353,7 @@ export async function PATCH(request: NextRequest) {
       category_id,
       tag_ids,
       reminder_minutes,
+      recurrence,
     } = body;
 
     if (!task_id) {
@@ -425,6 +427,56 @@ export async function PATCH(request: NextRequest) {
       );
     }
     const hasRrule = Object.prototype.hasOwnProperty.call(body, "rrule");
+    const hasRecurrence = Object.prototype.hasOwnProperty.call(body, "recurrence");
+
+    let recurrencePatch:
+      | { enabled: false }
+      | { enabled: true; start_date: string; end_date: string; weekdays: number[] }
+      | null = null;
+    if (hasRecurrence) {
+      const recurrenceInput: RecurrenceInput | null =
+        recurrence && typeof recurrence === "object" ? (recurrence as RecurrenceInput) : null;
+      const shouldUpsertRecurrence = Boolean(
+        recurrenceInput?.enabled &&
+          recurrenceInput?.start_date &&
+          recurrenceInput?.end_date &&
+          Array.isArray(recurrenceInput?.weekdays) &&
+          recurrenceInput.weekdays.length > 0,
+      );
+
+      if (!shouldUpsertRecurrence) {
+        recurrencePatch = { enabled: false };
+      } else {
+        const recurrenceStart = parseLocalDateFromString(String(recurrenceInput?.start_date ?? ""));
+        const recurrenceEnd = parseLocalDateFromString(String(recurrenceInput?.end_date ?? ""));
+        const weekdays = Array.from(
+          new Set(
+            (recurrenceInput?.weekdays ?? [])
+              .map((day) => Number(day))
+              .filter((day) => Number.isInteger(day) && day >= 0 && day <= 6),
+          ),
+        ).sort((a, b) => a - b);
+
+        if (!recurrenceStart || !recurrenceEnd || recurrenceStart > recurrenceEnd) {
+          return NextResponse.json(
+            { error: "recurrence start_date/end_date is invalid" },
+            { status: 400 },
+          );
+        }
+        if (weekdays.length === 0) {
+          return NextResponse.json(
+            { error: "recurrence weekdays must include at least one day" },
+            { status: 400 },
+          );
+        }
+        recurrencePatch = {
+          enabled: true,
+          start_date: String(recurrenceInput?.start_date),
+          end_date: String(recurrenceInput?.end_date),
+          weekdays,
+        };
+      }
+    }
 
     await updateTask(
       Number(task_id),
@@ -442,6 +494,18 @@ export async function PATCH(request: NextRequest) {
       },
       user.memberId,
     );
+
+    if (recurrencePatch) {
+      if (!recurrencePatch.enabled) {
+        await deleteTaskRecurrence(Number(task_id));
+      } else {
+        await upsertTaskRecurrence(Number(task_id), {
+          start_date: recurrencePatch.start_date,
+          end_date: recurrencePatch.end_date,
+          weekdays: recurrencePatch.weekdays,
+        });
+      }
+    }
 
     const updatedTask = await getTaskById(Number(task_id));
     if (updatedTask) {
@@ -475,56 +539,83 @@ export async function DELETE(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const taskId = searchParams.get("task_id");
+    const taskIdsRaw = searchParams.get("task_ids");
 
-    if (!taskId) {
+    if (!taskId && !taskIdsRaw) {
       return NextResponse.json(
-        { error: "task_id is required" },
+        { error: "task_id or task_ids is required" },
         { status: 400 },
       );
     }
 
-    const access = await requireTaskAccess(request, Number(taskId));
-    if (access instanceof NextResponse) return access;
-    const { task } = access;
+    const targetIds = taskIdsRaw
+      ? Array.from(
+          new Set(
+            taskIdsRaw
+              .split(",")
+              .map((value) => Number(value.trim()))
+              .filter((value) => Number.isFinite(value) && value > 0),
+          ),
+        )
+      : [Number(taskId)];
 
-    const workspace = await getWorkspaceById(task.workspace_id);
-    if (!workspace) {
+    if (targetIds.length === 0) {
       return NextResponse.json(
-        { error: "Workspace not found" },
-        { status: 404 },
+        { error: "No valid task IDs provided" },
+        { status: 400 },
       );
     }
 
-    if (workspace.type === "team") {
-      const team = await getTeamById(workspace.owner_id);
-      if (!team) {
-        return NextResponse.json({ error: "Team not found" }, { status: 404 });
+    const deletableTasks: Array<{ id: number; workspace_id: number }> = [];
+
+    for (const targetId of targetIds) {
+      const access = await requireTaskAccess(request, targetId);
+      if (access instanceof NextResponse) return access;
+      const { task } = access;
+
+      const workspace = await getWorkspaceById(task.workspace_id);
+      if (!workspace) {
+        return NextResponse.json(
+          { error: "Workspace not found" },
+          { status: 404 },
+        );
       }
 
-      if (team.created_by !== user.memberId) {
-        const permissions = await getPermissionsByMember(
-          team.id,
-          user.memberId,
-        );
-        const canDeleteAll = permissions.includes("TASK_DELETE_ALL");
-        const canDeleteOwn = permissions.includes("TASK_DELETE_OWN");
+      if (workspace.type === "team") {
+        const team = await getTeamById(workspace.owner_id);
+        if (!team) {
+          return NextResponse.json({ error: "Team not found" }, { status: 404 });
+        }
 
-        if (
-          !(canDeleteAll || (canDeleteOwn && task.created_by === user.memberId))
-        ) {
-          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        if (team.created_by !== user.memberId) {
+          const permissions = await getPermissionsByMember(
+            team.id,
+            user.memberId,
+          );
+          const canDeleteAll = permissions.includes("TASK_DELETE_ALL");
+          const canDeleteOwn = permissions.includes("TASK_DELETE_OWN");
+
+          if (
+            !(canDeleteAll || (canDeleteOwn && task.created_by === user.memberId))
+          ) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+          }
         }
       }
+
+      deletableTasks.push({ id: targetId, workspace_id: task.workspace_id });
     }
 
-    await deleteTask(Number(taskId));
-    await enqueueTaskReminderEvent({
-      action: "delete",
-      taskId: Number(taskId),
-      workspaceId: task.workspace_id,
-    });
+    for (const task of deletableTasks) {
+      await deleteTask(task.id);
+      await enqueueTaskReminderEvent({
+        action: "delete",
+        taskId: task.id,
+        workspaceId: task.workspace_id,
+      });
+    }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, deletedCount: deletableTasks.length });
   } catch (error) {
     console.error("Failed to delete task:", error);
     return NextResponse.json(

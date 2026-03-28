@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useThemeMode } from '../contexts/ThemeContext';
 import { useI18n } from '../contexts/I18nContext';
 import { createStyles } from '../styles/createStyles';
@@ -8,6 +9,7 @@ import type { TaskItem } from '../lib/types';
 type Props = {
   tasks: TaskItem[];
   onPressTask?: (taskId: number) => void;
+  onToggleTaskDone?: (taskId: number, done: boolean) => void;
 };
 
 type TaskWithDate = TaskItem & {
@@ -40,7 +42,34 @@ function formatCountdown(target: Date, now: Date, t: (key: string, params?: Reco
   return t('overviewTimelineStartsInHoursMinutes', { hours, minutes });
 }
 
-export function OverviewScreen({ tasks, onPressTask }: Props) {
+function isRecurringTask(task: TaskItem) {
+  if (task.recurrence && Array.isArray(task.recurrence.weekdays) && task.recurrence.weekdays.length > 0) {
+    return true;
+  }
+  if (!task.rrule) return false;
+  try {
+    const parsed = JSON.parse(task.rrule) as { type?: string; weekdays?: number[] } | null;
+    return Boolean(
+      parsed &&
+        parsed.type === 'WEEKLY_RANGE' &&
+        Array.isArray(parsed.weekdays) &&
+        parsed.weekdays.length > 0,
+    );
+  } catch {
+    return false;
+  }
+}
+
+function toDateLabel(date: Date | null, locale: string) {
+  if (!date) return '--';
+  return date.toLocaleDateString(locale === 'ko' ? 'ko-KR' : 'en-US', {
+    month: 'numeric',
+    day: 'numeric',
+    weekday: 'short',
+  });
+}
+
+export function OverviewScreen({ tasks, onPressTask, onToggleTaskDone }: Props) {
   const { colors } = useThemeMode();
   const { locale, t } = useI18n();
   const s = createStyles(colors);
@@ -87,6 +116,75 @@ export function OverviewScreen({ tasks, onPressTask }: Props) {
     return start.getTime() > now.getTime();
   });
 
+  const recurringTasks = useMemo(() => {
+    return tasks
+      .map((task) => {
+        const start = parseDate(task.start_time);
+        const end = parseDate(task.end_time) ?? start;
+        return { ...task, __start: start, __end: end } as TaskWithDate;
+      })
+      .filter((task) => {
+        const start = task.__start;
+        if (!start) return false;
+        if (task.status === 'DONE') return false;
+        return isRecurringTask(task) && start.getTime() >= now.getTime();
+      })
+      .sort((a, b) => (a.__start?.getTime() ?? 0) - (b.__start?.getTime() ?? 0))
+      .slice(0, 8);
+  }, [tasks, now]);
+
+  const categoryGroups = useMemo(() => {
+    const groups = new Map<
+      string,
+      {
+        categoryId: number | null;
+        categoryName: string;
+        color: string;
+        tasks: TaskWithDate[];
+      }
+    >();
+
+    for (const task of todayTasks) {
+      const categoryId = task.category?.category_id ?? task.category_id ?? null;
+      const categoryName = task.category?.name ?? '미분류';
+      const color = task.category?.color ?? task.color ?? colors.primary;
+      const key = `${categoryId ?? 'none'}:${categoryName}`;
+      const existing = groups.get(key);
+      if (existing) {
+        existing.tasks.push(task);
+      } else {
+        groups.set(key, {
+          categoryId: categoryId ? Number(categoryId) : null,
+          categoryName,
+          color,
+          tasks: [task],
+        });
+      }
+    }
+
+    return Array.from(groups.values()).sort((a, b) => b.tasks.length - a.tasks.length);
+  }, [todayTasks, colors.primary]);
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const [selectedCategoryKey, setSelectedCategoryKey] = useState<string>('ALL');
+  const categoryOptions = useMemo(() => {
+    return [
+      {
+        key: 'ALL',
+        name: '전체 카테고리',
+        color: colors.primary,
+        tasks: todayTasks,
+      },
+      ...categoryGroups.map((group) => ({
+        key: `${group.categoryId ?? 'none'}:${group.categoryName}`,
+        name: group.categoryName,
+        color: group.color,
+        tasks: group.tasks,
+      })),
+    ];
+  }, [categoryGroups, todayTasks, colors.primary]);
+  const selectedCategoryOption =
+    categoryOptions.find((option) => option.key === selectedCategoryKey) ?? categoryOptions[0];
+
   const localizedTopDate = now.toLocaleDateString(locale === 'ko' ? 'ko-KR' : 'en-US', {
     month: 'long',
     day: 'numeric',
@@ -103,7 +201,7 @@ export function OverviewScreen({ tasks, onPressTask }: Props) {
       </View>
 
       <View style={[s.panel, { borderRadius: 18, gap: 10 }]}>
-        <Text style={[s.formTitle, { fontSize: 16 }]}>{t('overviewTimelineTitle')}</Text>
+        <Text style={[s.formTitle, { fontSize: 16 }]}>오늘 일정</Text>
         {nextTask?.__start ? (
           <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>
             {formatCountdown(nextTask.__start, now, t)}
@@ -119,28 +217,228 @@ export function OverviewScreen({ tasks, onPressTask }: Props) {
           ) : (
             todayTasks.map((task, idx) => {
               const isCurrent = currentTaskId === task.id;
+              const isDone = task.status === 'DONE';
               return (
-                <Pressable
+                <View
                   key={task.id}
-                  onPress={() => onPressTask?.(task.id)}
                   style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 10,
                     paddingHorizontal: 12,
                     paddingVertical: 10,
                     backgroundColor: isCurrent ? `${colors.primary}14` : colors.card,
                     borderTopWidth: idx === 0 ? 0 : 1,
                     borderTopColor: colors.border,
-                    gap: 4,
                   }}
                 >
-                  <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: '700' }}>
-                    {`${formatTime(task.__start)} - ${formatTime(task.__end)}`}
-                  </Text>
-                  <Text style={{ color: colors.text, fontSize: 14, fontWeight: isCurrent ? '800' : '700' }}>{task.title}</Text>
-                </Pressable>
+                  <Pressable
+                    onPress={() => onToggleTaskDone?.(task.id, !isDone)}
+                    hitSlop={8}
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 12,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderWidth: isDone ? 0 : 1.5,
+                      borderColor: isDone ? colors.primary : colors.border,
+                      backgroundColor: isDone ? colors.primary : 'transparent',
+                    }}
+                  >
+                    {isDone ? <Ionicons name="checkmark" size={15} color="#FFFFFF" /> : null}
+                  </Pressable>
+                  <Pressable
+                    onPress={() => onPressTask?.(task.id)}
+                    style={{ flex: 1, gap: 4 }}
+                  >
+                    <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: '700' }}>
+                      {`${formatTime(task.__start)} - ${formatTime(task.__end)}`}
+                    </Text>
+                    <Text
+                      style={{
+                        color: colors.text,
+                        fontSize: 14,
+                        fontWeight: isCurrent ? '800' : '700',
+                        textDecorationLine: isDone ? 'line-through' : 'none',
+                        opacity: isDone ? 0.75 : 1,
+                      }}
+                    >
+                      {task.title}
+                    </Text>
+                  </Pressable>
+                </View>
               );
             })
           )}
         </View>
+      </View>
+
+      <View style={[s.panel, { borderRadius: 18, gap: 10 }]}>
+        <Text style={[s.formTitle, { fontSize: 16 }]}>반복 일정</Text>
+        {recurringTasks.length === 0 ? (
+          <Text style={s.itemMeta}>예정된 반복 일정이 없습니다.</Text>
+        ) : (
+          <View style={{ gap: 8 }}>
+            {recurringTasks.map((task) => (
+              <Pressable
+                key={`${task.id}:${task.start_time}`}
+                onPress={() => onPressTask?.(task.id)}
+                style={{
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderRadius: 12,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  backgroundColor: colors.card,
+                  gap: 4,
+                }}
+              >
+                <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: '700' }}>
+                  {`${toDateLabel(task.__start, locale)} · ${formatTime(task.__start)} - ${formatTime(task.__end)}`}
+                </Text>
+                <Text style={{ color: colors.text, fontSize: 14, fontWeight: '700' }}>{task.title}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+      </View>
+
+      <View style={[s.panel, { borderRadius: 18, gap: 10 }]}>
+        <Text style={[s.formTitle, { fontSize: 16 }]}>카테고리별 일정</Text>
+        {categoryGroups.length === 0 ? (
+          <Text style={s.itemMeta}>오늘 카테고리 일정이 없습니다.</Text>
+        ) : (
+          <View style={{ gap: 10 }}>
+            <Pressable
+              onPress={() => setCategoryDropdownOpen((prev) => !prev)}
+              style={{
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 12,
+                backgroundColor: colors.card,
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                <View
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: 999,
+                    backgroundColor: selectedCategoryOption?.color ?? colors.primary,
+                  }}
+                />
+                <Text numberOfLines={1} style={{ color: colors.text, fontSize: 14, fontWeight: '700', flex: 1 }}>
+                  {selectedCategoryOption?.name ?? '전체 카테고리'}
+                </Text>
+              </View>
+              <Ionicons
+                name={categoryDropdownOpen ? 'chevron-up' : 'chevron-down'}
+                size={16}
+                color={colors.textMuted}
+              />
+            </Pressable>
+
+            {categoryDropdownOpen ? (
+              <View
+                style={{
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderRadius: 12,
+                  backgroundColor: colors.card,
+                  overflow: 'hidden',
+                }}
+              >
+                {categoryOptions.map((option, idx) => {
+                  const selected = option.key === (selectedCategoryOption?.key ?? 'ALL');
+                  return (
+                    <Pressable
+                      key={option.key}
+                      onPress={() => {
+                        setSelectedCategoryKey(option.key);
+                        setCategoryDropdownOpen(false);
+                      }}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 10,
+                        borderTopWidth: idx === 0 ? 0 : 1,
+                        borderTopColor: colors.border,
+                        backgroundColor: selected ? `${colors.primary}14` : colors.card,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <Text style={{ color: selected ? colors.primary : colors.text, fontSize: 13, fontWeight: selected ? '800' : '600' }}>
+                        {option.name}
+                      </Text>
+                      <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: '700' }}>
+                        {option.tasks.length}개
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : null}
+
+            <View
+              style={{
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 12,
+                backgroundColor: colors.card,
+                overflow: 'hidden',
+              }}
+            >
+              <View
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  backgroundColor: `${selectedCategoryOption?.color ?? colors.primary}1A`,
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.border,
+                }}
+              >
+                <Text style={{ color: colors.text, fontSize: 13, fontWeight: '800' }}>
+                  {selectedCategoryOption?.name ?? '전체 카테고리'}
+                </Text>
+                <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: '700' }}>
+                  {selectedCategoryOption?.tasks.length ?? 0}개
+                </Text>
+              </View>
+              <View style={{ paddingHorizontal: 12, paddingVertical: 8, gap: 6 }}>
+                {(selectedCategoryOption?.tasks ?? []).slice(0, 6).map((task) => (
+                  <Pressable
+                    key={`${selectedCategoryOption?.key ?? 'ALL'}:${task.id}:${task.start_time}`}
+                    onPress={() => onPressTask?.(task.id)}
+                    style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}
+                  >
+                    <Text
+                      numberOfLines={1}
+                      style={{ color: colors.text, fontSize: 13, fontWeight: '600', flex: 1 }}
+                    >
+                      {task.title}
+                    </Text>
+                    <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: '700' }}>
+                      {formatTime(task.__start)}
+                    </Text>
+                  </Pressable>
+                ))}
+                {(selectedCategoryOption?.tasks?.length ?? 0) === 0 ? (
+                  <Text style={s.itemMeta}>선택한 카테고리 일정이 없습니다.</Text>
+                ) : null}
+              </View>
+            </View>
+          </View>
+        )}
       </View>
 
     </View>

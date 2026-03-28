@@ -431,6 +431,10 @@ export async function upsertTaskRecurrence(
   );
 }
 
+export async function deleteTaskRecurrence(taskId: number): Promise<void> {
+  await pool.query(`DELETE FROM task_recurrences WHERE task_id = ?`, [taskId]);
+}
+
 /**
  * 워크스페이스의 태스크 목록 조회
  */

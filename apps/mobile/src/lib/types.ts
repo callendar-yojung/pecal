@@ -32,6 +32,12 @@ export type TagItem = {
   color?: string;
 };
 
+export type CategoryItem = {
+  category_id: number;
+  name: string;
+  color?: string;
+};
+
 export type TaskItem = {
   id: number;
   title: string;
@@ -40,6 +46,8 @@ export type TaskItem = {
   content?: string | null;
   status?: TaskStatus;
   color?: string;
+  category_id?: number | null;
+  category?: { category_id: number; name: string; color?: string } | null;
   tag_ids?: number[];
   tags?: Array<{ tag_id: number; name: string; color: string }>;
   description?: string | null;
@@ -47,6 +55,11 @@ export type TaskItem = {
   is_all_day?: boolean;
   reminder_minutes?: number | null;
   rrule?: string | null;
+  recurrence?: {
+    start_date: string;
+    end_date: string;
+    weekdays: number[];
+  } | null;
 };
 
 export type FileItem = {

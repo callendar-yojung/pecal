@@ -36,10 +36,11 @@ export default function TasksTab() {
       {data.selectedWorkspace ? (
         <TasksScreen
           tasks={data.tasks}
-          tags={data.tags}
+          categories={data.categories}
           onOpenCreateTask={() => router.push('/tasks/new')}
           onOpenTask={(taskId) => router.push(`/tasks/${taskId}`)}
           onChangeTaskStatus={(taskId, status) => void data.updateTask(taskId, { status })}
+          onDeleteTasks={async (taskIds) => data.deleteTasks(taskIds)}
         />
       ) : null}
     </ScrollView>

@@ -13,10 +13,18 @@ import {
   uploadTaskAttachment,
 } from '../../../../src/lib/file-upload';
 import { isUploadLimitError } from '../../../../src/lib/plan-limits';
-import type { TaskAttachmentItem, TaskStatus } from '../../../../src/lib/types';
+import type { CategoryItem, TaskAttachmentItem, TaskStatus } from '../../../../src/lib/types';
 import { createStyles } from '../../../../src/styles/createStyles';
 import { TaskEditorForm } from '../../../../src/components/task/TaskEditorForm';
 import { apiFetch, invalidateApiCache } from '../../../../src/lib/api';
+import {
+  loadTaskColorOptionsForMember,
+  saveTaskColorPresetForMember,
+} from '../../../../src/lib/task-color-presets';
+
+function normalizeTaskStatus(status?: TaskStatus): 'TODO' | 'DONE' {
+  return status === 'DONE' ? 'DONE' : 'TODO';
+}
 
 export default function TaskEditPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -33,10 +41,17 @@ export default function TaskEditPage() {
   const [status, setStatus] = useState<TaskStatus>('TODO');
   const [color, setColor] = useState('#3B82F6');
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [allDay, setAllDay] = useState(false);
   const [reminderMinutes, setReminderMinutes] = useState('10');
+  const [scheduleMode, setScheduleMode] = useState<'single' | 'recurring'>('single');
+  const [recurrenceStartDate, setRecurrenceStartDate] = useState('');
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
+  const [recurrenceWeekdays, setRecurrenceWeekdays] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
   const [creatingTag, setCreatingTag] = useState(false);
+  const [colorOptions, setColorOptions] = useState<string[]>([]);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [attachments, setAttachments] = useState<TaskAttachmentItem[]>([]);
   const [uploadingAttachmentIds, setUploadingAttachmentIds] = useState<string[]>([]);
 
@@ -53,16 +68,59 @@ export default function TaskEditPage() {
   const task = data.tasks.find((item) => item.id === taskId) ?? null;
 
   useEffect(() => {
+    let cancelled = false;
+    if (!session) {
+      setColorOptions([]);
+      return;
+    }
+    void (async () => {
+      const options = await loadTaskColorOptionsForMember(session);
+      if (!cancelled) setColorOptions(options);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!session || !data.selectedWorkspace) {
+      setCategories([]);
+      return;
+    }
+    void (async () => {
+      const ownerType = data.selectedWorkspace?.type;
+      const ownerId = data.selectedWorkspace?.owner_id;
+      if (!ownerType || !ownerId) return;
+      const response = await apiFetch<{ categories?: CategoryItem[] }>(
+        `/api/categories?owner_type=${ownerType}&owner_id=${ownerId}`,
+        session,
+      );
+      if (!cancelled) setCategories(Array.isArray(response.categories) ? response.categories : []);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [session, data.selectedWorkspace]);
+
+  useEffect(() => {
     if (!task) return;
     setTitle(task.title);
     setContentJson(task.content ?? '');
     setStartTime(task.start_time);
     setEndTime(task.end_time);
-    setStatus(task.status ?? 'TODO');
+    setStatus(normalizeTaskStatus(task.status));
     setColor(task.color ?? '#3B82F6');
-    setSelectedTagIds(task.tag_ids ?? (task.tags ?? []).map((tag) => tag.tag_id));
+    const sourceTagIds = task.tag_ids ?? (task.tags ?? []).map((tag) => tag.tag_id);
+    setSelectedTagIds(sourceTagIds);
+    setSelectedCategoryId(task.category_id ?? task.category?.category_id ?? null);
     setAllDay(Boolean(task.is_all_day));
     setReminderMinutes(task.reminder_minutes ? String(task.reminder_minutes) : '10');
+    const recurring = Boolean(task.recurrence && task.recurrence.weekdays?.length);
+    setScheduleMode(recurring ? 'recurring' : 'single');
+    setRecurrenceStartDate(task.recurrence?.start_date ?? task.start_time.slice(0, 10));
+    setRecurrenceEndDate(task.recurrence?.end_date ?? task.end_time.slice(0, 10));
+    setRecurrenceWeekdays(task.recurrence?.weekdays ?? [new Date(task.start_time).getDay()]);
   }, [task]);
 
   useEffect(() => {
@@ -106,18 +164,48 @@ export default function TaskEditPage() {
 
   const submit = async () => {
     if (saving) return;
+    const isRecurring = scheduleMode === 'recurring';
+    if (isRecurring) {
+      if (!recurrenceStartDate || !recurrenceEndDate) {
+        Alert.alert('입력 확인', '반복 시작일과 종료일을 선택하세요.');
+        return;
+      }
+      if (recurrenceStartDate > recurrenceEndDate) {
+        Alert.alert('입력 확인', '반복 종료일은 반복 시작일보다 빠를 수 없습니다.');
+        return;
+      }
+      if (!recurrenceWeekdays.length) {
+        Alert.alert('입력 확인', '반복 요일을 1개 이상 선택하세요.');
+        return;
+      }
+    }
+
+    const startTimePart = (startTime.split('T')[1] ?? '09:00:00').slice(0, 8);
+    const endTimePart = (endTime.split('T')[1] ?? '09:30:00').slice(0, 8);
+    const payloadStart = isRecurring ? `${recurrenceStartDate}T${startTimePart || '09:00:00'}` : startTime;
+    const payloadEnd = isRecurring ? `${recurrenceStartDate}T${endTimePart || '09:30:00'}` : endTime;
+
     setSaving(true);
     try {
       await data.updateTask(taskId, {
         title,
-        start_time: startTime,
-        end_time: endTime,
+        start_time: payloadStart,
+        end_time: payloadEnd,
         content: contentJson || null,
-        status,
+        status: normalizeTaskStatus(status),
         color,
+        category_id: selectedCategoryId,
         tag_ids: selectedTagIds,
         is_all_day: allDay,
         reminder_minutes: reminderMinutes ? Number(reminderMinutes) : null,
+        recurrence: isRecurring
+          ? {
+              enabled: true,
+              start_date: recurrenceStartDate,
+              end_date: recurrenceEndDate,
+              weekdays: recurrenceWeekdays,
+            }
+          : null,
       });
       router.replace(`/tasks/${taskId}`);
     } catch (error) {
@@ -260,21 +348,79 @@ export default function TaskEditPage() {
     ]);
   };
 
+  const saveCustomColor = async (value: string) => {
+    if (!session) return null;
+    const { saved, options } = await saveTaskColorPresetForMember(session, value);
+    setColorOptions(options);
+    return saved;
+  };
+
+  const createCategory = async (name: string, categoryColor: string) => {
+    const result = await apiFetch<{ category_id: number }>('/api/categories', session, {
+      method: 'POST',
+      body: JSON.stringify({
+        name,
+        color: categoryColor,
+        owner_type: workspace.type,
+        owner_id: workspace.owner_id,
+      }),
+    });
+    setSelectedCategoryId(result.category_id);
+    setCategories((prev) => {
+      if (prev.some((item) => item.category_id === result.category_id)) return prev;
+      return [...prev, { category_id: result.category_id, name, color: categoryColor }];
+    });
+  };
+
+  const updateCategory = async (categoryId: number, name: string, categoryColor: string) => {
+    await apiFetch(`/api/categories/${categoryId}`, session, {
+      method: 'PATCH',
+      body: JSON.stringify({ name, color: categoryColor }),
+    });
+    setCategories((prev) =>
+      prev.map((item) =>
+        item.category_id === categoryId ? { ...item, name, color: categoryColor } : item
+      )
+    );
+  };
+
+  const deleteCategory = async (categoryId: number) => {
+    await apiFetch(`/api/categories/${categoryId}`, session, { method: 'DELETE' });
+    setCategories((prev) => prev.filter((item) => item.category_id !== categoryId));
+    setSelectedCategoryId((prev) => (prev === categoryId ? null : prev));
+  };
+
   return (
     <ScrollView
       style={s.content}
       contentContainerStyle={[s.contentContainer, { paddingTop: Math.max(12, insets.top + 8) }]}
     >
+      {scheduleMode === 'recurring' ? (
+        <View style={[s.panel, { borderRadius: 16, gap: 6, marginBottom: 10 }]}>
+          <Text style={s.formTitle}>반복 일정 수정</Text>
+          <Text style={s.itemMeta}>기간/요일/반복 시간을 수정하는 전용 화면입니다.</Text>
+        </View>
+      ) : null}
       <TaskEditorForm
+        scheduleMode={scheduleMode}
         title={title}
         startTime={startTime}
         endTime={endTime}
         status={status}
         color={color}
+        selectedCategoryId={selectedCategoryId}
+        availableCategories={categories}
+        colorOptions={colorOptions}
         selectedTagIds={selectedTagIds}
         availableTags={data.tags}
         allDay={allDay}
         reminderMinutes={reminderMinutes}
+        showRecurrenceControls={scheduleMode === 'recurring'}
+        hideRecurrenceToggle={scheduleMode === 'recurring'}
+        recurrenceEnabled={scheduleMode === 'recurring'}
+        recurrenceStartDate={recurrenceStartDate}
+        recurrenceEndDate={recurrenceEndDate}
+        recurrenceWeekdays={recurrenceWeekdays}
         rrule=""
         contentJson={contentJson}
         saving={saving}
@@ -293,6 +439,11 @@ export default function TaskEditPage() {
         }}
         onStatusChange={setStatus}
         onColorChange={setColor}
+        onSaveCustomColor={saveCustomColor}
+        onCategoryChange={setSelectedCategoryId}
+        onCreateCategory={createCategory}
+        onUpdateCategory={updateCategory}
+        onDeleteCategory={deleteCategory}
         onSelectedTagIdsChange={setSelectedTagIds}
         onCreateTag={createTag}
         attachments={attachmentItems}
@@ -302,6 +453,9 @@ export default function TaskEditPage() {
         onRemoveAttachment={(attachmentId) => void removeAttachment(attachmentId)}
         onAllDayChange={setAllDay}
         onReminderMinutesChange={setReminderMinutes}
+        onRecurrenceStartDateChange={setRecurrenceStartDate}
+        onRecurrenceEndDateChange={setRecurrenceEndDate}
+        onRecurrenceWeekdaysChange={setRecurrenceWeekdays}
         onRruleChange={() => undefined}
         onContentChange={setContentJson}
         onSubmit={() => void submit()}

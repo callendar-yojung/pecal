@@ -35,6 +35,12 @@ type TaskMutationInput = {
   assignee_id?: number | null;
   is_all_day?: boolean;
   reminder_minutes?: number | null;
+  recurrence?: {
+    enabled: boolean;
+    start_date: string;
+    end_date: string;
+    weekdays: number[];
+  } | null;
 };
 
 type TaskCreateInput = {
@@ -749,6 +755,18 @@ export function useDashboardData(session: AuthSession | null) {
     await refreshCurrentWorkspace();
   };
 
+  const deleteTasks = async (taskIds: number[]) => {
+    if (!session || !selectedWorkspace) return;
+    const uniqueIds = Array.from(
+      new Set(taskIds.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0)),
+    );
+    if (!uniqueIds.length) return;
+    await apiFetch(`/api/tasks?task_ids=${uniqueIds.join(',')}`, session, {
+      method: 'DELETE',
+    });
+    await refreshCurrentWorkspace();
+  };
+
   const shiftTaskTime = async (taskId: number, minutes: number) => {
     const task = tasks.find((item) => item.id === taskId);
     if (!task) return;
@@ -1269,6 +1287,7 @@ export function useDashboardData(session: AuthSession | null) {
     setMemoTags,
     updateTask,
     deleteTask,
+    deleteTasks,
     shiftTaskTime,
     resizeTaskDuration,
     createTeam,
