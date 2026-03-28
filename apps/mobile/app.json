@@ -11,6 +11,7 @@
       "supportsTablet": true,
       "icon": "./assets/icon-ios.png",
       "bundleIdentifier": "com.pecal.mobile",
+      "buildNumber": "15",
       "infoPlist": {
         "NSCameraUsageDescription": "사진을 촬영하여 일정에 첨부하기 위해 사용됩니다.",
         "NSPhotoLibraryUsageDescription": "일정에 사진과 동영상을 첨부하기 위해 사용됩니다.",
