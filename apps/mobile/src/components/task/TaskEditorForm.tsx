@@ -164,21 +164,47 @@ export function TaskEditorForm({
   ] as const;
   const splitDateTime = (value: string) => {
     if (!value) return { date: '', time: '' };
-    const [date, time = ''] = value.split('T');
-    return { date, time: time.slice(0, 5) };
+    const trimmed = value.trim();
+
+    // Supports:
+    // - 2026-03-28T09:30
+    // - 2026-03-28T09:30:00Z
+    // - 2026-03-28 09:30:00
+    const dateTimeMatch = trimmed.match(/^(\d{4}-\d{2}-\d{2})[T\s](\d{2}):(\d{2})/);
+    if (dateTimeMatch) {
+      const [, date, hh, mm] = dateTimeMatch;
+      return { date, time: `${hh}:${mm}` };
+    }
+
+    const dateOnlyMatch = trimmed.match(/^(\d{4}-\d{2}-\d{2})$/);
+    if (dateOnlyMatch) {
+      return { date: dateOnlyMatch[1], time: '' };
+    }
+
+    return { date: '', time: '' };
   };
 
   const buildDateTime = (date: string, time: string, fallback: string) => {
     const trimmedDate = date.trim();
     const nextDate = trimmedDate || splitDateTime(fallback).date;
     const nextTime = time || splitDateTime(fallback).time || '09:00';
-    return nextDate && nextTime ? `${nextDate}T${nextTime}` : fallback;
+    return nextDate && nextTime ? `${nextDate}T${nextTime}:00` : fallback;
   };
   const parsePickerDate = (value: string, fallbackTime: string) => {
     const { date, time } = splitDateTime(value);
     const targetDate = date || new Date().toISOString().slice(0, 10);
     const targetTime = time || fallbackTime;
-    const parsed = new Date(`${targetDate}T${targetTime}:00`);
+    const [year, month, day] = targetDate.split('-').map((part) => Number(part));
+    const [hours, minutes] = targetTime.split(':').map((part) => Number(part));
+    const parsed = new Date(
+      Number.isFinite(year) ? year : new Date().getFullYear(),
+      Number.isFinite(month) ? month - 1 : new Date().getMonth(),
+      Number.isFinite(day) ? day : new Date().getDate(),
+      Number.isFinite(hours) ? hours : 9,
+      Number.isFinite(minutes) ? minutes : 0,
+      0,
+      0,
+    );
     return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
   };
   const formatDatePart = (selected: Date) => {
