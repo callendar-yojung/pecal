@@ -14,10 +14,18 @@ import {
   type PickedAttachment,
 } from '../../../src/lib/file-upload';
 import { isUploadLimitError } from '../../../src/lib/plan-limits';
-import type { TaskAttachmentItem, TaskStatus } from '../../../src/lib/types';
+import type { CategoryItem, TaskAttachmentItem, TaskStatus } from '../../../src/lib/types';
 import { createStyles } from '../../../src/styles/createStyles';
 import { TaskEditorForm } from '../../../src/components/task/TaskEditorForm';
 import { apiFetch, invalidateApiCache } from '../../../src/lib/api';
+import {
+  loadTaskColorOptionsForMember,
+  saveTaskColorPresetForMember,
+} from '../../../src/lib/task-color-presets';
+
+function normalizeTaskStatus(status?: TaskStatus): 'TODO' | 'DONE' {
+  return status === 'DONE' ? 'DONE' : 'TODO';
+}
 
 export default function TaskCreatePage() {
   const params = useLocalSearchParams<{ date?: string }>();
@@ -36,10 +44,17 @@ export default function TaskCreatePage() {
   const [status, setStatus] = useState<TaskStatus>('TODO');
   const [color, setColor] = useState('#3B82F6');
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [allDay, setAllDay] = useState(false);
   const [reminderMinutes, setReminderMinutes] = useState('10');
+  const [recurrenceEnabled, setRecurrenceEnabled] = useState(false);
+  const [recurrenceStartDate, setRecurrenceStartDate] = useState(range.start.slice(0, 10));
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState(range.end.slice(0, 10));
+  const [recurrenceWeekdays, setRecurrenceWeekdays] = useState<number[]>([initialDate.getDay()]);
   const [saving, setSaving] = useState(false);
   const [creatingTag, setCreatingTag] = useState(false);
+  const [colorOptions, setColorOptions] = useState<string[]>([]);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [pendingAttachments, setPendingAttachments] = useState<PickedAttachment[]>([]);
   const [uploadingLocalIds, setUploadingLocalIds] = useState<string[]>([]);
 
@@ -54,7 +69,46 @@ export default function TaskCreatePage() {
   const { auth, data } = app;
   const session = auth.session;
   useEffect(() => {
+    let cancelled = false;
+    if (!session) {
+      setColorOptions([]);
+      return;
+    }
+    void (async () => {
+      const options = await loadTaskColorOptionsForMember(session);
+      if (!cancelled) setColorOptions(options);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!session || !data.selectedWorkspace) {
+      setCategories([]);
+      return;
+    }
+    void (async () => {
+      const ownerType = data.selectedWorkspace?.type;
+      const ownerId = data.selectedWorkspace?.owner_id;
+      if (!ownerType || !ownerId) return;
+      const response = await apiFetch<{ categories?: CategoryItem[] }>(
+        `/api/categories?owner_type=${ownerType}&owner_id=${ownerId}`,
+        session,
+      );
+      if (!cancelled) setCategories(Array.isArray(response.categories) ? response.categories : []);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [session, data.selectedWorkspace]);
+
+  useEffect(() => {
     setRange(defaultTaskRangeByDate(initialDate));
+    setRecurrenceStartDate(defaultTaskRangeByDate(initialDate).start.slice(0, 10));
+    setRecurrenceEndDate(defaultTaskRangeByDate(initialDate).end.slice(0, 10));
+    setRecurrenceWeekdays([initialDate.getDay()]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.date]);
 
@@ -70,6 +124,20 @@ export default function TaskCreatePage() {
 
   const submit = async () => {
     if (saving) return;
+    if (recurrenceEnabled) {
+      if (!recurrenceStartDate || !recurrenceEndDate) {
+        Alert.alert('입력 확인', '반복 시작일과 종료일을 선택하세요.');
+        return;
+      }
+      if (recurrenceStartDate > recurrenceEndDate) {
+        Alert.alert('입력 확인', '반복 종료일은 반복 시작일보다 빠를 수 없습니다.');
+        return;
+      }
+      if (recurrenceWeekdays.length === 0) {
+        Alert.alert('입력 확인', '반복 요일을 1개 이상 선택하세요.');
+        return;
+      }
+    }
     setSaving(true);
     try {
       const created = await data.createTaskWithInput({
@@ -77,11 +145,20 @@ export default function TaskCreatePage() {
         start_time: range.start,
         end_time: range.end,
         content: contentJson || null,
-        status,
+        status: normalizeTaskStatus(status),
         color,
+        category_id: selectedCategoryId,
         tag_ids: selectedTagIds,
         is_all_day: allDay,
         reminder_minutes: reminderMinutes ? Number(reminderMinutes) : null,
+        recurrence: recurrenceEnabled
+          ? {
+              enabled: true,
+              start_date: recurrenceStartDate,
+              end_date: recurrenceEndDate,
+              weekdays: recurrenceWeekdays,
+            }
+          : null,
       });
       if (!created.success) return;
       if (created.taskId && pendingAttachments.length > 0) {
@@ -214,6 +291,48 @@ export default function TaskCreatePage() {
   const removePendingAttachment = (attachmentId: number | string) =>
     setPendingAttachments((prev) => prev.filter((item) => item.localId !== String(attachmentId)));
 
+  const saveCustomColor = async (value: string) => {
+    if (!session) return null;
+    const { saved, options } = await saveTaskColorPresetForMember(session, value);
+    setColorOptions(options);
+    return saved;
+  };
+
+  const createCategory = async (name: string, categoryColor: string) => {
+    const result = await apiFetch<{ category_id: number }>('/api/categories', session, {
+      method: 'POST',
+      body: JSON.stringify({
+        name,
+        color: categoryColor,
+        owner_type: workspace.type,
+        owner_id: workspace.owner_id,
+      }),
+    });
+    setSelectedCategoryId(result.category_id);
+    setCategories((prev) => {
+      if (prev.some((item) => item.category_id === result.category_id)) return prev;
+      return [...prev, { category_id: result.category_id, name, color: categoryColor }];
+    });
+  };
+
+  const updateCategory = async (categoryId: number, name: string, categoryColor: string) => {
+    await apiFetch(`/api/categories/${categoryId}`, session, {
+      method: 'PATCH',
+      body: JSON.stringify({ name, color: categoryColor }),
+    });
+    setCategories((prev) =>
+      prev.map((item) =>
+        item.category_id === categoryId ? { ...item, name, color: categoryColor } : item
+      )
+    );
+  };
+
+  const deleteCategory = async (categoryId: number) => {
+    await apiFetch(`/api/categories/${categoryId}`, session, { method: 'DELETE' });
+    setCategories((prev) => prev.filter((item) => item.category_id !== categoryId));
+    setSelectedCategoryId((prev) => (prev === categoryId ? null : prev));
+  };
+
   return (
     <ScrollView
       style={s.content}
@@ -225,10 +344,18 @@ export default function TaskCreatePage() {
         endTime={range.end}
         status={status}
         color={color}
+        selectedCategoryId={selectedCategoryId}
+        availableCategories={categories}
+        colorOptions={colorOptions}
         selectedTagIds={selectedTagIds}
         availableTags={data.tags}
         allDay={allDay}
         reminderMinutes={reminderMinutes}
+        showRecurrenceControls
+        recurrenceEnabled={recurrenceEnabled}
+        recurrenceStartDate={recurrenceStartDate}
+        recurrenceEndDate={recurrenceEndDate}
+        recurrenceWeekdays={recurrenceWeekdays}
         rrule=""
         contentJson={contentJson}
         saving={saving}
@@ -239,6 +366,11 @@ export default function TaskCreatePage() {
         onEndTimeChange={(value) => setRange((prev) => ensureRange(prev.start, value))}
         onStatusChange={setStatus}
         onColorChange={setColor}
+        onSaveCustomColor={saveCustomColor}
+        onCategoryChange={setSelectedCategoryId}
+        onCreateCategory={createCategory}
+        onUpdateCategory={updateCategory}
+        onDeleteCategory={deleteCategory}
         onSelectedTagIdsChange={setSelectedTagIds}
         onCreateTag={createTag}
         attachments={attachmentItems}
@@ -248,6 +380,10 @@ export default function TaskCreatePage() {
         onRemoveAttachment={removePendingAttachment}
         onAllDayChange={setAllDay}
         onReminderMinutesChange={setReminderMinutes}
+        onRecurrenceEnabledChange={setRecurrenceEnabled}
+        onRecurrenceStartDateChange={setRecurrenceStartDate}
+        onRecurrenceEndDateChange={setRecurrenceEndDate}
+        onRecurrenceWeekdaysChange={setRecurrenceWeekdays}
         onRruleChange={() => undefined}
         onContentChange={setContentJson}
         onSubmit={() => void submit()}

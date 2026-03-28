@@ -10,6 +10,7 @@ import {
 } from '../lib/offline-queue';
 import type {
   AuthSession,
+  CategoryItem,
   FileItem,
   MainTab,
   MemoItem,
@@ -28,6 +29,7 @@ type TaskMutationInput = {
   content?: string | null;
   status?: TaskStatus;
   color?: string;
+  category_id?: number | null;
   tag_ids?: number[];
   description?: string | null;
   assignee_id?: number | null;
@@ -42,11 +44,18 @@ type TaskCreateInput = {
   content?: string | null;
   status?: TaskStatus;
   color?: string;
+  category_id?: number | null;
   tag_ids?: number[];
   description?: string | null;
   assignee_id?: number | null;
   is_all_day?: boolean;
   reminder_minutes?: number | null;
+  recurrence?: {
+    enabled: boolean;
+    start_date: string;
+    end_date: string;
+    weekdays: number[];
+  } | null;
 };
 
 type TaskCreateResult = {
@@ -314,6 +323,7 @@ export function useDashboardData(session: AuthSession | null) {
   const [memos, setMemos] = useState<MemoItem[]>([]);
   const [files, setFiles] = useState<FileItem[]>([]);
   const [tags, setTags] = useState<TagItem[]>([]);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -505,6 +515,13 @@ export function useDashboardData(session: AuthSession | null) {
           {},
           { cacheMs: 30_000, dedupe: true, retries: 1 }
         ),
+        cachedApiFetch<{ categories: CategoryItem[] }>(
+          `categories:${workspace.type}:${workspace.owner_id}`,
+          `/api/categories?owner_type=${workspace.type}&owner_id=${workspace.owner_id}`,
+          session,
+          {},
+          { cacheMs: 30_000, dedupe: true, retries: 1 }
+        ),
         cachedApiFetch<{ notifications: NotificationItem[] }>(
           'notifications:limit20',
           '/api/notifications?limit=20',
@@ -521,7 +538,7 @@ export function useDashboardData(session: AuthSession | null) {
         ),
       ]);
 
-      const [taskRes, memoRes, fileRes, tagRes, notiRes, unreadRes] = results;
+      const [taskRes, memoRes, fileRes, tagRes, categoryRes, notiRes, unreadRes] = results;
 
       const errors: string[] = [];
 
@@ -551,6 +568,13 @@ export function useDashboardData(session: AuthSession | null) {
       } else {
         errors.push(tagRes.reason instanceof Error ? tagRes.reason.message : String(tagRes.reason));
         setTags([]);
+      }
+
+      if (categoryRes.status === 'fulfilled') {
+        setCategories(categoryRes.value.categories ?? []);
+      } else {
+        errors.push(categoryRes.reason instanceof Error ? categoryRes.reason.message : String(categoryRes.reason));
+        setCategories([]);
       }
 
       if (notiRes.status === 'fulfilled') {
@@ -622,12 +646,14 @@ export function useDashboardData(session: AuthSession | null) {
       content: input.content ?? null,
       workspace_id: selectedWorkspace.workspace_id,
       color: input.color ?? '#3B82F6',
+      category_id: input.category_id ?? null,
       tag_ids: input.tag_ids ?? ([] as number[]),
       status: input.status ?? ('TODO' as TaskStatus),
       description: input.description ?? null,
       assignee_id: input.assignee_id ?? null,
       is_all_day: input.is_all_day ?? false,
       reminder_minutes: input.reminder_minutes ?? null,
+      recurrence: input.recurrence ?? null,
     };
 
     try {
@@ -662,6 +688,7 @@ export function useDashboardData(session: AuthSession | null) {
       content: taskContentJson || null,
       status: 'TODO',
       color: '#3B82F6',
+      category_id: null,
       tag_ids: [],
     });
     if (!created.success) return;
@@ -1188,6 +1215,7 @@ export function useDashboardData(session: AuthSession | null) {
     decoratedMemos,
     files,
     tags,
+    categories,
     notifications,
     unreadCount,
     showNotifications,

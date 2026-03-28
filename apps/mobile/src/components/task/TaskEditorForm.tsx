@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Image, Modal, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import ColorPicker from 'reanimated-color-picker/lib/module/index.js';
+import { HueSlider, Panel1 } from 'reanimated-color-picker/lib/module/index.js';
 import { TASK_COLOR_OPTIONS } from '../../lib/task-colors';
-import type { TagItem, TaskAttachmentItem, TaskStatus } from '../../lib/types';
+import type { CategoryItem, TagItem, TaskAttachmentItem, TaskStatus } from '../../lib/types';
 import { useThemeMode } from '../../contexts/ThemeContext';
 import { createStyles } from '../../styles/createStyles';
 import { SharedRichTextEditor } from '../editor/SharedRichTextEditor';
@@ -13,6 +15,8 @@ type Props = {
   endTime: string;
   status: TaskStatus;
   color: string;
+  selectedCategoryId?: number | null;
+  availableCategories?: CategoryItem[];
   selectedTagIds: number[];
   availableTags: TagItem[];
   attachments?: TaskAttachmentItem[];
@@ -21,15 +25,26 @@ type Props = {
   allDay: boolean;
   reminderMinutes: string;
   rrule: string;
+  showRecurrenceControls?: boolean;
+  recurrenceEnabled?: boolean;
+  recurrenceStartDate?: string;
+  recurrenceEndDate?: string;
+  recurrenceWeekdays?: number[];
   contentJson: string;
   saving: boolean;
   creatingTag?: boolean;
+  colorOptions?: string[];
   submitLabel: string;
   onTitleChange: (value: string) => void;
   onStartTimeChange: (value: string) => void;
   onEndTimeChange: (value: string) => void;
   onStatusChange: (status: TaskStatus) => void;
   onColorChange: (color: string) => void;
+  onSaveCustomColor?: (value: string) => Promise<string | null>;
+  onCategoryChange?: (categoryId: number | null) => void;
+  onCreateCategory?: (name: string, color: string) => Promise<void>;
+  onUpdateCategory?: (categoryId: number, name: string, color: string) => Promise<void>;
+  onDeleteCategory?: (categoryId: number) => Promise<void>;
   onSelectedTagIdsChange: (next: number[]) => void;
   onCreateTag?: (name: string, color: string) => Promise<void>;
   onPickAttachment?: () => void;
@@ -37,6 +52,10 @@ type Props = {
   onAllDayChange: (next: boolean) => void;
   onReminderMinutesChange: (minutes: string) => void;
   onRruleChange: (value: string) => void;
+  onRecurrenceEnabledChange?: (enabled: boolean) => void;
+  onRecurrenceStartDateChange?: (date: string) => void;
+  onRecurrenceEndDateChange?: (date: string) => void;
+  onRecurrenceWeekdaysChange?: (weekdays: number[]) => void;
   onContentChange: (json: string) => void;
   onSubmit: () => void;
   onDelete?: () => void;
@@ -48,6 +67,8 @@ export function TaskEditorForm({
   endTime,
   status,
   color,
+  selectedCategoryId = null,
+  availableCategories = [],
   selectedTagIds,
   availableTags,
   attachments = [],
@@ -56,15 +77,26 @@ export function TaskEditorForm({
   allDay,
   reminderMinutes,
   rrule,
+  showRecurrenceControls = false,
+  recurrenceEnabled = false,
+  recurrenceStartDate = '',
+  recurrenceEndDate = '',
+  recurrenceWeekdays = [],
   contentJson,
   saving,
   creatingTag = false,
+  colorOptions,
   submitLabel,
   onTitleChange,
   onStartTimeChange,
   onEndTimeChange,
   onStatusChange,
   onColorChange,
+  onSaveCustomColor,
+  onCategoryChange,
+  onCreateCategory,
+  onUpdateCategory,
+  onDeleteCategory,
   onSelectedTagIdsChange,
   onCreateTag,
   onPickAttachment,
@@ -72,21 +104,39 @@ export function TaskEditorForm({
   onAllDayChange,
   onReminderMinutesChange,
   onRruleChange,
+  onRecurrenceEnabledChange,
+  onRecurrenceStartDateChange,
+  onRecurrenceEndDateChange,
+  onRecurrenceWeekdaysChange,
   onContentChange,
   onSubmit,
   onDelete,
 }: Props) {
   const { colors } = useThemeMode();
   const s = createStyles(colors);
-  const [pickerTarget, setPickerTarget] = useState<'startDate' | 'startTime' | 'endDate' | 'endTime' | null>(null);
+  const [pickerTarget, setPickerTarget] = useState<
+    'startDate' | 'startTime' | 'endDate' | 'endTime' | 'repeatStartDate' | 'repeatEndDate' | null
+  >(null);
   const [showNewTagInput, setShowNewTagInput] = useState(false);
   const [newTagName, setNewTagName] = useState('');
   const [tagError, setTagError] = useState<string | null>(null);
+  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [categoryError, setCategoryError] = useState<string | null>(null);
+  const [creatingCategory, setCreatingCategory] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(false);
+  const [deletingCategory, setDeletingCategory] = useState(false);
+  const [editCategoryName, setEditCategoryName] = useState('');
+  const [customColorInput, setCustomColorInput] = useState('');
+  const [customColorError, setCustomColorError] = useState<string | null>(null);
+  const [savingCustomColor, setSavingCustomColor] = useState(false);
+  const [pickerRgbText, setPickerRgbText] = useState('');
   const statusLabels: Record<TaskStatus, string> = {
-    TODO: '예정',
-    IN_PROGRESS: '진행중',
+    TODO: '완료 전',
+    IN_PROGRESS: '완료 전',
     DONE: '완료',
   };
+  const normalizedStatus: 'TODO' | 'DONE' = status === 'DONE' ? 'DONE' : 'TODO';
   const formatBytes = (bytes?: number) => {
     if (!bytes || bytes <= 0) return '';
     if (bytes < 1024) return `${bytes} B`;
@@ -135,10 +185,16 @@ export function TaskEditorForm({
 
   const startParts = splitDateTime(startTime);
   const endParts = splitDateTime(endTime);
+  const repeatStartParts = splitDateTime(recurrenceStartDate);
+  const repeatEndParts = splitDateTime(recurrenceEndDate);
   const activePickerDate =
     pickerTarget === 'startDate' || pickerTarget === 'startTime'
       ? parsePickerDate(startTime, '09:00')
-      : parsePickerDate(endTime, '09:30');
+      : pickerTarget === 'repeatStartDate'
+        ? parsePickerDate(recurrenceStartDate || startTime, '00:00')
+        : pickerTarget === 'repeatEndDate'
+          ? parsePickerDate(recurrenceEndDate || endTime, '00:00')
+          : parsePickerDate(endTime, '09:30');
   const createTag = async () => {
     const name = newTagName.trim();
     if (!name || !onCreateTag || creatingTag) return;
@@ -151,6 +207,134 @@ export function TaskEditorForm({
       setTagError(error instanceof Error ? error.message : '태그를 추가하지 못했습니다.');
     }
   };
+  const createCategory = async () => {
+    const name = newCategoryName.trim();
+    if (!name || !onCreateCategory || creatingCategory) return;
+    try {
+      setCategoryError(null);
+      setCreatingCategory(true);
+      await onCreateCategory(name, color);
+      setNewCategoryName('');
+      setShowNewCategoryInput(false);
+    } catch (error) {
+      setCategoryError(error instanceof Error ? error.message : '카테고리를 추가하지 못했습니다.');
+    } finally {
+      setCreatingCategory(false);
+    }
+  };
+  useEffect(() => {
+    const selected = availableCategories.find(
+      (item) => Number(item.category_id) === Number(selectedCategoryId),
+    );
+    setEditCategoryName(selected?.name ?? '');
+  }, [availableCategories, selectedCategoryId]);
+
+  const updateCategory = async () => {
+    const categoryId = Number(selectedCategoryId);
+    const name = editCategoryName.trim();
+    if (!onUpdateCategory || !Number.isFinite(categoryId) || categoryId <= 0 || !name || editingCategory) return;
+    try {
+      setCategoryError(null);
+      setEditingCategory(true);
+      await onUpdateCategory(categoryId, name, color);
+    } catch (error) {
+      setCategoryError(error instanceof Error ? error.message : '카테고리를 수정하지 못했습니다.');
+    } finally {
+      setEditingCategory(false);
+    }
+  };
+
+  const deleteCategory = async () => {
+    const categoryId = Number(selectedCategoryId);
+    if (!onDeleteCategory || !Number.isFinite(categoryId) || categoryId <= 0 || deletingCategory) return;
+    try {
+      setCategoryError(null);
+      setDeletingCategory(true);
+      await onDeleteCategory(categoryId);
+    } catch (error) {
+      setCategoryError(error instanceof Error ? error.message : '카테고리를 삭제하지 못했습니다.');
+    } finally {
+      setDeletingCategory(false);
+    }
+  };
+  const saveCustomColor = async () => {
+    if (!onSaveCustomColor || savingCustomColor) return;
+    setSavingCustomColor(true);
+    try {
+      setCustomColorError(null);
+      const saved = await onSaveCustomColor(customColorInput);
+      if (!saved) {
+        setCustomColorError('RGB 또는 HEX 형식으로 입력하세요. 예: rgb(120,34,255), #7A22FF');
+        return;
+      }
+      onColorChange(saved);
+      setCustomColorInput('');
+    } catch (error) {
+      setCustomColorError(error instanceof Error ? error.message : '색상을 저장하지 못했습니다.');
+    } finally {
+      setSavingCustomColor(false);
+    }
+  };
+  useEffect(() => {
+    setCustomColorInput(color.toUpperCase());
+    setPickerRgbText('');
+  }, [color]);
+  const handlePickerChange = (next: { hex?: string; rgb?: string }) => {
+    const nextHex = String(next.hex || '').toUpperCase();
+    if (!nextHex) return;
+    setCustomColorInput(nextHex);
+    setPickerRgbText(String(next.rgb || ''));
+    if (customColorError) setCustomColorError(null);
+    onColorChange(nextHex);
+  };
+  const renderDateTimeField = (params: {
+    kind: "date" | "time";
+    value: string;
+    placeholder: string;
+    onPress: () => void;
+  }) => {
+    const isDate = params.kind === "date";
+    return (
+      <Pressable
+        onPress={params.onPress}
+        style={[
+          s.input,
+          {
+            flex: 1,
+            minHeight: 84,
+            borderRadius: 14,
+            paddingHorizontal: 14,
+            paddingVertical: 10,
+            justifyContent: "flex-start",
+            backgroundColor: colors.cardSoft,
+            borderColor: `${colors.border}CC`,
+          },
+        ]}
+      >
+        <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: "700" }}>
+          {isDate ? "DATE" : "TIME"}
+        </Text>
+        <View style={{ marginTop: 2, gap: 6 }}>
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.72}
+            style={{
+              color: colors.text,
+              fontSize: isDate ? 18 : 24,
+              fontWeight: "800",
+              letterSpacing: isDate ? 0 : 0.3,
+            }}
+          >
+            {params.value || params.placeholder}
+          </Text>
+          <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: "600" }}>
+            {isDate ? "날짜 선택" : "시간 선택"}
+          </Text>
+        </View>
+      </Pressable>
+    );
+  };
   const handleTimePickerChange = (event: DateTimePickerEvent, selected?: Date) => {
     if (event.type === 'dismissed') {
       setPickerTarget(null);
@@ -162,6 +346,13 @@ export function TaskEditorForm({
       onStartTimeChange(buildDateTime(formatDatePart(selected), startParts.time, startTime));
     } else if (pickerTarget === 'endDate') {
       onEndTimeChange(buildDateTime(formatDatePart(selected), endParts.time, endTime));
+    } else if (pickerTarget === 'repeatStartDate') {
+      onRecurrenceStartDateChange?.(formatDatePart(selected));
+      if (recurrenceEndDate && formatDatePart(selected) > recurrenceEndDate) {
+        onRecurrenceEndDateChange?.(formatDatePart(selected));
+      }
+    } else if (pickerTarget === 'repeatEndDate') {
+      onRecurrenceEndDateChange?.(formatDatePart(selected));
     } else {
       const hours = String(selected.getHours()).padStart(2, '0');
       const minutes = String(selected.getMinutes()).padStart(2, '0');
@@ -193,94 +384,84 @@ export function TaskEditorForm({
 
       <View style={{ gap: 6 }}>
         <Text style={s.formTitle}>시작 시간</Text>
-        <View style={[s.row, { alignItems: 'flex-start' }]}>
-          <Pressable
-            onPress={() => setPickerTarget('startDate')}
-            style={[
-              s.input,
-              {
-                flex: 1,
-                minHeight: 46,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              },
-            ]}
-          >
-            <Text style={{ color: colors.text, fontSize: 14, fontWeight: '600' }}>{startParts.date || '날짜 선택'}</Text>
-            <Text style={{ color: colors.textMuted, fontSize: 12 }}>날짜 선택</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setPickerTarget('startTime')}
-            style={[
-              s.input,
-              {
-                flex: 1,
-                minHeight: 46,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              },
-            ]}
-          >
-            <Text style={{ color: colors.text, fontSize: 14, fontWeight: '600' }}>{startParts.time || '09:00'}</Text>
-            <Text style={{ color: colors.textMuted, fontSize: 12 }}>시간 선택</Text>
-          </Pressable>
+        <View
+          style={{
+            borderWidth: 1,
+            borderColor: `${colors.border}AA`,
+            borderRadius: 16,
+            padding: 10,
+            backgroundColor: colors.card,
+            gap: 8,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Text style={{ color: colors.text, fontSize: 12, fontWeight: "700" }}>시작 일정 설정</Text>
+            <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: "600" }}>정확한 시간 설정</Text>
+          </View>
+          <View style={[s.row, { alignItems: "stretch", gap: 8 }]}>
+            {renderDateTimeField({
+              kind: "date",
+              value: startParts.date,
+              placeholder: "날짜 선택",
+              onPress: () => setPickerTarget("startDate"),
+            })}
+            {renderDateTimeField({
+              kind: "time",
+              value: startParts.time,
+              placeholder: "09:00",
+              onPress: () => setPickerTarget("startTime"),
+            })}
+          </View>
         </View>
       </View>
 
       <View style={{ gap: 6 }}>
         <Text style={s.formTitle}>종료 시간</Text>
-        <View style={[s.row, { alignItems: 'flex-start' }]}>
-          <Pressable
-            onPress={() => setPickerTarget('endDate')}
-            style={[
-              s.input,
-              {
-                flex: 1,
-                minHeight: 46,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              },
-            ]}
-          >
-            <Text style={{ color: colors.text, fontSize: 14, fontWeight: '600' }}>{endParts.date || '날짜 선택'}</Text>
-            <Text style={{ color: colors.textMuted, fontSize: 12 }}>날짜 선택</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setPickerTarget('endTime')}
-            style={[
-              s.input,
-              {
-                flex: 1,
-                minHeight: 46,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              },
-            ]}
-          >
-            <Text style={{ color: colors.text, fontSize: 14, fontWeight: '600' }}>{endParts.time || '09:30'}</Text>
-            <Text style={{ color: colors.textMuted, fontSize: 12 }}>시간 선택</Text>
-          </Pressable>
+        <View
+          style={{
+            borderWidth: 1,
+            borderColor: `${colors.border}AA`,
+            borderRadius: 16,
+            padding: 10,
+            backgroundColor: colors.card,
+            gap: 8,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Text style={{ color: colors.text, fontSize: 12, fontWeight: "700" }}>종료 일정 설정</Text>
+            <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: "600" }}>시작 시간 이후로 설정</Text>
+          </View>
+          <View style={[s.row, { alignItems: "stretch", gap: 8 }]}>
+            {renderDateTimeField({
+              kind: "date",
+              value: endParts.date,
+              placeholder: "날짜 선택",
+              onPress: () => setPickerTarget("endDate"),
+            })}
+            {renderDateTimeField({
+              kind: "time",
+              value: endParts.time,
+              placeholder: "09:30",
+              onPress: () => setPickerTarget("endTime"),
+            })}
+          </View>
         </View>
       </View>
 
       <View style={{ gap: 8 }}>
         <Text style={s.formTitle}>태스크 컬러</Text>
         <View style={[s.row, { flexWrap: 'wrap', gap: 10 }]}>
-          {TASK_COLOR_OPTIONS.map((item) => {
-            const active = color === item.value;
+          {(colorOptions && colorOptions.length > 0 ? colorOptions : TASK_COLOR_OPTIONS.map((item) => item.value)).map((item) => {
+            const active = color.toUpperCase() === item.toUpperCase();
             return (
               <Pressable
-                key={item.value}
-                onPress={() => onColorChange(item.value)}
+                key={item}
+                onPress={() => onColorChange(item)}
                 style={{
                   width: 28,
                   height: 28,
                   borderRadius: 999,
-                  backgroundColor: item.value,
+                  backgroundColor: item,
                   borderWidth: active ? 3 : 1,
                   borderColor: active ? colors.text : `${colors.border}66`,
                   alignItems: 'center',
@@ -292,6 +473,173 @@ export function TaskEditorForm({
             );
           })}
         </View>
+        {onSaveCustomColor ? (
+          <View style={{ gap: 8 }}>
+            <Text style={s.itemMeta}>색상표에서 선택 후 저장하면 내 색상으로 계속 사용할 수 있습니다.</Text>
+            <ColorPicker value={customColorInput || color} onChangeJS={handlePickerChange}>
+              <Panel1
+                style={{
+                  height: 188,
+                  borderRadius: 14,
+                  borderWidth: 1,
+                  borderColor: `${colors.border}99`,
+                  marginBottom: 8,
+                }}
+              />
+              <HueSlider
+                style={{
+                  height: 20,
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  borderColor: `${colors.border}99`,
+                }}
+              />
+            </ColorPicker>
+            <View style={[s.row, { alignItems: 'center' }]}>
+              <View
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  borderColor: `${colors.border}99`,
+                  backgroundColor: customColorInput || color,
+                }}
+              />
+              <TextInput
+                value={customColorInput}
+                onChangeText={(value) => {
+                  setCustomColorInput(value);
+                  if (customColorError) setCustomColorError(null);
+                }}
+                placeholder="rgb(120,34,255) 또는 #7A22FF"
+                style={[s.input, { flex: 1 }]}
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholderTextColor={colors.textMuted}
+              />
+              <Pressable
+                onPress={() => void saveCustomColor()}
+                style={[s.secondaryButton, { width: 'auto', paddingHorizontal: 14, minHeight: 0, paddingVertical: 10 }]}
+              >
+                <Text style={s.secondaryButtonText}>{savingCustomColor ? '저장 중...' : '색상 저장'}</Text>
+              </Pressable>
+            </View>
+            <Text style={s.itemMeta}>{pickerRgbText ? `${pickerRgbText} · ${customColorInput || color}` : customColorInput || color}</Text>
+            {customColorError ? <Text style={[s.itemMeta, { color: '#DC2626' }]}>{customColorError}</Text> : null}
+          </View>
+        ) : null}
+      </View>
+
+      <View style={{ gap: 8 }}>
+        <Text style={s.formTitle}>카테고리</Text>
+        {showNewCategoryInput ? (
+          <View style={[s.row, { alignItems: 'center' }]}>
+            <TextInput
+              value={newCategoryName}
+              onChangeText={(value) => {
+                setNewCategoryName(value);
+                if (categoryError) setCategoryError(null);
+              }}
+              placeholder="새 카테고리 이름"
+              style={[s.input, { flex: 1 }]}
+              placeholderTextColor={colors.textMuted}
+            />
+            <Pressable
+              onPress={() => void createCategory()}
+              style={[s.secondaryButton, { width: 'auto', paddingHorizontal: 14, minHeight: 0, paddingVertical: 10 }]}
+            >
+              <Text style={s.secondaryButtonText}>{creatingCategory ? '추가 중...' : '저장'}</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                setShowNewCategoryInput(false);
+                setNewCategoryName('');
+                setCategoryError(null);
+              }}
+              style={[s.secondaryButton, { width: 'auto', paddingHorizontal: 14, minHeight: 0, paddingVertical: 10 }]}
+            >
+              <Text style={s.secondaryButtonText}>취소</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable
+            onPress={() => setShowNewCategoryInput(true)}
+            style={[s.secondaryButton, { width: 'auto', alignSelf: 'flex-start', paddingHorizontal: 14, minHeight: 0, paddingVertical: 10 }]}
+          >
+            <Text style={s.secondaryButtonText}>카테고리 추가</Text>
+          </Pressable>
+        )}
+        {categoryError ? <Text style={[s.itemMeta, { color: '#DC2626' }]}>{categoryError}</Text> : null}
+        <View style={[s.row, { flexWrap: 'wrap', gap: 8 }]}>
+          {availableCategories.length === 0 ? (
+            <Text style={s.subtleText}>선택 가능한 카테고리가 없습니다.</Text>
+          ) : (
+            availableCategories.map((category) => {
+              const active = Number(selectedCategoryId) === Number(category.category_id);
+              return (
+                <Pressable
+                  key={category.category_id}
+                  onPress={() => onCategoryChange?.(active ? null : category.category_id)}
+                  style={[
+                    s.workspacePill,
+                    {
+                      marginRight: 0,
+                      paddingVertical: 7,
+                      paddingHorizontal: 10,
+                      borderColor: active ? category.color ?? colors.primary : colors.border,
+                      backgroundColor: active ? `${category.color ?? colors.primary}18` : colors.cardSoft,
+                    },
+                  ]}
+                >
+                  <Text style={[s.workspacePillText, { color: active ? colors.text : colors.textMuted }]}>
+                    {category.name}
+                  </Text>
+                </Pressable>
+              );
+            })
+          )}
+        </View>
+        {selectedCategoryId ? (
+          <View style={{ gap: 8 }}>
+            <View style={[s.row, { alignItems: 'center' }]}>
+              <TextInput
+                value={editCategoryName}
+                onChangeText={(value) => {
+                  setEditCategoryName(value);
+                  if (categoryError) setCategoryError(null);
+                }}
+                placeholder="카테고리 이름 수정"
+                style={[s.input, { flex: 1 }]}
+                placeholderTextColor={colors.textMuted}
+              />
+              <Pressable
+                onPress={() => void updateCategory()}
+                style={[s.secondaryButton, { width: 'auto', paddingHorizontal: 14, minHeight: 0, paddingVertical: 10 }]}
+              >
+                <Text style={s.secondaryButtonText}>{editingCategory ? '수정 중...' : '수정'}</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => void deleteCategory()}
+                style={[
+                  s.secondaryButton,
+                  {
+                    width: 'auto',
+                    paddingHorizontal: 14,
+                    minHeight: 0,
+                    paddingVertical: 10,
+                    borderColor: '#FCA5A5',
+                    backgroundColor: '#FFF5F5',
+                  },
+                ]}
+              >
+                <Text style={[s.secondaryButtonText, { color: '#DC2626' }]}>
+                  {deletingCategory ? '삭제 중...' : '삭제'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
       </View>
 
       <View style={{ gap: 8 }}>
@@ -477,17 +825,17 @@ export function TaskEditorForm({
         <Text style={s.formTitle}>진행 상태</Text>
         <Text style={s.itemMeta}>일정이 현재 어느 단계인지 선택합니다.</Text>
         <View style={[s.row, { flexWrap: 'wrap', gap: 8 }]}>
-          {(['TODO', 'IN_PROGRESS', 'DONE'] as const).map((item) => (
+          {(['TODO', 'DONE'] as const).map((item) => (
             <Pressable
               key={item}
               onPress={() => onStatusChange(item)}
               style={[
                 s.workspacePill,
                 { marginRight: 0, paddingVertical: 8, paddingHorizontal: 12 },
-                status === item ? s.workspacePillActive : null,
+                normalizedStatus === item ? s.workspacePillActive : null,
               ]}
             >
-              <Text style={[s.workspacePillText, status === item ? s.workspacePillTextActive : null]}>
+              <Text style={[s.workspacePillText, normalizedStatus === item ? s.workspacePillTextActive : null]}>
                 {statusLabels[item]}
               </Text>
             </Pressable>
@@ -511,6 +859,66 @@ export function TaskEditorForm({
           </Pressable>
         </View>
       </View>
+
+      {showRecurrenceControls ? (
+        <View style={[s.panel, { borderRadius: 16, gap: 10 }]}>
+          <Text style={s.formTitle}>반복 일정</Text>
+          <Text style={s.itemMeta}>기간과 요일을 선택하면 해당 기간 동안 반복 생성됩니다.</Text>
+          <View style={[s.row, { flexWrap: 'wrap', gap: 8 }]}>
+            <Pressable
+              onPress={() => onRecurrenceEnabledChange?.(!recurrenceEnabled)}
+              style={[
+                s.workspacePill,
+                { marginRight: 0, paddingVertical: 8, paddingHorizontal: 12 },
+                recurrenceEnabled ? s.workspacePillActive : null,
+              ]}
+            >
+              <Text style={[s.workspacePillText, recurrenceEnabled ? s.workspacePillTextActive : null]}>
+                {recurrenceEnabled ? '반복 사용 중' : '반복 사용 안함'}
+              </Text>
+            </Pressable>
+          </View>
+          {recurrenceEnabled ? (
+            <>
+              <View style={[s.row, { alignItems: 'stretch', gap: 8 }]}>
+                {renderDateTimeField({
+                  kind: 'date',
+                  value: repeatStartParts.date,
+                  placeholder: '반복 시작일',
+                  onPress: () => setPickerTarget('repeatStartDate'),
+                })}
+                {renderDateTimeField({
+                  kind: 'date',
+                  value: repeatEndParts.date,
+                  placeholder: '반복 종료일',
+                  onPress: () => setPickerTarget('repeatEndDate'),
+                })}
+              </View>
+              <View style={[s.row, { flexWrap: 'wrap', gap: 8 }]}>
+                {(['일', '월', '화', '수', '목', '금', '토'] as const).map((label, index) => {
+                  const active = recurrenceWeekdays.includes(index);
+                  const next = active
+                    ? recurrenceWeekdays.filter((day) => day !== index)
+                    : [...recurrenceWeekdays, index].sort((a, b) => a - b);
+                  return (
+                    <Pressable
+                      key={`${label}-${index}`}
+                      onPress={() => onRecurrenceWeekdaysChange?.(next)}
+                      style={[
+                        s.workspacePill,
+                        { marginRight: 0, paddingVertical: 7, paddingHorizontal: 10 },
+                        active ? s.workspacePillActive : null,
+                      ]}
+                    >
+                      <Text style={[s.workspacePillText, active ? s.workspacePillTextActive : null]}>{label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </>
+          ) : null}
+        </View>
+      ) : null}
 
       <View style={[s.panel, { borderRadius: 16, gap: 10 }]}>
         <Text style={s.formTitle}>알림</Text>
@@ -556,9 +964,21 @@ export function TaskEditorForm({
           style={{
             flex: 1,
             backgroundColor: 'rgba(15, 23, 42, 0.24)',
-            justifyContent: pickerTarget === 'startDate' || pickerTarget === 'endDate' ? 'flex-start' : 'center',
+            justifyContent:
+              pickerTarget === 'startDate' ||
+              pickerTarget === 'endDate' ||
+              pickerTarget === 'repeatStartDate' ||
+              pickerTarget === 'repeatEndDate'
+                ? 'flex-start'
+                : 'center',
             paddingHorizontal: 20,
-            paddingTop: pickerTarget === 'startDate' || pickerTarget === 'endDate' ? 72 : 20,
+            paddingTop:
+              pickerTarget === 'startDate' ||
+              pickerTarget === 'endDate' ||
+              pickerTarget === 'repeatStartDate' ||
+              pickerTarget === 'repeatEndDate'
+                ? 72
+                : 20,
             paddingBottom: 20,
           }}
         >
@@ -570,7 +990,13 @@ export function TaskEditorForm({
               borderWidth: 1,
               borderColor: colors.border,
               overflow: 'hidden',
-              maxHeight: pickerTarget === 'startDate' || pickerTarget === 'endDate' ? '82%' : undefined,
+              maxHeight:
+                pickerTarget === 'startDate' ||
+                pickerTarget === 'endDate' ||
+                pickerTarget === 'repeatStartDate' ||
+                pickerTarget === 'repeatEndDate'
+                  ? '82%'
+                  : undefined,
             }}
           >
             <View
@@ -589,6 +1015,10 @@ export function TaskEditorForm({
                   ? '시작 날짜 선택'
                   : pickerTarget === 'endDate'
                     ? '종료 날짜 선택'
+                    : pickerTarget === 'repeatStartDate'
+                      ? '반복 시작일 선택'
+                      : pickerTarget === 'repeatEndDate'
+                        ? '반복 종료일 선택'
                     : pickerTarget === 'startTime'
                       ? '시작 시간 선택'
                       : '종료 시간 선택'}
@@ -610,32 +1040,62 @@ export function TaskEditorForm({
                   ? startParts.date || '날짜 선택'
                   : pickerTarget === 'endDate'
                     ? endParts.date || '날짜 선택'
+                    : pickerTarget === 'repeatStartDate'
+                      ? repeatStartParts.date || '날짜 선택'
+                      : pickerTarget === 'repeatEndDate'
+                        ? repeatEndParts.date || '날짜 선택'
                     : pickerTarget === 'startTime'
                       ? startParts.time || '09:00'
                       : endParts.time || '09:30'}
               </Text>
               <Text style={{ color: colors.textMuted, fontSize: 13, fontWeight: '600' }}>
-                {pickerTarget === 'startDate' || pickerTarget === 'endDate'
+                {pickerTarget === 'startDate' ||
+                pickerTarget === 'endDate' ||
+                pickerTarget === 'repeatStartDate' ||
+                pickerTarget === 'repeatEndDate'
                   ? '직접 입력 없이 날짜를 선택합니다'
                   : '1분 단위로 선택할 수 있습니다'}
               </Text>
             </View>
             <DateTimePicker
               value={activePickerDate}
-              mode={pickerTarget === 'startDate' || pickerTarget === 'endDate' ? 'date' : 'time'}
+              mode={
+                pickerTarget === 'startDate' ||
+                pickerTarget === 'endDate' ||
+                pickerTarget === 'repeatStartDate' ||
+                pickerTarget === 'repeatEndDate'
+                  ? 'date'
+                  : 'time'
+              }
               display={
                 Platform.OS === 'ios'
-                  ? pickerTarget === 'startDate' || pickerTarget === 'endDate'
+                  ? pickerTarget === 'startDate' ||
+                    pickerTarget === 'endDate' ||
+                    pickerTarget === 'repeatStartDate' ||
+                    pickerTarget === 'repeatEndDate'
                     ? 'inline'
                     : 'spinner'
                   : 'default'
               }
-              minuteInterval={pickerTarget === 'startDate' || pickerTarget === 'endDate' ? undefined : 1}
+              minuteInterval={
+                pickerTarget === 'startDate' ||
+                pickerTarget === 'endDate' ||
+                pickerTarget === 'repeatStartDate' ||
+                pickerTarget === 'repeatEndDate'
+                  ? undefined
+                  : 1
+              }
               onChange={handleTimePickerChange}
               style={{
                 alignSelf: 'stretch',
                 backgroundColor: colors.card,
-                minHeight: pickerTarget === 'startDate' || pickerTarget === 'endDate' ? 380 : 216,
+                minHeight:
+                  pickerTarget === 'startDate' ||
+                  pickerTarget === 'endDate' ||
+                  pickerTarget === 'repeatStartDate' ||
+                  pickerTarget === 'repeatEndDate'
+                    ? 380
+                    : 216,
               }}
               textColor={colors.text}
             />
