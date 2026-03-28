@@ -15,6 +15,7 @@ import { attachFileToTask } from "@/lib/task-attachment";
 import { enqueueTaskReminderEvent } from "@/lib/task-reminder-stream";
 import { getPermissionsByMember, getTeamById } from "@/lib/team";
 import { getWorkspaceById } from "@/lib/workspace";
+import { getCategoryById } from "@/lib/category";
 
 function parseReminderMinutes(value: unknown): {
   valid: boolean;
@@ -94,6 +95,7 @@ export async function POST(request: NextRequest) {
       status,
       workspace_id,
       color,
+      category_id,
       tag_ids,
       file_ids,
       reminder_minutes,
@@ -154,6 +156,22 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+    if (category_id !== undefined && category_id !== null) {
+      const category = await getCategoryById(Number(category_id));
+      if (!category) {
+        return NextResponse.json({ error: "Category not found" }, { status: 404 });
+      }
+      if (
+        category.owner_type !== workspace.type ||
+        Number(category.owner_id) !== Number(workspace.owner_id)
+      ) {
+        return NextResponse.json(
+          { error: "Category does not belong to this workspace owner" },
+          { status: 400 },
+        );
+      }
+    }
+
     // 태스크 생성
     const taskId = await createTask({
       title,
@@ -162,6 +180,7 @@ export async function POST(request: NextRequest) {
       content,
       status: status || "TODO",
       color: color || "#3B82F6",
+      category_id: category_id ?? null,
       tag_ids: tag_ids || [],
       reminder_minutes: reminderParsed.value,
       rrule: null,
@@ -212,6 +231,7 @@ export async function PATCH(request: NextRequest) {
       content,
       status,
       color,
+      category_id,
       tag_ids,
       reminder_minutes,
     } = body;
@@ -233,6 +253,22 @@ export async function PATCH(request: NextRequest) {
         { error: "Workspace not found" },
         { status: 404 },
       );
+    }
+
+    if (category_id !== undefined && category_id !== null) {
+      const category = await getCategoryById(Number(category_id));
+      if (!category) {
+        return NextResponse.json({ error: "Category not found" }, { status: 404 });
+      }
+      if (
+        category.owner_type !== workspace.type ||
+        Number(category.owner_id) !== Number(workspace.owner_id)
+      ) {
+        return NextResponse.json(
+          { error: "Category does not belong to this workspace owner" },
+          { status: 400 },
+        );
+      }
     }
 
     if (workspace.type === "team") {
@@ -281,6 +317,7 @@ export async function PATCH(request: NextRequest) {
         content,
         status,
         color,
+        category_id,
         tag_ids,
         reminder_minutes: hasReminderMinutes ? reminderParsed.value : undefined,
         rrule: hasRrule ? null : undefined,

@@ -191,6 +191,10 @@ export async function deleteTeam(teamId: number): Promise<boolean> {
       [teamId],
     );
     await connection.execute(
+      `DELETE FROM categories WHERE owner_type = 'team' AND owner_id = ?`,
+      [teamId],
+    );
+    await connection.execute(
       `DELETE FROM storage_usage WHERE owner_type = 'team' AND owner_id = ?`,
       [teamId],
     );

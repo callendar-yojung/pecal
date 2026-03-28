@@ -344,6 +344,10 @@ export async function DELETE(request: NextRequest) {
       [user.memberId],
     );
     await connection.execute(
+      `DELETE FROM categories WHERE owner_type = 'personal' AND owner_id = ?`,
+      [user.memberId],
+    );
+    await connection.execute(
       `DELETE FROM tasks WHERE workspace_id IN (
          SELECT workspace_id FROM workspaces WHERE type = 'personal' AND owner_id = ?
        )`,

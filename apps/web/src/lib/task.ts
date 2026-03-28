@@ -64,6 +64,8 @@ export interface Task {
   created_by_name?: string | null;
   updated_by_name?: string | null;
   workspace_id: number;
+  category_id?: number | null;
+  category?: { category_id: number; name: string; color: string } | null;
   tag_ids?: number[];
   tags?: Array<{ tag_id: number; name: string; color: string }>;
 }
@@ -136,21 +138,39 @@ export async function getTaskById(taskId: number): Promise<Task | null> {
       const [rows] = await pool.query<RowDataPacket[]>(
         `SELECT
           t.*,
-          GROUP_CONCAT(tt.tag_id ORDER BY tt.tag_id) as tag_ids_csv
+          GROUP_CONCAT(tt.tag_id ORDER BY tt.tag_id) as tag_ids_csv,
+          MAX(c.name) as category_name,
+          MAX(c.color) as category_color
          FROM tasks t
          LEFT JOIN task_tags tt ON t.id = tt.task_id
+         LEFT JOIN categories c ON t.category_id = c.category_id
          WHERE t.id = ?
          GROUP BY t.id
          LIMIT 1`,
         [taskId],
       );
       if (rows.length === 0) return null;
-      const row = rows[0] as RowDataPacket & { tag_ids_csv?: string | null };
+      const row = rows[0] as RowDataPacket & {
+        tag_ids_csv?: string | null;
+        category_name?: string | null;
+        category_color?: string | null;
+      };
       const tag_ids = (row.tag_ids_csv || "")
         .split(",")
         .map((value) => Number(value))
         .filter((value) => Number.isFinite(value) && value > 0);
-      const task = { ...(row as unknown as Task), tag_ids };
+      const task = {
+        ...(row as unknown as Task),
+        tag_ids,
+        category:
+          row.category_id && row.category_name
+            ? {
+                category_id: Number(row.category_id),
+                name: String(row.category_name),
+                color: String(row.category_color ?? "#3B82F6"),
+              }
+            : null,
+      };
       return task;
     },
   );
@@ -164,11 +184,14 @@ export async function getTaskByIdWithNames(
       t.*,
       creator.nickname as created_by_name,
       updater.nickname as updated_by_name,
-      GROUP_CONCAT(tt.tag_id ORDER BY tt.tag_id) as tag_ids_csv
+      GROUP_CONCAT(tt.tag_id ORDER BY tt.tag_id) as tag_ids_csv,
+      MAX(c.name) as category_name,
+      MAX(c.color) as category_color
      FROM tasks t
      LEFT JOIN members creator ON t.created_by = creator.member_id
      LEFT JOIN members updater ON t.updated_by = updater.member_id
      LEFT JOIN task_tags tt ON t.id = tt.task_id
+     LEFT JOIN categories c ON t.category_id = c.category_id
      WHERE t.id = ?
      GROUP BY t.id
      LIMIT 1`,
@@ -176,12 +199,27 @@ export async function getTaskByIdWithNames(
   );
 
   if (rows.length === 0) return null;
-  const row = rows[0] as RowDataPacket & { tag_ids_csv?: string | null };
+  const row = rows[0] as RowDataPacket & {
+    tag_ids_csv?: string | null;
+    category_name?: string | null;
+    category_color?: string | null;
+  };
   const tag_ids = (row.tag_ids_csv || "")
     .split(",")
     .map((value) => Number(value))
     .filter((value) => Number.isFinite(value) && value > 0);
-  return { ...(row as unknown as Task), tag_ids };
+  return {
+    ...(row as unknown as Task),
+    tag_ids,
+    category:
+      row.category_id && row.category_name
+        ? {
+            category_id: Number(row.category_id),
+            name: String(row.category_name),
+            color: String(row.category_color ?? "#3B82F6"),
+          }
+        : null,
+  };
 }
 
 export interface CreateTaskData {
@@ -191,6 +229,7 @@ export interface CreateTaskData {
   content?: string;
   status?: "TODO" | "IN_PROGRESS" | "DONE";
   color?: string;
+  category_id?: number | null;
   reminder_minutes?: number | null;
   rrule?: string | null;
   member_id: number;
@@ -208,8 +247,8 @@ export async function createTask(data: CreateTaskData): Promise<number> {
     await connection.beginTransaction();
 
     const [result] = await connection.query<ResultSetHeader>(
-      `INSERT INTO tasks (title, start_time, end_time, content, status, color, reminder_minutes, rrule, created_at, updated_at, created_by, updated_by, workspace_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), ?, ?, ?)`,
+      `INSERT INTO tasks (title, start_time, end_time, content, status, color, category_id, reminder_minutes, rrule, created_at, updated_at, created_by, updated_by, workspace_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), ?, ?, ?)`,
       [
         data.title,
         toMySQLDatetime(data.start_time),
@@ -217,6 +256,7 @@ export async function createTask(data: CreateTaskData): Promise<number> {
         data.content || null,
         data.status || "TODO",
         data.color || "#3B82F6",
+        data.category_id ?? null,
         data.reminder_minutes ?? null,
         data.rrule ?? null,
         data.member_id,
@@ -356,12 +396,16 @@ export async function getTasksByWorkspaceIdPaginated(
           updater.nickname as updated_by_name,
           tg.tag_id,
           tags.name as tag_name,
-          tags.color as tag_color
+          tags.color as tag_color,
+          c.category_id,
+          c.name as category_name,
+          c.color as category_color
          FROM tasks t
          LEFT JOIN members creator ON t.created_by = creator.member_id
          LEFT JOIN members updater ON t.updated_by = updater.member_id
          LEFT JOIN task_tags tg ON t.id = tg.task_id
          LEFT JOIN tags ON tg.tag_id = tags.tag_id
+         LEFT JOIN categories c ON t.category_id = c.category_id
          WHERE ${whereClause} 
          ORDER BY t.${sortBy} ${sortOrder}
          LIMIT ? OFFSET ?`,
@@ -390,6 +434,15 @@ export async function getTasksByWorkspaceIdPaginated(
             created_by_name: row.created_by_name || null,
             updated_by_name: row.updated_by_name || null,
             workspace_id: row.workspace_id,
+            category_id: row.category_id ?? null,
+            category:
+              row.category_id && row.category_name
+                ? {
+                    category_id: Number(row.category_id),
+                    name: row.category_name,
+                    color: row.category_color ?? "#3B82F6",
+                  }
+                : null,
             tags: [],
           });
         }
@@ -429,6 +482,7 @@ export async function updateTask(
     content?: string;
     status?: "TODO" | "IN_PROGRESS" | "DONE";
     color?: string;
+    category_id?: number | null;
     reminder_minutes?: number | null;
     rrule?: string | null;
     tag_ids?: number[];
@@ -474,6 +528,10 @@ export async function updateTask(
     if (data.color !== undefined) {
       updates.push("color = ?");
       values.push(data.color);
+    }
+    if (data.category_id !== undefined) {
+      updates.push("category_id = ?");
+      values.push(data.category_id);
     }
     if (data.reminder_minutes !== undefined) {
       updates.push("reminder_minutes = ?");

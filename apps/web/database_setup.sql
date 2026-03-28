@@ -111,6 +111,7 @@ CREATE TABLE IF NOT EXISTS member_settings (
   member_id BIGINT NOT NULL PRIMARY KEY,
   privacy_consent TINYINT(1) NOT NULL DEFAULT 0,
   marketing_consent TINYINT(1) NOT NULL DEFAULT 0,
+  task_color_presets JSON NULL,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -189,6 +190,22 @@ CREATE TABLE IF NOT EXISTS tags (
 -- 인덱스 추가
 CREATE INDEX idx_tags_owner ON tags(owner_type, owner_id);
 CREATE INDEX idx_tags_created_by ON tags(created_by);
+
+-- 10. 카테고리 테이블
+CREATE TABLE IF NOT EXISTS categories (
+  category_id  BIGINT AUTO_INCREMENT PRIMARY KEY,
+  name         VARCHAR(50) NOT NULL,
+  color        VARCHAR(20) DEFAULT '#3B82F6',
+  owner_type   ENUM('team', 'personal') NOT NULL,
+  owner_id     BIGINT NOT NULL, -- team_id 또는 member_id
+  created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+  created_by   BIGINT NOT NULL,
+  FOREIGN KEY (created_by) REFERENCES members(member_id),
+  UNIQUE KEY uq_category_name (owner_type, owner_id, name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_categories_owner ON categories(owner_type, owner_id);
+CREATE INDEX idx_categories_created_by ON categories(created_by);
 
 -- 10. 태스크-태그 연결 테이블
 CREATE TABLE IF NOT EXISTS task_tags (
