@@ -35,9 +35,9 @@ type Props = {
 };
 
 function statusLabel(status: string | undefined, isKo: boolean) {
-  if (status === 'IN_PROGRESS') return isKo ? '진행중' : 'In Progress';
+  if (status === 'IN_PROGRESS') return isKo ? '완료 전' : 'Not Done';
   if (status === 'DONE') return isKo ? '완료' : 'Done';
-  return isKo ? '할 일' : 'To Do';
+  return isKo ? '완료 전' : 'Not Done';
 }
 
 function resolveFileUrl(filePath?: string) {

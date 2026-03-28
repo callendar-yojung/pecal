@@ -5,6 +5,7 @@ type MemberSettingsRow = RowDataPacket & {
   member_id: number;
   privacy_consent: number;
   marketing_consent: number;
+  task_color_presets: string | null;
 };
 
 type MemberConsentPatch = {
@@ -44,12 +45,21 @@ async function ensureMemberSettingsTable() {
           member_id BIGINT NOT NULL PRIMARY KEY,
           privacy_consent TINYINT(1) NOT NULL DEFAULT 0,
           marketing_consent TINYINT(1) NOT NULL DEFAULT 0,
+          task_color_presets JSON NULL,
           updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           CONSTRAINT fk_member_settings_member
             FOREIGN KEY (member_id) REFERENCES members(member_id)
             ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
       `);
+      try {
+        await pool.execute(`
+          ALTER TABLE member_settings
+          ADD COLUMN IF NOT EXISTS task_color_presets JSON NULL
+        `);
+      } catch {
+        // Older MySQL variants may not support IF NOT EXISTS on ADD COLUMN.
+      }
       await pool.execute(`
         CREATE TABLE IF NOT EXISTS member_consent_history (
           consent_history_id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -97,6 +107,32 @@ export async function getMemberConsents(memberId: number): Promise<{
     privacy_consent: Number(row.privacy_consent) === 1,
     marketing_consent: Number(row.marketing_consent) === 1,
   };
+}
+
+export async function getMemberTaskColorPresets(memberId: number): Promise<string[]> {
+  await ensureMemberSettingsTable();
+  const [rows] = await pool.execute<MemberSettingsRow[]>(
+    `SELECT task_color_presets
+     FROM member_settings
+     WHERE member_id = ?
+     LIMIT 1`,
+    [memberId],
+  );
+
+  if (rows.length === 0) return [];
+
+  const raw = rows[0].task_color_presets;
+  if (!raw) return [];
+
+  try {
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item) => String(item ?? "").trim().toUpperCase())
+      .filter((item) => /^#[0-9A-F]{6}$/.test(item));
+  } catch {
+    return [];
+  }
 }
 
 async function createConsentHistoryEntry(params: {
@@ -187,6 +223,27 @@ export async function upsertMemberConsents(
   }
 
   return current;
+}
+
+export async function upsertMemberTaskColorPresets(
+  memberId: number,
+  presets: string[],
+): Promise<string[]> {
+  await ensureMemberSettingsTable();
+  const safePresets = presets
+    .map((item) => String(item ?? "").trim().toUpperCase())
+    .filter((item) => /^#[0-9A-F]{6}$/.test(item))
+    .slice(0, 24);
+
+  await pool.execute<ResultSetHeader>(
+    `INSERT INTO member_settings (member_id, task_color_presets)
+     VALUES (?, ?)
+     ON DUPLICATE KEY UPDATE
+       task_color_presets = VALUES(task_color_presets)`,
+    [memberId, JSON.stringify(safePresets)],
+  );
+
+  return safePresets;
 }
 
 export async function listMemberConsentHistory(

@@ -9,9 +9,23 @@ import { useI18n } from '../contexts/I18nContext';
 import { createStyles } from '../styles/createStyles';
 import { OptionSheet } from '../components/common/OptionSheet';
 import { SelectDropdown } from '../components/common/SelectDropdown';
+import { GsxButton, GsxCard, GsxChip, GsxHeading } from '../ui/gsx';
 
 function normalizeTaskStatus(status?: TaskStatus): 'TODO' | 'DONE' {
   return status === 'DONE' ? 'DONE' : 'TODO';
+}
+
+function isRecurringTask(task: TaskItem) {
+  if (task.recurrence && Array.isArray(task.recurrence.weekdays) && task.recurrence.weekdays.length > 0) {
+    return true;
+  }
+  if (!task.rrule) return false;
+  try {
+    const parsed = JSON.parse(task.rrule) as { type?: string; weekdays?: number[] } | null;
+    return Boolean(parsed && parsed.type === 'WEEKLY_RANGE' && Array.isArray(parsed.weekdays) && parsed.weekdays.length > 0);
+  } catch {
+    return false;
+  }
 }
 
 type Props = {
@@ -54,7 +68,7 @@ export function TasksScreen({
   ] as const;
 
   const filteredTasks = useMemo(() => {
-    return tasks
+    const sorted = tasks
       .filter((task) => {
         if (statusFilter !== 'ALL' && normalizeTaskStatus(task.status) !== statusFilter) return false;
         if (tagFilter !== 'ALL' && Number(task.category_id ?? 0) !== Number(tagFilter)) return false;
@@ -70,6 +84,14 @@ export function TasksScreen({
         if (sortBy === 'START_DESC') return b.start_time.localeCompare(a.start_time);
         return a.start_time.localeCompare(b.start_time);
       });
+
+    const seenRecurringIds = new Set<number>();
+    return sorted.filter((task) => {
+      if (!isRecurringTask(task)) return true;
+      if (seenRecurringIds.has(task.id)) return false;
+      seenRecurringIds.add(task.id);
+      return true;
+    });
   }, [tasks, statusFilter, tagFilter, query, sortBy]);
 
   const statusFilterOptions = [
@@ -147,55 +169,59 @@ export function TasksScreen({
     );
   };
 
+  const allPagedTaskIds = useMemo(() => pagedTasks.map((task) => task.id), [pagedTasks]);
+  const areAllPagedSelected =
+    allPagedTaskIds.length > 0 &&
+    allPagedTaskIds.every((id) => selectedTaskIds.includes(id));
+
+  const toggleSelectAllFiltered = () => {
+    if (areAllPagedSelected) {
+      setSelectedTaskIds((prev) => prev.filter((id) => !allPagedTaskIds.includes(id)));
+      return;
+    }
+    setSelectedTaskIds((prev) => Array.from(new Set([...prev, ...allPagedTaskIds])));
+  };
+
   return (
     <View style={s.section}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-        <View style={{ gap: 3 }}>
-          <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: '600' }}>{t('tasksHeaderSub')}</Text>
-          <Text style={[s.sectionTitle, { fontSize: 24 }]}>{t('commonTasks')}</Text>
+      <GsxCard className="mb-1">
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <View style={{ gap: 3 }}>
+            <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: '600' }}>{t('tasksHeaderSub')}</Text>
+            <GsxHeading className="text-3xl">{t('commonTasks')}</GsxHeading>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <GsxButton
+              label={selectionMode ? '선택 취소' : '선택'}
+              onPress={() => {
+                if (selectionMode) {
+                  exitSelectionMode();
+                } else {
+                  setSelectionMode(true);
+                }
+              }}
+            />
+            {selectionMode ? (
+              <GsxButton
+                label={deletingSelected ? '삭제 중...' : `삭제 (${selectedTaskIds.length})`}
+                variant="danger"
+                className={selectedTaskIds.length === 0 || deletingSelected ? 'opacity-50' : undefined}
+                disabled={selectedTaskIds.length === 0 || deletingSelected}
+                onPress={() => void deleteSelectedTasks()}
+              />
+            ) : null}
+            {selectionMode ? (
+              <GsxButton
+                label={areAllPagedSelected ? '선택해제' : '모두선택'}
+                onPress={toggleSelectAllFiltered}
+              />
+            ) : null}
+            <GsxButton label={`+ ${t('commonCreate')}`} variant="primary" onPress={onOpenCreateTask} />
+          </View>
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Pressable
-            style={[s.secondaryButton, { width: 'auto', minHeight: 0, paddingHorizontal: 14, paddingVertical: 10 }]}
-            onPress={() => {
-              if (selectionMode) {
-                exitSelectionMode();
-              } else {
-                setSelectionMode(true);
-              }
-            }}
-          >
-            <Text style={s.secondaryButtonText}>{selectionMode ? '선택 취소' : '선택'}</Text>
-          </Pressable>
-          {selectionMode ? (
-            <Pressable
-              style={[
-                s.secondaryButton,
-                {
-                  width: 'auto',
-                  minHeight: 0,
-                  paddingHorizontal: 14,
-                  paddingVertical: 10,
-                  borderColor: '#FCA5A5',
-                  backgroundColor: '#FFF5F5',
-                  opacity: selectedTaskIds.length === 0 || deletingSelected ? 0.5 : 1,
-                },
-              ]}
-              disabled={selectedTaskIds.length === 0 || deletingSelected}
-              onPress={() => void deleteSelectedTasks()}
-            >
-              <Text style={[s.secondaryButtonText, { color: '#DC2626' }]}>
-                {deletingSelected ? '삭제 중...' : `삭제 (${selectedTaskIds.length})`}
-              </Text>
-            </Pressable>
-          ) : null}
-          <Pressable style={[s.primaryButton, { borderRadius: 12, paddingHorizontal: 14, paddingVertical: 9 }]} onPress={onOpenCreateTask}>
-            <Text style={s.primaryButtonText}>+ {t('commonCreate')}</Text>
-          </Pressable>
-        </View>
-      </View>
+      </GsxCard>
 
-      <View style={[s.panel, { borderRadius: 16, gap: 8 }]}>
+      <GsxCard className="gap-2">
         <Text style={s.formTitle}>검색/필터</Text>
         <TextInput
           value={query}
@@ -205,35 +231,26 @@ export function TasksScreen({
           placeholderTextColor={colors.textMuted}
         />
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <Pressable
-            onPress={() => setActiveFilterSheet('status')}
-            style={[s.input, { flex: 1, minHeight: 38, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 }]}
-          >
-            <Text style={{ color: colors.text, fontSize: 14, fontWeight: '700', flexShrink: 1 }}>
-              {statusFilterOptions.find((item) => item.key === statusFilter)?.label ?? '전체'}
-            </Text>
-            <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
-          </Pressable>
-          <Pressable
-            onPress={() => setActiveFilterSheet('sort')}
-            style={[s.input, { flex: 1, minHeight: 38, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 }]}
-          >
-            <Text style={{ color: colors.text, fontSize: 14, fontWeight: '700', flexShrink: 1 }}>
-              {sortOptions.find((item) => item.key === sortBy)?.label ?? '빠른 일정순'}
-            </Text>
-            <Ionicons name="swap-vertical" size={16} color={colors.textMuted} />
-          </Pressable>
-          <Pressable
-            onPress={() => setActiveFilterSheet('tag')}
-            style={[s.input, { flex: 1, minHeight: 38, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 }]}
-          >
-            <Text style={{ color: colors.text, fontSize: 14, fontWeight: '700', flexShrink: 1 }} numberOfLines={1}>
-              {tagOptions.find((item) => item.key === tagFilter)?.label ?? '카테고리 전체'}
-            </Text>
-            <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
-          </Pressable>
+          <View style={{ flex: 1 }}>
+            <GsxChip
+              label={statusFilterOptions.find((item) => item.key === statusFilter)?.label ?? '전체'}
+              onPress={() => setActiveFilterSheet('status')}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <GsxChip
+              label={sortOptions.find((item) => item.key === sortBy)?.label ?? '빠른 일정순'}
+              onPress={() => setActiveFilterSheet('sort')}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <GsxChip
+              label={tagOptions.find((item) => item.key === tagFilter)?.label ?? '카테고리 전체'}
+              onPress={() => setActiveFilterSheet('tag')}
+            />
+          </View>
         </View>
-      </View>
+      </GsxCard>
 
       <View style={{ gap: 8 }}>
         {pagedTasks.map((task) => {

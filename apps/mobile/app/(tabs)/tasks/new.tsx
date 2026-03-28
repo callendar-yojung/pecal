@@ -1,6 +1,6 @@
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMaybeMobileApp } from '../../../src/contexts/MobileAppContext';
 import { useThemeMode } from '../../../src/contexts/ThemeContext';
@@ -47,6 +47,7 @@ export default function TaskCreatePage() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [allDay, setAllDay] = useState(false);
   const [reminderMinutes, setReminderMinutes] = useState('10');
+  const [scheduleMode, setScheduleMode] = useState<'single' | 'recurring'>('single');
   const [recurrenceEnabled, setRecurrenceEnabled] = useState(false);
   const [recurrenceStartDate, setRecurrenceStartDate] = useState(range.start.slice(0, 10));
   const [recurrenceEndDate, setRecurrenceEndDate] = useState(range.end.slice(0, 10));
@@ -109,6 +110,8 @@ export default function TaskCreatePage() {
     setRecurrenceStartDate(defaultTaskRangeByDate(initialDate).start.slice(0, 10));
     setRecurrenceEndDate(defaultTaskRangeByDate(initialDate).end.slice(0, 10));
     setRecurrenceWeekdays([initialDate.getDay()]);
+    setScheduleMode('single');
+    setRecurrenceEnabled(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.date]);
 
@@ -124,7 +127,8 @@ export default function TaskCreatePage() {
 
   const submit = async () => {
     if (saving) return;
-    if (recurrenceEnabled) {
+    const isRecurring = scheduleMode === 'recurring';
+    if (isRecurring) {
       if (!recurrenceStartDate || !recurrenceEndDate) {
         Alert.alert('입력 확인', '반복 시작일과 종료일을 선택하세요.');
         return;
@@ -138,12 +142,22 @@ export default function TaskCreatePage() {
         return;
       }
     }
+
+    const startTimePart = (range.start.split('T')[1] ?? '09:00:00').slice(0, 8);
+    const endTimePart = (range.end.split('T')[1] ?? '09:30:00').slice(0, 8);
+    const payloadStart = isRecurring
+      ? `${recurrenceStartDate}T${startTimePart || '09:00:00'}`
+      : range.start;
+    const payloadEnd = isRecurring
+      ? `${recurrenceStartDate}T${endTimePart || '09:30:00'}`
+      : range.end;
+
     setSaving(true);
     try {
       const created = await data.createTaskWithInput({
         title,
-        start_time: range.start,
-        end_time: range.end,
+        start_time: payloadStart,
+        end_time: payloadEnd,
         content: contentJson || null,
         status: normalizeTaskStatus(status),
         color,
@@ -151,7 +165,7 @@ export default function TaskCreatePage() {
         tag_ids: selectedTagIds,
         is_all_day: allDay,
         reminder_minutes: reminderMinutes ? Number(reminderMinutes) : null,
-        recurrence: recurrenceEnabled
+        recurrence: isRecurring
           ? {
               enabled: true,
               start_date: recurrenceStartDate,
@@ -338,7 +352,78 @@ export default function TaskCreatePage() {
       style={s.content}
       contentContainerStyle={[s.contentContainer, { paddingTop: Math.max(12, insets.top + 8) }]}
     >
+      <View style={[s.panel, { borderRadius: 16, gap: 10, marginBottom: 10 }]}>
+        <Text style={s.formTitle}>등록 유형 선택</Text>
+        <Text style={s.itemMeta}>일반 일정 또는 반복 일정을 먼저 선택하세요.</Text>
+        <View style={[s.row, { gap: 8 }]}>
+          <View style={{ flex: 1 }}>
+            <Pressable
+              onPress={() => {
+                setScheduleMode('single');
+                setRecurrenceEnabled(false);
+              }}
+              style={[
+                {
+                  borderWidth: 1,
+                  borderColor: scheduleMode === 'single' ? colors.primary : colors.border,
+                  backgroundColor: scheduleMode === 'single' ? `${colors.primary}14` : colors.card,
+                  borderRadius: 12,
+                  paddingVertical: 10,
+                  alignItems: 'center',
+                },
+              ]
+              }
+            >
+              <Text
+                style={[
+                  s.secondaryButtonText,
+                  {
+                    color: scheduleMode === 'single' ? colors.primary : colors.textMuted,
+                    fontWeight: '700',
+                  },
+                ]}
+              >
+                일반 일정
+              </Text>
+            </Pressable>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Pressable
+              onPress={() => {
+                setScheduleMode('recurring');
+                setRecurrenceEnabled(true);
+                if (!recurrenceWeekdays.length) setRecurrenceWeekdays([new Date(range.start).getDay()]);
+              }}
+              style={[
+                {
+                  borderWidth: 1,
+                  borderColor: scheduleMode === 'recurring' ? colors.primary : colors.border,
+                  backgroundColor: scheduleMode === 'recurring' ? `${colors.primary}14` : colors.card,
+                  borderRadius: 12,
+                  paddingVertical: 10,
+                  alignItems: 'center',
+                },
+              ]
+              }
+            >
+              <Text
+                style={[
+                  s.secondaryButtonText,
+                  {
+                    color: scheduleMode === 'recurring' ? colors.primary : colors.textMuted,
+                    fontWeight: '700',
+                  },
+                ]}
+              >
+                반복 일정
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+
       <TaskEditorForm
+        scheduleMode={scheduleMode}
         title={title}
         startTime={range.start}
         endTime={range.end}
@@ -351,8 +436,9 @@ export default function TaskCreatePage() {
         availableTags={data.tags}
         allDay={allDay}
         reminderMinutes={reminderMinutes}
-        showRecurrenceControls
-        recurrenceEnabled={recurrenceEnabled}
+        showRecurrenceControls={scheduleMode === 'recurring'}
+        hideRecurrenceToggle={scheduleMode === 'recurring'}
+        recurrenceEnabled={scheduleMode === 'recurring' ? true : recurrenceEnabled}
         recurrenceStartDate={recurrenceStartDate}
         recurrenceEndDate={recurrenceEndDate}
         recurrenceWeekdays={recurrenceWeekdays}

@@ -8,8 +8,10 @@ import type { CategoryItem, TagItem, TaskAttachmentItem, TaskStatus } from '../.
 import { useThemeMode } from '../../contexts/ThemeContext';
 import { createStyles } from '../../styles/createStyles';
 import { SharedRichTextEditor } from '../editor/SharedRichTextEditor';
+import { GsxButton, GsxCard, GsxHeading } from '../../ui/gsx';
 
 type Props = {
+  scheduleMode?: 'single' | 'recurring';
   title: string;
   startTime: string;
   endTime: string;
@@ -26,6 +28,7 @@ type Props = {
   reminderMinutes: string;
   rrule: string;
   showRecurrenceControls?: boolean;
+  hideRecurrenceToggle?: boolean;
   recurrenceEnabled?: boolean;
   recurrenceStartDate?: string;
   recurrenceEndDate?: string;
@@ -62,6 +65,7 @@ type Props = {
 };
 
 export function TaskEditorForm({
+  scheduleMode = 'single',
   title,
   startTime,
   endTime,
@@ -78,6 +82,7 @@ export function TaskEditorForm({
   reminderMinutes,
   rrule,
   showRecurrenceControls = false,
+  hideRecurrenceToggle = false,
   recurrenceEnabled = false,
   recurrenceStartDate = '',
   recurrenceEndDate = '',
@@ -371,8 +376,8 @@ export function TaskEditorForm({
   };
 
   return (
-    <View style={[s.panel, { borderRadius: 16, gap: 10 }]}>
-      <Text style={s.formTitle}>일정 입력</Text>
+    <GsxCard className="gap-3">
+      <GsxHeading className="text-lg">일정 입력</GsxHeading>
 
       <TextInput
         value={title}
@@ -382,8 +387,70 @@ export function TaskEditorForm({
         placeholderTextColor={colors.textMuted}
       />
 
+      {showRecurrenceControls ? (
+        <GsxCard className="gap-2">
+          <GsxHeading className="text-base">반복 일정</GsxHeading>
+          <Text style={s.itemMeta}>기간과 요일을 선택하면 해당 기간 동안 반복 생성됩니다.</Text>
+          {!hideRecurrenceToggle ? (
+            <View style={[s.row, { flexWrap: 'wrap', gap: 8 }]}>
+              <Pressable
+                onPress={() => onRecurrenceEnabledChange?.(!recurrenceEnabled)}
+                style={[
+                  s.workspacePill,
+                  { marginRight: 0, paddingVertical: 8, paddingHorizontal: 12 },
+                  recurrenceEnabled ? s.workspacePillActive : null,
+                ]}
+              >
+                <Text style={[s.workspacePillText, recurrenceEnabled ? s.workspacePillTextActive : null]}>
+                  {recurrenceEnabled ? '반복 사용 중' : '반복 사용 안함'}
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
+          {recurrenceEnabled ? (
+            <>
+              <View style={[s.row, { alignItems: 'stretch', gap: 8 }]}>
+                {renderDateTimeField({
+                  kind: 'date',
+                  value: repeatStartParts.date,
+                  placeholder: '반복 시작일',
+                  onPress: () => setPickerTarget('repeatStartDate'),
+                })}
+                {renderDateTimeField({
+                  kind: 'date',
+                  value: repeatEndParts.date,
+                  placeholder: '반복 종료일',
+                  onPress: () => setPickerTarget('repeatEndDate'),
+                })}
+              </View>
+              <View style={[s.row, { flexWrap: 'wrap', gap: 8 }]}>
+                {(['일', '월', '화', '수', '목', '금', '토'] as const).map((label, index) => {
+                  const active = recurrenceWeekdays.includes(index);
+                  const next = active
+                    ? recurrenceWeekdays.filter((day) => day !== index)
+                    : [...recurrenceWeekdays, index].sort((a, b) => a - b);
+                  return (
+                    <Pressable
+                      key={`${label}-${index}`}
+                      onPress={() => onRecurrenceWeekdaysChange?.(next)}
+                      style={[
+                        s.workspacePill,
+                        { marginRight: 0, paddingVertical: 7, paddingHorizontal: 10 },
+                        active ? s.workspacePillActive : null,
+                      ]}
+                    >
+                      <Text style={[s.workspacePillText, active ? s.workspacePillTextActive : null]}>{label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </>
+          ) : null}
+        </GsxCard>
+      ) : null}
+
       <View style={{ gap: 6 }}>
-        <Text style={s.formTitle}>시작 시간</Text>
+        <Text style={s.formTitle}>{scheduleMode === 'recurring' ? '반복 시작 시간' : '시작 시간'}</Text>
         <View
           style={{
             borderWidth: 1,
@@ -395,16 +462,22 @@ export function TaskEditorForm({
           }}
         >
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <Text style={{ color: colors.text, fontSize: 12, fontWeight: "700" }}>시작 일정 설정</Text>
-            <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: "600" }}>정확한 시간 설정</Text>
+            <Text style={{ color: colors.text, fontSize: 12, fontWeight: "700" }}>
+              {scheduleMode === 'recurring' ? '반복 시작 시간 설정' : '시작 일정 설정'}
+            </Text>
+            <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: "600" }}>
+              {scheduleMode === 'recurring' ? '매 반복 일정 시간' : '정확한 시간 설정'}
+            </Text>
           </View>
           <View style={[s.row, { alignItems: "stretch", gap: 8 }]}>
-            {renderDateTimeField({
-              kind: "date",
-              value: startParts.date,
-              placeholder: "날짜 선택",
-              onPress: () => setPickerTarget("startDate"),
-            })}
+            {scheduleMode !== 'recurring'
+              ? renderDateTimeField({
+                  kind: "date",
+                  value: startParts.date,
+                  placeholder: "날짜 선택",
+                  onPress: () => setPickerTarget("startDate"),
+                })
+              : null}
             {renderDateTimeField({
               kind: "time",
               value: startParts.time,
@@ -416,7 +489,7 @@ export function TaskEditorForm({
       </View>
 
       <View style={{ gap: 6 }}>
-        <Text style={s.formTitle}>종료 시간</Text>
+        <Text style={s.formTitle}>{scheduleMode === 'recurring' ? '반복 종료 시간' : '종료 시간'}</Text>
         <View
           style={{
             borderWidth: 1,
@@ -428,16 +501,20 @@ export function TaskEditorForm({
           }}
         >
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <Text style={{ color: colors.text, fontSize: 12, fontWeight: "700" }}>종료 일정 설정</Text>
+            <Text style={{ color: colors.text, fontSize: 12, fontWeight: "700" }}>
+              {scheduleMode === 'recurring' ? '반복 종료 시간 설정' : '종료 일정 설정'}
+            </Text>
             <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: "600" }}>시작 시간 이후로 설정</Text>
           </View>
           <View style={[s.row, { alignItems: "stretch", gap: 8 }]}>
-            {renderDateTimeField({
-              kind: "date",
-              value: endParts.date,
-              placeholder: "날짜 선택",
-              onPress: () => setPickerTarget("endDate"),
-            })}
+            {scheduleMode !== 'recurring'
+              ? renderDateTimeField({
+                  kind: "date",
+                  value: endParts.date,
+                  placeholder: "날짜 선택",
+                  onPress: () => setPickerTarget("endDate"),
+                })
+              : null}
             {renderDateTimeField({
               kind: "time",
               value: endParts.time,
@@ -860,66 +937,6 @@ export function TaskEditorForm({
         </View>
       </View>
 
-      {showRecurrenceControls ? (
-        <View style={[s.panel, { borderRadius: 16, gap: 10 }]}>
-          <Text style={s.formTitle}>반복 일정</Text>
-          <Text style={s.itemMeta}>기간과 요일을 선택하면 해당 기간 동안 반복 생성됩니다.</Text>
-          <View style={[s.row, { flexWrap: 'wrap', gap: 8 }]}>
-            <Pressable
-              onPress={() => onRecurrenceEnabledChange?.(!recurrenceEnabled)}
-              style={[
-                s.workspacePill,
-                { marginRight: 0, paddingVertical: 8, paddingHorizontal: 12 },
-                recurrenceEnabled ? s.workspacePillActive : null,
-              ]}
-            >
-              <Text style={[s.workspacePillText, recurrenceEnabled ? s.workspacePillTextActive : null]}>
-                {recurrenceEnabled ? '반복 사용 중' : '반복 사용 안함'}
-              </Text>
-            </Pressable>
-          </View>
-          {recurrenceEnabled ? (
-            <>
-              <View style={[s.row, { alignItems: 'stretch', gap: 8 }]}>
-                {renderDateTimeField({
-                  kind: 'date',
-                  value: repeatStartParts.date,
-                  placeholder: '반복 시작일',
-                  onPress: () => setPickerTarget('repeatStartDate'),
-                })}
-                {renderDateTimeField({
-                  kind: 'date',
-                  value: repeatEndParts.date,
-                  placeholder: '반복 종료일',
-                  onPress: () => setPickerTarget('repeatEndDate'),
-                })}
-              </View>
-              <View style={[s.row, { flexWrap: 'wrap', gap: 8 }]}>
-                {(['일', '월', '화', '수', '목', '금', '토'] as const).map((label, index) => {
-                  const active = recurrenceWeekdays.includes(index);
-                  const next = active
-                    ? recurrenceWeekdays.filter((day) => day !== index)
-                    : [...recurrenceWeekdays, index].sort((a, b) => a - b);
-                  return (
-                    <Pressable
-                      key={`${label}-${index}`}
-                      onPress={() => onRecurrenceWeekdaysChange?.(next)}
-                      style={[
-                        s.workspacePill,
-                        { marginRight: 0, paddingVertical: 7, paddingHorizontal: 10 },
-                        active ? s.workspacePillActive : null,
-                      ]}
-                    >
-                      <Text style={[s.workspacePillText, active ? s.workspacePillTextActive : null]}>{label}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </>
-          ) : null}
-        </View>
-      ) : null}
-
       <View style={[s.panel, { borderRadius: 16, gap: 10 }]}>
         <Text style={s.formTitle}>알림</Text>
         <Text style={s.itemMeta}>시작 시간을 기준으로 받을 알림 시점을 선택합니다.</Text>
@@ -943,13 +960,23 @@ export function TaskEditorForm({
       </View>
 
       <View style={s.row}>
-        <Pressable style={s.primaryButtonHalf} onPress={onSubmit}>
-          <Text style={s.primaryButtonText}>{saving ? '저장 중...' : submitLabel}</Text>
-        </Pressable>
+        <View style={{ flex: 1 }}>
+          <GsxButton
+            label={saving ? '저장 중...' : submitLabel}
+            variant="primary"
+            className="w-full py-3"
+            onPress={onSubmit}
+          />
+        </View>
         {onDelete ? (
-          <Pressable style={s.secondaryButtonHalf} onPress={onDelete}>
-            <Text style={[s.secondaryButtonText, { color: '#EF4444' }]}>삭제</Text>
-          </Pressable>
+          <View style={{ flex: 1 }}>
+            <GsxButton
+              label="삭제"
+              variant="danger"
+              className="w-full py-3"
+              onPress={onDelete}
+            />
+          </View>
         ) : null}
       </View>
 
@@ -1102,6 +1129,6 @@ export function TaskEditorForm({
           </Pressable>
         </Pressable>
       </Modal>
-    </View>
+    </GsxCard>
   );
 }

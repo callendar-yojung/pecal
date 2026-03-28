@@ -185,7 +185,7 @@ export function MobileApp() {
         {data.selectedWorkspace && data.tab === 'tasks' ? (
           <TasksScreen
             tasks={data.tasks}
-            tags={data.tags}
+            categories={data.categories}
           />
         ) : null}
 

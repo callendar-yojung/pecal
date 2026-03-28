@@ -5,6 +5,7 @@ import { useThemeMode } from '../contexts/ThemeContext';
 import { useI18n } from '../contexts/I18nContext';
 import { createStyles } from '../styles/createStyles';
 import type { TaskItem } from '../lib/types';
+import { GsxCard, GsxChip, GsxHeading } from '../ui/gsx';
 
 type Props = {
   tasks: TaskItem[];
@@ -117,7 +118,7 @@ export function OverviewScreen({ tasks, onPressTask, onToggleTaskDone }: Props) 
   });
 
   const recurringTasks = useMemo(() => {
-    return tasks
+    const sorted = tasks
       .map((task) => {
         const start = parseDate(task.start_time);
         const end = parseDate(task.end_time) ?? start;
@@ -130,6 +131,15 @@ export function OverviewScreen({ tasks, onPressTask, onToggleTaskDone }: Props) 
         return isRecurringTask(task) && start.getTime() >= now.getTime();
       })
       .sort((a, b) => (a.__start?.getTime() ?? 0) - (b.__start?.getTime() ?? 0))
+      .slice(0, 20);
+
+    const seenIds = new Set<number>();
+    return sorted
+      .filter((task) => {
+        if (seenIds.has(task.id)) return false;
+        seenIds.add(task.id);
+        return true;
+      })
       .slice(0, 8);
   }, [tasks, now]);
 
@@ -193,15 +203,32 @@ export function OverviewScreen({ tasks, onPressTask, onToggleTaskDone }: Props) 
 
   return (
     <View style={{ gap: 12 }}>
-      <View style={[s.panel, { borderRadius: 18, gap: 6 }]}>
-        <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800', letterSpacing: -0.4 }}>{localizedTopDate}</Text>
+      <GsxCard className="gap-2">
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <GsxHeading className="text-2xl">{localizedTopDate}</GsxHeading>
+          <View
+            style={{
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: `${colors.primary}12`,
+              borderRadius: 999,
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+            }}
+          >
+            <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '800' }}>OVERVIEW</Text>
+          </View>
+        </View>
         <Text style={{ color: colors.textMuted, fontSize: 13, fontWeight: '600' }}>
           {t('overviewTopSummary', { total: totalCount, completed: completedCount, remaining: remainingCount })}
         </Text>
-      </View>
+      </GsxCard>
 
-      <View style={[s.panel, { borderRadius: 18, gap: 10 }]}>
-        <Text style={[s.formTitle, { fontSize: 16 }]}>오늘 일정</Text>
+      <GsxCard className="gap-2">
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Ionicons name="today-outline" size={16} color={colors.primary} />
+          <GsxHeading className="text-lg">오늘 일정</GsxHeading>
+        </View>
         {nextTask?.__start ? (
           <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>
             {formatCountdown(nextTask.__start, now, t)}
@@ -272,10 +299,13 @@ export function OverviewScreen({ tasks, onPressTask, onToggleTaskDone }: Props) 
             })
           )}
         </View>
-      </View>
+      </GsxCard>
 
-      <View style={[s.panel, { borderRadius: 18, gap: 10 }]}>
-        <Text style={[s.formTitle, { fontSize: 16 }]}>반복 일정</Text>
+      <GsxCard className="gap-2">
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Ionicons name="repeat-outline" size={16} color={colors.primary} />
+          <GsxHeading className="text-lg">반복 일정</GsxHeading>
+        </View>
         {recurringTasks.length === 0 ? (
           <Text style={s.itemMeta}>예정된 반복 일정이 없습니다.</Text>
         ) : (
@@ -302,10 +332,13 @@ export function OverviewScreen({ tasks, onPressTask, onToggleTaskDone }: Props) 
             ))}
           </View>
         )}
-      </View>
+      </GsxCard>
 
-      <View style={[s.panel, { borderRadius: 18, gap: 10 }]}>
-        <Text style={[s.formTitle, { fontSize: 16 }]}>카테고리별 일정</Text>
+      <GsxCard className="gap-2">
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Ionicons name="layers-outline" size={16} color={colors.primary} />
+          <GsxHeading className="text-lg">카테고리별 일정</GsxHeading>
+        </View>
         {categoryGroups.length === 0 ? (
           <Text style={s.itemMeta}>오늘 카테고리 일정이 없습니다.</Text>
         ) : (
@@ -315,7 +348,7 @@ export function OverviewScreen({ tasks, onPressTask, onToggleTaskDone }: Props) 
               style={{
                 borderWidth: 1,
                 borderColor: colors.border,
-                borderRadius: 12,
+                borderRadius: 14,
                 backgroundColor: colors.card,
                 paddingHorizontal: 12,
                 paddingVertical: 10,
@@ -336,6 +369,12 @@ export function OverviewScreen({ tasks, onPressTask, onToggleTaskDone }: Props) 
                 <Text numberOfLines={1} style={{ color: colors.text, fontSize: 14, fontWeight: '700', flex: 1 }}>
                   {selectedCategoryOption?.name ?? '전체 카테고리'}
                 </Text>
+                <GsxChip
+                  label={`${selectedCategoryOption?.tasks.length ?? 0}개`}
+                  active
+                  className="px-2 py-1"
+                  textClassName="text-[10px]"
+                />
               </View>
               <Ionicons
                 name={categoryDropdownOpen ? 'chevron-up' : 'chevron-down'}
@@ -368,7 +407,7 @@ export function OverviewScreen({ tasks, onPressTask, onToggleTaskDone }: Props) 
                         paddingVertical: 10,
                         borderTopWidth: idx === 0 ? 0 : 1,
                         borderTopColor: colors.border,
-                        backgroundColor: selected ? `${colors.primary}14` : colors.card,
+                        backgroundColor: selected ? `${colors.primary}18` : colors.card,
                         flexDirection: 'row',
                         alignItems: 'center',
                         justifyContent: 'space-between',
@@ -377,9 +416,12 @@ export function OverviewScreen({ tasks, onPressTask, onToggleTaskDone }: Props) 
                       <Text style={{ color: selected ? colors.primary : colors.text, fontSize: 13, fontWeight: selected ? '800' : '600' }}>
                         {option.name}
                       </Text>
-                      <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: '700' }}>
-                        {option.tasks.length}개
-                      </Text>
+                      <GsxChip
+                        label={`${option.tasks.length}개`}
+                        active={selected}
+                        className="px-2 py-1"
+                        textClassName="text-[10px]"
+                      />
                     </Pressable>
                   );
                 })}
@@ -439,7 +481,7 @@ export function OverviewScreen({ tasks, onPressTask, onToggleTaskDone }: Props) 
             </View>
           </View>
         )}
-      </View>
+      </GsxCard>
 
     </View>
   );

@@ -6,6 +6,7 @@ import { useThemeMode } from '../../../../src/contexts/ThemeContext';
 import { useI18n } from '../../../../src/contexts/I18nContext';
 import { createStyles } from '../../../../src/styles/createStyles';
 import { TaskDetailWebView } from '../../../../src/components/task/TaskDetailWebView';
+import { GsxCard, GsxHeading } from '../../../../src/ui/gsx';
 
 export default function TaskDetailPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -93,25 +94,19 @@ export default function TaskDetailPage() {
             backgroundColor: colors.bg + 'E6',
           }}
         >
-          <View
+          <GsxCard
+            className="items-center gap-2"
             style={{
               minWidth: 180,
               maxWidth: 240,
               paddingHorizontal: 20,
               paddingVertical: 18,
               borderRadius: 20,
-              backgroundColor: colors.card,
-              borderWidth: 1,
-              borderColor: colors.border,
-              alignItems: 'center',
-              gap: 10,
             }}
           >
             <ActivityIndicator color={colors.primary} />
-            <Text style={{ color: colors.text, fontSize: 13, fontWeight: '700' }}>
-              첨부파일 불러오는 중...
-            </Text>
-          </View>
+            <GsxHeading className="text-sm">첨부파일 불러오는 중...</GsxHeading>
+          </GsxCard>
         </View>
       ) : null}
     </View>

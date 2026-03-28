@@ -9,6 +9,10 @@ import { toLocalDateTimeString } from '../../../../src/lib/date';
 import { createStyles } from '../../../../src/styles/createStyles';
 import type { TaskStatus } from '../../../../src/lib/types';
 
+function normalizeTaskStatus(status?: TaskStatus): 'TODO' | 'DONE' {
+  return status === 'DONE' ? 'DONE' : 'TODO';
+}
+
 function normalizeDateTime(value: string) {
   if (!value) return new Date(NaN);
   const normalized = value.includes(' ') ? value.replace(' ', 'T') : value;
@@ -129,8 +133,9 @@ export default function TaskDuplicatePage() {
         start_time: toLocalDateTimeString(clonedStartDate),
         end_time: toLocalDateTimeString(clonedEndDate),
         content: task.content ?? null,
-        status: (task.status ?? 'TODO') as TaskStatus,
+        status: normalizeTaskStatus(task.status),
         color: task.color ?? '#3B82F6',
+        category_id: task.category_id ?? task.category?.category_id ?? null,
         tag_ids: task.tag_ids ?? (task.tags ?? []).map((tag) => Number(tag.tag_id)),
         description: task.description ?? null,
         assignee_id: task.assignee_id ?? null,

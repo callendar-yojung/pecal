@@ -2,7 +2,7 @@ import type { TaskItem } from './types';
 
 const STATUS_COLORS = {
   TODO: '#6B7280',
-  IN_PROGRESS: '#3B82F6',
+  IN_PROGRESS: '#6B7280',
   DONE: '#22C55E',
 } as const;
 
