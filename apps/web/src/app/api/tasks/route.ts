@@ -9,6 +9,7 @@ import {
   deleteTask,
   getTaskById,
   getTasksByWorkspaceIdPaginated,
+  upsertTaskRecurrence,
   updateTask,
 } from "@/lib/task";
 import { attachFileToTask } from "@/lib/task-attachment";
@@ -46,22 +47,6 @@ function parseLocalDateFromString(value: string): Date | null {
   const day = Number(m[3]);
   const date = new Date(year, month, day, 0, 0, 0, 0);
   return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function extractTimePart(value: string): string {
-  const m = value.match(/[T ](\d{2}:\d{2})(?::(\d{2}))?/);
-  if (!m) return "09:00:00";
-  return `${m[1]}:${m[2] ?? "00"}`;
-}
-
-function formatLocalDateTime(date: Date): string {
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, "0");
-  const dd = String(date.getDate()).padStart(2, "0");
-  const hh = String(date.getHours()).padStart(2, "0");
-  const mi = String(date.getMinutes()).padStart(2, "0");
-  const ss = String(date.getSeconds()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}`;
 }
 
 // GET /api/tasks?workspace_id={id}&page=1&limit=20&sort_by=start_time&sort_order=DESC&status=TODO&search=keyword
@@ -277,91 +262,65 @@ export async function POST(request: NextRequest) {
 
     const sourceStart = new Date(start_time);
     const sourceEnd = new Date(end_time);
-    if (Number.isNaN(sourceStart.getTime()) || Number.isNaN(sourceEnd.getTime())) {
+    if (
+      Number.isNaN(sourceStart.getTime()) ||
+      Number.isNaN(sourceEnd.getTime()) ||
+      sourceStart >= sourceEnd
+    ) {
       return NextResponse.json(
         { error: "Invalid start_time or end_time" },
         { status: 400 },
       );
     }
-    const durationMs = sourceEnd.getTime() - sourceStart.getTime();
-    if (durationMs <= 0) {
-      return NextResponse.json(
-        { error: "End time must be after start time" },
-        { status: 400 },
-      );
-    }
 
-    const startTimePart = extractTimePart(start_time);
-    const maxOccurrences = 730;
-    const occurrenceDates: Date[] = [];
-    for (
-      let cursor = new Date(recurrenceStart);
-      cursor <= recurrenceEnd;
-      cursor.setDate(cursor.getDate() + 1)
-    ) {
-      if (!weekdays.includes(cursor.getDay())) continue;
-      occurrenceDates.push(new Date(cursor));
-      if (occurrenceDates.length > maxOccurrences) {
-        return NextResponse.json(
-          { error: `Too many recurrence occurrences (max ${maxOccurrences})` },
-          { status: 400 },
-        );
+    const taskId = await createTask({
+      title,
+      start_time,
+      end_time,
+      content,
+      status: status || "TODO",
+      color: color || "#3B82F6",
+      category_id: category_id ?? null,
+      tag_ids: tag_ids || [],
+      reminder_minutes: reminderParsed.value,
+      rrule: JSON.stringify({
+        type: "WEEKLY_RANGE",
+        start_date: recurrenceInput?.start_date,
+        end_date: recurrenceInput?.end_date,
+        weekdays,
+      }),
+      member_id: user.memberId,
+      workspace_id: Number(workspace_id),
+    });
+
+    await upsertTaskRecurrence(taskId, {
+      start_date: String(recurrenceInput?.start_date),
+      end_date: String(recurrenceInput?.end_date),
+      weekdays,
+    });
+
+    if (file_ids && Array.isArray(file_ids) && file_ids.length > 0) {
+      for (const fileId of file_ids) {
+        await attachFileToTask(taskId, fileId, user.memberId);
       }
     }
 
-    if (occurrenceDates.length === 0) {
-      return NextResponse.json(
-        { error: "No dates matched recurrence settings" },
-        { status: 400 },
-      );
-    }
-
-    const createdTaskIds: number[] = [];
-    for (const day of occurrenceDates) {
-      const dateKey = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
-      const occurrenceStart = new Date(`${dateKey}T${startTimePart}`);
-      const occurrenceEnd = new Date(occurrenceStart.getTime() + durationMs);
-      const occurrenceStartText = formatLocalDateTime(occurrenceStart);
-      const occurrenceEndText = formatLocalDateTime(occurrenceEnd);
-
-      const createdTaskId = await createTask({
-        title,
-        start_time: occurrenceStartText,
-        end_time: occurrenceEndText,
-        content,
-        status: status || "TODO",
-        color: color || "#3B82F6",
-        category_id: category_id ?? null,
-        tag_ids: tag_ids || [],
-        reminder_minutes: reminderParsed.value,
-        rrule: JSON.stringify({
-          type: "WEEKLY_RANGE",
-          start_date: recurrenceInput?.start_date,
-          end_date: recurrenceInput?.end_date,
-          weekdays,
-        }),
-        member_id: user.memberId,
-        workspace_id: Number(workspace_id),
-      });
-      createdTaskIds.push(createdTaskId);
-
-      await enqueueTaskReminderEvent({
-        action: "upsert",
-        taskId: createdTaskId,
-        workspaceId: Number(workspace_id),
-        title: title,
-        color: color || "#3B82F6",
-        startTime: occurrenceStartText,
-        reminderMinutes: reminderParsed.value,
-      });
-    }
+    await enqueueTaskReminderEvent({
+      action: "upsert",
+      taskId,
+      workspaceId: Number(workspace_id),
+      title: title,
+      color: color || "#3B82F6",
+      startTime: start_time,
+      reminderMinutes: reminderParsed.value,
+    });
 
     return NextResponse.json(
       {
         success: true,
-        taskId: createdTaskIds[0],
-        taskIds: createdTaskIds,
-        createdCount: createdTaskIds.length,
+        taskId,
+        createdCount: 1,
+        recurring: true,
       },
       { status: 201 },
     );

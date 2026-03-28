@@ -68,6 +68,11 @@ export interface Task {
   category?: { category_id: number; name: string; color: string } | null;
   tag_ids?: number[];
   tags?: Array<{ tag_id: number; name: string; color: string }>;
+  recurrence?: {
+    start_date: string;
+    end_date: string;
+    weekdays: number[];
+  } | null;
 }
 
 const TASK_DETAIL_TTL_SECONDS = Number(process.env.REDIS_TASK_DETAIL_TTL_SEC ?? 30);
@@ -140,10 +145,14 @@ export async function getTaskById(taskId: number): Promise<Task | null> {
           t.*,
           GROUP_CONCAT(tt.tag_id ORDER BY tt.tag_id) as tag_ids_csv,
           MAX(c.name) as category_name,
-          MAX(c.color) as category_color
+          MAX(c.color) as category_color,
+          MAX(tr.start_date) as recurrence_start_date,
+          MAX(tr.end_date) as recurrence_end_date,
+          MAX(tr.weekdays_csv) as recurrence_weekdays_csv
          FROM tasks t
          LEFT JOIN task_tags tt ON t.id = tt.task_id
          LEFT JOIN categories c ON t.category_id = c.category_id
+         LEFT JOIN task_recurrences tr ON tr.task_id = t.id
          WHERE t.id = ?
          GROUP BY t.id
          LIMIT 1`,
@@ -154,12 +163,15 @@ export async function getTaskById(taskId: number): Promise<Task | null> {
         tag_ids_csv?: string | null;
         category_name?: string | null;
         category_color?: string | null;
+        recurrence_start_date?: string | null;
+        recurrence_end_date?: string | null;
+        recurrence_weekdays_csv?: string | null;
       };
       const tag_ids = (row.tag_ids_csv || "")
         .split(",")
         .map((value) => Number(value))
         .filter((value) => Number.isFinite(value) && value > 0);
-      const task = {
+      const task = withRecurrence({
         ...(row as unknown as Task),
         tag_ids,
         category:
@@ -170,7 +182,7 @@ export async function getTaskById(taskId: number): Promise<Task | null> {
                 color: String(row.category_color ?? "#3B82F6"),
               }
             : null,
-      };
+      }, row);
       return task;
     },
   );
@@ -186,12 +198,16 @@ export async function getTaskByIdWithNames(
       updater.nickname as updated_by_name,
       GROUP_CONCAT(tt.tag_id ORDER BY tt.tag_id) as tag_ids_csv,
       MAX(c.name) as category_name,
-      MAX(c.color) as category_color
+      MAX(c.color) as category_color,
+      MAX(tr.start_date) as recurrence_start_date,
+      MAX(tr.end_date) as recurrence_end_date,
+      MAX(tr.weekdays_csv) as recurrence_weekdays_csv
      FROM tasks t
      LEFT JOIN members creator ON t.created_by = creator.member_id
      LEFT JOIN members updater ON t.updated_by = updater.member_id
      LEFT JOIN task_tags tt ON t.id = tt.task_id
      LEFT JOIN categories c ON t.category_id = c.category_id
+     LEFT JOIN task_recurrences tr ON tr.task_id = t.id
      WHERE t.id = ?
      GROUP BY t.id
      LIMIT 1`,
@@ -203,12 +219,15 @@ export async function getTaskByIdWithNames(
     tag_ids_csv?: string | null;
     category_name?: string | null;
     category_color?: string | null;
+    recurrence_start_date?: string | null;
+    recurrence_end_date?: string | null;
+    recurrence_weekdays_csv?: string | null;
   };
   const tag_ids = (row.tag_ids_csv || "")
     .split(",")
     .map((value) => Number(value))
     .filter((value) => Number.isFinite(value) && value > 0);
-  return {
+  return withRecurrence({
     ...(row as unknown as Task),
     tag_ids,
     category:
@@ -219,7 +238,7 @@ export async function getTaskByIdWithNames(
             color: String(row.category_color ?? "#3B82F6"),
           }
         : null,
-  };
+  }, row);
 }
 
 export interface CreateTaskData {
@@ -235,6 +254,102 @@ export interface CreateTaskData {
   member_id: number;
   workspace_id: number;
   tag_ids?: number[];
+}
+
+export interface TaskRecurrenceData {
+  start_date: string;
+  end_date: string;
+  weekdays: number[];
+}
+
+type RecurrenceSqlColumns = {
+  recurrence_start_date?: string | null;
+  recurrence_end_date?: string | null;
+  recurrence_weekdays_csv?: string | null;
+};
+
+function parseWeekdaysCsv(input: string | null | undefined): number[] {
+  if (!input) return [];
+  return Array.from(
+    new Set(
+      input
+        .split(",")
+        .map((token) => Number(token.trim()))
+        .filter((n) => Number.isInteger(n) && n >= 0 && n <= 6),
+    ),
+  ).sort((a, b) => a - b);
+}
+
+function parseDateOnly(value: string): Date {
+  const [datePart] = value.split(/[ T]/);
+  const [y, m, d] = datePart.split("-").map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+
+function toDateKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function extractTimeOfDay(value: string): string {
+  const match = value.match(/[ T](\d{2}:\d{2}:\d{2}|\d{2}:\d{2})/);
+  if (!match) return "09:00:00";
+  return match[1].length === 5 ? `${match[1]}:00` : match[1];
+}
+
+function buildDateTime(dateKey: string, timePart: string): string {
+  return `${dateKey} ${timePart}`;
+}
+
+function withRecurrence(task: Task, row: RecurrenceSqlColumns): Task {
+  const weekdays = parseWeekdaysCsv(row.recurrence_weekdays_csv);
+  if (!row.recurrence_start_date || !row.recurrence_end_date || weekdays.length === 0) {
+    return { ...task, recurrence: null };
+  }
+  return {
+    ...task,
+    recurrence: {
+      start_date: String(row.recurrence_start_date).slice(0, 10),
+      end_date: String(row.recurrence_end_date).slice(0, 10),
+      weekdays,
+    },
+  };
+}
+
+function expandRecurringTasks(tasks: Task[]): Task[] {
+  const expanded: Task[] = [];
+  for (const task of tasks) {
+    if (!task.recurrence) {
+      expanded.push(task);
+      continue;
+    }
+    const recurrence = task.recurrence;
+    const recurrenceStart = parseDateOnly(recurrence.start_date);
+    const recurrenceEnd = parseDateOnly(recurrence.end_date);
+    if (recurrenceStart > recurrenceEnd || recurrence.weekdays.length === 0) {
+      continue;
+    }
+
+    const startTimePart = extractTimeOfDay(task.start_time);
+    const endTimePart = extractTimeOfDay(task.end_time);
+    for (
+      let cursor = new Date(recurrenceStart);
+      cursor <= recurrenceEnd;
+      cursor.setDate(cursor.getDate() + 1)
+    ) {
+      if (!recurrence.weekdays.includes(cursor.getDay())) continue;
+      const dateKey = toDateKey(cursor);
+      expanded.push({
+        ...task,
+        id: task.id,
+        start_time: buildDateTime(dateKey, startTimePart),
+        end_time: buildDateTime(dateKey, endTimePart),
+      });
+    }
+  }
+  return expanded;
 }
 
 /**
@@ -286,6 +401,34 @@ export async function createTask(data: CreateTaskData): Promise<number> {
   } finally {
     connection.release();
   }
+}
+
+export async function upsertTaskRecurrence(
+  taskId: number,
+  data: TaskRecurrenceData,
+): Promise<void> {
+  const weekdays = Array.from(
+    new Set(
+      (data.weekdays ?? [])
+        .map((day) => Number(day))
+        .filter((day) => Number.isInteger(day) && day >= 0 && day <= 6),
+    ),
+  ).sort((a, b) => a - b);
+  const weekdaysCsv = weekdays.join(",");
+  if (!data.start_date || !data.end_date || weekdaysCsv.length === 0) {
+    throw new Error("Invalid recurrence payload");
+  }
+
+  await pool.query(
+    `INSERT INTO task_recurrences (task_id, start_date, end_date, weekdays_csv, created_at, updated_at)
+     VALUES (?, ?, ?, ?, NOW(), NOW())
+     ON DUPLICATE KEY UPDATE
+       start_date = VALUES(start_date),
+       end_date = VALUES(end_date),
+       weekdays_csv = VALUES(weekdays_csv),
+       updated_at = NOW()`,
+    [taskId, data.start_date, data.end_date, weekdaysCsv],
+  );
 }
 
 /**
@@ -343,7 +486,6 @@ export async function getTasksByWorkspaceIdPaginated(
 ): Promise<PaginatedTasksResult> {
   const page = Math.max(1, options.page || 1);
   const limit = Math.min(100, Math.max(1, options.limit || 20));
-  const offset = (page - 1) * limit;
   const sortOrder = options.sort_order === "ASC" ? "ASC" : "DESC";
   const sortBy: SortColumn = ALLOWED_SORT_COLUMNS.includes(
     options.sort_by as SortColumn,
@@ -381,14 +523,6 @@ export async function getTasksByWorkspaceIdPaginated(
     }),
     TASK_LIST_TTL_SECONDS,
     async () => {
-      // 전체 개수 조회
-      const [countRows] = await pool.query<RowDataPacket[]>(
-        `SELECT COUNT(DISTINCT t.id) as total FROM tasks t WHERE ${whereClause}`,
-        params,
-      );
-      const total = countRows[0].total;
-
-      // 데이터 조회 (태그 포함)
       const [rows] = await pool.query<RowDataPacket[]>(
         `SELECT 
           t.*,
@@ -399,25 +533,30 @@ export async function getTasksByWorkspaceIdPaginated(
           tags.color as tag_color,
           c.category_id,
           c.name as category_name,
-          c.color as category_color
+          c.color as category_color,
+          tr.start_date as recurrence_start_date,
+          tr.end_date as recurrence_end_date,
+          tr.weekdays_csv as recurrence_weekdays_csv
          FROM tasks t
          LEFT JOIN members creator ON t.created_by = creator.member_id
          LEFT JOIN members updater ON t.updated_by = updater.member_id
          LEFT JOIN task_tags tg ON t.id = tg.task_id
          LEFT JOIN tags ON tg.tag_id = tags.tag_id
          LEFT JOIN categories c ON t.category_id = c.category_id
+         LEFT JOIN task_recurrences tr ON tr.task_id = t.id
          WHERE ${whereClause} 
-         ORDER BY t.${sortBy} ${sortOrder}
-         LIMIT ? OFFSET ?`,
-        [...params, limit, offset],
+         ORDER BY t.start_time ASC`,
+        [...params],
       );
 
-      // 태스크별로 그룹화하여 태그 배열 생성
       const tasksMap = new Map<number, Task>();
 
       rows.forEach((row: any) => {
         if (!tasksMap.has(row.id)) {
-          tasksMap.set(row.id, {
+          tasksMap.set(
+            row.id,
+            withRecurrence(
+              {
             id: row.id,
             title: row.title,
             start_time: row.start_time,
@@ -444,7 +583,10 @@ export async function getTasksByWorkspaceIdPaginated(
                   }
                 : null,
             tags: [],
-          });
+              },
+              row,
+            ),
+          );
         }
 
         // 태그가 있으면 추가
@@ -457,7 +599,34 @@ export async function getTasksByWorkspaceIdPaginated(
         }
       });
 
-      const tasks = Array.from(tasksMap.values());
+      const expanded = expandRecurringTasks(Array.from(tasksMap.values()));
+      const comparator = (a: Task, b: Task) => {
+        const pick = (task: Task) => {
+          switch (sortBy) {
+            case "title":
+              return task.title ?? "";
+            case "status":
+              return task.status ?? "";
+            case "end_time":
+              return task.end_time ?? "";
+            case "created_at":
+              return task.created_at ?? "";
+            case "updated_at":
+              return task.updated_at ?? "";
+            case "start_time":
+            default:
+              return task.start_time ?? "";
+          }
+        };
+        const left = pick(a);
+        const right = pick(b);
+        const compared = String(left).localeCompare(String(right));
+        return sortOrder === "ASC" ? compared : -compared;
+      };
+      const sorted = expanded.sort(comparator);
+      const total = sorted.length;
+      const offset = (page - 1) * limit;
+      const tasks = sorted.slice(offset, offset + limit);
 
       return {
         tasks,
@@ -655,9 +824,10 @@ export async function getTasksByDate(
     taskDateCacheKey(workspaceId, date),
     TASK_DATE_TTL_SECONDS,
     async () => {
-      // start_time is stored as user's local time, so we can query by date directly
       const dateStart = `${date} 00:00:00`;
       const dateEnd = `${date} 23:59:59`;
+      const targetDate = parseDateOnly(date);
+      const targetWeekday = targetDate.getDay();
 
       const [rows] = await pool.query<RowDataPacket[]>(
         `SELECT
@@ -666,25 +836,34 @@ export async function getTasksByDate(
           updater.nickname as updated_by_name,
           tg.tag_id,
           tags.name as tag_name,
-          tags.color as tag_color
+          tags.color as tag_color,
+          tr.start_date as recurrence_start_date,
+          tr.end_date as recurrence_end_date,
+          tr.weekdays_csv as recurrence_weekdays_csv
          FROM tasks t
          LEFT JOIN members creator ON t.created_by = creator.member_id
          LEFT JOIN members updater ON t.updated_by = updater.member_id
          LEFT JOIN task_tags tg ON t.id = tg.task_id
          LEFT JOIN tags ON tg.tag_id = tags.tag_id
+         LEFT JOIN task_recurrences tr ON tr.task_id = t.id
          WHERE t.workspace_id = ?
-           AND t.start_time >= ?
-           AND t.start_time <= ?
+           AND (
+             (tr.task_id IS NULL AND t.start_time >= ? AND t.start_time <= ?)
+             OR
+             (tr.task_id IS NOT NULL AND tr.start_date <= ? AND tr.end_date >= ? AND FIND_IN_SET(?, tr.weekdays_csv) > 0)
+           )
          ORDER BY t.start_time ASC`,
-        [workspaceId, dateStart, dateEnd],
+        [workspaceId, dateStart, dateEnd, date, date, String(targetWeekday)],
       );
 
-      // 태스크별로 그룹화하여 태그 배열 생성
       const tasksMap = new Map<number, Task>();
 
       rows.forEach((row: any) => {
         if (!tasksMap.has(row.id)) {
-          tasksMap.set(row.id, {
+          tasksMap.set(
+            row.id,
+            withRecurrence(
+              {
             id: row.id,
             title: row.title,
             start_time: row.start_time,
@@ -702,7 +881,10 @@ export async function getTasksByDate(
             updated_by_name: row.updated_by_name || null,
             workspace_id: row.workspace_id,
             tags: [],
-          });
+              },
+              row,
+            ),
+          );
         }
 
         // 태그가 있으면 추가
@@ -715,7 +897,21 @@ export async function getTasksByDate(
         }
       });
 
-      return Array.from(tasksMap.values());
+      const tasks = Array.from(tasksMap.values()).flatMap((task) => {
+        if (!task.recurrence) return [task];
+        const startTimePart = extractTimeOfDay(task.start_time);
+        const endTimePart = extractTimeOfDay(task.end_time);
+        return [
+          {
+            ...task,
+            id: task.id,
+            start_time: buildDateTime(date, startTimePart),
+            end_time: buildDateTime(date, endTimePart),
+          },
+        ];
+      });
+
+      return tasks.sort((a, b) => a.start_time.localeCompare(b.start_time));
     },
   );
 }
@@ -747,10 +943,11 @@ export async function getTasksWithTitlesByMonth(
     calendarMonthCacheKey(workspaceId, year, month),
     CALENDAR_MONTH_TTL_SECONDS,
     async () => {
-      // start_time is stored as user's local time, so we can query by date directly
       const lastDay = new Date(year, month, 0).getDate();
       const monthStart = `${year}-${String(month).padStart(2, "0")}-01 00:00:00`;
       const monthEnd = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")} 23:59:59`;
+      const monthStartDateKey = `${year}-${String(month).padStart(2, "0")}-01`;
+      const monthEndDateKey = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
       const [rows] = await pool.query<RowDataPacket[]>(
         `SELECT
@@ -758,27 +955,21 @@ export async function getTasksWithTitlesByMonth(
            t.title,
            t.color,
            t.start_time,
-           t.end_time
+           t.end_time,
+           tr.start_date as recurrence_start_date,
+           tr.end_date as recurrence_end_date,
+           tr.weekdays_csv as recurrence_weekdays_csv
          FROM tasks t
+         LEFT JOIN task_recurrences tr ON tr.task_id = t.id
          WHERE t.workspace_id = ?
-           AND t.start_time <= ?
-           AND t.end_time >= ?
+           AND (
+             (tr.task_id IS NULL AND t.start_time <= ? AND t.end_time >= ?)
+             OR
+             (tr.task_id IS NOT NULL AND tr.start_date <= ? AND tr.end_date >= ?)
+           )
          ORDER BY t.start_time ASC`,
-        [workspaceId, monthEnd, monthStart],
+        [workspaceId, monthEnd, monthStart, monthEndDateKey, monthStartDateKey],
       );
-
-      const parseLocalDate = (value: string): Date => {
-        const [datePart] = value.split(" ");
-        const [y, m, d] = datePart.split("-").map(Number);
-        return new Date(y, (m || 1) - 1, d || 1);
-      };
-
-      const toDateKey = (date: Date) => {
-        const y = date.getFullYear();
-        const m = String(date.getMonth() + 1).padStart(2, "0");
-        const d = String(date.getDate()).padStart(2, "0");
-        return `${y}-${m}-${d}`;
-      };
 
       const monthStartDate = new Date(year, month - 1, 1);
       const monthEndDate = new Date(year, month - 1, lastDay);
@@ -795,8 +986,36 @@ export async function getTasksWithTitlesByMonth(
       >();
 
       for (const row of rows as any[]) {
-        const startDate = parseLocalDate(row.start_time);
-        const endDate = parseLocalDate(row.end_time || row.start_time);
+        const recurrenceWeekdays = parseWeekdaysCsv(row.recurrence_weekdays_csv);
+        if (recurrenceWeekdays.length > 0 && row.recurrence_start_date && row.recurrence_end_date) {
+          const recurrenceStart = parseDateOnly(String(row.recurrence_start_date));
+          const recurrenceEnd = parseDateOnly(String(row.recurrence_end_date));
+          const rangeStart = recurrenceStart > monthStartDate ? recurrenceStart : monthStartDate;
+          const rangeEnd = recurrenceEnd < monthEndDate ? recurrenceEnd : monthEndDate;
+          if (rangeStart <= rangeEnd) {
+            for (
+              let cursor = new Date(rangeStart);
+              cursor <= rangeEnd;
+              cursor.setDate(cursor.getDate() + 1)
+            ) {
+              if (!recurrenceWeekdays.includes(cursor.getDay())) continue;
+              const key = toDateKey(cursor);
+              const list = grouped.get(key) || [];
+              list.push({
+                id: row.id,
+                title: row.title,
+                color: row.color || null,
+                start_time: buildDateTime(key, extractTimeOfDay(String(row.start_time))),
+                end_time: buildDateTime(key, extractTimeOfDay(String(row.end_time))),
+              });
+              grouped.set(key, list);
+            }
+          }
+          continue;
+        }
+
+        const startDate = parseDateOnly(String(row.start_time));
+        const endDate = parseDateOnly(String(row.end_time || row.start_time));
         const rangeStart = startDate > monthStartDate ? startDate : monthStartDate;
         const rangeEnd = endDate < monthEndDate ? endDate : monthEndDate;
         if (rangeStart > rangeEnd) continue;
