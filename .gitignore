@@ -12,3 +12,4 @@ packages/*/node_modules
 *.sample
 *.example
 apps/desktop/src-tauri/keys/
+package-lock.json
