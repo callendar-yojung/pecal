@@ -86,13 +86,17 @@ interface RichTextEditorProps {
   showToolbar?: boolean;
   placeholder?: string;
 }
+
+const DEFAULT_DOC = {
+  type: "doc",
+  content: [{ type: "paragraph" }],
+} as const;
+
 function serializeDocument(
   content: Record<string, unknown> | null | undefined,
 ): string {
   try {
-    return JSON.stringify(
-      content ?? { type: "doc", content: [{ type: "paragraph" }] },
-    );
+    return JSON.stringify(content ?? DEFAULT_DOC);
   } catch {
     return "";
   }
@@ -107,6 +111,9 @@ export default function RichTextEditor({
   placeholder = "내용을 입력하세요.",
 }: RichTextEditorProps) {
   const lastAppliedDocRef = useRef<string>("");
+  const lastAppliedContentKeyRef = useRef<string | number | undefined>(
+    contentKey,
+  );
   const [isEmpty, setIsEmpty] = useState(true);
   const editor = useEditor({
     extensions: [
@@ -149,10 +156,7 @@ export default function RichTextEditor({
         types: ["heading", "paragraph"],
       }),
     ],
-    content: initialContent ?? {
-      type: "doc",
-      content: [{ type: "paragraph" }],
-    },
+    content: initialContent ?? DEFAULT_DOC,
     editable: !readOnly,
     editorProps: {
       attributes: {
@@ -181,18 +185,23 @@ export default function RichTextEditor({
     onCreate: ({ editor }) => {
       const initial = editor.getJSON() as Record<string, unknown>;
       lastAppliedDocRef.current = serializeDocument(initial);
+      lastAppliedContentKeyRef.current = contentKey;
       setIsEmpty(editor.isEmpty);
     },
   });
 
   useEffect(() => {
-    if (!editor || !initialContent) return;
-    const nextSerialized = serializeDocument(initialContent);
-    if (!nextSerialized || nextSerialized === lastAppliedDocRef.current) return;
-    editor.commands.setContent(initialContent, false);
+    if (!editor) return;
+    const nextContent = initialContent ?? DEFAULT_DOC;
+    const nextSerialized = serializeDocument(nextContent);
+    const keyChanged = contentKey !== lastAppliedContentKeyRef.current;
+    if (!nextSerialized) return;
+    if (!keyChanged && nextSerialized === lastAppliedDocRef.current) return;
+    editor.commands.setContent(nextContent, false);
     lastAppliedDocRef.current = nextSerialized;
+    lastAppliedContentKeyRef.current = contentKey;
     setIsEmpty(editor.isEmpty);
-  }, [editor, initialContent]);
+  }, [contentKey, editor, initialContent]);
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -203,7 +212,7 @@ export default function RichTextEditor({
             {placeholder}
           </div>
         ) : null}
-        <EditorContent editor={editor} key={contentKey} />
+        <EditorContent editor={editor} />
       </div>
     </div>
   );

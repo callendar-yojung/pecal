@@ -1,15 +1,16 @@
 "use client";
 
+import { Bell, Palette, Paperclip, Tag } from "lucide-react";
+import { useTranslations } from "next-intl";
 import {
   type ChangeEvent,
   type FormEvent,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
-import { Bell, Paperclip, Palette, Tag } from "lucide-react";
-import { useTranslations } from "next-intl";
 import RichTextEditor from "@/components/editor/RichTextEditor";
 
 type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE";
@@ -76,7 +77,11 @@ function normalizeDateTimeLocal(raw: string | undefined) {
   return `${y}-${m}-${d}T${hh}:${mm}`;
 }
 
-function buildDateTimeFromDateOnly(dateOnly: string, hour: number, minute: number) {
+function buildDateTimeFromDateOnly(
+  dateOnly: string,
+  hour: number,
+  minute: number,
+) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) return defaultDateTime(0);
   const hh = String(hour).padStart(2, "0");
   const mm = String(minute).padStart(2, "0");
@@ -92,9 +97,14 @@ function parseTaskContent(raw: unknown) {
   }
 }
 
-function postToNative(message: { type: string; payload?: Record<string, unknown> }) {
+function postToNative(message: {
+  type: string;
+  payload?: Record<string, unknown>;
+}) {
   if (typeof window === "undefined") return;
-  const bridge = (window as { ReactNativeWebView?: { postMessage?: (value: string) => void } }).ReactNativeWebView;
+  const bridge = (
+    window as { ReactNativeWebView?: { postMessage?: (value: string) => void } }
+  ).ReactNativeWebView;
   if (!bridge?.postMessage) return;
   bridge.postMessage(JSON.stringify(message));
 }
@@ -118,7 +128,8 @@ export default function MobileTaskEditorPage() {
   const initialDate = search.get("initial_date") ?? "";
   const alarmEnabledParam = search.get("alarm_enabled");
   const defaultReminderFromSettings = useMemo(
-    () => (alarmEnabledParam === "0" || alarmEnabledParam === "false" ? null : 10),
+    () =>
+      alarmEnabledParam === "0" || alarmEnabledParam === "false" ? null : 10,
     [alarmEnabledParam],
   );
 
@@ -147,6 +158,8 @@ export default function MobileTaskEditorPage() {
   const [newTagColor, setNewTagColor] = useState("#3B82F6");
   const [creatingTag, setCreatingTag] = useState(false);
   const [tagError, setTagError] = useState("");
+  const [titleError, setTitleError] = useState("");
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
 
   const canCreate = !!token && workspaceId > 0;
   const canLoadTags =
@@ -155,7 +168,18 @@ export default function MobileTaskEditorPage() {
     (ownerType === "team" || ownerType === "personal");
   const canEdit = !!token && mode === "edit" && taskId > 0;
 
-  const fetchAttachments = async () => {
+  const focusTitleField = useCallback(() => {
+    if (typeof window === "undefined") return;
+    window.requestAnimationFrame(() => {
+      titleInputRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+      titleInputRef.current?.focus();
+    });
+  }, []);
+
+  const fetchAttachments = useCallback(async () => {
     if (!canEdit) return;
     setLoadingAttachments(true);
     try {
@@ -163,12 +187,14 @@ export default function MobileTaskEditorPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) return;
-      const data = (await response.json()) as { attachments?: TaskAttachment[] };
+      const data = (await response.json()) as {
+        attachments?: TaskAttachment[];
+      };
       setAttachments(data.attachments ?? []);
     } finally {
       setLoadingAttachments(false);
     }
-  };
+  }, [canEdit, taskId, token]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -240,12 +266,22 @@ export default function MobileTaskEditorPage() {
       setShowNewTagForm(false);
     } catch (error) {
       setTagError(
-        error instanceof Error ? error.message : "태그 생성 중 오류가 발생했습니다.",
+        error instanceof Error
+          ? error.message
+          : "태그 생성 중 오류가 발생했습니다.",
       );
     } finally {
       setCreatingTag(false);
     }
-  }, [canLoadTags, loadTags, newTagColor, newTagName, ownerId, ownerType, token]);
+  }, [
+    canLoadTags,
+    loadTags,
+    newTagColor,
+    newTagName,
+    ownerId,
+    ownerType,
+    token,
+  ]);
 
   useEffect(() => {
     if (!canEdit) return;
@@ -294,6 +330,7 @@ export default function MobileTaskEditorPage() {
         setTagIds(Array.isArray(task.tag_ids) ? task.tag_ids : []);
         setContent(parseTaskContent(task.content));
         setEditorKey((prev) => prev + 1);
+        setTitleError("");
       } finally {
         setLoading(false);
       }
@@ -302,7 +339,7 @@ export default function MobileTaskEditorPage() {
 
   useEffect(() => {
     void fetchAttachments();
-  }, [canEdit, taskId, token]);
+  }, [fetchAttachments]);
 
   useEffect(() => {
     if (mode !== "create") return;
@@ -324,9 +361,12 @@ export default function MobileTaskEditorPage() {
     }
 
     if (!title.trim()) {
-      setMessage("제목을 입력하세요.");
+      setTitleError("제목을 입력해주세요.");
+      setMessage("");
+      focusTitleField();
       return;
     }
+    setTitleError("");
     if (new Date(startTime) >= new Date(endTime)) {
       setMessage("종료 시간이 시작 시간보다 늦어야 합니다.");
       return;
@@ -379,7 +419,9 @@ export default function MobileTaskEditorPage() {
         return;
       }
 
-      const responseData = (await res.json().catch(() => ({}))) as { taskId?: number };
+      const responseData = (await res.json().catch(() => ({}))) as {
+        taskId?: number;
+      };
       const savedTaskId = isEdit ? taskId : Number(responseData.taskId ?? 0);
       if (savedTaskId > 0 && isEdit && pendingFiles.length > 0) {
         await Promise.all(
@@ -425,6 +467,7 @@ export default function MobileTaskEditorPage() {
         setPendingFiles([]);
         setAttachments([]);
         setEditorKey((prev) => prev + 1);
+        setTitleError("");
       }
     } catch {
       setMessage("네트워크 오류가 발생했습니다.");
@@ -482,7 +525,10 @@ export default function MobileTaskEditorPage() {
   };
 
   const handleDeleteAttachment = async (attachmentId: number) => {
-    const ok = typeof window === "undefined" ? true : window.confirm("첨부파일을 삭제할까요?");
+    const ok =
+      typeof window === "undefined"
+        ? true
+        : window.confirm("첨부파일을 삭제할까요?");
     if (!ok) return;
     try {
       const response = await fetch(
@@ -496,7 +542,9 @@ export default function MobileTaskEditorPage() {
         setUploadError("첨부파일 삭제에 실패했습니다.");
         return;
       }
-      setAttachments((prev) => prev.filter((a) => a.attachment_id !== attachmentId));
+      setAttachments((prev) =>
+        prev.filter((a) => a.attachment_id !== attachmentId),
+      );
     } catch {
       setUploadError("첨부파일 삭제 중 오류가 발생했습니다.");
     }
@@ -507,7 +555,8 @@ export default function MobileTaskEditorPage() {
       setMessage("삭제할 일정 정보를 찾을 수 없습니다.");
       return;
     }
-    const ok = typeof window === "undefined" ? true : window.confirm("정말 삭제할까요?");
+    const ok =
+      typeof window === "undefined" ? true : window.confirm("정말 삭제할까요?");
     if (!ok) return;
 
     try {
@@ -522,7 +571,9 @@ export default function MobileTaskEditorPage() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setMessage((data as { error?: string }).error ?? "삭제에 실패했습니다.");
+        setMessage(
+          (data as { error?: string }).error ?? "삭제에 실패했습니다.",
+        );
         return;
       }
 
@@ -556,14 +607,34 @@ export default function MobileTaskEditorPage() {
         {loading ? (
           <p className="mb-3 text-sm text-muted-foreground">불러오는 중...</p>
         ) : null}
+        {titleError ? (
+          <div className="mb-3 rounded-xl border border-red-300 bg-red-50 px-3 py-3 text-sm text-red-700">
+            저장할 수 없습니다. 제목을 입력해주세요.
+          </div>
+        ) : null}
 
         <div className="space-y-3">
           <input
+            ref={titleInputRef}
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => {
+              const nextTitle = e.target.value;
+              setTitle(nextTitle);
+              if (nextTitle.trim()) {
+                setTitleError("");
+              }
+            }}
             placeholder="제목"
-            className="w-full rounded-xl border border-border bg-background px-3 py-3 text-base outline-none focus:border-primary"
+            aria-invalid={titleError ? "true" : "false"}
+            className={`w-full rounded-xl border bg-background px-3 py-3 text-base outline-none ${
+              titleError
+                ? "border-red-400 focus:border-red-500"
+                : "border-border focus:border-primary"
+            }`}
           />
+          {titleError ? (
+            <p className="mt-1 text-sm text-red-600">{titleError}</p>
+          ) : null}
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="text-sm font-semibold">
@@ -602,7 +673,9 @@ export default function MobileTaskEditorPage() {
                 <Palette className="h-4 w-4" />
                 색상
               </p>
-              <p className="text-xs text-muted-foreground">원하는 색을 터치하세요</p>
+              <p className="text-xs text-muted-foreground">
+                원하는 색을 터치하세요
+              </p>
             </div>
             <div className="mt-2 flex flex-wrap gap-2">
               {TASK_COLORS.map((swatch) => (
@@ -630,7 +703,9 @@ export default function MobileTaskEditorPage() {
                 <Bell className="h-4 w-4" />
                 알림
               </p>
-              <p className="text-xs text-muted-foreground">알림 시간을 터치해 주세요</p>
+              <p className="text-xs text-muted-foreground">
+                알림 시간을 터치해 주세요
+              </p>
             </div>
             <select
               value={reminderMinutes === null ? "" : String(reminderMinutes)}
@@ -652,14 +727,16 @@ export default function MobileTaskEditorPage() {
             </select>
           </div>
 
-            <div className="rounded-xl border border-border bg-background p-3">
-              <div className="mb-2 flex items-center justify-between">
-                <p className="flex items-center gap-1 text-sm font-semibold">
-                  <Tag className="h-4 w-4" />
-                  태그
-                </p>
-                <p className="text-xs text-muted-foreground">원하는 태그를 눌러 선택</p>
-              </div>
+          <div className="rounded-xl border border-border bg-background p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="flex items-center gap-1 text-sm font-semibold">
+                <Tag className="h-4 w-4" />
+                태그
+              </p>
+              <p className="text-xs text-muted-foreground">
+                원하는 태그를 눌러 선택
+              </p>
+            </div>
             {!tags.length ? (
               <p className="mt-2 text-sm text-muted-foreground">
                 사용 가능한 태그가 없습니다.
@@ -752,13 +829,17 @@ export default function MobileTaskEditorPage() {
                 <Paperclip className="h-4 w-4" />
                 첨부파일
               </p>
-              <p className="text-xs text-muted-foreground">아래 영역을 눌러 파일 등록</p>
+              <p className="text-xs text-muted-foreground">
+                아래 영역을 눌러 파일 등록
+              </p>
             </div>
             <label
               htmlFor="task-file-input"
               className="mt-2 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-card px-3 py-3 text-sm text-foreground transition-colors hover:bg-subtle"
             >
-              <span className="font-medium">이곳을 눌러 첨부파일을 등록하세요</span>
+              <span className="font-medium">
+                이곳을 눌러 첨부파일을 등록하세요
+              </span>
               <span className="text-xs text-muted-foreground">(클릭)</span>
             </label>
             <input
@@ -809,10 +890,14 @@ export default function MobileTaskEditorPage() {
               pendingFiles.length === 0 &&
               attachments.length === 0 &&
               !loadingAttachments ? (
-                <p className="text-xs text-muted-foreground">첨부된 파일이 없습니다.</p>
+                <p className="text-xs text-muted-foreground">
+                  첨부된 파일이 없습니다.
+                </p>
               ) : null}
               {loadingAttachments ? (
-                <p className="text-xs text-muted-foreground">첨부파일 불러오는 중...</p>
+                <p className="text-xs text-muted-foreground">
+                  첨부파일 불러오는 중...
+                </p>
               ) : null}
             </div>
           </div>
