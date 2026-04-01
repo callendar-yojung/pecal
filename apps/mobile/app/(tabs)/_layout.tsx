@@ -2,12 +2,14 @@ import { Redirect, Slot, usePathname, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import {
+  Alert,
   ActivityIndicator,
   Image,
   Modal,
   Pressable,
   ScrollView,
   Text,
+  TextInput,
   View,
   useWindowDimensions,
 } from 'react-native';
@@ -67,6 +69,26 @@ export default function TabsLayout() {
   const embeddedDocQuery = { embedded: 'mobile' };
   const [consentError, setConsentError] = useState<string | null>(null);
   const [selectedTeamAdmin, setSelectedTeamAdmin] = useState(false);
+  const [workspaceKindMenuOpen, setWorkspaceKindMenuOpen] = useState(false);
+  const [workspaceQuickMenuOpen, setWorkspaceQuickMenuOpen] = useState(false);
+  const workspaceKindOptions: Array<{ key: string; label: string; scope: 'personal' | 'team'; teamId: number | null }> = [
+    {
+      key: 'personal',
+      label: locale === 'ko' ? '개인' : 'Personal',
+      scope: 'personal',
+      teamId: null,
+    },
+    ...data.teams.map((team) => ({
+      key: `team:${team.id}`,
+      label: team.name,
+      scope: 'team' as const,
+      teamId: team.id,
+    })),
+  ];
+  const [selectedWorkspaceKindKey, setSelectedWorkspaceKindKey] = useState('personal');
+  const [workspaceCreateOpen, setWorkspaceCreateOpen] = useState(false);
+  const [workspaceCreateName, setWorkspaceCreateName] = useState('');
+  const [workspaceCreateScope, setWorkspaceCreateScope] = useState<'personal' | 'team'>('personal');
   const WORKSPACE_NAME_MAX_LENGTH = 10;
   const truncateWorkspaceName = (value: string, maxLength = WORKSPACE_NAME_MAX_LENGTH) => {
     if (value.length <= maxLength) return value;
@@ -82,6 +104,66 @@ export default function TabsLayout() {
   const selectedWorkspaceNameLabel = truncateWorkspaceName(selectedWorkspaceName);
   const selectedWorkspaceOwnerSuffix = `/ ${selectedWorkspaceOwnerLabel}`;
   const selectedWorkspaceSubLabel = truncateWorkspaceName(selectedWorkspaceName);
+  const headerUserName = auth.session?.nickname || 'tester';
+  const selectedKindOption = workspaceKindOptions.find((option) => option.key === selectedWorkspaceKindKey) ?? workspaceKindOptions[0];
+  const selectedKindScope: 'personal' | 'team' = selectedKindOption?.scope ?? 'personal';
+  const selectedKindTeamId = selectedKindOption?.teamId ?? null;
+  const workspaceQuickOptionsRaw =
+    selectedKindScope === 'personal'
+      ? data.workspaces
+          .filter((workspace) => workspace.type === 'personal')
+          .map((workspace) => ({
+            workspace_id: workspace.workspace_id,
+            name: workspace.name,
+            owner_id: workspace.owner_id,
+            type: 'personal' as const,
+          }))
+      : data.teamWorkspaces
+          .filter((workspace) => !selectedKindTeamId || workspace.owner_id === selectedKindTeamId)
+          .map((workspace) => ({
+            workspace_id: workspace.workspace_id,
+            name: workspace.name,
+            owner_id: workspace.owner_id,
+            type: 'team' as const,
+          }));
+  const workspaceQuickOptions = workspaceQuickOptionsRaw.reduce<Array<{ workspace_id: number; name: string; owner_id: number; type: 'personal' | 'team' }>>(
+    (acc, item) => {
+      if (!acc.some((existing) => existing.workspace_id === item.workspace_id)) {
+        acc.push(item);
+      }
+      return acc;
+    },
+    [],
+  );
+  const openWorkspaceCreate = (scope: 'personal' | 'team') => {
+    setWorkspaceCreateScope(scope);
+    setWorkspaceCreateOpen(true);
+    setWorkspaceCreateName('');
+    setWorkspaceKindMenuOpen(false);
+    setWorkspaceQuickMenuOpen(false);
+  };
+  const resolveTeamIdForCreate = () => {
+    return selectedKindTeamId ?? data.teams[0]?.id ?? null;
+  };
+  const submitWorkspaceCreate = async () => {
+    const name = workspaceCreateName.trim();
+    if (!name) return;
+    if (workspaceCreateScope === 'team') {
+      const teamId = resolveTeamIdForCreate();
+      if (!teamId) {
+        Alert.alert(
+          locale === 'ko' ? '팀 없음' : 'No team',
+          locale === 'ko' ? '먼저 팀을 생성해주세요.' : 'Create a team first.',
+        );
+        return;
+      }
+      await data.createWorkspace({ name, scope: 'team', teamId });
+    } else {
+      await data.createWorkspace({ name, scope: 'personal', teamId: null });
+    }
+    setWorkspaceCreateOpen(false);
+    setWorkspaceCreateName('');
+  };
 
   const checkPrivacyConsent = async () => {
     if (!auth.session) {
@@ -151,6 +233,20 @@ export default function TabsLayout() {
       cancelled = true;
     };
   }, [auth.session, data.selectedWorkspace?.type, data.selectedWorkspace?.owner_id]);
+
+  useEffect(() => {
+    if (!workspaceKindOptions.some((option) => option.key === selectedWorkspaceKindKey)) {
+      setSelectedWorkspaceKindKey('personal');
+    }
+  }, [workspaceKindOptions, selectedWorkspaceKindKey]);
+
+  useEffect(() => {
+    if (!workspaceQuickOptions.length) return;
+    if (data.selectedWorkspaceId && workspaceQuickOptions.some((option) => option.workspace_id === data.selectedWorkspaceId)) {
+      return;
+    }
+    data.setSelectedWorkspaceId(workspaceQuickOptions[0]?.workspace_id ?? null);
+  }, [data.selectedWorkspaceId, data, workspaceQuickOptions]);
 
   const openConsentPage = async () => {
     if (!auth.session?.accessToken) return;
@@ -281,7 +377,6 @@ export default function TabsLayout() {
       <View style={s.header}>
         <Pressable style={s.logoArea} onPress={() => router.replace('/(tabs)/overview')}>
           <Image source={require('../../assets/icon.png')} style={s.logoImage} />
-          <Text style={s.appTitle}>{t('appName')}</Text>
         </Pressable>
         <View style={s.headerActions}>
           {data.selectedWorkspace?.type === 'team' && selectedTeamAdmin ? (
@@ -290,49 +385,170 @@ export default function TabsLayout() {
             </Pressable>
           ) : null}
           <Pressable
-            style={s.modeDropdownButton}
-            onPress={() => data.setWorkspacePickerOpen(!data.workspacePickerOpen)}
+            style={s.userIdentityButton}
+            onPress={() => router.replace('/(tabs)/overview')}
           >
-            <View
-              style={[
-                s.wsTypeDot,
-                { backgroundColor: data.selectedWorkspace?.type === 'team' ? colors.primary : '#10B981' },
-              ]}
-            />
-            <View style={s.modeDropdownLabelRow}>
-              <Text style={s.modeDropdownText} numberOfLines={1} ellipsizeMode="tail">
-                {selectedWorkspaceNameLabel}
-              </Text>
-              <Text style={s.modeDropdownOwnerText} numberOfLines={1} ellipsizeMode="tail">
-                {selectedWorkspaceOwnerSuffix}
-              </Text>
-              <Text style={s.modeDropdownChevron}>{data.workspacePickerOpen ? '▲' : '▼'}</Text>
-            </View>
+            <View style={[s.userIdentityDot, { backgroundColor: '#22C55E' }]} />
+            <Text style={s.userIdentityText} numberOfLines={1}>
+              {headerUserName}
+            </Text>
           </Pressable>
-          <Pressable style={s.headerActionButton} onPress={() => router.push('/settings')}>
+          <Pressable
+            style={[s.modeDropdownButton, s.workspaceKindDropdownButton]}
+            onPress={() => {
+              setWorkspaceKindMenuOpen((prev) => !prev);
+              setWorkspaceQuickMenuOpen(false);
+            }}
+          >
+            <Text style={s.modeDropdownText} numberOfLines={1} ellipsizeMode="tail">
+              {selectedKindOption?.label ?? (locale === 'ko' ? '개인' : 'Personal')}
+            </Text>
+            <Text style={s.modeDropdownChevron}>{workspaceKindMenuOpen ? '▲' : '▼'}</Text>
+          </Pressable>
+          <Pressable
+            style={[s.modeDropdownButton, s.workspaceNameDropdownButton]}
+            onPress={() => {
+              setWorkspaceQuickMenuOpen((prev) => !prev);
+              setWorkspaceKindMenuOpen(false);
+            }}
+          >
+            <Text style={s.modeDropdownText} numberOfLines={1} ellipsizeMode="tail">
+              {selectedWorkspaceNameLabel || (locale === 'ko' ? '워크스페이스' : 'Workspace')}
+            </Text>
+            <Text style={s.modeDropdownChevron}>{workspaceQuickMenuOpen ? '▲' : '▼'}</Text>
+          </Pressable>
+          <Pressable
+            style={s.headerActionButton}
+            onPress={() => router.push({ pathname: '/settings', params: { from: activeNav.route } })}
+          >
             <Ionicons name="settings-outline" size={16} color={colors.text} />
           </Pressable>
         </View>
       </View>
+      {workspaceKindMenuOpen ? (
+        <View style={s.modeDropdownMenu}>
+          {workspaceKindOptions.map((option) => {
+            const active = selectedWorkspaceKindKey === option.key;
+            return (
+              <Pressable
+                key={option.key}
+                style={[s.modeMenuItem, active ? s.modeMenuItemActive : null]}
+                onPress={() => {
+                  setSelectedWorkspaceKindKey(option.key);
+                  setWorkspaceKindMenuOpen(false);
+                }}
+              >
+                <Text style={[s.modeMenuText, active ? s.modeMenuTextActive : null]}>{option.label}</Text>
+              </Pressable>
+            );
+          })}
+          <Pressable
+            style={s.modeMenuCreate}
+            onPress={() => {
+              data.setTeamCreateOpen(true);
+              data.setTeamCreateStep('details');
+              setWorkspaceKindMenuOpen(false);
+            }}
+          >
+            <Text style={s.modeMenuCreateText}>{locale === 'ko' ? '팀 만들기' : 'Create Team'}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+      {workspaceQuickMenuOpen ? (
+        <View style={s.modeDropdownMenu}>
+          {workspaceQuickOptions.map((option) => {
+            const active = data.selectedWorkspaceId === option.workspace_id;
+            return (
+              <Pressable
+                key={option.workspace_id}
+                style={[s.modeMenuItem, active ? s.modeMenuItemActive : null]}
+                onPress={() => {
+                  data.setSelectedWorkspaceId(option.workspace_id);
+                  setWorkspaceQuickMenuOpen(false);
+                }}
+              >
+                <Text style={[s.modeMenuText, active ? s.modeMenuTextActive : null]}>
+                  {option.name}
+                </Text>
+              </Pressable>
+            );
+          })}
+          <Pressable
+            style={s.modeMenuCreate}
+            onPress={() => openWorkspaceCreate(selectedKindScope)}
+          >
+            <Text style={s.modeMenuCreateText}>{locale === 'ko' ? '워크스페이스 만들기' : 'Create Workspace'}</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
-      <WorkspaceMenu
-        open={data.workspacePickerOpen}
-        onClose={() => data.setWorkspacePickerOpen(false)}
-        onSelectWorkspace={(workspaceId) => data.setSelectedWorkspaceId(workspaceId)}
-        onOpenCreateTeam={() => {
-          data.setTeamCreateOpen(true);
-          data.setTeamCreateStep('details');
-        }}
-        onCreateWorkspace={data.createWorkspace}
-        creatingWorkspace={data.creatingWorkspace}
-        onLogout={auth.logout}
-        workspaces={data.workspaces}
-        teams={data.teams}
-        teamWorkspaces={data.teamWorkspaces}
-        selectedWorkspaceId={data.selectedWorkspaceId}
-        selectedWorkspaceType={data.selectedWorkspace?.type}
-        selectedWorkspaceOwnerId={data.selectedWorkspace?.owner_id}
-      />
+      <Modal
+        visible={workspaceCreateOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setWorkspaceCreateOpen(false)}
+      >
+        <View style={s.modalOverlay}>
+          <View style={[s.panel, { width: '88%', maxWidth: 360 }]}>
+            <Text style={s.sectionTitle}>
+              {locale === 'ko' ? '워크스페이스 만들기' : 'Create Workspace'}
+            </Text>
+            <Text style={s.itemMeta}>
+              {workspaceCreateScope === 'team'
+                ? (locale === 'ko' ? '팀 워크스페이스를 생성합니다.' : 'Create a team workspace.')
+                : (locale === 'ko' ? '개인 워크스페이스를 생성합니다.' : 'Create a personal workspace.')}
+            </Text>
+            <TextInput
+              value={workspaceCreateName}
+              onChangeText={setWorkspaceCreateName}
+              placeholder={locale === 'ko' ? '워크스페이스 이름' : 'Workspace name'}
+              placeholderTextColor={colors.textMuted}
+              style={[s.input, { marginTop: 10 }]}
+              autoFocus
+            />
+            <View style={[s.row, { marginTop: 10 }]}>
+              <Pressable
+                style={[s.workspacePill, { flex: 1, alignItems: 'center' }]}
+                onPress={() => setWorkspaceCreateOpen(false)}
+              >
+                <Text style={s.workspacePillText}>{locale === 'ko' ? '취소' : 'Cancel'}</Text>
+              </Pressable>
+              <Pressable
+                style={[s.workspacePill, s.workspacePillActive, { flex: 1, alignItems: 'center', opacity: workspaceCreateName.trim() ? 1 : 0.5 }]}
+                disabled={!workspaceCreateName.trim() || data.creatingWorkspace}
+                onPress={() => void submitWorkspaceCreate()}
+              >
+                <Text style={s.workspacePillTextActive}>
+                  {data.creatingWorkspace
+                    ? (locale === 'ko' ? '생성 중...' : 'Creating...')
+                    : (locale === 'ko' ? '생성' : 'Create')}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {!isCompact ? (
+        <WorkspaceMenu
+          open={data.workspacePickerOpen}
+          onClose={() => data.setWorkspacePickerOpen(false)}
+          onSelectWorkspace={(workspaceId) => data.setSelectedWorkspaceId(workspaceId)}
+          onOpenCreateTeam={() => {
+            data.setTeamCreateOpen(true);
+            data.setTeamCreateStep('details');
+          }}
+          onCreateWorkspace={data.createWorkspace}
+          creatingWorkspace={data.creatingWorkspace}
+          onLogout={auth.logout}
+          workspaces={data.workspaces}
+          teams={data.teams}
+          teamWorkspaces={data.teamWorkspaces}
+          selectedWorkspaceId={data.selectedWorkspaceId}
+          selectedWorkspaceType={data.selectedWorkspace?.type}
+          selectedWorkspaceOwnerId={data.selectedWorkspace?.owner_id}
+        />
+      ) : null}
 
       <TeamCreateModal
         open={data.teamCreateOpen}
@@ -533,7 +749,10 @@ export default function TabsLayout() {
                 <Pressable style={s.mainTopActionButton} onPress={() => setLocale(locale === 'ko' ? 'en' : 'ko')}>
                   <Text style={s.mainTopActionText}>{locale.toUpperCase()}</Text>
                 </Pressable>
-                <Pressable style={s.mainTopActionButton} onPress={() => router.push('/settings')}>
+                <Pressable
+                  style={s.mainTopActionButton}
+                  onPress={() => router.push({ pathname: '/settings', params: { from: activeNav.route } })}
+                >
                   <Ionicons name="settings-outline" size={15} color={colors.text} />
                 </Pressable>
                 <Pressable style={s.mainTopActionButton} onPress={() => data.setShowNotifications(!data.showNotifications)}>

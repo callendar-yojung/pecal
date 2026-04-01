@@ -155,6 +155,7 @@ export function TaskEditorForm({
     return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unitIndex]}`;
   };
   const reminderOptions = [
+    { key: '', label: '알림 없음' },
     { key: '0', label: '정시 알림' },
     { key: '5', label: '5분 전' },
     { key: '10', label: '10분 전' },
@@ -970,7 +971,7 @@ export function TaskEditorForm({
               ]}
             >
               <Text style={[s.workspacePillText, reminderMinutes === item.key ? s.workspacePillTextActive : null]}>
-                {item.key === '0' ? item.label : `시작 ${item.label}`}
+                {item.key === '' || item.key === '0' ? item.label : `시작 ${item.label}`}
               </Text>
             </Pressable>
           ))}
@@ -1001,155 +1002,179 @@ export function TaskEditorForm({
         ) : null}
       </View>
 
-      <Modal
-        visible={pickerTarget !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setPickerTarget(null)}
-      >
-        <Pressable
-          onPress={() => setPickerTarget(null)}
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(15, 23, 42, 0.24)',
-            justifyContent:
-              pickerTarget === 'startDate' ||
-              pickerTarget === 'endDate' ||
-              pickerTarget === 'repeatStartDate' ||
-              pickerTarget === 'repeatEndDate'
-                ? 'flex-start'
-                : 'center',
-            paddingHorizontal: 20,
-            paddingTop:
-              pickerTarget === 'startDate' ||
-              pickerTarget === 'endDate' ||
-              pickerTarget === 'repeatStartDate' ||
-              pickerTarget === 'repeatEndDate'
-                ? 72
-                : 20,
-            paddingBottom: 20,
-          }}
+      {Platform.OS === 'ios' ? (
+        <Modal
+          visible={pickerTarget !== null}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setPickerTarget(null)}
         >
           <Pressable
-            onPress={(event) => event.stopPropagation()}
+            onPress={() => setPickerTarget(null)}
             style={{
-              borderRadius: 18,
-              backgroundColor: colors.card,
-              borderWidth: 1,
-              borderColor: colors.border,
-              overflow: 'hidden',
-              maxHeight:
+              flex: 1,
+              backgroundColor: 'rgba(15, 23, 42, 0.24)',
+              justifyContent:
                 pickerTarget === 'startDate' ||
                 pickerTarget === 'endDate' ||
                 pickerTarget === 'repeatStartDate' ||
                 pickerTarget === 'repeatEndDate'
-                  ? '82%'
-                  : undefined,
+                  ? 'flex-start'
+                  : 'center',
+              paddingHorizontal: 20,
+              paddingTop:
+                pickerTarget === 'startDate' ||
+                pickerTarget === 'endDate' ||
+                pickerTarget === 'repeatStartDate' ||
+                pickerTarget === 'repeatEndDate'
+                  ? 72
+                  : 20,
+              paddingBottom: 20,
             }}
           >
-            <View
+            <Pressable
+              onPress={(event) => event.stopPropagation()}
               style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                borderBottomWidth: 1,
-                borderBottomColor: colors.border,
-              }}
-            >
-              <Text style={{ color: colors.text, fontSize: 16, fontWeight: '800' }}>
-                {pickerTarget === 'startDate'
-                  ? '시작 날짜 선택'
-                  : pickerTarget === 'endDate'
-                    ? '종료 날짜 선택'
-                    : pickerTarget === 'repeatStartDate'
-                      ? '반복 시작일 선택'
-                      : pickerTarget === 'repeatEndDate'
-                        ? '반복 종료일 선택'
-                    : pickerTarget === 'startTime'
-                      ? '시작 시간 선택'
-                      : '종료 시간 선택'}
-              </Text>
-              <Pressable onPress={() => setPickerTarget(null)}>
-                <Text style={{ color: colors.primary, fontSize: 14, fontWeight: '700' }}>닫기</Text>
-              </Pressable>
-            </View>
-            <View
-              style={{
-                paddingHorizontal: 16,
-                paddingTop: 14,
-                paddingBottom: 6,
-                gap: 4,
-              }}
-            >
-              <Text style={{ color: colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.6 }}>
-                {pickerTarget === 'startDate'
-                  ? startParts.date || '날짜 선택'
-                  : pickerTarget === 'endDate'
-                    ? endParts.date || '날짜 선택'
-                    : pickerTarget === 'repeatStartDate'
-                      ? repeatStartParts.date || '날짜 선택'
-                      : pickerTarget === 'repeatEndDate'
-                        ? repeatEndParts.date || '날짜 선택'
-                    : pickerTarget === 'startTime'
-                      ? startParts.time || '09:00'
-                      : endParts.time || '09:30'}
-              </Text>
-              <Text style={{ color: colors.textMuted, fontSize: 13, fontWeight: '600' }}>
-                {pickerTarget === 'startDate' ||
-                pickerTarget === 'endDate' ||
-                pickerTarget === 'repeatStartDate' ||
-                pickerTarget === 'repeatEndDate'
-                  ? '직접 입력 없이 날짜를 선택합니다'
-                  : '1분 단위로 선택할 수 있습니다'}
-              </Text>
-            </View>
-            <DateTimePicker
-              value={activePickerDate}
-              mode={
-                pickerTarget === 'startDate' ||
-                pickerTarget === 'endDate' ||
-                pickerTarget === 'repeatStartDate' ||
-                pickerTarget === 'repeatEndDate'
-                  ? 'date'
-                  : 'time'
-              }
-              display={
-                Platform.OS === 'ios'
-                  ? pickerTarget === 'startDate' ||
-                    pickerTarget === 'endDate' ||
-                    pickerTarget === 'repeatStartDate' ||
-                    pickerTarget === 'repeatEndDate'
-                    ? 'inline'
-                    : 'spinner'
-                  : 'default'
-              }
-              minuteInterval={
-                pickerTarget === 'startDate' ||
-                pickerTarget === 'endDate' ||
-                pickerTarget === 'repeatStartDate' ||
-                pickerTarget === 'repeatEndDate'
-                  ? undefined
-                  : 1
-              }
-              onChange={handleTimePickerChange}
-              style={{
-                alignSelf: 'stretch',
+                borderRadius: 18,
                 backgroundColor: colors.card,
-                minHeight:
+                borderWidth: 1,
+                borderColor: colors.border,
+                overflow: 'hidden',
+                maxHeight:
                   pickerTarget === 'startDate' ||
                   pickerTarget === 'endDate' ||
                   pickerTarget === 'repeatStartDate' ||
                   pickerTarget === 'repeatEndDate'
-                    ? 380
-                    : 216,
+                    ? '82%'
+                    : undefined,
               }}
-              textColor={colors.text}
-            />
+            >
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.border,
+                }}
+              >
+                <Text style={{ color: colors.text, fontSize: 16, fontWeight: '800' }}>
+                  {pickerTarget === 'startDate'
+                    ? '시작 날짜 선택'
+                    : pickerTarget === 'endDate'
+                      ? '종료 날짜 선택'
+                      : pickerTarget === 'repeatStartDate'
+                        ? '반복 시작일 선택'
+                        : pickerTarget === 'repeatEndDate'
+                          ? '반복 종료일 선택'
+                      : pickerTarget === 'startTime'
+                        ? '시작 시간 선택'
+                        : '종료 시간 선택'}
+                </Text>
+                <Pressable onPress={() => setPickerTarget(null)}>
+                  <Text style={{ color: colors.primary, fontSize: 14, fontWeight: '700' }}>닫기</Text>
+                </Pressable>
+              </View>
+              <View
+                style={{
+                  paddingHorizontal: 16,
+                  paddingTop: 14,
+                  paddingBottom: 6,
+                  gap: 4,
+                }}
+              >
+                <Text style={{ color: colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.6 }}>
+                  {pickerTarget === 'startDate'
+                    ? startParts.date || '날짜 선택'
+                    : pickerTarget === 'endDate'
+                      ? endParts.date || '날짜 선택'
+                      : pickerTarget === 'repeatStartDate'
+                        ? repeatStartParts.date || '날짜 선택'
+                        : pickerTarget === 'repeatEndDate'
+                          ? repeatEndParts.date || '날짜 선택'
+                      : pickerTarget === 'startTime'
+                        ? startParts.time || '09:00'
+                        : endParts.time || '09:30'}
+                </Text>
+                <Text style={{ color: colors.textMuted, fontSize: 13, fontWeight: '600' }}>
+                  {pickerTarget === 'startDate' ||
+                  pickerTarget === 'endDate' ||
+                  pickerTarget === 'repeatStartDate' ||
+                  pickerTarget === 'repeatEndDate'
+                    ? '직접 입력 없이 날짜를 선택합니다'
+                    : '1분 단위로 선택할 수 있습니다'}
+                </Text>
+              </View>
+              <DateTimePicker
+                value={activePickerDate}
+                mode={
+                  pickerTarget === 'startDate' ||
+                  pickerTarget === 'endDate' ||
+                  pickerTarget === 'repeatStartDate' ||
+                  pickerTarget === 'repeatEndDate'
+                    ? 'date'
+                    : 'time'
+                }
+                display={
+                  pickerTarget === 'startDate' ||
+                  pickerTarget === 'endDate' ||
+                  pickerTarget === 'repeatStartDate' ||
+                  pickerTarget === 'repeatEndDate'
+                    ? 'inline'
+                    : 'spinner'
+                }
+                minuteInterval={
+                  pickerTarget === 'startDate' ||
+                  pickerTarget === 'endDate' ||
+                  pickerTarget === 'repeatStartDate' ||
+                  pickerTarget === 'repeatEndDate'
+                    ? undefined
+                    : 1
+                }
+                is24Hour
+                onChange={handleTimePickerChange}
+                style={{
+                  alignSelf: 'stretch',
+                  backgroundColor: colors.card,
+                  minHeight:
+                    pickerTarget === 'startDate' ||
+                    pickerTarget === 'endDate' ||
+                    pickerTarget === 'repeatStartDate' ||
+                    pickerTarget === 'repeatEndDate'
+                      ? 380
+                      : 216,
+                }}
+                textColor={colors.text}
+              />
+            </Pressable>
           </Pressable>
-        </Pressable>
-      </Modal>
+        </Modal>
+      ) : pickerTarget ? (
+        <DateTimePicker
+          value={activePickerDate}
+          mode={
+            pickerTarget === 'startDate' ||
+            pickerTarget === 'endDate' ||
+            pickerTarget === 'repeatStartDate' ||
+            pickerTarget === 'repeatEndDate'
+              ? 'date'
+              : 'time'
+          }
+          display="default"
+          minuteInterval={
+            pickerTarget === 'startDate' ||
+            pickerTarget === 'endDate' ||
+            pickerTarget === 'repeatStartDate' ||
+            pickerTarget === 'repeatEndDate'
+              ? undefined
+              : 1
+          }
+          is24Hour
+          onChange={handleTimePickerChange}
+        />
+      ) : null}
     </GsxCard>
   );
 }

@@ -27,6 +27,12 @@ function normalizeTaskStatus(status?: TaskStatus): 'TODO' | 'DONE' {
   return status === 'DONE' ? 'DONE' : 'TODO';
 }
 
+function parseDateTimeToUnix(dateTime: string): number | null {
+  const date = new Date(dateTime);
+  if (Number.isNaN(date.getTime())) return null;
+  return Math.floor(date.getTime() / 1000);
+}
+
 export default function TaskCreatePage() {
   const params = useLocalSearchParams<{ date?: string }>();
   const app = useMaybeMobileApp();
@@ -46,7 +52,7 @@ export default function TaskCreatePage() {
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [allDay, setAllDay] = useState(false);
-  const [reminderMinutes, setReminderMinutes] = useState('10');
+  const [reminderMinutes, setReminderMinutes] = useState('');
   const [scheduleMode, setScheduleMode] = useState<'single' | 'recurring'>('single');
   const [recurrenceEnabled, setRecurrenceEnabled] = useState(false);
   const [recurrenceStartDate, setRecurrenceStartDate] = useState(range.start.slice(0, 10));
@@ -151,6 +157,22 @@ export default function TaskCreatePage() {
     const payloadEnd = isRecurring
       ? `${recurrenceStartDate}T${endTimePart || '09:30:00'}`
       : range.end;
+    const parsedReminderValue =
+      reminderMinutes === '' ? null : Number(reminderMinutes);
+    const reminderValue = Number.isFinite(parsedReminderValue)
+      ? Math.trunc(parsedReminderValue as number)
+      : null;
+    if (!isRecurring && reminderValue !== null) {
+      const startUnix = parseDateTimeToUnix(payloadStart);
+      if (startUnix !== null) {
+        const triggerUnix = startUnix - reminderValue * 60;
+        const nowUnix = Math.floor(Date.now() / 1000);
+        if (triggerUnix <= nowUnix) {
+          Alert.alert('입력 확인', '알림 시간은 현재 시각 이후여야 합니다.');
+          return;
+        }
+      }
+    }
 
     setSaving(true);
     try {
@@ -164,7 +186,7 @@ export default function TaskCreatePage() {
         category_id: selectedCategoryId,
         tag_ids: selectedTagIds,
         is_all_day: allDay,
-        reminder_minutes: reminderMinutes ? Number(reminderMinutes) : null,
+        reminder_minutes: reminderValue,
         recurrence: isRecurring
           ? {
               enabled: true,

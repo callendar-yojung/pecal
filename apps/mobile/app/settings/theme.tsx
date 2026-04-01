@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useI18n } from '../../src/contexts/I18nContext';
 import { useThemeMode } from '../../src/contexts/ThemeContext';
@@ -7,17 +7,19 @@ import { createStyles } from '../../src/styles/createStyles';
 
 export default function SettingsThemePage() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ from?: string }>();
   const { locale, t } = useI18n();
   const { colors, mode, resolvedMode, setMode } = useThemeMode();
   const s = createStyles(colors);
   const isKo = locale === 'ko';
+  const returnTo = typeof params.from === 'string' && params.from ? params.from : '/(tabs)/overview';
 
   return (
     <ScrollView style={s.content} contentContainerStyle={s.contentContainer}>
       <View style={s.section}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 2 }}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => router.replace(returnTo as never)}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4, paddingRight: 6 }}
           >
             <Ionicons name="chevron-back" size={20} color={colors.primary} />

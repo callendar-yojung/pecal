@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useMobileApp } from '../../src/contexts/MobileAppContext';
@@ -152,11 +152,13 @@ function resolveTeamWorkspace(teamId: number | null, teamWorkspaces: Workspace[]
 
 export default function SettingsPlanPage() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ from?: string }>();
   const { locale } = useI18n();
   const { colors } = useThemeMode();
   const s = createStyles(colors);
   const { auth, data } = useMobileApp();
   const isKo = locale === 'ko';
+  const returnTo = typeof params.from === 'string' && params.from ? params.from : '/(tabs)/overview';
 
   const [ownerType, setOwnerType] = useState<OwnerType>('personal');
   const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
@@ -263,7 +265,7 @@ export default function SettingsPlanPage() {
       <View style={s.section}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 2 }}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => router.replace(returnTo as never)}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4, paddingRight: 6 }}
           >
             <Ionicons name="chevron-back" size={20} color={colors.primary} />

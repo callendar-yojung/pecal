@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useI18n } from '../../src/contexts/I18nContext';
 import { useThemeMode } from '../../src/contexts/ThemeContext';
@@ -72,10 +72,12 @@ const SHOW_PLAN_SETTINGS = false;
 
 export default function SettingsHomePage() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ from?: string }>();
   const { locale } = useI18n();
   const { colors } = useThemeMode();
   const s = createStyles(colors);
   const isKo = locale === 'ko';
+  const returnTo = typeof params.from === 'string' && params.from ? params.from : '/(tabs)/overview';
   const groupedItems = {
     account: SETTINGS_ITEMS.filter((item) => item.section === 'account'),
     plan: SHOW_PLAN_SETTINGS ? SETTINGS_ITEMS.filter((item) => item.section === 'plan') : [],
@@ -96,7 +98,7 @@ export default function SettingsHomePage() {
       <View style={s.section}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 2 }}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => router.replace(returnTo as never)}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4, paddingRight: 6 }}
           >
             <Ionicons name="chevron-back" size={20} color={colors.primary} />
@@ -132,7 +134,7 @@ export default function SettingsHomePage() {
               {groupedItems[section].map((item, index) => (
                 <Pressable
                   key={item.key}
-                  onPress={() => router.push(item.route)}
+                  onPress={() => router.push({ pathname: item.route, params: { from: returnTo } })}
                   style={({ pressed }) => ({
                     flexDirection: 'row',
                     alignItems: 'center',

@@ -26,6 +26,12 @@ function normalizeTaskStatus(status?: TaskStatus): 'TODO' | 'DONE' {
   return status === 'DONE' ? 'DONE' : 'TODO';
 }
 
+function parseDateTimeToUnix(dateTime: string): number | null {
+  const date = new Date(dateTime);
+  if (Number.isNaN(date.getTime())) return null;
+  return Math.floor(date.getTime() / 1000);
+}
+
 export default function TaskEditPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const app = useMaybeMobileApp();
@@ -184,6 +190,22 @@ export default function TaskEditPage() {
     const endTimePart = (endTime.split('T')[1] ?? '09:30:00').slice(0, 8);
     const payloadStart = isRecurring ? `${recurrenceStartDate}T${startTimePart || '09:00:00'}` : startTime;
     const payloadEnd = isRecurring ? `${recurrenceStartDate}T${endTimePart || '09:30:00'}` : endTime;
+    const parsedReminderValue =
+      reminderMinutes === '' ? null : Number(reminderMinutes);
+    const reminderValue = Number.isFinite(parsedReminderValue)
+      ? Math.trunc(parsedReminderValue as number)
+      : null;
+    if (!isRecurring && reminderValue !== null) {
+      const startUnix = parseDateTimeToUnix(payloadStart);
+      if (startUnix !== null) {
+        const triggerUnix = startUnix - reminderValue * 60;
+        const nowUnix = Math.floor(Date.now() / 1000);
+        if (triggerUnix <= nowUnix) {
+          Alert.alert('입력 확인', '알림 시간은 현재 시각 이후여야 합니다.');
+          return;
+        }
+      }
+    }
 
     setSaving(true);
     try {
@@ -197,7 +219,7 @@ export default function TaskEditPage() {
         category_id: selectedCategoryId,
         tag_ids: selectedTagIds,
         is_all_day: allDay,
-        reminder_minutes: reminderMinutes ? Number(reminderMinutes) : null,
+        reminder_minutes: reminderValue,
         recurrence: isRecurring
           ? {
               enabled: true,

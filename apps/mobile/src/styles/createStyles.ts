@@ -118,7 +118,7 @@ export function createStyles(colors: Colors) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
-      marginRight: 8,
+      marginRight: 4,
       flexShrink: 0,
     },
     logoIcon: {
@@ -164,6 +164,17 @@ export function createStyles(colors: Colors) {
       minWidth: 0,
       flexShrink: 1,
     },
+    workspaceKindDropdownButton: {
+      minWidth: 108,
+      justifyContent: 'space-between',
+      flexShrink: 0,
+    },
+    workspaceNameDropdownButton: {
+      minWidth: 0,
+      maxWidth: 138,
+      flexShrink: 1,
+      justifyContent: 'space-between',
+    },
     modeDropdownLabelRow: {
       minWidth: 0,
       flexDirection: 'row',
@@ -181,7 +192,23 @@ export function createStyles(colors: Colors) {
       textAlign: 'right',
     },
     modeDropdownChevron: { fontSize: 10, color: colors.textMuted, marginLeft: 2, flexShrink: 0 },
-    headerActions: { flexDirection: 'row', gap: 8, flex: 1, minWidth: 0, justifyContent: 'flex-end' },
+    headerActions: { flexDirection: 'row', gap: 6, flex: 1, minWidth: 0, justifyContent: 'flex-end', alignItems: 'center' },
+    userIdentityButton: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      backgroundColor: colors.cardSoft,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      minWidth: 0,
+      flexShrink: 1,
+      maxWidth: 112,
+    },
+    userIdentityDot: { width: 10, height: 10, borderRadius: 6 },
+    userIdentityText: { fontSize: 12, color: colors.text, fontWeight: '800', minWidth: 0, flexShrink: 1 },
     headerActionButton: {
       width: 36,
       height: 36,
@@ -217,6 +244,16 @@ export function createStyles(colors: Colors) {
     modeMenuCreateText: { color: colors.primary, fontSize: 12, fontWeight: '700' },
     modeMenuLogout: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 9, borderWidth: 1, borderColor: '#FCA5A5', backgroundColor: colors.card },
     modeMenuLogoutText: { color: '#EF4444', fontSize: 12, fontWeight: '700' },
+    dropdownActionRow: { marginTop: 4, flexDirection: 'row', gap: 8 },
+    dropdownActionButton: { flex: 1, alignItems: 'center' },
+
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(15, 23, 42, 0.35)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 16,
+    },
 
     workspaceRow: { paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: colors.nav },
     workspacePill: {

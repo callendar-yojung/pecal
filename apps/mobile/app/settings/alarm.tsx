@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { useMobileApp } from '../../src/contexts/MobileAppContext';
@@ -13,11 +13,13 @@ import { createStyles } from '../../src/styles/createStyles';
 
 export default function SettingsAlarmPage() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ from?: string }>();
   const { locale, t } = useI18n();
   const { auth } = useMobileApp();
   const { colors } = useThemeMode();
   const s = createStyles(colors);
   const isKo = locale === 'ko';
+  const returnTo = typeof params.from === 'string' && params.from ? params.from : '/(tabs)/overview';
   const [alarmEnabled, setAlarmEnabled] = useState(true);
   const [marketingConsent, setMarketingConsent] = useState(false);
 
@@ -92,7 +94,7 @@ export default function SettingsAlarmPage() {
       <View style={s.section}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 2 }}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => router.replace(returnTo as never)}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4, paddingRight: 6 }}
           >
             <Ionicons name="chevron-back" size={20} color={colors.primary} />

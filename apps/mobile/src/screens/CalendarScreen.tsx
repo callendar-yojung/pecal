@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Modal, PanResponder, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { Animated, Easing, Modal, PanResponder, Pressable, RefreshControl, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getKoreanSpecialDaysForDateKey } from '@repo/utils';
 import type { TagItem, TaskItem } from '../lib/types';
@@ -56,6 +56,17 @@ type Props = {
   onRefresh?: () => void;
 };
 
+type MultiDaySegment = {
+  key: string;
+  task: TaskItem;
+  row: number;
+  startCol: number;
+  endCol: number;
+  lane: number;
+  isStart: boolean;
+  isEnd: boolean;
+};
+
 export function CalendarScreen({
   selectedDate,
   tasksByDate,
@@ -74,6 +85,7 @@ export function CalendarScreen({
 }: Props) {
   const { colors } = useThemeMode();
   const { t, locale } = useI18n();
+  const { width: screenWidth } = useWindowDimensions();
   const s = createStyles(colors);
   const WEEKDAYS = locale === 'ko' ? ['일', '월', '화', '수', '목', '금', '토'] : ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   const MONTHS = locale === 'ko'
@@ -177,16 +189,7 @@ export function CalendarScreen({
   }, [schedulesByDate]);
 
   const multiDaySegments = useMemo(() => {
-    const segments: Array<{
-      key: string;
-      task: TaskItem;
-      row: number;
-      startCol: number;
-      endCol: number;
-      lane: number;
-      isStart: boolean;
-      isEnd: boolean;
-    }> = [];
+    const segments: MultiDaySegment[] = [];
     if (!cells.length) return segments;
 
     const firstVisibleKey = cells[0].dateStr;
@@ -255,6 +258,43 @@ export function CalendarScreen({
     return segments;
   }, [allTasks, cells]);
 
+  const mergedMultiDaySegmentsByRow = useMemo(() => {
+    const byRow = new Map<number, MultiDaySegment[]>();
+    multiDaySegments.forEach((segment) => {
+      const rowSegments = byRow.get(segment.row) ?? [];
+      rowSegments.push(segment);
+      byRow.set(segment.row, rowSegments);
+    });
+
+    const result = new Map<number, MultiDaySegment[]>();
+    byRow.forEach((segments, row) => {
+      const sorted = segments
+        .slice()
+        .sort((a, b) => (a.startCol === b.startCol ? a.endCol - b.endCol : a.startCol - b.startCol));
+
+      const merged: MultiDaySegment[] = [];
+      for (const segment of sorted) {
+        const last = merged[merged.length - 1];
+        const sameVisualTask =
+          !!last &&
+          last.task.title === segment.task.title &&
+          getTaskAccentColor(last.task) === getTaskAccentColor(segment.task);
+        const touching = !!last && segment.startCol <= last.endCol + 1;
+
+        if (sameVisualTask && touching) {
+          last.endCol = Math.max(last.endCol, segment.endCol);
+          last.isStart = last.isStart || segment.isStart;
+          last.isEnd = last.isEnd || segment.isEnd;
+          last.lane = Math.min(last.lane, segment.lane);
+          continue;
+        }
+        merged.push({ ...segment });
+      }
+      result.set(row, merged);
+    });
+    return result;
+  }, [multiDaySegments]);
+
   const dismissSwipeHint = useCallback(() => {
     if (!showSwipeHint) return;
     setShowSwipeHint(false);
@@ -282,28 +322,37 @@ export function CalendarScreen({
     () => PanResponder.create({
       onMoveShouldSetPanResponder: (_, gestureState) =>
         viewMode === 'month' && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && Math.abs(gestureState.dx) > 14,
+      onPanResponderTerminationRequest: () => true,
       onPanResponderGrant: () => {
         dismissSwipeHint();
       },
       onPanResponderMove: (_, gestureState) => {
-        monthSlideX.setValue(gestureState.dx);
+        const clampedDx = Math.max(-screenWidth, Math.min(screenWidth, gestureState.dx));
+        monthSlideX.setValue(clampedDx);
       },
       onPanResponderRelease: (_, gestureState) => {
         const absDx = Math.abs(gestureState.dx);
-        if (absDx >= 56 && absDx > Math.abs(gestureState.dy)) {
+        const shouldSwipe =
+          (absDx >= Math.max(46, screenWidth * 0.12) || Math.abs(gestureState.vx) >= 0.25) &&
+          absDx > Math.abs(gestureState.dy);
+        if (shouldSwipe) {
           const goNext = gestureState.dx < 0;
-          const exitTo = goNext ? -260 : 260;
+          const exitDistance = screenWidth + 36;
+          const exitTo = goNext ? -exitDistance : exitDistance;
           Animated.timing(monthSlideX, {
             toValue: exitTo,
-            duration: 120,
+            duration: 180,
+            easing: Easing.out(Easing.cubic),
             useNativeDriver: true,
           }).start(() => {
             shiftMonth(goNext ? 'next' : 'prev');
             monthSlideX.setValue(-exitTo);
-            Animated.timing(monthSlideX, {
+            Animated.spring(monthSlideX, {
               toValue: 0,
-              duration: 170,
               useNativeDriver: true,
+              damping: 18,
+              stiffness: 190,
+              mass: 0.9,
             }).start();
           });
           return;
@@ -311,20 +360,22 @@ export function CalendarScreen({
         Animated.spring(monthSlideX, {
           toValue: 0,
           useNativeDriver: true,
-          tension: 120,
-          friction: 12,
+          damping: 20,
+          stiffness: 220,
+          mass: 0.8,
         }).start();
       },
       onPanResponderTerminate: () => {
         Animated.spring(monthSlideX, {
           toValue: 0,
           useNativeDriver: true,
-          tension: 120,
-          friction: 12,
+          damping: 20,
+          stiffness: 220,
+          mass: 0.8,
         }).start();
       },
     }),
-    [dismissSwipeHint, monthSlideX, shiftMonth, viewMode],
+    [dismissSwipeHint, monthSlideX, screenWidth, shiftMonth, viewMode],
   );
 
   const monthKey = `${year}-${pad2(month + 1)}`;
@@ -353,23 +404,33 @@ export function CalendarScreen({
     });
   }, [selectedDate]);
 
-  const timetableWeekDates = useMemo(() => weekDates, [weekDates]);
+  const timetableWeekDates = useMemo(
+    () => weekDates.filter((date) => date.getDay() !== 0), // 월~토 (일요일 제외)
+    [weekDates],
+  );
 
   const timetableStartHour = 8;
   const timetableEndHour = 23;
   const timetableSlotHeight = 48;
-  const timetableTimeColWidth = 44;
-  const timetableDayColWidth = 80;
+  const timetableTimeColWidth = 22;
+  const timetableContentHorizontalPadding = 16 * 2;
+  const timetablePanelInnerHorizontalPadding = 10 * 2;
+  const timetableVisibleDayCount = Math.max(1, timetableWeekDates.length);
+  const timetableFrameWidth = Math.max(
+    280,
+    screenWidth - timetableContentHorizontalPadding - timetablePanelInnerHorizontalPadding - 2,
+  );
+  const timetableDayColWidth = Math.max(
+    42,
+    Math.floor((timetableFrameWidth - timetableTimeColWidth) / timetableVisibleDayCount),
+  );
+  const timetableGridWidth = timetableDayColWidth * timetableVisibleDayCount;
   const timetableHours = useMemo(
     () => Array.from({ length: timetableEndHour - timetableStartHour + 1 }, (_, i) => timetableStartHour + i),
     [timetableEndHour, timetableStartHour],
   );
   const timetableGridHeight = (timetableEndHour - timetableStartHour) * timetableSlotHeight;
-  const formatTwelveHourLabel = (hour24: number) => {
-    const period = hour24 >= 12 ? 'PM' : 'AM';
-    const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
-    return `${hour12}${period}`;
-  };
+  const formatHourLabel = (hour24: number) => String(hour24).padStart(2, '0');
 
   const timetableDayColumns = useMemo(() => {
     return timetableWeekDates.map((date) => {
@@ -388,6 +449,145 @@ export function CalendarScreen({
   }, [schedulesByDate, timetableWeekDates]);
 
   const allowPullToRefresh = viewMode !== 'month';
+  const viewModeOptions = [
+    { key: 'month' as const, label: '월' },
+    { key: 'week' as const, label: '주' },
+    { key: 'timetable' as const, label: '표' },
+  ];
+  const [viewModeMenuOpen, setViewModeMenuOpen] = useState(false);
+  const currentViewModeLabel = viewModeOptions.find((option) => option.key === viewMode)?.label ?? '월';
+  const renderTimetableBoard = () => (
+    <View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+        <View style={{ width: timetableTimeColWidth }} />
+        {timetableDayColumns.map(({ date, key }) => {
+          const isToday = key === todayStr;
+          return (
+            <View
+              key={`header-${key}`}
+              style={{ width: timetableDayColWidth, alignItems: 'center', paddingVertical: 6 }}
+            >
+              <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textMuted }}>
+                {WEEKDAYS[date.getDay()]}
+              </Text>
+              <Text style={{ fontSize: 14, fontWeight: isToday ? '800' : '700', color: isToday ? colors.primary : colors.text }}>
+                {date.getMonth() + 1}/{date.getDate()}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+
+      <ScrollView
+        style={{ maxHeight: 420 }}
+        nestedScrollEnabled
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={{ flexDirection: 'row' }}>
+          <View style={{ width: timetableTimeColWidth }}>
+            {timetableHours.map((hour, idx) => (
+              <View
+                key={`hour-${hour}`}
+                style={{
+                  height: idx === timetableHours.length - 1 ? timetableSlotHeight : timetableSlotHeight,
+                  justifyContent: 'flex-start',
+                  paddingTop: 2,
+                }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textMuted }}>
+                  {String(hour)}
+                </Text>
+              </View>
+            ))}
+          </View>
+          <View
+            style={{
+              width: timetableGridWidth,
+              height: timetableGridHeight,
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: 10,
+              overflow: 'hidden',
+              backgroundColor: colors.card,
+            }}
+          >
+            {Array.from({ length: timetableEndHour - timetableStartHour + 1 }, (_, i) => (
+              <View
+                key={`line-${i}`}
+                style={{
+                  position: 'absolute',
+                  top: i * timetableSlotHeight,
+                  left: 0,
+                  right: 0,
+                  borderTopWidth: i === 0 ? 0 : 0.5,
+                  borderTopColor: colors.border,
+                }}
+              />
+            ))}
+            {Array.from({ length: timetableDayColumns.length - 1 }, (_, i) => (
+              <View
+                key={`vline-${i}`}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  bottom: 0,
+                  left: (i + 1) * timetableDayColWidth,
+                  borderLeftWidth: 0.5,
+                  borderLeftColor: colors.border,
+                }}
+              />
+            ))}
+
+            {timetableDayColumns.map((column, dayIndex) => (
+              <React.Fragment key={`col-${column.key}`}>
+                {column.tasks.map(({ task, start, end }) => {
+                  const startMinutes = start.getHours() * 60 + start.getMinutes();
+                  const endMinutesRaw = end.getHours() * 60 + end.getMinutes();
+                  const effectiveEndMinutes = endMinutesRaw <= startMinutes ? startMinutes + 30 : endMinutesRaw;
+                  const clipStart = Math.max(startMinutes, timetableStartHour * 60);
+                  const clipEnd = Math.min(effectiveEndMinutes, timetableEndHour * 60);
+                  if (clipEnd <= clipStart) return null;
+
+                  const top = ((clipStart - timetableStartHour * 60) / 60) * timetableSlotHeight;
+                  const height = Math.max(24, ((clipEnd - clipStart) / 60) * timetableSlotHeight);
+                  const titleLineHeight = 14;
+                  const titleVerticalPadding = 5;
+                  const titleMaxLines = Math.max(1, Math.min(4, Math.floor((height - titleVerticalPadding) / titleLineHeight)));
+                  const accent = getTaskAccentColor(task);
+                  return (
+                    <Pressable
+                      key={`tt-${column.key}-${task.id}-${task.start_time}`}
+                      onPress={() => {
+                        onSelectTask(task.id);
+                        onOpenTask?.(task.id);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        left: dayIndex * timetableDayColWidth + 1,
+                        width: timetableDayColWidth - 2,
+                        top,
+                        height,
+                        borderRadius: 8,
+                        backgroundColor: `${accent}D8`,
+                        paddingHorizontal: 2,
+                        paddingVertical: 3,
+                        borderWidth: 1,
+                        borderColor: `${accent}F0`,
+                      }}
+                    >
+                      <Text style={{ fontSize: 12, lineHeight: titleLineHeight, color: '#fff', fontWeight: '800' }} numberOfLines={titleMaxLines}>
+                        {task.title}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </React.Fragment>
+            ))}
+          </View>
+        </View>
+      </ScrollView>
+    </View>
+  );
 
   return (
     <ScrollView
@@ -401,7 +601,7 @@ export function CalendarScreen({
           : undefined
       }
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', zIndex: 20 }}>
         <Pressable
           onPress={() => {
             if (refreshing) return;
@@ -426,31 +626,82 @@ export function CalendarScreen({
           onGoToday();
           setYear(today.getFullYear());
           setMonth(today.getMonth());
+          setViewModeMenuOpen(false);
         }}>
           <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800', letterSpacing: -0.5 }}>{year}년 {MONTHS[month]}</Text>
         </Pressable>
-        <View style={{ width: 40, height: 32 }} />
-      </View>
-
-      <View style={s.row}>
-        {([
-          { key: 'month', label: '월' },
-          { key: 'week', label: '주' },
-          { key: 'day', label: '일' },
-          { key: 'timetable', label: '표' },
-        ] as const).map((mode) => (
+        <View style={{ width: 64, height: 32, alignItems: 'flex-end' }}>
           <Pressable
-            key={mode.key}
-            onPress={() => setViewMode(mode.key)}
+            onPress={() => setViewModeMenuOpen((prev) => !prev)}
             style={[
               s.workspacePill,
-              { marginRight: 0, paddingVertical: 7, paddingHorizontal: 12 },
-              viewMode === mode.key ? s.workspacePillActive : null,
+              {
+                marginRight: 0,
+                paddingVertical: 7,
+                paddingHorizontal: 10,
+                minWidth: 56,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              },
             ]}
           >
-            <Text style={[s.workspacePillText, viewMode === mode.key ? s.workspacePillTextActive : null]}>{mode.label}</Text>
+            <Text style={s.workspacePillText}>{currentViewModeLabel}</Text>
+            <Text style={[s.workspacePillText, { fontSize: 11, marginLeft: 6 }]}>
+              {viewModeMenuOpen ? '▴' : '▾'}
+            </Text>
           </Pressable>
-        ))}
+          {viewModeMenuOpen ? (
+            <View
+              style={{
+                position: 'absolute',
+                top: 36,
+                right: 0,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 10,
+                backgroundColor: colors.card,
+                minWidth: 64,
+                overflow: 'hidden',
+                shadowColor: '#000',
+                shadowOpacity: 0.1,
+                shadowRadius: 8,
+                shadowOffset: { width: 0, height: 3 },
+                elevation: 5,
+                zIndex: 30,
+              }}
+            >
+              {viewModeOptions.map((option) => {
+                const active = option.key === viewMode;
+                return (
+                  <Pressable
+                    key={option.key}
+                    onPress={() => {
+                      setViewMode(option.key);
+                      setViewModeMenuOpen(false);
+                    }}
+                    style={{
+                      paddingVertical: 8,
+                      paddingHorizontal: 10,
+                      backgroundColor: active ? `${colors.primary}16` : colors.card,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: active ? colors.primary : colors.text,
+                        fontSize: 13,
+                        fontWeight: active ? '800' : '700',
+                        textAlign: 'center',
+                      }}
+                    >
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
+        </View>
       </View>
 
       {viewMode === 'month' ? (
@@ -509,7 +760,7 @@ export function CalendarScreen({
         </View>
 
         {rows.map((row, rowIdx) => {
-          const rowSegments = multiDaySegments.filter((segment) => segment.row === rowIdx);
+          const rowSegments = mergedMultiDaySegmentsByRow.get(rowIdx) ?? [];
           const maxDailyVisible = 3;
           const visibleRowSegments = rowSegments.filter((segment) => segment.lane < maxDailyVisible);
 
@@ -727,139 +978,7 @@ export function CalendarScreen({
       {viewMode === 'timetable' ? (
         <View style={[s.panel, { borderRadius: 16, gap: 8, padding: 10 }]}>
           <Text style={[s.formTitle, { fontSize: 14 }]}>시간표</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                <View style={{ width: timetableTimeColWidth }} />
-                {timetableDayColumns.map(({ date, key }) => {
-                  const isToday = key === todayStr;
-                  return (
-                    <View
-                      key={`header-${key}`}
-                      style={{ width: timetableDayColWidth, alignItems: 'center', paddingVertical: 6 }}
-                    >
-                      <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textMuted }}>
-                        {WEEKDAYS[date.getDay()]}
-                      </Text>
-                      <Text style={{ fontSize: 12, fontWeight: isToday ? '800' : '700', color: isToday ? colors.primary : colors.text }}>
-                        {date.getMonth() + 1}/{date.getDate()}
-                      </Text>
-                    </View>
-                  );
-                })}
-              </View>
-
-              <ScrollView
-                style={{ maxHeight: 420 }}
-                nestedScrollEnabled
-                showsVerticalScrollIndicator={false}
-              >
-                <View style={{ flexDirection: 'row' }}>
-                  <View style={{ width: timetableTimeColWidth }}>
-                    {timetableHours.map((hour, idx) => (
-                      <View
-                        key={`hour-${hour}`}
-                        style={{
-                          height: idx === timetableHours.length - 1 ? timetableSlotHeight : timetableSlotHeight,
-                          justifyContent: 'flex-start',
-                          paddingTop: 2,
-                        }}
-                      >
-                        <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textMuted }}>
-                          {formatTwelveHourLabel(hour)}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-
-                  <View
-                    style={{
-                      width: timetableDayColWidth * timetableDayColumns.length,
-                      height: timetableGridHeight,
-                      borderWidth: 1,
-                      borderColor: colors.border,
-                      borderRadius: 10,
-                      overflow: 'hidden',
-                      backgroundColor: colors.card,
-                    }}
-                  >
-                    {Array.from({ length: timetableEndHour - timetableStartHour + 1 }, (_, i) => (
-                      <View
-                        key={`line-${i}`}
-                        style={{
-                          position: 'absolute',
-                          top: i * timetableSlotHeight,
-                          left: 0,
-                          right: 0,
-                          borderTopWidth: i === 0 ? 0 : 0.5,
-                          borderTopColor: colors.border,
-                        }}
-                      />
-                    ))}
-                    {Array.from({ length: timetableDayColumns.length - 1 }, (_, i) => (
-                      <View
-                        key={`vline-${i}`}
-                        style={{
-                          position: 'absolute',
-                          top: 0,
-                          bottom: 0,
-                          left: (i + 1) * timetableDayColWidth,
-                          borderLeftWidth: 0.5,
-                          borderLeftColor: colors.border,
-                        }}
-                      />
-                    ))}
-
-                    {timetableDayColumns.map((column, dayIndex) => (
-                      <React.Fragment key={`col-${column.key}`}>
-                        {column.tasks.map(({ task, start, end }) => {
-                          const startMinutes = start.getHours() * 60 + start.getMinutes();
-                          const endMinutesRaw = end.getHours() * 60 + end.getMinutes();
-                          const effectiveEndMinutes = endMinutesRaw <= startMinutes ? startMinutes + 30 : endMinutesRaw;
-                          const clipStart = Math.max(startMinutes, timetableStartHour * 60);
-                          const clipEnd = Math.min(effectiveEndMinutes, timetableEndHour * 60);
-                          if (clipEnd <= clipStart) return null;
-
-                          const top = ((clipStart - timetableStartHour * 60) / 60) * timetableSlotHeight;
-                          const height = Math.max(24, ((clipEnd - clipStart) / 60) * timetableSlotHeight);
-                          const titleLineHeight = 12;
-                          const titleVerticalPadding = 8;
-                          const titleMaxLines = Math.max(1, Math.min(4, Math.floor((height - titleVerticalPadding) / titleLineHeight)));
-                          const accent = getTaskAccentColor(task);
-                          return (
-                            <Pressable
-                              key={`tt-${column.key}-${task.id}-${task.start_time}`}
-                              onPress={() => {
-                                onSelectTask(task.id);
-                                onOpenTask?.(task.id);
-                              }}
-                              style={{
-                                position: 'absolute',
-                                left: dayIndex * timetableDayColWidth + 3,
-                                width: timetableDayColWidth - 6,
-                                top,
-                                height,
-                                borderRadius: 8,
-                                backgroundColor: `${accent}D8`,
-                                paddingHorizontal: 5,
-                                paddingVertical: 4,
-                                borderWidth: 1,
-                                borderColor: `${accent}F0`,
-                              }}
-                            >
-                              <Text style={{ fontSize: 10, lineHeight: titleLineHeight, color: '#fff', fontWeight: '800' }} numberOfLines={titleMaxLines}>
-                                {task.title}
-                              </Text>
-                            </Pressable>
-                          );
-                        })}
-                      </React.Fragment>
-                    ))}
-                  </View>
-                </View>
-              </ScrollView>
-            </View>
-          </ScrollView>
+          {renderTimetableBoard()}
         </View>
       ) : null}
 
