@@ -27,12 +27,18 @@
   },
   "pnpm": {
     "overrides": {
+      "@aws-sdk/xml-builder>fast-xml-parser": "5.3.8",
+      "@swagger-api/apidom-reference>minimatch": "10.2.4",
       "brace-expansion": "1.1.13",
       "dompurify": "3.3.3",
       "fast-xml-parser": "5.3.8",
+      "glob>minimatch": "3.1.4",
       "immutable": "3.8.3",
       "minimatch": "10.2.4",
+      "nodemailer": "6.10.0",
       "picomatch": "4.0.4",
+      "react": "19.0.0",
+      "react-dom": "19.0.0",
       "rollup": "4.59.0",
       "swagger-client": "3.37.0",
       "tar": "7.5.10"
