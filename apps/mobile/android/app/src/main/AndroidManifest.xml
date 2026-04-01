@@ -28,5 +28,32 @@
         <data android:scheme="myapp"/>
       </intent-filter>
     </activity>
+
+    <receiver
+      android:name=".PecalMonthWidgetProvider"
+      android:exported="false">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/pecal_month_widget_info" />
+    </receiver>
+
+    <receiver
+      android:name=".PecalTodayWidgetProvider"
+      android:exported="false">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/pecal_today_widget_info" />
+    </receiver>
+
+    <service
+      android:name=".PecalMonthWidgetService"
+      android:permission="android.permission.BIND_REMOTEVIEWS"
+      android:exported="false" />
   </application>
 </manifest>

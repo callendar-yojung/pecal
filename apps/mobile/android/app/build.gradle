@@ -100,7 +100,7 @@ android {
         applicationId 'com.pecal.mobile'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 4
+        versionCode 6
         versionName "1.0.3"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
@@ -114,12 +114,27 @@ android {
         }
         release {
             def uploadStoreFile = signingProp("MYAPP_UPLOAD_STORE_FILE")
-            if (uploadStoreFile) {
-                storeFile file(uploadStoreFile)
+            def uploadStorePassword = signingProp("MYAPP_UPLOAD_STORE_PASSWORD")
+            def uploadKeyAlias = signingProp("MYAPP_UPLOAD_KEY_ALIAS")
+            def uploadKeyPassword = signingProp("MYAPP_UPLOAD_KEY_PASSWORD")
+
+            def missingSigningProps = []
+            if (!uploadStoreFile) missingSigningProps << "MYAPP_UPLOAD_STORE_FILE"
+            if (!uploadStorePassword) missingSigningProps << "MYAPP_UPLOAD_STORE_PASSWORD"
+            if (!uploadKeyAlias) missingSigningProps << "MYAPP_UPLOAD_KEY_ALIAS"
+            if (!uploadKeyPassword) missingSigningProps << "MYAPP_UPLOAD_KEY_PASSWORD"
+
+            if (!missingSigningProps.isEmpty()) {
+                throw new GradleException(
+                        "Missing Android release signing properties: ${missingSigningProps.join(', ')}. " +
+                        "Set them in android/gradle.properties or as environment variables."
+                )
             }
-            storePassword signingProp("MYAPP_UPLOAD_STORE_PASSWORD")
-            keyAlias signingProp("MYAPP_UPLOAD_KEY_ALIAS")
-            keyPassword signingProp("MYAPP_UPLOAD_KEY_PASSWORD")
+
+            storeFile file(uploadStoreFile)
+            storePassword uploadStorePassword
+            keyAlias uploadKeyAlias
+            keyPassword uploadKeyPassword
         }
     }
     buildTypes {
@@ -146,6 +161,14 @@ android {
     }
     androidResources {
         ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+        coreLibraryDesugaringEnabled true
+    }
+    kotlinOptions {
+        jvmTarget = "17"
     }
 }
 
@@ -196,4 +219,6 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }

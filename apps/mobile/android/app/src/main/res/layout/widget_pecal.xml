@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:orientation="vertical"
+  android:padding="12dp"
+  android:background="@drawable/widget_pecal_bg">
+
+  <LinearLayout
+    android:id="@+id/widgetHeaderContainer"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingBottom="8dp">
+
+    <TextView
+      android:id="@+id/widgetMonthTitle"
+      android:layout_width="0dp"
+      android:layout_height="wrap_content"
+      android:layout_weight="1"
+      android:textStyle="bold"
+      android:textColor="#334155"
+      android:textSize="18sp"
+      android:maxLines="1"
+      android:ellipsize="end"
+      android:text="MARCH 2026" />
+
+    <TextView
+      android:id="@+id/widgetNickname"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:textStyle="bold"
+      android:textColor="#94A3B8"
+      android:textSize="12sp"
+      android:maxLines="1"
+      android:ellipsize="end"
+      android:text="현성이의 일정" />
+  </LinearLayout>
+
+  <LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingBottom="4dp">
+
+    <TextView style="@style/WidgetWeekdayText" android:text="SUN" />
+    <TextView style="@style/WidgetWeekdayText" android:text="MON" />
+    <TextView style="@style/WidgetWeekdayText" android:text="TUE" />
+    <TextView style="@style/WidgetWeekdayText" android:text="WED" />
+    <TextView style="@style/WidgetWeekdayText" android:text="THU" />
+    <TextView style="@style/WidgetWeekdayText" android:text="FRI" />
+    <TextView style="@style/WidgetWeekdayText" android:text="SAT" />
+  </LinearLayout>
+
+  <GridView
+    android:id="@+id/widgetMonthGrid"
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_weight="1"
+    android:numColumns="7"
+    android:verticalSpacing="0dp"
+    android:horizontalSpacing="0dp"
+    android:stretchMode="columnWidth"
+    android:gravity="top"
+    android:listSelector="@android:color/transparent" />
+
+  <TextView
+    android:id="@+id/widgetEmpty"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:text="일정이 없습니다."
+    android:textColor="#94A3B8"
+    android:textSize="12sp"
+    android:gravity="center"
+    android:visibility="gone" />
+
+</LinearLayout>

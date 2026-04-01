@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:id="@+id/widgetDayCellRoot"
+  android:layout_width="match_parent"
+  android:layout_height="76dp"
+  android:orientation="vertical"
+  android:gravity="top"
+  android:paddingHorizontal="0dp"
+  android:paddingTop="2dp"
+  android:paddingBottom="2dp"
+  android:background="@drawable/widget_pecal_cell_bg">
+
+  <TextView
+    android:id="@+id/widgetDayNumber"
+    android:layout_width="wrap_content"
+    android:layout_height="16dp"
+    android:paddingStart="3dp"
+    android:includeFontPadding="false"
+    android:gravity="center_vertical"
+    android:text="1"
+    android:textColor="#1F2937"
+    android:textStyle="bold"
+    android:textSize="12sp"
+    android:maxLines="1" />
+
+  <TextView
+    android:id="@+id/widgetSpecialDay"
+    android:layout_width="match_parent"
+    android:layout_height="11dp"
+    android:paddingHorizontal="3dp"
+    android:textColor="#EF4444"
+    android:textSize="8sp"
+    android:textStyle="bold"
+    android:maxLines="1"
+    android:ellipsize="end"
+    android:includeFontPadding="false"
+    android:gravity="center_vertical"
+    android:visibility="invisible" />
+
+  <TextView
+    android:id="@+id/widgetMultiTask"
+    android:layout_width="match_parent"
+    android:layout_height="14dp"
+    android:layout_marginTop="0dp"
+    android:paddingHorizontal="3dp"
+    android:paddingVertical="0dp"
+    android:background="@drawable/widget_pecal_multi_mid_bg"
+    android:textColor="#FFFFFF"
+    android:textSize="8sp"
+    android:textStyle="bold"
+    android:maxLines="1"
+    android:ellipsize="end"
+    android:includeFontPadding="false"
+    android:gravity="center_vertical"
+    android:visibility="gone" />
+
+  <LinearLayout
+    android:id="@+id/widgetTaskRow1"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="1dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingHorizontal="3dp"
+    android:paddingVertical="1dp"
+    android:background="@drawable/widget_pecal_single_bg"
+    android:visibility="gone">
+    <TextView
+      android:id="@+id/widgetTaskCheck1"
+      android:layout_width="12dp"
+      android:layout_height="12dp"
+      android:text="○"
+      android:textSize="10sp"
+      android:textStyle="bold"
+      android:textColor="#94A3B8"
+      android:gravity="center" />
+    <TextView
+      android:id="@+id/widgetTaskTitle1"
+      android:layout_width="0dp"
+      android:layout_height="wrap_content"
+      android:layout_weight="1"
+      android:layout_marginStart="2dp"
+      android:textColor="#334155"
+      android:textSize="8sp"
+      android:textStyle="bold"
+      android:maxLines="1"
+      android:ellipsize="end" />
+  </LinearLayout>
+
+  <LinearLayout
+    android:id="@+id/widgetTaskRow2"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="1dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingHorizontal="3dp"
+    android:paddingVertical="1dp"
+    android:background="@drawable/widget_pecal_single_bg"
+    android:visibility="gone">
+    <TextView
+      android:id="@+id/widgetTaskCheck2"
+      android:layout_width="12dp"
+      android:layout_height="12dp"
+      android:text="○"
+      android:textSize="10sp"
+      android:textStyle="bold"
+      android:textColor="#94A3B8"
+      android:gravity="center" />
+    <TextView
+      android:id="@+id/widgetTaskTitle2"
+      android:layout_width="0dp"
+      android:layout_height="wrap_content"
+      android:layout_weight="1"
+      android:layout_marginStart="2dp"
+      android:textColor="#334155"
+      android:textSize="8sp"
+      android:textStyle="bold"
+      android:maxLines="1"
+      android:ellipsize="end" />
+  </LinearLayout>
+
+  <TextView
+    android:id="@+id/widgetMoreCount"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="3dp"
+    android:textColor="#64748B"
+    android:textSize="7sp"
+    android:textStyle="bold"
+    android:maxLines="1"
+    android:ellipsize="end"
+    android:includeFontPadding="false"
+    android:visibility="gone" />
+
+</LinearLayout>

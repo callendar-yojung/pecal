@@ -1,0 +1,13 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+  <item>
+    <shape android:shape="oval">
+      <size android:width="18dp" android:height="18dp" />
+      <solid android:color="#2563EB" />
+    </shape>
+  </item>
+  <item
+    android:width="10dp"
+    android:height="10dp"
+    android:gravity="center"
+    android:drawable="@drawable/widget_today_check_mark" />
+</layer-list>

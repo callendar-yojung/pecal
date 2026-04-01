@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:id="@+id/widgetTodayRoot"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:orientation="vertical"
+  android:padding="12dp"
+  android:background="@drawable/widget_pecal_bg">
+
+  <LinearLayout
+    android:id="@+id/widgetTodayHeaderContainer"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingBottom="8dp">
+
+    <TextView
+      android:id="@+id/widgetTodayHeaderTitle"
+      android:layout_width="0dp"
+      android:layout_height="wrap_content"
+      android:layout_weight="1"
+      android:text="TODAY"
+      android:textStyle="bold"
+      android:textColor="#64748B"
+      android:textSize="12sp"
+      android:maxLines="1" />
+
+    <TextView
+      android:id="@+id/widgetTodayHeaderMeta"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:text="현성이의 일정"
+      android:textStyle="bold"
+      android:textColor="#334155"
+      android:textSize="12sp"
+      android:maxLines="1"
+      android:ellipsize="end" />
+  </LinearLayout>
+
+  <TextView
+    android:id="@+id/widgetTodayEmpty"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:text="오늘 일정이 없습니다."
+    android:textColor="#94A3B8"
+    android:textStyle="bold"
+    android:textSize="12sp"
+    android:paddingTop="8dp"
+    android:visibility="gone" />
+
+  <LinearLayout
+    android:id="@+id/widgetTodayRow1"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingHorizontal="8dp"
+    android:paddingVertical="4dp"
+    android:layout_marginBottom="6dp"
+    android:background="@drawable/widget_pecal_single_bg"
+    android:visibility="gone">
+    <ImageView
+      android:id="@+id/widgetTodayCheck1"
+      android:layout_width="18dp"
+      android:layout_height="18dp"
+      android:src="@drawable/widget_today_checkbox_unchecked"
+      android:contentDescription="@null" />
+    <TextView
+      android:id="@+id/widgetTodayTime1"
+      android:layout_width="66dp"
+      android:layout_height="wrap_content"
+      android:layout_marginStart="6dp"
+      android:text="09:00-09:30"
+      android:textSize="10sp"
+      android:textStyle="bold"
+      android:textColor="#64748B"
+      android:maxLines="1"
+      android:ellipsize="end"
+      android:includeFontPadding="false"
+      android:gravity="center_vertical" />
+    <TextView
+      android:id="@+id/widgetTodayTitle1"
+      android:layout_width="0dp"
+      android:layout_height="wrap_content"
+      android:layout_weight="1"
+      android:layout_marginStart="6dp"
+      android:text="일정"
+      android:textSize="12sp"
+      android:textStyle="bold"
+      android:textColor="#1F2937"
+      android:maxLines="1"
+      android:ellipsize="end" />
+  </LinearLayout>
+
+  <LinearLayout
+    android:id="@+id/widgetTodayRow2"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingHorizontal="8dp"
+    android:paddingVertical="4dp"
+    android:layout_marginBottom="6dp"
+    android:background="@drawable/widget_pecal_single_bg"
+    android:visibility="gone">
+    <ImageView android:id="@+id/widgetTodayCheck2" android:layout_width="18dp" android:layout_height="18dp" android:src="@drawable/widget_today_checkbox_unchecked" android:contentDescription="@null" />
+    <TextView android:id="@+id/widgetTodayTime2" android:layout_width="66dp" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:textSize="10sp" android:textStyle="bold" android:textColor="#64748B" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:gravity="center_vertical" />
+    <TextView android:id="@+id/widgetTodayTitle2" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp" android:textSize="12sp" android:textStyle="bold" android:textColor="#1F2937" android:maxLines="1" android:ellipsize="end" />
+  </LinearLayout>
+
+  <LinearLayout
+    android:id="@+id/widgetTodayRow3"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingHorizontal="8dp"
+    android:paddingVertical="4dp"
+    android:layout_marginBottom="6dp"
+    android:background="@drawable/widget_pecal_single_bg"
+    android:visibility="gone">
+    <ImageView android:id="@+id/widgetTodayCheck3" android:layout_width="18dp" android:layout_height="18dp" android:src="@drawable/widget_today_checkbox_unchecked" android:contentDescription="@null" />
+    <TextView android:id="@+id/widgetTodayTime3" android:layout_width="66dp" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:textSize="10sp" android:textStyle="bold" android:textColor="#64748B" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:gravity="center_vertical" />
+    <TextView android:id="@+id/widgetTodayTitle3" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp" android:textSize="12sp" android:textStyle="bold" android:textColor="#1F2937" android:maxLines="1" android:ellipsize="end" />
+  </LinearLayout>
+
+</LinearLayout>

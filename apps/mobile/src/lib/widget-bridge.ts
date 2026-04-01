@@ -38,7 +38,7 @@ type WidgetBridgeModule = {
 };
 
 function getBridge(): WidgetBridgeModule | null {
-  if (Platform.OS !== 'ios') return null;
+  if (Platform.OS !== 'ios' && Platform.OS !== 'android') return null;
   const bridge = (NativeModules?.PecalWidgetBridge ?? null) as WidgetBridgeModule | null;
   return bridge;
 }

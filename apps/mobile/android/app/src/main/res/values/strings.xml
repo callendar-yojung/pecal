@@ -1,5 +1,7 @@
 <resources>
   <string name="app_name">피켈</string>
+  <string name="widget_name">Pecal 캘린더</string>
+  <string name="widget_today_name">Pecal 오늘 일정</string>
   <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
   <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
 </resources>
