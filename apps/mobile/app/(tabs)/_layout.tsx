@@ -104,7 +104,6 @@ export default function TabsLayout() {
   const selectedWorkspaceNameLabel = truncateWorkspaceName(selectedWorkspaceName);
   const selectedWorkspaceOwnerSuffix = `/ ${selectedWorkspaceOwnerLabel}`;
   const selectedWorkspaceSubLabel = truncateWorkspaceName(selectedWorkspaceName);
-  const headerUserName = auth.session?.nickname || 'tester';
   const selectedKindOption = workspaceKindOptions.find((option) => option.key === selectedWorkspaceKindKey) ?? workspaceKindOptions[0];
   const selectedKindScope: 'personal' | 'team' = selectedKindOption?.scope ?? 'personal';
   const selectedKindTeamId = selectedKindOption?.teamId ?? null;
@@ -385,13 +384,17 @@ export default function TabsLayout() {
             </Pressable>
           ) : null}
           <Pressable
-            style={s.userIdentityButton}
+            style={[
+              s.userIdentityButton,
+              {
+                width: 36,
+                paddingHorizontal: 0,
+                justifyContent: 'center',
+              },
+            ]}
             onPress={() => router.replace('/(tabs)/overview')}
           >
             <View style={[s.userIdentityDot, { backgroundColor: '#22C55E' }]} />
-            <Text style={s.userIdentityText} numberOfLines={1}>
-              {headerUserName}
-            </Text>
           </Pressable>
           <Pressable
             style={[s.modeDropdownButton, s.workspaceKindDropdownButton]}

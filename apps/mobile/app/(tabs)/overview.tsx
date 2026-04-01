@@ -37,6 +37,9 @@ export default function OverviewTab() {
       {data.selectedWorkspace ? (
         <OverviewScreen
           tasks={data.tasks}
+          onOpenCreateTask={() => {
+            router.push('/tasks/new');
+          }}
           onToggleTaskDone={(taskId, done) => {
             void data.updateTask(taskId, { status: done ? 'DONE' : 'TODO' });
           }}

@@ -102,8 +102,16 @@ export function TasksScreen({
       .sort((a, b) => {
         if (sortBy === 'TITLE_ASC') return a.title.localeCompare(b.title);
         if (sortBy === 'TITLE_DESC') return b.title.localeCompare(a.title);
-        if (sortBy === 'START_DESC') return b.start_time.localeCompare(a.start_time);
-        return a.start_time.localeCompare(b.start_time);
+        if (sortBy === 'START_DESC') {
+          const byStart = b.start_time.localeCompare(a.start_time);
+          if (byStart !== 0) return byStart;
+          // Same start time: show the later-created task first (higher id first).
+          return b.id - a.id;
+        }
+        const byStart = a.start_time.localeCompare(b.start_time);
+        if (byStart !== 0) return byStart;
+        // Same start time: keep older-created task first for stable early-order view.
+        return a.id - b.id;
       });
 
     const seenRecurringIds = new Set<number>();
@@ -202,9 +210,27 @@ export function TasksScreen({
     <View style={s.section}>
       <GsxCard className="mb-1">
         <View style={{ gap: 10 }}>
-          <View style={{ gap: 3 }}>
-            <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: '600' }}>{t('tasksHeaderSub')}</Text>
-            <GsxHeading className="text-3xl">{t('commonTasks')}</GsxHeading>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+            <View style={{ gap: 3 }}>
+              <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: '600' }}>{t('tasksHeaderSub')}</Text>
+              <GsxHeading className="text-3xl">{t('commonTasks')}</GsxHeading>
+            </View>
+            {!selectionMode ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <GsxChip
+                  label={t('commonCreate')}
+                  icon="add-circle-outline"
+                  iconSize={16}
+                  onPress={onOpenCreateTask}
+                />
+                <GsxChip
+                  label="선택"
+                  icon="checkmark-circle-outline"
+                  iconSize={16}
+                  onPress={() => setSelectionMode(true)}
+                />
+              </View>
+            ) : null}
           </View>
 
           {selectionMode ? (
@@ -227,34 +253,28 @@ export function TasksScreen({
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <GsxButton
                   label="선택해제"
+                  icon="close-circle-outline"
+                  iconSize={16}
                   onPress={exitSelectionMode}
                 />
                 <GsxButton
                   label={areAllPagedSelected ? '현재 페이지 해제' : '현재 페이지 모두선택'}
+                  icon={areAllPagedSelected ? 'remove-circle-outline' : 'checkmark-done-circle-outline'}
+                  iconSize={16}
                   onPress={toggleSelectAllFiltered}
                 />
                 <GsxButton
                   label={deletingSelected ? '삭제 중...' : `삭제 (${selectedTaskIds.length})`}
                   variant="danger"
+                  icon="trash-outline"
+                  iconSize={16}
                   loading={deletingSelected}
                   disabled={selectedTaskIds.length === 0 || deletingSelected}
                   onPress={() => void deleteSelectedTasks()}
                 />
               </View>
             </View>
-          ) : (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <GsxButton
-                label={`+ ${t('commonCreate')}`}
-                variant="primary"
-                onPress={onOpenCreateTask}
-              />
-              <GsxButton
-                label="선택"
-                onPress={() => setSelectionMode(true)}
-              />
-            </View>
-          )}
+          ) : null}
         </View>
       </GsxCard>
 

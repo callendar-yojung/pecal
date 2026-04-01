@@ -11,6 +11,7 @@ type Props = {
   tasks: TaskItem[];
   onPressTask?: (taskId: number) => void;
   onToggleTaskDone?: (taskId: number, done: boolean) => void;
+  onOpenCreateTask?: () => void;
 };
 
 type TaskWithDate = TaskItem & {
@@ -71,7 +72,7 @@ function toDateLabel(date: Date | null, locale: string) {
   });
 }
 
-export function OverviewScreen({ tasks, onPressTask, onToggleTaskDone }: Props) {
+export function OverviewScreen({ tasks, onPressTask, onToggleTaskDone, onOpenCreateTask }: Props) {
   const { colors } = useThemeMode();
   const { locale, t } = useI18n();
   const s = createStyles(colors);
@@ -225,9 +226,19 @@ export function OverviewScreen({ tasks, onPressTask, onToggleTaskDone }: Props) 
       </GsxCard>
 
       <GsxCard className="gap-2" style={equalSectionCardStyle}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Ionicons name="today-outline" size={16} color={colors.primary} />
-          <GsxHeading className="text-lg">오늘 일정</GsxHeading>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Ionicons name="today-outline" size={16} color={colors.primary} />
+            <GsxHeading className="text-lg">오늘 일정</GsxHeading>
+          </View>
+          {onOpenCreateTask ? (
+            <GsxChip
+              label={t('commonCreate')}
+              icon="add-circle-outline"
+              iconSize={16}
+              onPress={onOpenCreateTask}
+            />
+          ) : null}
         </View>
         {nextTask?.__start ? (
           <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>

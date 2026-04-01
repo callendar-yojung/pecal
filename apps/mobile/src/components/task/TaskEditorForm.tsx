@@ -136,6 +136,7 @@ export function TaskEditorForm({
   const [customColorError, setCustomColorError] = useState<string | null>(null);
   const [savingCustomColor, setSavingCustomColor] = useState(false);
   const [pickerRgbText, setPickerRgbText] = useState('');
+  const [showAdvancedColorPicker, setShowAdvancedColorPicker] = useState(false);
   const statusLabels: Record<TaskStatus, string> = {
     TODO: '완료 전',
     IN_PROGRESS: '완료 전',
@@ -405,7 +406,7 @@ export function TaskEditorForm({
   };
 
   return (
-    <GsxCard className="gap-3">
+    <GsxCard className="gap-4">
       <GsxHeading className="text-lg">일정 입력</GsxHeading>
 
       <TextInput
@@ -571,58 +572,74 @@ export function TaskEditorForm({
         </View>
         {onSaveCustomColor ? (
           <View style={{ gap: 8 }}>
-            <Text style={s.itemMeta}>색상표에서 선택 후 저장하면 내 색상으로 계속 사용할 수 있습니다.</Text>
-            <ColorPicker value={customColorInput || color} onChangeJS={handlePickerChange}>
-              <Panel1
-                style={{
-                  height: 188,
-                  borderRadius: 14,
-                  borderWidth: 1,
-                  borderColor: `${colors.border}99`,
-                  marginBottom: 8,
-                }}
-              />
-              <HueSlider
-                style={{
-                  height: 20,
-                  borderRadius: 999,
-                  borderWidth: 1,
-                  borderColor: `${colors.border}99`,
-                }}
-              />
-            </ColorPicker>
-            <View style={[s.row, { alignItems: 'center' }]}>
-              <View
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 999,
-                  borderWidth: 1,
-                  borderColor: `${colors.border}99`,
-                  backgroundColor: customColorInput || color,
-                }}
-              />
-              <TextInput
-                value={customColorInput}
-                onChangeText={(value) => {
-                  setCustomColorInput(value);
-                  if (customColorError) setCustomColorError(null);
-                }}
-                placeholder="rgb(120,34,255) 또는 #7A22FF"
-                style={[s.input, { flex: 1 }]}
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholderTextColor={colors.textMuted}
-              />
-              <Pressable
-                onPress={() => void saveCustomColor()}
-                style={[s.secondaryButton, { width: 'auto', paddingHorizontal: 14, minHeight: 0, paddingVertical: 10 }]}
-              >
-                <Text style={s.secondaryButtonText}>{savingCustomColor ? '저장 중...' : '색상 저장'}</Text>
-              </Pressable>
-            </View>
-            <Text style={s.itemMeta}>{pickerRgbText ? `${pickerRgbText} · ${customColorInput || color}` : customColorInput || color}</Text>
-            {customColorError ? <Text style={errorTextStyle}>{customColorError}</Text> : null}
+            <Pressable
+              onPress={() => setShowAdvancedColorPicker((prev) => !prev)}
+              style={[
+                s.secondaryButton,
+                { width: 'auto', alignSelf: 'flex-start', paddingHorizontal: 14, minHeight: 0, paddingVertical: 10 },
+              ]}
+            >
+              <Text style={s.secondaryButtonText}>
+                {showAdvancedColorPicker ? 'RGB/HEX 선택 접기' : 'RGB/HEX 직접 선택'}
+              </Text>
+            </Pressable>
+
+            {showAdvancedColorPicker ? (
+              <>
+                <Text style={s.itemMeta}>색상표에서 선택 후 저장하면 내 색상으로 계속 사용할 수 있습니다.</Text>
+                <ColorPicker value={customColorInput || color} onChangeJS={handlePickerChange}>
+                  <Panel1
+                    style={{
+                      height: 188,
+                      borderRadius: 14,
+                      borderWidth: 1,
+                      borderColor: `${colors.border}99`,
+                      marginBottom: 8,
+                    }}
+                  />
+                  <HueSlider
+                    style={{
+                      height: 20,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: `${colors.border}99`,
+                    }}
+                  />
+                </ColorPicker>
+                <View style={[s.row, { alignItems: 'center' }]}>
+                  <View
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: `${colors.border}99`,
+                      backgroundColor: customColorInput || color,
+                    }}
+                  />
+                  <TextInput
+                    value={customColorInput}
+                    onChangeText={(value) => {
+                      setCustomColorInput(value);
+                      if (customColorError) setCustomColorError(null);
+                    }}
+                    placeholder="rgb(120,34,255) 또는 #7A22FF"
+                    style={[s.input, { flex: 1 }]}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    placeholderTextColor={colors.textMuted}
+                  />
+                  <Pressable
+                    onPress={() => void saveCustomColor()}
+                    style={[s.secondaryButton, { width: 'auto', paddingHorizontal: 14, minHeight: 0, paddingVertical: 10 }]}
+                  >
+                    <Text style={s.secondaryButtonText}>{savingCustomColor ? '저장 중...' : '색상 저장'}</Text>
+                  </Pressable>
+                </View>
+                <Text style={s.itemMeta}>{pickerRgbText ? `${pickerRgbText} · ${customColorInput || color}` : customColorInput || color}</Text>
+                {customColorError ? <Text style={errorTextStyle}>{customColorError}</Text> : null}
+              </>
+            ) : null}
           </View>
         ) : null}
       </View>

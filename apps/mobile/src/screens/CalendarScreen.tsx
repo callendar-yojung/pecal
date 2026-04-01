@@ -98,6 +98,7 @@ export function CalendarScreen({
   const [showSwipeHint, setShowSwipeHint] = useState(false);
   const [openMoreDateKey, setOpenMoreDateKey] = useState<string | null>(null);
   const monthSlideX = useRef(new Animated.Value(0)).current;
+  const weekSlideX = useRef(new Animated.Value(0)).current;
   const multiBarHeight = 16;
   const cellPaddingTop = 6;
   const dayBadgeHeight = 28;
@@ -302,21 +303,26 @@ export function CalendarScreen({
   }, [showSwipeHint]);
 
   const shiftMonth = useCallback((direction: 'prev' | 'next') => {
-    setMonth((currentMonth) => {
-      if (direction === 'prev') {
-        if (currentMonth === 0) {
-          setYear((y) => y - 1);
-          return 11;
-        }
-        return currentMonth - 1;
-      }
-      if (currentMonth === 11) {
-        setYear((y) => y + 1);
-        return 0;
-      }
-      return currentMonth + 1;
-    });
-  }, []);
+    const monthDelta = direction === 'next' ? 1 : -1;
+    const pivot = new Date(year, month + monthDelta, 1);
+    const nextYear = pivot.getFullYear();
+    const nextMonth = pivot.getMonth();
+    const preferredDay = selectedDate.getDate();
+    const maxDay = getDaysInMonth(nextYear, nextMonth);
+    const nextDay = Math.min(preferredDay, maxDay);
+
+    setYear(nextYear);
+    setMonth(nextMonth);
+    onSelectDate(new Date(nextYear, nextMonth, nextDay));
+  }, [month, onSelectDate, selectedDate, year]);
+  const shiftWeek = useCallback((direction: 'prev' | 'next') => {
+    const dayDelta = direction === 'next' ? 7 : -7;
+    const nextDate = new Date(selectedDate);
+    nextDate.setDate(nextDate.getDate() + dayDelta);
+    onSelectDate(nextDate);
+    setYear(nextDate.getFullYear());
+    setMonth(nextDate.getMonth());
+  }, [onSelectDate, selectedDate]);
 
   const monthSwipeResponder = useMemo(
     () => PanResponder.create({
@@ -377,6 +383,64 @@ export function CalendarScreen({
     }),
     [dismissSwipeHint, monthSlideX, screenWidth, shiftMonth, viewMode],
   );
+  const weekSwipeResponder = useMemo(
+    () => PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        (viewMode === 'week' || viewMode === 'timetable') &&
+        Math.abs(gestureState.dx) > Math.abs(gestureState.dy) &&
+        Math.abs(gestureState.dx) > 14,
+      onPanResponderTerminationRequest: () => true,
+      onPanResponderMove: (_, gestureState) => {
+        const clampedDx = Math.max(-screenWidth, Math.min(screenWidth, gestureState.dx));
+        weekSlideX.setValue(clampedDx);
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        const absDx = Math.abs(gestureState.dx);
+        const shouldSwipe =
+          (absDx >= Math.max(46, screenWidth * 0.12) || Math.abs(gestureState.vx) >= 0.25) &&
+          absDx > Math.abs(gestureState.dy);
+        if (shouldSwipe) {
+          const goNext = gestureState.dx < 0;
+          const exitDistance = screenWidth + 36;
+          const exitTo = goNext ? -exitDistance : exitDistance;
+          Animated.timing(weekSlideX, {
+            toValue: exitTo,
+            duration: 180,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }).start(() => {
+            shiftWeek(goNext ? 'next' : 'prev');
+            weekSlideX.setValue(-exitTo);
+            Animated.spring(weekSlideX, {
+              toValue: 0,
+              useNativeDriver: true,
+              damping: 18,
+              stiffness: 190,
+              mass: 0.9,
+            }).start();
+          });
+          return;
+        }
+        Animated.spring(weekSlideX, {
+          toValue: 0,
+          useNativeDriver: true,
+          damping: 20,
+          stiffness: 220,
+          mass: 0.8,
+        }).start();
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(weekSlideX, {
+          toValue: 0,
+          useNativeDriver: true,
+          damping: 20,
+          stiffness: 220,
+          mass: 0.8,
+        }).start();
+      },
+    }),
+    [screenWidth, shiftWeek, viewMode, weekSlideX],
+  );
 
   const monthKey = `${year}-${pad2(month + 1)}`;
   const monthTasks = Object.entries(schedulesByDate)
@@ -403,6 +467,14 @@ export function CalendarScreen({
       return d;
     });
   }, [selectedDate]);
+  const weekRangeLabel = useMemo(() => {
+    const start = weekDates[0];
+    const end = weekDates[weekDates.length - 1];
+    if (!start || !end) return '';
+    const startLabel = `${start.getMonth() + 1}/${start.getDate()}`;
+    const endLabel = `${end.getMonth() + 1}/${end.getDate()}`;
+    return `${startLabel} - ${endLabel}`;
+  }, [weekDates]);
 
   const timetableWeekDates = useMemo(
     () => weekDates.filter((date) => date.getDay() !== 0), // 월~토 (일요일 제외)
@@ -703,7 +775,6 @@ export function CalendarScreen({
           ) : null}
         </View>
       </View>
-
       {viewMode === 'month' ? (
         <Animated.View
           style={{
@@ -922,6 +993,17 @@ export function CalendarScreen({
       ) : null}
 
       {viewMode === 'week' ? (
+        <Animated.View
+          style={{
+            transform: [{ translateX: weekSlideX }],
+            opacity: weekSlideX.interpolate({
+              inputRange: [-280, 0, 280],
+              outputRange: [0.92, 1, 0.92],
+              extrapolate: 'clamp',
+            }),
+          }}
+          {...weekSwipeResponder.panHandlers}
+        >
         <View style={[s.panel, { borderRadius: 16, gap: 8 }]}>
           {weekDates.map((date) => {
             const key = `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
@@ -942,6 +1024,7 @@ export function CalendarScreen({
             );
           })}
         </View>
+        </Animated.View>
       ) : null}
 
       {viewMode === 'day' ? (
@@ -976,10 +1059,22 @@ export function CalendarScreen({
       ) : null}
 
       {viewMode === 'timetable' ? (
+        <Animated.View
+          style={{
+            transform: [{ translateX: weekSlideX }],
+            opacity: weekSlideX.interpolate({
+              inputRange: [-280, 0, 280],
+              outputRange: [0.92, 1, 0.92],
+              extrapolate: 'clamp',
+            }),
+          }}
+          {...weekSwipeResponder.panHandlers}
+        >
         <View style={[s.panel, { borderRadius: 16, gap: 8, padding: 10 }]}>
           <Text style={[s.formTitle, { fontSize: 14 }]}>시간표</Text>
           {renderTimetableBoard()}
         </View>
+        </Animated.View>
       ) : null}
 
       <Modal

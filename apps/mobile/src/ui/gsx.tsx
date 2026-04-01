@@ -1,4 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type PressableProps, type TextProps, type ViewProps } from 'react-native';
+import type { ComponentProps } from 'react';
 
 function cx(...values: Array<string | undefined | null | false>) {
   return values.filter(Boolean).join(' ');
@@ -26,6 +28,8 @@ type ButtonProps = PressableProps & {
   label: string;
   variant?: 'primary' | 'secondary' | 'danger';
   loading?: boolean;
+  icon?: ComponentProps<typeof Ionicons>['name'];
+  iconSize?: number;
 };
 
 export function GsxButton({
@@ -35,6 +39,8 @@ export function GsxButton({
   variant = 'secondary',
   loading = false,
   disabled,
+  icon,
+  iconSize = 16,
   ...props
 }: ButtonProps) {
   const variantStyle =
@@ -72,6 +78,13 @@ export function GsxButton({
             style={styles.buttonSpinner}
           />
         ) : null}
+        {!loading && icon ? (
+          <Ionicons
+            name={icon}
+            size={iconSize}
+            color={variant === 'primary' ? '#FFFFFF' : variant === 'danger' ? '#DC2626' : '#334155'}
+          />
+        ) : null}
         <Text className={textClassName} style={[styles.buttonTextBase, variantTextStyle]}>
           {label}
         </Text>
@@ -85,9 +98,11 @@ type ChipProps = PressableProps & {
   textClassName?: string;
   label: string;
   active?: boolean;
+  icon?: ComponentProps<typeof Ionicons>['name'];
+  iconSize?: number;
 };
 
-export function GsxChip({ className, textClassName, label, active, ...props }: ChipProps) {
+export function GsxChip({ className, textClassName, label, active, icon, iconSize = 16, ...props }: ChipProps) {
   return (
     <Pressable
       className={className}
@@ -98,9 +113,23 @@ export function GsxChip({ className, textClassName, label, active, ...props }: C
       ]}
       {...props}
     >
-      <Text className={textClassName} style={[styles.chipTextBase, active ? styles.chipTextActive : styles.chipTextInactive]}>
-        {label}
-      </Text>
+      <View style={styles.chipContent}>
+        {icon ? (
+          <Ionicons
+            name={icon}
+            size={iconSize}
+            color={active ? '#1D4ED8' : '#475569'}
+          />
+        ) : null}
+        <Text
+          className={textClassName}
+          style={[styles.chipTextBase, active ? styles.chipTextActive : styles.chipTextInactive]}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          {label}
+        </Text>
+      </View>
     </Pressable>
   );
 }
@@ -191,5 +220,11 @@ const styles = StyleSheet.create({
   },
   chipTextInactive: {
     color: '#475569',
+  },
+  chipContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
   },
 });

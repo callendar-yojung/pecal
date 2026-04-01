@@ -173,6 +173,9 @@ export function MobileApp() {
         {data.selectedWorkspace && data.tab === 'overview' ? (
           <OverviewScreen
             tasks={data.tasks}
+            onOpenCreateTask={() => {
+              data.setTab('tasks');
+            }}
             onPressTask={(taskId) => {
               data.setActiveScheduleId(taskId);
               data.setTab('tasks');
