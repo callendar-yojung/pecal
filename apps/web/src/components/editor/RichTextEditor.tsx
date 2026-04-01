@@ -90,7 +90,7 @@ interface RichTextEditorProps {
 const DEFAULT_DOC = {
   type: "doc",
   content: [{ type: "paragraph" }],
-} as const;
+} satisfies Record<string, unknown>;
 
 function serializeDocument(
   content: Record<string, unknown> | null | undefined,
