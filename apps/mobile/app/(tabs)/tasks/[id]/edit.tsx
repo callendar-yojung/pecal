@@ -49,7 +49,7 @@ export default function TaskEditPage() {
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [allDay, setAllDay] = useState(false);
-  const [reminderMinutes, setReminderMinutes] = useState('10');
+  const [reminderMinutes, setReminderMinutes] = useState('');
   const [scheduleMode, setScheduleMode] = useState<'single' | 'recurring'>('single');
   const [recurrenceStartDate, setRecurrenceStartDate] = useState('');
   const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
@@ -121,7 +121,7 @@ export default function TaskEditPage() {
     setSelectedTagIds(sourceTagIds);
     setSelectedCategoryId(task.category_id ?? task.category?.category_id ?? null);
     setAllDay(Boolean(task.is_all_day));
-    setReminderMinutes(task.reminder_minutes ? String(task.reminder_minutes) : '10');
+    setReminderMinutes(task.reminder_minutes == null ? '' : String(task.reminder_minutes));
     const recurring = Boolean(task.recurrence && task.recurrence.weekdays?.length);
     setScheduleMode(recurring ? 'recurring' : 'single');
     setRecurrenceStartDate(task.recurrence?.start_date ?? task.start_time.slice(0, 10));
@@ -170,6 +170,10 @@ export default function TaskEditPage() {
 
   const submit = async () => {
     if (saving) return;
+    if (!title.trim()) {
+      Alert.alert('입력 확인', '일정 제목을 입력하세요.');
+      return;
+    }
     const isRecurring = scheduleMode === 'recurring';
     if (isRecurring) {
       if (!recurrenceStartDate || !recurrenceEndDate) {

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDateTime } from '../lib/date';
-import type { CategoryItem, TaskItem, TaskStatus } from '../lib/types';
+import type { CategoryItem, TagItem, TaskItem, TaskStatus } from '../lib/types';
 import { getTaskAccentColor } from '../lib/task-colors';
 import { useThemeMode } from '../contexts/ThemeContext';
 import { useI18n } from '../contexts/I18nContext';
@@ -30,6 +30,7 @@ function isRecurringTask(task: TaskItem) {
 type Props = {
   tasks: TaskItem[];
   categories: CategoryItem[];
+  tags: TagItem[];
   onOpenCreateTask?: () => void;
   onOpenTask?: (taskId: number) => void;
   onChangeTaskStatus?: (taskId: number, status: TaskStatus) => void;
@@ -39,6 +40,7 @@ type Props = {
 export function TasksScreen({
   tasks,
   categories,
+  tags,
   onOpenCreateTask,
   onOpenTask,
   onChangeTaskStatus,
@@ -64,6 +66,13 @@ export function TasksScreen({
     { key: 'TITLE_ASC', label: '이름 A-Z' },
     { key: 'TITLE_DESC', label: '이름 Z-A' },
   ] as const;
+  const tagNameById = useMemo(
+    () =>
+      new Map(
+        tags.map((tag) => [Number(tag.tag_id), tag.name.trim().toLowerCase()] as const),
+      ),
+    [tags],
+  );
 
   const filteredTasks = useMemo(() => {
     const sorted = tasks
@@ -72,7 +81,21 @@ export function TasksScreen({
         if (tagFilter !== 'ALL' && Number(task.category_id ?? 0) !== Number(tagFilter)) return false;
         if (query.trim()) {
           const q = query.trim().toLowerCase();
-          if (!task.title.toLowerCase().includes(q)) return false;
+          const taskTagNames =
+            Array.isArray(task.tags) && task.tags.length > 0
+              ? task.tags.map((tag) => String(tag.name ?? '').trim().toLowerCase())
+              : (task.tag_ids ?? [])
+                  .map((tagId) => tagNameById.get(Number(tagId)) ?? '')
+                  .filter(Boolean);
+          const haystack = [
+            task.title,
+            task.description ?? '',
+            task.content ?? '',
+            ...taskTagNames,
+          ]
+            .join(' ')
+            .toLowerCase();
+          if (!haystack.includes(q)) return false;
         }
         return true;
       })
@@ -90,7 +113,7 @@ export function TasksScreen({
       seenRecurringIds.add(task.id);
       return true;
     });
-  }, [tasks, statusFilter, tagFilter, query, sortBy]);
+  }, [tasks, statusFilter, tagFilter, query, sortBy, tagNameById]);
 
   const statusFilterOptions = [
     { key: 'ALL', label: '전체' },

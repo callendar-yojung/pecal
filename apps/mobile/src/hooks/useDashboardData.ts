@@ -67,6 +67,7 @@ type TaskCreateInput = {
 type TaskCreateResult = {
   success: boolean;
   taskId?: number;
+  errorMessage?: string;
 };
 
 type MemoMeta = {
@@ -636,14 +637,18 @@ export function useDashboardData(session: AuthSession | null) {
   };
 
   const createTaskWithInput = async (input: TaskCreateInput): Promise<TaskCreateResult> => {
-    if (!session || !selectedWorkspace) return { success: false };
+    if (!session || !selectedWorkspace) {
+      return { success: false, errorMessage: '워크스페이스를 찾을 수 없습니다.' };
+    }
     if (!input.title.trim()) {
-      setError('일정 제목을 입력하세요.');
-      return { success: false };
+      const errorMessage = '일정 제목을 입력하세요.';
+      setError(errorMessage);
+      return { success: false, errorMessage };
     }
     if (new Date(input.start_time) >= new Date(input.end_time)) {
-      setError('종료 시간이 시작 시간보다 늦어야 합니다.');
-      return { success: false };
+      const errorMessage = '종료 시간이 시작 시간보다 늦어야 합니다.';
+      setError(errorMessage);
+      return { success: false, errorMessage };
     }
     const payload = {
       title: input.title.trim(),

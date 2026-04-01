@@ -117,24 +117,14 @@ android {
             def uploadStorePassword = signingProp("MYAPP_UPLOAD_STORE_PASSWORD")
             def uploadKeyAlias = signingProp("MYAPP_UPLOAD_KEY_ALIAS")
             def uploadKeyPassword = signingProp("MYAPP_UPLOAD_KEY_PASSWORD")
-
-            def missingSigningProps = []
-            if (!uploadStoreFile) missingSigningProps << "MYAPP_UPLOAD_STORE_FILE"
-            if (!uploadStorePassword) missingSigningProps << "MYAPP_UPLOAD_STORE_PASSWORD"
-            if (!uploadKeyAlias) missingSigningProps << "MYAPP_UPLOAD_KEY_ALIAS"
-            if (!uploadKeyPassword) missingSigningProps << "MYAPP_UPLOAD_KEY_PASSWORD"
-
-            if (!missingSigningProps.isEmpty()) {
-                throw new GradleException(
-                        "Missing Android release signing properties: ${missingSigningProps.join(', ')}. " +
-                        "Set them in android/gradle.properties or as environment variables."
-                )
+            if (uploadStoreFile && uploadStorePassword && uploadKeyAlias && uploadKeyPassword) {
+                storeFile file(uploadStoreFile)
+                storePassword uploadStorePassword
+                keyAlias uploadKeyAlias
+                keyPassword uploadKeyPassword
+            } else {
+                initWith signingConfigs.debug
             }
-
-            storeFile file(uploadStoreFile)
-            storePassword uploadStorePassword
-            keyAlias uploadKeyAlias
-            keyPassword uploadKeyPassword
         }
     }
     buildTypes {

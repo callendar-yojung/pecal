@@ -184,6 +184,7 @@ export function MobileApp() {
           <TasksScreen
             tasks={data.tasks}
             categories={data.categories}
+            tags={data.tags}
           />
         ) : null}
 

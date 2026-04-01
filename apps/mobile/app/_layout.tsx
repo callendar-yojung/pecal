@@ -1,11 +1,28 @@
 import 'react-native-gesture-handler';
 import "../global.css";
+import { StatusBar } from 'expo-status-bar';
 import { Slot } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider } from '../src/contexts/ThemeContext';
 import { I18nProvider } from '../src/contexts/I18nContext';
 import { MobileAppProvider } from '../src/contexts/MobileAppContext';
+import { useThemeMode } from '../src/contexts/ThemeContext';
+
+function AppChrome() {
+  const { colors, resolvedMode } = useThemeMode();
+
+  return (
+    <>
+      <StatusBar
+        style={resolvedMode === 'black' ? 'light' : 'dark'}
+        backgroundColor={colors.bg}
+        translucent={false}
+      />
+      <Slot />
+    </>
+  );
+}
 
 export default function RootLayout() {
   return (
@@ -14,7 +31,7 @@ export default function RootLayout() {
         <ThemeProvider>
           <I18nProvider>
             <MobileAppProvider>
-              <Slot />
+              <AppChrome />
             </MobileAppProvider>
           </I18nProvider>
         </ThemeProvider>

@@ -1,5 +1,13 @@
-import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { Platform } from 'react-native';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
@@ -45,6 +53,13 @@ const EMAIL_VERIFICATION_TTL_SECONDS = 3 * 60;
 
 function isValidRegisterPassword(password: string) {
   return password.length >= 8 && /[^A-Za-z0-9]/.test(password);
+}
+
+function getRegisterPasswordChecks(password: string) {
+  return [
+    { key: 'length', label: '8자 이상', satisfied: password.length >= 8 },
+    { key: 'special', label: '특수문자 포함', satisfied: /[^A-Za-z0-9]/.test(password) },
+  ] as const;
 }
 
 function formatCountdown(seconds: number) {
@@ -112,6 +127,7 @@ export function LoginScreen({
 
   const registerMode = mode === 'register';
   const resetMode = mode === 'resetPassword';
+  const registerPasswordChecks = getRegisterPasswordChecks(password);
   const passwordValid = (!registerMode && !resetMode) || isValidRegisterPassword(password);
   const passwordConfirmed = (!registerMode && !resetMode) || password === passwordConfirm;
   const submitDisabled =
@@ -281,21 +297,27 @@ export function LoginScreen({
         <View style={[s.loginOrb, s.loginOrbPrimary]} />
         <View style={[s.loginOrb, s.loginOrbSoft]} />
       </View>
-      <ScrollView
+      <KeyboardAvoidingView
         style={{ flex: 1, width: '100%' }}
-        contentContainerStyle={{
-          flexGrow: 1,
-          paddingHorizontal: 20,
-          paddingTop: authPanel === 'entry' ? 24 : 16,
-          paddingBottom: 40,
-          alignItems: 'center',
-          justifyContent: authPanel === 'entry' ? 'center' : 'flex-start',
-        }}
-        contentInsetAdjustmentBehavior="always"
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
       >
-      <View style={s.authCardModern}>
+        <ScrollView
+          style={{ flex: 1, width: '100%' }}
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingHorizontal: 20,
+            paddingTop: authPanel === 'entry' ? 24 : 16,
+            paddingBottom: 40,
+            alignItems: 'center',
+            justifyContent: authPanel === 'entry' ? 'center' : 'flex-start',
+          }}
+          contentInsetAdjustmentBehavior="always"
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+        <View style={s.authCardModern}>
         <View style={s.loginBrandRow}>
           <View style={[s.loginBrandIcon, { backgroundColor: colors.primary }]}>
             <Text style={s.logoText}>P</Text>
@@ -425,7 +447,40 @@ export function LoginScreen({
                     placeholderTextColor={colors.textMuted}
                   />
                   {(mode === 'register' || mode === 'resetPassword') ? (
-                    <Text style={s.subtleText}>{t('loginPasswordRule')}</Text>
+                    <>
+                      <Text style={s.subtleText}>{t('loginPasswordRule')}</Text>
+                      {mode === 'register' && password.length > 0 ? (
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 14,
+                            marginTop: 8,
+                          }}
+                        >
+                          {registerPasswordChecks.map((item) => (
+                            <View
+                              key={item.key}
+                              style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                            >
+                              <Ionicons
+                                name={item.satisfied ? 'checkmark-circle' : 'ellipse-outline'}
+                                size={14}
+                                color={item.satisfied ? '#16A34A' : colors.textMuted}
+                              />
+                              <Text
+                                style={[
+                                  s.subtleText,
+                                  { color: item.satisfied ? '#16A34A' : colors.textMuted },
+                                ]}
+                              >
+                                {item.label}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
+                      ) : null}
+                    </>
                   ) : null}
                 </>
               ) : null}
@@ -691,8 +746,9 @@ export function LoginScreen({
             ) : null}
           </>
         ) : null}
-      </View>
-      </ScrollView>
+        </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

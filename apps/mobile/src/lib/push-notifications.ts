@@ -27,6 +27,17 @@ async function ensureNotificationHandler() {
   if (notificationHandlerConfigured) return;
   const Notifications = await loadNotificationsModule();
   if (!Notifications) return;
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: '기본 알림',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#2563EB',
+      sound: 'default',
+      enableVibrate: true,
+      showBadge: false,
+    });
+  }
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,

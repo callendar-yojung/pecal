@@ -32,6 +32,7 @@ export default function SettingsProfilePage() {
   const [checkOk, setCheckOk] = useState<boolean | null>(null);
   const [checkedNickname, setCheckedNickname] = useState('');
   const [saving, setSaving] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -194,6 +195,33 @@ export default function SettingsProfilePage() {
                 }
               } finally {
                 setDeleting(false);
+              }
+            })();
+          },
+        },
+      ],
+    );
+  };
+
+  const onLogout = () => {
+    if (!auth.session || loggingOut) return;
+
+    Alert.alert(
+      isKo ? '로그아웃' : 'Log out',
+      isKo ? '현재 계정에서 로그아웃하시겠습니까?' : 'Do you want to log out of the current account?',
+      [
+        { text: isKo ? '취소' : 'Cancel', style: 'cancel' },
+        {
+          text: isKo ? '로그아웃' : 'Log out',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              try {
+                setLoggingOut(true);
+                await auth.logout();
+                router.replace('/(auth)/login');
+              } finally {
+                setLoggingOut(false);
               }
             })();
           },
@@ -386,6 +414,36 @@ export default function SettingsProfilePage() {
             </Pressable>
           </View>
         ) : null}
+
+        <View style={[s.panel, { borderRadius: 13, gap: 10 }]}>
+          <Text style={s.formTitle}>{isKo ? '로그아웃' : 'Log out'}</Text>
+          <Text style={s.itemMeta}>
+            {isKo
+              ? '현재 기기에서 로그인 세션을 종료하고 로그인 화면으로 이동합니다.'
+              : 'End the current session on this device and return to the sign-in screen.'}
+          </Text>
+          <Pressable
+            style={[
+              s.secondaryButtonHalf,
+              {
+                width: '100%',
+              },
+              loggingOut ? { opacity: 0.5 } : null,
+            ]}
+            onPress={onLogout}
+            disabled={loggingOut}
+          >
+            <Text style={s.secondaryButtonText}>
+              {loggingOut
+                ? isKo
+                  ? '로그아웃 중...'
+                  : 'Logging out...'
+                : isKo
+                  ? '로그아웃'
+                  : 'Log out'}
+            </Text>
+          </Pressable>
+        </View>
 
         <View style={[s.panel, { borderRadius: 13, gap: 10, borderColor: '#FCA5A5' }]}>
           <Text style={[s.formTitle, { color: '#DC2626' }]}>

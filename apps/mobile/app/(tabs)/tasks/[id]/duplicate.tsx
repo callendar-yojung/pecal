@@ -142,7 +142,10 @@ export default function TaskDuplicatePage() {
         is_all_day: Boolean(task.is_all_day),
         reminder_minutes: task.reminder_minutes ?? null,
       });
-      if (!created.success) return;
+      if (!created.success) {
+        Alert.alert('입력 확인', created.errorMessage ?? '입력한 내용을 다시 확인해 주세요.');
+        return;
+      }
       if (created.taskId) {
         router.replace(`/tasks/${created.taskId}`);
         return;

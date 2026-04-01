@@ -40,21 +40,28 @@ function getMobileClientName() {
     if (!value) return true;
     return invalidTokens.has(value.trim().toLowerCase());
   };
+  const isHeaderSafeName = (value?: string | null) => {
+    if (!value) return false;
+    return /^[\x20-\x7E]+$/.test(value);
+  };
+  const pickSafeName = (...values: Array<string | null | undefined>) => {
+    for (const value of values) {
+      if (!isInvalidName(value) && isHeaderSafeName(value)) return value!.trim();
+    }
+    return null;
+  };
 
-  // iOS modelName is often just "iPhone", which is too generic for session management.
+  // Session client metadata is sent via HTTP headers, so the value must stay ASCII-safe.
+  // Device names are often localized or user-customized ("철수의 Galaxy"), which can become mojibake.
   if (Platform.OS === 'ios') {
-    if (!isInvalidName(deviceName)) return deviceName!;
-    if (!isInvalidName(modelId)) return modelId!;
-    if (!isInvalidName(modelName)) return modelName!;
+    const safeIosName = pickSafeName(deviceName, modelId, modelName);
+    if (safeIosName) return safeIosName;
   }
 
-  const explicitModel = !isInvalidName(deviceName)
-    ? deviceName
-    : !isInvalidName(modelName)
-      ? modelName
-      : !isInvalidName(modelId)
-        ? modelId
-        : null;
+  const explicitModel =
+    Platform.OS === 'android'
+      ? pickSafeName(modelName, modelId, deviceName)
+      : pickSafeName(deviceName, modelName, modelId);
   if (explicitModel) return explicitModel;
   return Platform.OS === 'ios' ? 'iPhone' : Platform.OS === 'android' ? 'Android' : 'Mobile';
 }

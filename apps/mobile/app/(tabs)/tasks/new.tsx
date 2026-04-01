@@ -196,7 +196,10 @@ export default function TaskCreatePage() {
             }
           : null,
       });
-      if (!created.success) return;
+      if (!created.success) {
+        Alert.alert('입력 확인', created.errorMessage ?? '입력한 내용을 다시 확인해 주세요.');
+        return;
+      }
       if (created.taskId && pendingAttachments.length > 0) {
         setUploadingLocalIds(pendingAttachments.map((item) => item.localId));
         for (const attachment of pendingAttachments) {

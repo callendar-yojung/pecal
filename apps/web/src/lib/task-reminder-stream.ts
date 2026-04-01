@@ -54,7 +54,7 @@ const SENT_DEDUPE_TTL_SECONDS = Number(
 );
 const STREAM_MAXLEN = Number(process.env.REMINDER_STREAM_MAXLEN ?? 100000);
 const MAX_LATE_DISPATCH_SECONDS = Number(
-  process.env.REMINDER_MAX_LATE_DISPATCH_SECONDS ?? 120,
+  process.env.REMINDER_MAX_LATE_DISPATCH_SECONDS ?? 900,
 );
 const FAILURE_RETRY_SECONDS = Number(
   process.env.REMINDER_FAILURE_RETRY_SECONDS ?? 60,
@@ -396,10 +396,9 @@ export async function dispatchDueTaskReminders(): Promise<number> {
   while (loop < Math.max(1, SEND_MAX_LOOPS)) {
     loop += 1;
     const nowUnix = Math.floor(Date.now() / 1000);
-    const lowerBound = nowUnix - Math.max(1, MAX_LATE_DISPATCH_SECONDS);
     const jobKeys = await redis.zrangebyscore(
       DUE_ZSET_KEY,
-      String(lowerBound),
+      "-inf",
       String(nowUnix),
       "LIMIT",
       0,
@@ -474,7 +473,6 @@ export async function dispatchDueTaskReminders(): Promise<number> {
         continue;
       }
       if (
-        nowUnix >= currentStartAtUnix ||
         nowUnix > remindAtUnix + MAX_LATE_DISPATCH_SECONDS
       ) {
         logReminderDecision({
@@ -484,44 +482,13 @@ export async function dispatchDueTaskReminders(): Promise<number> {
           remindAtUnix,
           nowUnix,
           decision: "skip_past",
-          reason:
-            nowUnix >= currentStartAtUnix
-              ? "already_started"
-              : "late_dispatch_window_exceeded",
+          reason: "late_dispatch_window_exceeded",
         });
         await setReminderState(redis, jobKey, "SKIPPED_PAST", {
           taskStartUnix: currentStartAtUnix,
           remindAtUnix,
           nowUnix,
-          reason:
-            nowUnix >= currentStartAtUnix
-              ? "already_started"
-              : "late_dispatch_window_exceeded",
-        });
-        await redis
-          .multi()
-          .zrem(DUE_ZSET_KEY, jobKey)
-          .hdel(JOB_HASH_KEY, jobKey)
-          .exec();
-        continue;
-      }
-
-      const scoreRaw = await redis.zscore(DUE_ZSET_KEY, jobKey);
-      const scoreInt = toIntOrNull(scoreRaw);
-      if (scoreInt !== null && scoreInt <= lowerBound) {
-        logReminderDecision({
-          taskId: job.taskId,
-          workspaceId: job.workspaceId,
-          taskStartUnix: currentStartAtUnix,
-          remindAtUnix,
-          nowUnix,
-          decision: "skip_stale_score",
-          reason: "zset_score_before_lower_bound",
-        });
-        await setReminderState(redis, jobKey, "SKIPPED_PAST", {
-          reason: "zset_score_before_lower_bound",
-          zsetScore: scoreInt,
-          lowerBound,
+          reason: "late_dispatch_window_exceeded",
         });
         await redis
           .multi()

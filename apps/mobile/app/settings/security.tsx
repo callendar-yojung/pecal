@@ -75,8 +75,13 @@ function detectDeviceType(item: LoginSessionItem, isKo: boolean) {
 function detectHardware(item: LoginSessionItem) {
   const clientName = item.client_name?.trim();
   const normalized = clientName?.toLowerCase();
+  const looksGarbled =
+    !!clientName &&
+    !/^[\x20-\x7E]+$/.test(clientName) &&
+    /[ÃÂÐÕØÞßà-ÿ]/.test(clientName);
   const isGenericName =
     !clientName ||
+    looksGarbled ||
     clientName === 'Pecal' ||
     clientName === 'Pecal Mobile' ||
     clientName === 'Pecal Desktop' ||
