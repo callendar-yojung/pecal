@@ -552,7 +552,6 @@ export default function TabsLayout() {
 
       <TeamCreateModal
         open={data.teamCreateOpen}
-        step={data.teamCreateStep}
         teamName={data.teamName}
         teamDescription={data.teamDescription}
         creatingTeam={data.creatingTeam}
@@ -560,7 +559,6 @@ export default function TabsLayout() {
         onTeamDescriptionChange={data.setTeamDescription}
         onClose={() => data.setTeamCreateOpen(false)}
         onCreate={data.createTeam}
-        onSelectPlan={data.selectPlan}
       />
 
       {isCompact ? (

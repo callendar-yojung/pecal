@@ -1029,7 +1029,14 @@ export function useDashboardData(session: AuthSession | null) {
         }),
       });
       setCreatedTeamId(result.teamId);
-      setTeamCreateStep('plan');
+      setTeamCreateOpen(false);
+      setTeamCreateStep('details');
+      setTeamName('');
+      setTeamDescription('');
+      invalidateApiCache('workspaces:');
+      invalidateApiCache('teams:');
+      await loadWorkspaces();
+      setError(null);
     } finally {
       setCreatingTeam(false);
     }
