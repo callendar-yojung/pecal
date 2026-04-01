@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
+import { checkTeamMembership, getTeamById } from "@/lib/team";
 import {
   checkStorageLimit,
   deleteStorageUsageForTeam,
@@ -8,6 +9,16 @@ import {
   recalculateStorageUsageForTeam,
   updateStorageUsage,
 } from "@/lib/storage";
+
+async function canAccessTeamStorage(teamId: number, memberId: number): Promise<boolean> {
+  return checkTeamMembership(teamId, memberId);
+}
+
+async function canManageTeamStorage(teamId: number, memberId: number): Promise<boolean> {
+  const team = await getTeamById(teamId);
+  if (!team) return false;
+  return Number(team.created_by) === memberId;
+}
 
 // GET /api/storage?team_id=1 - 팀의 저장소 사용량 조회
 // GET /api/storage?team_id=1&check_limit=100 - 용량 추가 가능 여부 확인
@@ -30,6 +41,13 @@ export async function GET(request: NextRequest) {
     }
 
     const teamId = Number(teamIdParam);
+    if (!Number.isInteger(teamId) || teamId <= 0) {
+      return NextResponse.json({ error: "Invalid team_id" }, { status: 400 });
+    }
+    const allowed = await canAccessTeamStorage(teamId, user.memberId);
+    if (!allowed) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     if (checkLimitParam) {
       const additionalMb = Number(checkLimitParam);
@@ -67,6 +85,13 @@ export async function POST(request: NextRequest) {
     }
 
     const teamId = Number(team_id);
+    if (!Number.isInteger(teamId) || teamId <= 0) {
+      return NextResponse.json({ error: "Invalid team_id" }, { status: 400 });
+    }
+    const allowed = await canManageTeamStorage(teamId, user.memberId);
+    if (!allowed) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     if (action === "recalculate") {
       const recalculatedSize = await recalculateStorageUsageForTeam(teamId);
@@ -106,9 +131,17 @@ export async function PUT(request: NextRequest) {
         { status: 400 },
       );
     }
+    const teamId = Number(team_id);
+    if (!Number.isInteger(teamId) || teamId <= 0) {
+      return NextResponse.json({ error: "Invalid team_id" }, { status: 400 });
+    }
+    const allowed = await canManageTeamStorage(teamId, user.memberId);
+    if (!allowed) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const success = await updateStorageUsage(
-      Number(team_id),
+      teamId,
       Number(used_storage_mb),
     );
     if (!success) {
@@ -118,7 +151,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const storageUsage = await getStorageUsageByTeamId(Number(team_id));
+    const storageUsage = await getStorageUsageByTeamId(teamId);
     return NextResponse.json(storageUsage);
   } catch (error) {
     console.error("Error updating storage usage:", error);
@@ -146,8 +179,16 @@ export async function DELETE(request: NextRequest) {
         { status: 400 },
       );
     }
+    const teamId = Number(teamIdParam);
+    if (!Number.isInteger(teamId) || teamId <= 0) {
+      return NextResponse.json({ error: "Invalid team_id" }, { status: 400 });
+    }
+    const allowed = await canManageTeamStorage(teamId, user.memberId);
+    if (!allowed) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
-    const success = await deleteStorageUsageForTeam(Number(teamIdParam));
+    const success = await deleteStorageUsageForTeam(teamId);
     if (!success) {
       return NextResponse.json(
         { error: "Storage usage not found" },

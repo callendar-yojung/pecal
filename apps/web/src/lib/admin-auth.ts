@@ -1,9 +1,9 @@
 import { jwtVerify } from "jose";
 import type { NextRequest } from "next/server";
+import { getAdminJwtSecret } from "@/lib/admin-jwt-secret";
 import { ADMIN_ROLES, type AdminRole, getAdminSecurityState, normalizeAdminRole } from "@/lib/admin-security";
-import { getRequiredEnv } from "@/lib/required-env";
 
-const secret = new TextEncoder().encode(getRequiredEnv("API_SECRET_KEY"));
+const secret = new TextEncoder().encode(getAdminJwtSecret());
 
 export interface AdminTokenPayload {
   admin_id: number;

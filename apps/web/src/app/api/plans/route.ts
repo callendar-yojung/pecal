@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
+import { requireAdminRole } from "@/lib/admin-auth";
 import {
   createPlan,
   deletePlan,
@@ -42,9 +43,9 @@ export async function GET(request: NextRequest) {
 // POST /api/plans - 새 플랜 생성
 export async function POST(request: NextRequest) {
   try {
-    const user = await getAuthUser(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const admin = await requireAdminRole(request, ["SUPER_ADMIN", "BILLING"]);
+    if ("error" in admin) {
+      return NextResponse.json({ error: admin.error }, { status: admin.status });
     }
 
     const body = await request.json();
@@ -73,9 +74,9 @@ export async function POST(request: NextRequest) {
 // PUT /api/plans - 플랜 수정
 export async function PUT(request: NextRequest) {
   try {
-    const user = await getAuthUser(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const admin = await requireAdminRole(request, ["SUPER_ADMIN", "BILLING"]);
+    if ("error" in admin) {
+      return NextResponse.json({ error: admin.error }, { status: admin.status });
     }
 
     const body = await request.json();
@@ -119,9 +120,9 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/plans - 플랜 삭제
 export async function DELETE(request: NextRequest) {
   try {
-    const user = await getAuthUser(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const admin = await requireAdminRole(request, ["SUPER_ADMIN", "BILLING"]);
+    if ("error" in admin) {
+      return NextResponse.json({ error: admin.error }, { status: admin.status });
     }
 
     const { searchParams } = new URL(request.url);

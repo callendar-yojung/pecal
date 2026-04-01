@@ -1,13 +1,15 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createOrUpdateRelease, getLatestRelease } from "@/lib/release";
+import { getRequiredEnv } from "@/lib/required-env";
 
 export async function POST(request: NextRequest) {
   try {
     // Authorization 헤더 검증
     const authHeader = request.headers.get("Authorization");
-    const apiSecretKey = process.env.API_SECRET_KEY;
+    const releaseUploadSecret =
+      process.env.RELEASE_UPLOAD_SECRET || getRequiredEnv("API_SECRET_KEY");
 
-    if (!authHeader || authHeader !== `Bearer ${apiSecretKey}`) {
+    if (!authHeader || authHeader !== `Bearer ${releaseUploadSecret}`) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

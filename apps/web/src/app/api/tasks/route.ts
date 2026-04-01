@@ -15,6 +15,7 @@ import {
 } from "@/lib/task";
 import { attachFileToTask } from "@/lib/task-attachment";
 import { enqueueTaskReminderEvent } from "@/lib/task-reminder-stream";
+import { computeReminderTriggerUnix } from "@/lib/reminder-time";
 import { getPermissionsByMember, getTeamById } from "@/lib/team";
 import { getWorkspaceById } from "@/lib/workspace";
 import { getCategoryById } from "@/lib/category";
@@ -48,6 +49,52 @@ function parseLocalDateFromString(value: string): Date | null {
   const day = Number(m[3]);
   const date = new Date(year, month, day, 0, 0, 0, 0);
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function extractTimePart(datetime: string): string | null {
+  const match = datetime.match(/[ T](\d{2}:\d{2}(?::\d{2})?)/);
+  if (!match) return null;
+  return match[1].length === 5 ? `${match[1]}:00` : match[1];
+}
+
+function findNextRecurringReminderTriggerUnix(params: {
+  nowUnix: number;
+  recurrenceStartDate: string;
+  recurrenceEndDate: string;
+  weekdays: number[];
+  startTimeTemplate: string;
+  reminderMinutes: number;
+}): number | null {
+  const recurrenceStart = parseLocalDateFromString(params.recurrenceStartDate);
+  const recurrenceEnd = parseLocalDateFromString(params.recurrenceEndDate);
+  const timePart = extractTimePart(params.startTimeTemplate);
+  if (!recurrenceStart || !recurrenceEnd || !timePart) return null;
+  if (recurrenceStart > recurrenceEnd) return null;
+  const weekdaySet = new Set(params.weekdays);
+  if (weekdaySet.size === 0) return null;
+
+  const cursor = new Date(recurrenceStart);
+  while (cursor <= recurrenceEnd) {
+    if (weekdaySet.has(cursor.getDay())) {
+      const startTime = `${formatDateKey(cursor)}T${timePart}`;
+      const triggerUnix = computeReminderTriggerUnix({
+        startTime,
+        reminderMinutes: params.reminderMinutes,
+      });
+      if (triggerUnix !== null && triggerUnix > params.nowUnix) {
+        return triggerUnix;
+      }
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return null;
 }
 
 // GET /api/tasks?workspace_id={id}&page=1&limit=20&sort_by=start_time&sort_order=DESC&status=TODO&search=keyword
@@ -176,6 +223,7 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+    const nowUnix = Math.floor(Date.now() / 1000);
 
     const recurrenceInput: RecurrenceInput | null =
       recurrence && typeof recurrence === "object" ? (recurrence as RecurrenceInput) : null;
@@ -204,6 +252,25 @@ export async function POST(request: NextRequest) {
     }
 
     if (!shouldCreateRecurring) {
+      if (reminderParsed.value !== null) {
+        const triggerUnix = computeReminderTriggerUnix({
+          startTime: start_time,
+          reminderMinutes: reminderParsed.value,
+        });
+        if (triggerUnix === null) {
+          return NextResponse.json(
+            { error: "Invalid start_time for reminder calculation" },
+            { status: 400 },
+          );
+        }
+        if (triggerUnix <= nowUnix) {
+          return NextResponse.json(
+            { error: "Reminder time must be in the future" },
+            { status: 400 },
+          );
+        }
+      }
+
       const taskId = await createTask({
         title,
         start_time,
@@ -272,6 +339,23 @@ export async function POST(request: NextRequest) {
         { error: "Invalid start_time or end_time" },
         { status: 400 },
       );
+    }
+
+    if (reminderParsed.value !== null) {
+      const nextRecurringTriggerUnix = findNextRecurringReminderTriggerUnix({
+        nowUnix,
+        recurrenceStartDate: String(recurrenceInput?.start_date),
+        recurrenceEndDate: String(recurrenceInput?.end_date),
+        weekdays,
+        startTimeTemplate: start_time,
+        reminderMinutes: reminderParsed.value,
+      });
+      if (nextRecurringTriggerUnix === null) {
+        return NextResponse.json(
+          { error: "No future reminder occurrence found in recurrence range" },
+          { status: 400 },
+        );
+      }
     }
 
     const taskId = await createTask({
@@ -475,6 +559,64 @@ export async function PATCH(request: NextRequest) {
           end_date: String(recurrenceInput?.end_date),
           weekdays,
         };
+      }
+    }
+
+    const touchesReminderSchedule =
+      hasReminderMinutes ||
+      typeof start_time === "string" ||
+      hasRecurrence;
+    if (touchesReminderSchedule) {
+      const nowUnix = Math.floor(Date.now() / 1000);
+      const effectiveReminderMinutes = hasReminderMinutes
+        ? reminderParsed.value
+        : task.reminder_minutes ?? null;
+
+      if (effectiveReminderMinutes !== null) {
+        const effectiveStartTime = typeof start_time === "string" && start_time
+          ? start_time
+          : task.start_time;
+
+        const effectiveRecurrence =
+          recurrencePatch !== null
+            ? recurrencePatch.enabled
+              ? recurrencePatch
+              : null
+            : task.recurrence ?? null;
+
+        if (!effectiveRecurrence) {
+          const triggerUnix = computeReminderTriggerUnix({
+            startTime: effectiveStartTime,
+            reminderMinutes: effectiveReminderMinutes,
+          });
+          if (triggerUnix === null) {
+            return NextResponse.json(
+              { error: "Invalid start_time for reminder calculation" },
+              { status: 400 },
+            );
+          }
+          if (triggerUnix <= nowUnix) {
+            return NextResponse.json(
+              { error: "Reminder time must be in the future" },
+              { status: 400 },
+            );
+          }
+        } else {
+          const nextRecurringTriggerUnix = findNextRecurringReminderTriggerUnix({
+            nowUnix,
+            recurrenceStartDate: effectiveRecurrence.start_date,
+            recurrenceEndDate: effectiveRecurrence.end_date,
+            weekdays: effectiveRecurrence.weekdays,
+            startTimeTemplate: effectiveStartTime,
+            reminderMinutes: effectiveReminderMinutes,
+          });
+          if (nextRecurringTriggerUnix === null) {
+            return NextResponse.json(
+              { error: "No future reminder occurrence found in recurrence range" },
+              { status: 400 },
+            );
+          }
+        }
       }
     }
 

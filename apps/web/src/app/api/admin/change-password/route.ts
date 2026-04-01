@@ -1,12 +1,12 @@
 import { SignJWT } from "jose";
 import { type NextRequest, NextResponse } from "next/server";
 import { changeAdminPassword, verifyAdminCurrentPassword } from "@/lib/admin";
+import { getAdminJwtSecret } from "@/lib/admin-jwt-secret";
 import { createAdminAuditLogFromRequest } from "@/lib/admin-audit-log";
 import { requireAdminToken } from "@/lib/admin-auth";
 import { getAdminSecurityState } from "@/lib/admin-security";
-import { getRequiredEnv } from "@/lib/required-env";
 
-const secret = new TextEncoder().encode(getRequiredEnv("API_SECRET_KEY"));
+const secret = new TextEncoder().encode(getAdminJwtSecret());
 
 export async function POST(request: NextRequest) {
   try {

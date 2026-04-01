@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
+import { getTeamById, checkTeamMembership } from "@/lib/team";
 import {
   cancelSubscription,
   createSubscription,
@@ -8,6 +9,31 @@ import {
   getSubscriptionsByOwnerId,
   updateSubscriptionStatus,
 } from "@/lib/subscription";
+import type { OwnerType } from "@/lib/subscription";
+
+async function canAccessSubscriptionOwner(
+  memberId: number,
+  ownerId: number,
+  ownerType: OwnerType,
+): Promise<boolean> {
+  if (ownerType === "personal") {
+    return ownerId === memberId;
+  }
+  return checkTeamMembership(ownerId, memberId);
+}
+
+async function canManageSubscriptionOwner(
+  memberId: number,
+  ownerId: number,
+  ownerType: OwnerType,
+): Promise<boolean> {
+  if (ownerType === "personal") {
+    return ownerId === memberId;
+  }
+  const team = await getTeamById(ownerId);
+  if (!team) return false;
+  return Number(team.created_by) === memberId;
+}
 
 // GET /api/subscriptions?owner_id=1&owner_type=team - 오너의 모든 구독 조회
 // GET /api/subscriptions?owner_id=1&owner_type=personal&active=true - 오너의 활성 구독 조회
@@ -28,17 +54,48 @@ export async function GET(request: NextRequest) {
     let subscriptions: unknown;
     if (id) {
       // 특정 구독 조회
-      subscriptions = await getSubscriptionById(Number(id));
+      const subscriptionId = Number(id);
+      if (!Number.isInteger(subscriptionId) || subscriptionId <= 0) {
+        return NextResponse.json({ error: "Invalid subscription id" }, { status: 400 });
+      }
+      const subscription = await getSubscriptionById(subscriptionId);
+      if (!subscription) {
+        return NextResponse.json({ error: "구독을 찾을 수 없습니다." }, { status: 404 });
+      }
+      const allowed = await canAccessSubscriptionOwner(
+        user.memberId,
+        subscription.owner_id,
+        subscription.owner_type,
+      );
+      if (!allowed) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      subscriptions = subscription;
     } else if (ownerId && ownerType) {
+      if (ownerType !== "team" && ownerType !== "personal") {
+        return NextResponse.json({ error: "Invalid owner_type" }, { status: 400 });
+      }
+      const ownerIdNum = Number(ownerId);
+      if (!Number.isInteger(ownerIdNum) || ownerIdNum <= 0) {
+        return NextResponse.json({ error: "Invalid owner_id" }, { status: 400 });
+      }
+      const allowed = await canAccessSubscriptionOwner(
+        user.memberId,
+        ownerIdNum,
+        ownerType,
+      );
+      if (!allowed) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
       // 오너의 구독 조회
       if (active) {
         subscriptions = await getActiveSubscriptionByOwner(
-          Number(ownerId),
+          ownerIdNum,
           ownerType,
         );
       } else {
         subscriptions = await getSubscriptionsByOwnerId(
-          Number(ownerId),
+          ownerIdNum,
           ownerType,
         );
       }
@@ -76,12 +133,31 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+    const ownerIdNum = Number(owner_id);
+    const planIdNum = Number(plan_id);
+    if (!Number.isInteger(ownerIdNum) || ownerIdNum <= 0) {
+      return NextResponse.json({ error: "Invalid owner_id" }, { status: 400 });
+    }
+    if (!Number.isInteger(planIdNum) || planIdNum <= 0) {
+      return NextResponse.json({ error: "Invalid plan_id" }, { status: 400 });
+    }
+    if (owner_type !== "team" && owner_type !== "personal") {
+      return NextResponse.json({ error: "Invalid owner_type" }, { status: 400 });
+    }
+    const allowed = await canManageSubscriptionOwner(
+      user.memberId,
+      ownerIdNum,
+      owner_type,
+    );
+    if (!allowed) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     // 구독 생성 로직
     const newSubscription = await createSubscription(
-      Number(owner_id),
+      ownerIdNum,
       owner_type,
-      Number(plan_id),
+      planIdNum,
     );
 
     return NextResponse.json(
@@ -107,13 +183,29 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
     const { id, status } = body;
+    const subscriptionId = Number(id);
+    if (!Number.isInteger(subscriptionId) || subscriptionId <= 0) {
+      return NextResponse.json({ error: "Invalid subscription id" }, { status: 400 });
+    }
+    const subscription = await getSubscriptionById(subscriptionId);
+    if (!subscription) {
+      return NextResponse.json({ error: "구독을 찾을 수 없습니다." }, { status: 404 });
+    }
+    const allowed = await canManageSubscriptionOwner(
+      user.memberId,
+      subscription.owner_id,
+      subscription.owner_type,
+    );
+    if (!allowed) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     // CANCELED 상태면 next_payment_date도 NULL로 설정하는 cancelSubscription 사용
     let result: boolean;
     if (status === "CANCELED") {
-      result = await cancelSubscription(Number(id));
+      result = await cancelSubscription(subscriptionId);
     } else {
-      result = await updateSubscriptionStatus(Number(id), status);
+      result = await updateSubscriptionStatus(subscriptionId, status);
     }
 
     return NextResponse.json({ success: result });
@@ -143,9 +235,25 @@ export async function DELETE(request: NextRequest) {
         { status: 400 },
       );
     }
+    const subscriptionId = Number(id);
+    if (!Number.isInteger(subscriptionId) || subscriptionId <= 0) {
+      return NextResponse.json({ error: "Invalid subscription id" }, { status: 400 });
+    }
+    const subscription = await getSubscriptionById(subscriptionId);
+    if (!subscription) {
+      return NextResponse.json({ error: "구독을 찾을 수 없습니다." }, { status: 404 });
+    }
+    const allowed = await canManageSubscriptionOwner(
+      user.memberId,
+      subscription.owner_id,
+      subscription.owner_type,
+    );
+    if (!allowed) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     // 구독 취소 로직
-    const canceled = await cancelSubscription(Number(id));
+    const canceled = await cancelSubscription(subscriptionId);
 
     return NextResponse.json({ success: canceled });
   } catch (error) {

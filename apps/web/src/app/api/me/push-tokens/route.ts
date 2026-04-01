@@ -44,6 +44,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to upsert push token:", error);
+    if (
+      error instanceof Error &&
+      error.message === "Push token is already bound to another member"
+    ) {
+      return NextResponse.json(
+        { error: "Push token conflict" },
+        { status: 409 },
+      );
+    }
     return NextResponse.json(
       { error: "Failed to register push token" },
       { status: 500 },

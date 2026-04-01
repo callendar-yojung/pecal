@@ -29,12 +29,26 @@ export async function upsertMemberPushToken(params: {
     throw new Error("Invalid token");
   }
 
+  const [existingRows] = await pool.execute<RowDataPacket[]>(
+    `SELECT member_id
+     FROM member_push_tokens
+     WHERE token = ?
+     LIMIT 1`,
+    [token],
+  );
+  if (existingRows.length > 0) {
+    const existingMemberId = Number(existingRows[0].member_id);
+    if (Number.isFinite(existingMemberId) && existingMemberId !== params.memberId) {
+      throw new Error("Push token is already bound to another member");
+    }
+  }
+
   await pool.execute<ResultSetHeader>(
     `INSERT INTO member_push_tokens (
        member_id, token, platform, device_id, app_build, is_active, created_at, updated_at, last_seen_at
      ) VALUES (?, ?, ?, ?, ?, 1, NOW(), NOW(), NOW())
      ON DUPLICATE KEY UPDATE
-       member_id = VALUES(member_id),
+       member_id = member_id,
        platform = VALUES(platform),
        device_id = VALUES(device_id),
        app_build = VALUES(app_build),

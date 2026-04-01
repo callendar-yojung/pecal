@@ -10,9 +10,9 @@ import {
   normalizeAdminUsername,
   recordAdminLoginFailure,
 } from "@/lib/admin-login-rate-limit";
-import { getRequiredEnv } from "@/lib/required-env";
+import { getAdminJwtSecret } from "@/lib/admin-jwt-secret";
 
-const secret = new TextEncoder().encode(getRequiredEnv("API_SECRET_KEY"));
+const secret = new TextEncoder().encode(getAdminJwtSecret());
 
 export async function POST(request: NextRequest) {
   try {
