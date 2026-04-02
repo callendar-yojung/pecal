@@ -27,12 +27,6 @@ function normalizeTaskStatus(status?: TaskStatus): 'TODO' | 'DONE' {
   return status === 'DONE' ? 'DONE' : 'TODO';
 }
 
-function parseDateTimeToUnix(dateTime: string): number | null {
-  const date = new Date(dateTime);
-  if (Number.isNaN(date.getTime())) return null;
-  return Math.floor(date.getTime() / 1000);
-}
-
 export default function TaskCreatePage() {
   const params = useLocalSearchParams<{ date?: string }>();
   const app = useMaybeMobileApp();
@@ -162,18 +156,6 @@ export default function TaskCreatePage() {
     const reminderValue = Number.isFinite(parsedReminderValue)
       ? Math.trunc(parsedReminderValue as number)
       : null;
-    if (!isRecurring && reminderValue !== null) {
-      const startUnix = parseDateTimeToUnix(payloadStart);
-      if (startUnix !== null) {
-        const triggerUnix = startUnix - reminderValue * 60;
-        const nowUnix = Math.floor(Date.now() / 1000);
-        if (triggerUnix <= nowUnix) {
-          Alert.alert('입력 확인', '알림 시간은 현재 시각 이후여야 합니다.');
-          return;
-        }
-      }
-    }
-
     setSaving(true);
     try {
       const created = await data.createTaskWithInput({

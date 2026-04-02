@@ -702,7 +702,7 @@ export function CalendarScreen({
         }}>
           <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800', letterSpacing: -0.5 }}>{year}년 {MONTHS[month]}</Text>
         </Pressable>
-        <View style={{ width: 64, height: 32, alignItems: 'flex-end' }}>
+        <View style={{ width: 76, height: 32, alignItems: 'flex-end' }}>
           <Pressable
             onPress={() => setViewModeMenuOpen((prev) => !prev)}
             style={[
@@ -710,15 +710,22 @@ export function CalendarScreen({
               {
                 marginRight: 0,
                 paddingVertical: 7,
-                paddingHorizontal: 10,
-                minWidth: 56,
+                paddingHorizontal: 12,
+                minWidth: 64,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
               },
             ]}
           >
-            <Text style={s.workspacePillText}>{currentViewModeLabel}</Text>
+            <Text
+              style={s.workspacePillText}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.9}
+            >
+              {currentViewModeLabel}
+            </Text>
             <Text style={[s.workspacePillText, { fontSize: 11, marginLeft: 6 }]}>
               {viewModeMenuOpen ? '▴' : '▾'}
             </Text>
@@ -733,7 +740,7 @@ export function CalendarScreen({
                 borderColor: colors.border,
                 borderRadius: 10,
                 backgroundColor: colors.card,
-                minWidth: 64,
+                minWidth: 72,
                 overflow: 'hidden',
                 shadowColor: '#000',
                 shadowOpacity: 0.1,
@@ -861,6 +868,8 @@ export function CalendarScreen({
                   const hiddenSingleCount = Math.max(0, daySchedules.length - maxSingleVisible);
                   const hiddenMultiCount = Math.max(0, allMultiEventsOnCell - visibleMultiEventsOnCell);
                   const hiddenCount = hiddenSingleCount + hiddenMultiCount;
+                  const hiddenLabel =
+                    locale === 'ko' ? `+${hiddenCount}개` : `+${hiddenCount} more`;
                   const cellMultiLaneReservedHeight =
                     visibleMultiEventsOnCell > 0
                       ? visibleMultiEventsOnCell * (multiBarHeight + multiBarLaneGap) - 6
@@ -941,7 +950,13 @@ export function CalendarScreen({
                             }}
                             style={{ alignSelf: 'flex-start', paddingHorizontal: 2, paddingVertical: 2 }}
                           >
-                            <Text style={{ fontSize: 9, color: colors.textMuted, fontWeight: '700' }}>+{hiddenCount} more</Text>
+                            <Text
+                              numberOfLines={1}
+                              ellipsizeMode="clip"
+                              style={{ fontSize: 9, color: colors.textMuted, fontWeight: '700' }}
+                            >
+                              {hiddenLabel}
+                            </Text>
                           </Pressable>
                         ) : null}
                       </View>

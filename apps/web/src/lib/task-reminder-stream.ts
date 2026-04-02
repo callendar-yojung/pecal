@@ -216,29 +216,7 @@ async function upsertReminderJob(
       .exec();
     return;
   }
-  if (triggerAt <= nowUnix) {
-    logReminderDecision({
-      taskId: payload.taskId,
-      workspaceId: payload.workspaceId,
-      taskStartUnix: startAtUnix,
-      remindAtUnix: triggerAt,
-      nowUnix,
-      decision: "enqueue_skip_past",
-      reason: "trigger_at_not_future",
-    });
-    await setReminderState(redis, jobKey, "SKIPPED_PAST", {
-      reason: "trigger_at_not_future",
-      taskStartUnix: startAtUnix,
-      remindAtUnix: triggerAt,
-      nowUnix,
-    });
-    await redis
-      .multi()
-      .zrem(DUE_ZSET_KEY, jobKey)
-      .hdel(JOB_HASH_KEY, jobKey)
-      .exec();
-    return;
-  }
+  const scheduledTriggerAt = triggerAt > nowUnix ? triggerAt : nowUnix;
 
   const [futureRows] = await pool.query<RowDataPacket[]>(
     `SELECT id
@@ -246,7 +224,10 @@ async function upsertReminderJob(
      WHERE id = ?
        AND workspace_id = ?
        AND reminder_minutes IS NOT NULL
-       AND DATE_SUB(start_time, INTERVAL reminder_minutes MINUTE) > NOW()
+       AND (
+         DATE_SUB(start_time, INTERVAL reminder_minutes MINUTE) > NOW()
+         OR start_time > NOW()
+       )
      LIMIT 1`,
     [payload.taskId, payload.workspaceId],
   );
@@ -285,12 +266,13 @@ async function upsertReminderJob(
 
   await redis
     .multi()
-    .zadd(DUE_ZSET_KEY, String(triggerAt), jobKey)
+    .zadd(DUE_ZSET_KEY, String(scheduledTriggerAt), jobKey)
     .hset(JOB_HASH_KEY, jobKey, JSON.stringify(job))
     .exec();
   await setReminderState(redis, jobKey, "PENDING", {
     taskStartUnix: startAtUnix,
     remindAtUnix: triggerAt,
+    scheduledRemindAtUnix: scheduledTriggerAt,
   });
 }
 

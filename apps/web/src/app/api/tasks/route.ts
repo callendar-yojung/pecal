@@ -263,12 +263,6 @@ export async function POST(request: NextRequest) {
             { status: 400 },
           );
         }
-        if (triggerUnix <= nowUnix) {
-          return NextResponse.json(
-            { error: "Reminder time must be in the future" },
-            { status: 400 },
-          );
-        }
       }
 
       const taskId = await createTask({
@@ -592,12 +586,6 @@ export async function PATCH(request: NextRequest) {
           if (triggerUnix === null) {
             return NextResponse.json(
               { error: "Invalid start_time for reminder calculation" },
-              { status: 400 },
-            );
-          }
-          if (triggerUnix <= nowUnix) {
-            return NextResponse.json(
-              { error: "Reminder time must be in the future" },
               { status: 400 },
             );
           }

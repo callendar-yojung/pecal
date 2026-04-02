@@ -89,6 +89,10 @@ export default function TabsLayout() {
   const [workspaceCreateOpen, setWorkspaceCreateOpen] = useState(false);
   const [workspaceCreateName, setWorkspaceCreateName] = useState('');
   const [workspaceCreateScope, setWorkspaceCreateScope] = useState<'personal' | 'team'>('personal');
+  const [workspaceRenameOpen, setWorkspaceRenameOpen] = useState(false);
+  const [workspaceRenameTargetId, setWorkspaceRenameTargetId] = useState<number | null>(null);
+  const [workspaceRenameName, setWorkspaceRenameName] = useState('');
+  const [renamingWorkspace, setRenamingWorkspace] = useState(false);
   const WORKSPACE_NAME_MAX_LENGTH = 10;
   const truncateWorkspaceName = (value: string, maxLength = WORKSPACE_NAME_MAX_LENGTH) => {
     if (value.length <= maxLength) return value;
@@ -162,6 +166,35 @@ export default function TabsLayout() {
     }
     setWorkspaceCreateOpen(false);
     setWorkspaceCreateName('');
+  };
+  const openWorkspaceRename = (target: { workspace_id: number; name: string }) => {
+    setWorkspaceRenameTargetId(target.workspace_id);
+    setWorkspaceRenameName(target.name);
+    setWorkspaceRenameOpen(true);
+    setWorkspaceQuickMenuOpen(false);
+    setWorkspaceKindMenuOpen(false);
+  };
+  const submitWorkspaceRename = async () => {
+    if (renamingWorkspace) return;
+    if (!workspaceRenameTargetId || !workspaceRenameName.trim()) return;
+    try {
+      setRenamingWorkspace(true);
+      await data.renameWorkspace(workspaceRenameTargetId, workspaceRenameName);
+      setWorkspaceRenameOpen(false);
+      setWorkspaceRenameTargetId(null);
+      setWorkspaceRenameName('');
+    } catch (error) {
+      Alert.alert(
+        locale === 'ko' ? '수정 실패' : 'Rename failed',
+        error instanceof Error
+          ? error.message
+          : locale === 'ko'
+            ? '워크스페이스 이름을 수정하지 못했습니다.'
+            : 'Failed to rename workspace.',
+      );
+    } finally {
+      setRenamingWorkspace(false);
+    }
   };
 
   const checkPrivacyConsent = async () => {
@@ -384,19 +417,6 @@ export default function TabsLayout() {
             </Pressable>
           ) : null}
           <Pressable
-            style={[
-              s.userIdentityButton,
-              {
-                width: 36,
-                paddingHorizontal: 0,
-                justifyContent: 'center',
-              },
-            ]}
-            onPress={() => router.replace('/(tabs)/overview')}
-          >
-            <View style={[s.userIdentityDot, { backgroundColor: '#22C55E' }]} />
-          </Pressable>
-          <Pressable
             style={[s.modeDropdownButton, s.workspaceKindDropdownButton]}
             onPress={() => {
               setWorkspaceKindMenuOpen((prev) => !prev);
@@ -462,18 +482,44 @@ export default function TabsLayout() {
           {workspaceQuickOptions.map((option) => {
             const active = data.selectedWorkspaceId === option.workspace_id;
             return (
-              <Pressable
+              <View
                 key={option.workspace_id}
                 style={[s.modeMenuItem, active ? s.modeMenuItemActive : null]}
-                onPress={() => {
-                  data.setSelectedWorkspaceId(option.workspace_id);
-                  setWorkspaceQuickMenuOpen(false);
-                }}
               >
-                <Text style={[s.modeMenuText, active ? s.modeMenuTextActive : null]}>
-                  {option.name}
-                </Text>
-              </Pressable>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Pressable
+                    style={{ flex: 1, minWidth: 0, paddingVertical: 1 }}
+                    onPress={() => {
+                      data.setSelectedWorkspaceId(option.workspace_id);
+                      setWorkspaceQuickMenuOpen(false);
+                    }}
+                  >
+                    <Text
+                      style={[s.modeMenuText, active ? s.modeMenuTextActive : null]}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {option.name}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => openWorkspaceRename(option)}
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      backgroundColor: colors.card,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    hitSlop={6}
+                  >
+                    <Ionicons name="pencil-outline" size={13} color={colors.textMuted} />
+                  </Pressable>
+                </View>
+              </View>
             );
           })}
           <Pressable
@@ -484,6 +530,52 @@ export default function TabsLayout() {
           </Pressable>
         </View>
       ) : null}
+
+      <Modal
+        visible={workspaceRenameOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setWorkspaceRenameOpen(false)}
+      >
+        <View style={s.modalOverlay}>
+          <View style={[s.panel, { width: '88%', maxWidth: 360 }]}>
+            <Text style={s.sectionTitle}>
+              {locale === 'ko' ? '워크스페이스 이름 수정' : 'Rename Workspace'}
+            </Text>
+            <TextInput
+              value={workspaceRenameName}
+              onChangeText={setWorkspaceRenameName}
+              placeholder={locale === 'ko' ? '워크스페이스 이름' : 'Workspace name'}
+              placeholderTextColor={colors.textMuted}
+              style={[s.input, { marginTop: 4 }]}
+              autoFocus
+            />
+            <View style={[s.row, { marginTop: 10 }]}>
+              <Pressable
+                style={[s.workspacePill, { flex: 1, alignItems: 'center' }]}
+                onPress={() => {
+                  setWorkspaceRenameOpen(false);
+                  setWorkspaceRenameTargetId(null);
+                  setWorkspaceRenameName('');
+                }}
+              >
+                <Text style={s.workspacePillText}>{locale === 'ko' ? '취소' : 'Cancel'}</Text>
+              </Pressable>
+              <Pressable
+                style={[s.workspacePill, s.workspacePillActive, { flex: 1, alignItems: 'center', opacity: workspaceRenameName.trim() ? 1 : 0.5 }]}
+                disabled={!workspaceRenameName.trim() || renamingWorkspace}
+                onPress={() => void submitWorkspaceRename()}
+              >
+                <Text style={s.workspacePillTextActive}>
+                  {renamingWorkspace
+                    ? (locale === 'ko' ? '수정 중...' : 'Saving...')
+                    : (locale === 'ko' ? '저장' : 'Save')}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={workspaceCreateOpen}

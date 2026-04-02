@@ -6,10 +6,10 @@
     "scheme": "myapp",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/last.png",
     "ios": {
       "supportsTablet": true,
-      "icon": "./assets/icon-ios.png",
+      "icon": "./assets/last.png",
       "bundleIdentifier": "com.pecal.mobile",
       "buildNumber": "15",
       "infoPlist": {
@@ -20,18 +20,17 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon-ad.png",
+        "foregroundImage": "./assets/image.png",
         "backgroundColor": "#FFFFFF"
       },
       "package": "com.pecal.mobile"
     },
     "splash": {
-      "image": "./assets/icon.png",
+      "image": "./assets/last.png",
       "resizeMode": "contain",
       "backgroundColor": "#FFFFFF"
     },
     "plugins": [
-      
       "expo-notifications",
       "expo-router",
       "expo-font",

@@ -1120,6 +1120,34 @@ export function useDashboardData(session: AuthSession | null) {
     }
   };
 
+  const renameWorkspace = async (workspaceId: number, nextName: string) => {
+    if (!session) return;
+    const name = nextName.trim();
+    if (!Number.isFinite(workspaceId) || workspaceId <= 0) {
+      setError('수정할 워크스페이스를 찾을 수 없습니다.');
+      return;
+    }
+    if (!name) {
+      setError('워크스페이스 이름을 입력하세요.');
+      return;
+    }
+
+    try {
+      await apiFetch<{ success?: boolean; workspace?: Workspace }>(`/api/workspaces/${workspaceId}`, session, {
+        method: 'PATCH',
+        body: JSON.stringify({ name }),
+      });
+      invalidateApiCache('workspaces:');
+      invalidateApiCache('teams:');
+      await loadWorkspaces();
+      setSelectedWorkspaceId((prev) => prev ?? workspaceId);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      throw e;
+    }
+  };
+
   useEffect(() => {
     const workspaceId = selectedWorkspace?.workspace_id;
     if (!workspaceId) return;
@@ -1307,5 +1335,6 @@ export function useDashboardData(session: AuthSession | null) {
     selectPersonal,
     selectTeamWorkspace,
     createWorkspace,
+    renameWorkspace,
   };
 }
