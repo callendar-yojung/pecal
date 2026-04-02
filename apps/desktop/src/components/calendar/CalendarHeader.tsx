@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { format, addMonths, subMonths } from 'date-fns'
+import { format, addDays, addMonths, addWeeks, addYears, subDays, subMonths, subWeeks, subYears } from 'date-fns'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { useCalendarStore, useViewStore } from '../../stores'
 import { Button } from '../common'
 
 interface CalendarHeaderProps {
   onToggleDrawer: () => void
-  viewMode: 'day' | 'week' | 'month' | 'year'
-  onChangeViewMode: (mode: 'day' | 'week' | 'month' | 'year') => void
+  viewMode: 'day' | 'week' | 'month' | 'year' | 'table'
+  onChangeViewMode: (mode: 'day' | 'week' | 'month' | 'year' | 'table') => void
 }
 
 export function CalendarHeader({ onToggleDrawer, viewMode, onChangeViewMode }: CalendarHeaderProps) {
@@ -17,11 +17,35 @@ export function CalendarHeader({ onToggleDrawer, viewMode, onChangeViewMode }: C
   const { openTaskCreate } = useViewStore()
   const [isPickerOpen, setIsPickerOpen] = useState(false)
 
-  const goToPrevMonth = () => {
+  const goToPrev = () => {
+    if (viewMode === 'day') {
+      setSelectedDate(subDays(selectedDate, 1))
+      return
+    }
+    if (viewMode === 'week' || viewMode === 'table') {
+      setSelectedDate(subWeeks(selectedDate, 1))
+      return
+    }
+    if (viewMode === 'year') {
+      setSelectedDate(subYears(selectedDate, 1))
+      return
+    }
     setSelectedDate(subMonths(selectedDate, 1))
   }
 
-  const goToNextMonth = () => {
+  const goToNext = () => {
+    if (viewMode === 'day') {
+      setSelectedDate(addDays(selectedDate, 1))
+      return
+    }
+    if (viewMode === 'week' || viewMode === 'table') {
+      setSelectedDate(addWeeks(selectedDate, 1))
+      return
+    }
+    if (viewMode === 'year') {
+      setSelectedDate(addYears(selectedDate, 1))
+      return
+    }
     setSelectedDate(addMonths(selectedDate, 1))
   }
 
@@ -80,7 +104,7 @@ export function CalendarHeader({ onToggleDrawer, viewMode, onChangeViewMode }: C
             </svg>
           </button>
           <button
-            onClick={goToPrevMonth}
+            onClick={goToPrev}
             className="rounded-lg p-2 transition-colors hover:bg-slate-100 dark:hover:bg-gray-800"
           >
             <svg className="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,7 +189,7 @@ export function CalendarHeader({ onToggleDrawer, viewMode, onChangeViewMode }: C
             )}
           </div>
           <button
-            onClick={goToNextMonth}
+            onClick={goToNext}
             className="rounded-lg p-2 transition-colors hover:bg-slate-100 dark:hover:bg-gray-800"
           >
             <svg className="h-5 w-5 text-slate-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -185,11 +209,12 @@ export function CalendarHeader({ onToggleDrawer, viewMode, onChangeViewMode }: C
             { key: 'day', label: i18n.language === 'ko' ? '일' : 'Day' },
             { key: 'week', label: i18n.language === 'ko' ? '주' : 'Week' },
             { key: 'month', label: i18n.language === 'ko' ? '월' : 'Month' },
+            { key: 'table', label: i18n.language === 'ko' ? '표' : 'Table' },
             { key: 'year', label: i18n.language === 'ko' ? '년' : 'Year' },
           ].map((item) => (
             <button
               key={item.key}
-              onClick={() => onChangeViewMode(item.key as 'day' | 'week' | 'month' | 'year')}
+              onClick={() => onChangeViewMode(item.key as 'day' | 'week' | 'month' | 'year' | 'table')}
               className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
                 viewMode === item.key ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}

@@ -5,6 +5,7 @@ import { addDays, format, startOfWeek } from 'date-fns'
 import { CalendarHeader } from './CalendarHeader'
 import { CalendarGrid } from './CalendarGrid'
 import { TaskDrawer } from './TaskDrawer'
+import { CalendarTableView } from './CalendarTableView'
 import { useWorkspaceStore, useCalendarStore, useViewStore } from '../../stores'
 import { calendarApi, taskApi } from '../../api'
 import { isTauriApp } from '../../utils/tauri'
@@ -18,7 +19,7 @@ export function Calendar() {
   const { openTaskDetail } = useViewStore()
   const { selectedDate, setSelectedDate, events, setEvents, setLoading, setError, clearEvents, error } = useCalendarStore()
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'year'>('month')
+  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'year' | 'table'>('month')
 
   const toggleDrawer = useCallback(() => setIsDrawerOpen((prev) => !prev), [])
   const closeDrawer = useCallback(() => setIsDrawerOpen(false), [])
@@ -113,6 +114,10 @@ export function Calendar() {
           ))}
         </div>
       )
+    }
+
+    if (viewMode === 'table') {
+      return <CalendarTableView selectedDate={selectedDate} events={events} onOpenTaskDetail={openTaskDetailWithRefresh} />
     }
 
     return (
@@ -224,7 +229,11 @@ export function Calendar() {
           {error}
         </div>
       )}
-      <CalendarHeader onToggleDrawer={toggleDrawer} viewMode={viewMode} onChangeViewMode={setViewMode} />
+      <CalendarHeader
+        onToggleDrawer={toggleDrawer}
+        viewMode={viewMode}
+        onChangeViewMode={setViewMode}
+      />
       <div className="flex-1 min-h-0 rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:border-gray-700/70 dark:bg-gray-900">
         {renderBody()}
       </div>

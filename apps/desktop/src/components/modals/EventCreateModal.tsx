@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { format, setHours, setMinutes } from 'date-fns'
-import { Modal, Button, Input } from '../common'
+import { Modal, Button, Input, TaskColorPresetPicker } from '../common'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { useModalStore, useCalendarStore, useWorkspaceStore, useAuthStore, useViewStore } from '../../stores'
@@ -9,6 +9,7 @@ import { taskApi, tagApi, fileApi } from '../../api'
 import type { TaskStatus, Tag, FileInfo } from '../../types'
 import RichTextEditor from '../editor/RichTextEditor'
 import { EMPTY_RICH_CONTENT, serializeRichContent } from '../../utils/richText'
+import { useTaskColorPresets } from '../../hooks'
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
@@ -38,6 +39,7 @@ export function EventCreateModal() {
   const { selectedWorkspaceId, currentMode, selectedTeamId } = useWorkspaceStore()
   const { user } = useAuthStore()
   const { openTaskDetail } = useViewStore()
+  const { colorOptions, saveCustomColor } = useTaskColorPresets(user?.memberId)
 
   const [title, setTitle] = useState('')
   const [contentDoc, setContentDoc] = useState<Record<string, unknown>>(EMPTY_RICH_CONTENT)
@@ -375,6 +377,12 @@ export function EventCreateModal() {
                   </select>
                 </div>
               </div>
+              <TaskColorPresetPicker
+                color={color}
+                colorOptions={colorOptions}
+                onColorChange={setColor}
+                onSaveCustomColor={saveCustomColor}
+              />
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">

@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { format, setHours, setMinutes } from 'date-fns'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button, Input } from '../common'
+import { Button, Input, TaskColorPresetPicker } from '../common'
 import { useAuthStore, useCalendarStore, useViewStore, useWorkspaceStore } from '../../stores'
 import { Badge } from '@/components/ui/badge'
 import type { TaskStatus, Tag } from '../../types'
 import { tagApi, taskApi } from '../../api'
 import RichTextEditor from '../editor/RichTextEditor'
 import { EMPTY_RICH_CONTENT, serializeRichContent } from '../../utils/richText'
+import { useTaskColorPresets } from '../../hooks'
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
@@ -52,6 +53,7 @@ export function TaskCreateView() {
   )
   const ownerType = currentMode === 'TEAM' ? 'team' : 'personal'
   const ownerId = currentMode === 'TEAM' ? selectedTeamId : user?.memberId
+  const { colorOptions, saveCustomColor } = useTaskColorPresets(user?.memberId)
 
   useEffect(() => {
     const loadTags = async () => {
@@ -316,6 +318,12 @@ export function TaskCreateView() {
                 <option value="1440">1일 전</option>
               </select>
             </div>
+            <TaskColorPresetPicker
+              color={color}
+              colorOptions={colorOptions}
+              onColorChange={setColor}
+              onSaveCustomColor={saveCustomColor}
+            />
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
