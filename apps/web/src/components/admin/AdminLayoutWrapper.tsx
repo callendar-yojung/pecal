@@ -59,7 +59,7 @@ const MENU_ITEMS: Array<{
 export default function AdminLayoutWrapper({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const isLoginPage = pathname === "/admin/login";
+  const isLoginPage = pathname === "/admin/login" || pathname.startsWith("/admin/login/");
   const [admin, setAdmin] = useState<Admin | null>(null);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -183,7 +183,7 @@ export default function AdminLayoutWrapper({ children }: { children: React.React
         <div className="border-t border-gray-200 p-4 dark:border-gray-700">
           <div className="mb-3 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 font-bold text-white">
-              {admin?.username?.charAt(0).toUpperCase() ?? "A"}
+              {admin?.username?.charAt(0)?.toUpperCase() ?? "A"}
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{admin?.username}</p>

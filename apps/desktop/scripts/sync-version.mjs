@@ -4,7 +4,22 @@ import { resolve } from 'node:path'
 
 const root = resolve(process.cwd())
 
+const VERSION_ONLY_REGEX = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/
+
+const extractVersionFromTag = (tag) => {
+  if (!tag) return null
+  const trimmed = tag.trim()
+  const match = trimmed.match(/^(?:desktop-(?:win|mac)-)?v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/)
+  return match?.[1] ?? null
+}
+
 const getLatestTag = () => {
+  const refName = process.env.GITHUB_REF_NAME || process.env.GITHUB_REF || ''
+  const refVersion = extractVersionFromTag(refName.replace(/^refs\/tags\//, ''))
+  if (refVersion) {
+    return { tag: refName.replace(/^refs\/tags\//, ''), version: refVersion }
+  }
+
   try {
     const tags = execSync('git tag --sort=-v:refname', {
       cwd: root,
@@ -15,20 +30,22 @@ const getLatestTag = () => {
       .split('\n')
       .map((tag) => tag.trim())
       .filter(Boolean)
-    return tags.find((tag) => /^v\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/.test(tag)) || null
+    const tag = tags.find((item) => Boolean(extractVersionFromTag(item)))
+    if (!tag) return null
+    return { tag, version: extractVersionFromTag(tag) }
   } catch {
     return null
   }
 }
 
-const tag = getLatestTag()
-if (!tag) {
-  console.error('❌ No git tag found. Create a tag like v0.1.1 before build.')
+const parsed = getLatestTag()
+if (!parsed) {
+  console.error('❌ No git tag found. Create a tag like desktop-mac-v0.1.1, desktop-win-v0.1.1, or v0.1.1 before build.')
   process.exit(1)
 }
 
-const version = tag.startsWith('v') ? tag.slice(1) : tag
-if (!/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/.test(version)) {
+const { tag, version } = parsed
+if (!VERSION_ONLY_REGEX.test(version)) {
   console.error(`❌ Invalid version tag: ${tag}`)
   process.exit(1)
 }
