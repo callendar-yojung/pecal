@@ -8,27 +8,41 @@ on:
   workflow_dispatch:
 
 jobs:
+  select-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Select platform matrix by tag
+        id: set-matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          EVENT_NAME="${GITHUB_EVENT_NAME:-}"
+          REF_NAME="${GITHUB_REF_NAME:-}"
+
+          WINDOWS_MATRIX='{"include":[{"os":"windows-latest","platform":"windows","arch":"x64","artifact_name":"windows-build"}]}'
+          MAC_MATRIX='{"include":[{"os":"macos-13","platform":"macos","arch":"x64","artifact_name":"macos-intel-build"},{"os":"macos-14","platform":"macos","arch":"arm64","artifact_name":"macos-apple-silicon-build"}]}'
+          FULL_MATRIX='{"include":[{"os":"windows-latest","platform":"windows","arch":"x64","artifact_name":"windows-build"},{"os":"macos-13","platform":"macos","arch":"x64","artifact_name":"macos-intel-build"},{"os":"macos-14","platform":"macos","arch":"arm64","artifact_name":"macos-apple-silicon-build"}]}'
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            MATRIX="$FULL_MATRIX"
+          elif [[ "$REF_NAME" == desktop-win-v* ]]; then
+            MATRIX="$WINDOWS_MATRIX"
+          elif [[ "$REF_NAME" == desktop-mac-v* ]]; then
+            MATRIX="$MAC_MATRIX"
+          else
+            echo "::error::Unsupported tag format: $REF_NAME. Use desktop-win-v<version> or desktop-mac-v<version>."
+            exit 1
+          fi
+
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+
   build:
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      (startsWith(github.ref_name, 'desktop-win-v') && matrix.platform == 'windows') ||
-      (startsWith(github.ref_name, 'desktop-mac-v') && matrix.platform == 'macos')
+    needs: select-matrix
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            platform: windows
-            arch: x64
-            artifact_name: windows-build
-          - os: macos-13
-            platform: macos
-            arch: x64
-            artifact_name: macos-intel-build
-          - os: macos-14
-            platform: macos
-            arch: arm64
-            artifact_name: macos-apple-silicon-build
+      matrix: ${{ fromJson(needs.select-matrix.outputs.matrix) }}
     runs-on: ${{ matrix.os }}
 
     steps:
