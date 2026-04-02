@@ -3,11 +3,16 @@ name: Desktop Tauri Build & Upload
 on:
   push:
     tags:
-      - 'v*'
+      - 'desktop-win-v*'
+      - 'desktop-mac-v*'
   workflow_dispatch:
 
 jobs:
   build:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (startsWith(github.ref_name, 'desktop-win-v') && matrix.platform == 'windows') ||
+      (startsWith(github.ref_name, 'desktop-mac-v') && matrix.platform == 'macos')
     strategy:
       fail-fast: false
       matrix:
@@ -96,13 +101,13 @@ jobs:
             RESOLVED_IDENTITY="$(grep -Eo '"Developer ID Application:[^"]+"' "$RUNNER_TEMP/codesign-identities.txt" | head -n 1 || true)"
           fi
 
-          # Last fallback: first usable identity string from keychain output.
           if [[ -z "$RESOLVED_IDENTITY" ]]; then
-            RESOLVED_IDENTITY="$(sed -n 's/.*"\(.*\)".*/\1/p' "$RUNNER_TEMP/codesign-identities.txt" | head -n 1 || true)"
+            echo "::error::No Developer ID Application identity was imported. Ensure the p12 contains Developer ID Application cert + private key."
+            exit 1
           fi
 
-          if [[ -z "$RESOLVED_IDENTITY" ]]; then
-            echo "::error::No usable codesigning identity was imported. Ensure the p12 contains a private key."
+          if [[ "$RESOLVED_IDENTITY" != Developer\ ID\ Application:* ]]; then
+            echo "::error::Resolved identity is not Developer ID Application: $RESOLVED_IDENTITY"
             exit 1
           fi
 
@@ -148,7 +153,24 @@ jobs:
         id: version
         shell: pwsh
         run: |
-          $version = "${env:GITHUB_REF}" -replace '^refs/tags/v', ''
+          $eventName = "${{ github.event_name }}"
+          if ($eventName -eq "workflow_dispatch") {
+            $version = node -p "require('./apps/desktop/src-tauri/tauri.conf.json').version"
+          } else {
+            $refName = "${{ github.ref_name }}"
+            if ($refName -match '^desktop-(win|mac)-v(.+)$') {
+              $version = $matches[2]
+            } elseif ($refName -match '^v(.+)$') {
+              $version = $matches[1]
+            } else {
+              Write-Error "Unsupported tag format: $refName. Use desktop-win-v<version> or desktop-mac-v<version>."
+              exit 1
+            }
+          }
+          if (-not $version) {
+            Write-Error "Could not resolve version"
+            exit 1
+          }
           "VERSION=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Update version in tauri.conf.json
@@ -211,6 +233,8 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
           APPLE_NOTARY_PROFILE: tauri-notary
+          POLL_INTERVAL_SEC: 20
+          TIMEOUT_SEC: 1800
         run: bash ./scripts/macos-sign-notarize.sh
 
       - name: Sign MSI artifact

@@ -59,12 +59,18 @@ const MENU_ITEMS: Array<{
 export default function AdminLayoutWrapper({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const isLoginPage = pathname === "/admin/login";
   const [admin, setAdmin] = useState<Admin | null>(null);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [health, setHealth] = useState<{ overallStatus: "ok" | "warn" | "error"; checkedAt: string | null; items: HealthItem[] } | null>(null);
 
   const fetchAdmin = useCallback(async () => {
+    if (isLoginPage) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch("/api/admin/me");
       if (!response.ok) {
@@ -82,7 +88,7 @@ export default function AdminLayoutWrapper({ children }: { children: React.React
     } finally {
       setLoading(false);
     }
-  }, [pathname, router]);
+  }, [isLoginPage, pathname, router]);
 
   useEffect(() => {
     fetchAdmin();
@@ -93,6 +99,7 @@ export default function AdminLayoutWrapper({ children }: { children: React.React
   }, [pathname]);
 
   useEffect(() => {
+    if (isLoginPage) return;
     if (!admin) return;
     const fetchHealth = async () => {
       try {
@@ -105,7 +112,7 @@ export default function AdminLayoutWrapper({ children }: { children: React.React
       }
     };
     fetchHealth();
-  }, [admin, pathname]);
+  }, [admin, isLoginPage, pathname]);
 
   const handleLogout = async () => {
     try {
@@ -122,6 +129,7 @@ export default function AdminLayoutWrapper({ children }: { children: React.React
   );
 
   useEffect(() => {
+    if (isLoginPage) return;
     if (!admin) return;
     const allowedPaths = new Set(menuItems.map((item) => item.path));
     if (pathname.startsWith("/admin") && pathname !== "/admin/security" && pathname !== "/admin/login") {
@@ -131,7 +139,11 @@ export default function AdminLayoutWrapper({ children }: { children: React.React
         router.replace(fallback);
       }
     }
-  }, [admin, menuItems, pathname, router]);
+  }, [admin, isLoginPage, menuItems, pathname, router]);
+
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><div className="text-muted-foreground">로딩 중...</div></div>;
@@ -170,7 +182,9 @@ export default function AdminLayoutWrapper({ children }: { children: React.React
 
         <div className="border-t border-gray-200 p-4 dark:border-gray-700">
           <div className="mb-3 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 font-bold text-white">{admin?.username.charAt(0).toUpperCase()}</div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 font-bold text-white">
+              {admin?.username?.charAt(0).toUpperCase() ?? "A"}
+            </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{admin?.username}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">{admin?.role}</p>
