@@ -58,7 +58,7 @@ const MENU_ITEMS: Array<{
 
 export default function AdminLayoutWrapper({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const isLoginPage = pathname === "/admin/login" || pathname.startsWith("/admin/login/");
   const [admin, setAdmin] = useState<Admin | null>(null);
   const [loading, setLoading] = useState(true);
