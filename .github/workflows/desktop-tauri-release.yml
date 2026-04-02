@@ -59,8 +59,13 @@ jobs:
           set -euo pipefail
           CERT_PATH="$RUNNER_TEMP/developer-id-application.p12"
           KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+          REQUESTED_IDENTITY="${{ secrets.APPLE_DEVELOPER_ID_IDENTITY }}"
 
-          echo "${{ secrets.APPLE_DEVELOPER_ID_P12_BASE64 }}" | base64 --decode > "$CERT_PATH"
+          if base64 --help 2>/dev/null | grep -q -- "--decode"; then
+            echo "${{ secrets.APPLE_DEVELOPER_ID_P12_BASE64 }}" | base64 --decode > "$CERT_PATH"
+          else
+            echo "${{ secrets.APPLE_DEVELOPER_ID_P12_BASE64 }}" | base64 -D > "$CERT_PATH"
+          fi
 
           security create-keychain -p "${{ secrets.APPLE_KEYCHAIN_PASSWORD }}" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
@@ -78,7 +83,31 @@ jobs:
             "$KEYCHAIN_PATH"
           security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
           security default-keychain -d user -s "$KEYCHAIN_PATH"
-          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH" | tee "$RUNNER_TEMP/codesign-identities.txt"
+
+          # Prefer exact requested identity if it exists in imported keychain.
+          RESOLVED_IDENTITY=""
+          if [[ -n "$REQUESTED_IDENTITY" ]] && grep -Fq "\"$REQUESTED_IDENTITY\"" "$RUNNER_TEMP/codesign-identities.txt"; then
+            RESOLVED_IDENTITY="$REQUESTED_IDENTITY"
+          fi
+
+          # Fallback to first Developer ID Application identity.
+          if [[ -z "$RESOLVED_IDENTITY" ]]; then
+            RESOLVED_IDENTITY="$(grep -Eo '"Developer ID Application:[^"]+"' "$RUNNER_TEMP/codesign-identities.txt" | head -n 1 || true)"
+          fi
+
+          # Last fallback: first usable identity string from keychain output.
+          if [[ -z "$RESOLVED_IDENTITY" ]]; then
+            RESOLVED_IDENTITY="$(sed -n 's/.*"\(.*\)".*/\1/p' "$RUNNER_TEMP/codesign-identities.txt" | head -n 1 || true)"
+          fi
+
+          if [[ -z "$RESOLVED_IDENTITY" ]]; then
+            echo "::error::No usable codesigning identity was imported. Ensure the p12 contains a private key."
+            exit 1
+          fi
+
+          echo "Resolved APPLE_CERTIFICATE_IDENTITY: $RESOLVED_IDENTITY"
+          echo "APPLE_CERTIFICATE_IDENTITY=$RESOLVED_IDENTITY" >> "$GITHUB_ENV"
 
       - name: Setup Azure Signing
         if: matrix.platform == 'windows'
@@ -170,14 +199,14 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          APPLE_CERTIFICATE_IDENTITY: ${{ secrets.APPLE_DEVELOPER_ID_IDENTITY }}
+          APPLE_CERTIFICATE_IDENTITY: ${{ env.APPLE_CERTIFICATE_IDENTITY }}
 
       - name: Sign + notarize + staple DMG (macOS)
         if: matrix.platform == 'macos'
         shell: bash
         working-directory: apps/desktop
         env:
-          APPLE_CERTIFICATE_IDENTITY: ${{ secrets.APPLE_DEVELOPER_ID_IDENTITY }}
+          APPLE_CERTIFICATE_IDENTITY: ${{ env.APPLE_CERTIFICATE_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
