@@ -9,8 +9,12 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "vite build && tauri build",
-    "tauri:build:ci": "tauri build"
+    "tauri:prepare:mac-signing": "node scripts/set-macos-signing-identity.mjs",
+    "tauri:build": "pnpm tauri:prepare:mac-signing && vite build && tauri build",
+    "tauri:build:ci": "pnpm tauri:prepare:mac-signing && tauri build",
+    "tauri:build:mac": "node scripts/sync-version.mjs && pnpm tauri:prepare:mac-signing && vite build && tauri build --bundles app,dmg",
+    "sign:mac:dmg": "bash ./scripts/macos-sign-notarize.sh",
+    "build:mac:release": "pnpm tauri:build:mac && pnpm sign:mac:dmg"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.18",

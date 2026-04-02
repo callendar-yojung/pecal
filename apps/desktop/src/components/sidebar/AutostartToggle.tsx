@@ -4,15 +4,22 @@ import { invoke } from '@tauri-apps/api/core'
 
 export function AutostartToggle() {
   const { t } = useTranslation()
+  const isMacPlatform =
+    typeof navigator !== 'undefined' &&
+    /(mac|iphone|ipad|ipod)/i.test(
+      `${navigator.platform ?? ''} ${navigator.userAgent ?? ''}`,
+    )
   const [enabled, setEnabled] = useState(false)
 
   useEffect(() => {
+    if (isMacPlatform) return
     invoke<boolean>('get_autostart')
       .then(setEnabled)
       .catch(console.error)
-  }, [])
+  }, [isMacPlatform])
 
   const toggle = async () => {
+    if (isMacPlatform) return
     try {
       const result = await invoke<boolean>('set_autostart', { enabled: !enabled })
       setEnabled(result)
@@ -20,6 +27,8 @@ export function AutostartToggle() {
       console.error('Failed to toggle autostart:', err)
     }
   }
+
+  if (isMacPlatform) return null
 
   return (
     <button

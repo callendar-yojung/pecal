@@ -668,6 +668,11 @@ function SecurityTab() {
 function SystemTab() {
   const { t, i18n } = useTranslation()
   const { theme, setTheme } = useThemeStore()
+  const isMacPlatform =
+    typeof navigator !== 'undefined' &&
+    /(mac|iphone|ipad|ipod)/i.test(
+      `${navigator.platform ?? ''} ${navigator.userAgent ?? ''}`,
+    )
   const [autostart, setAutostart] = useState(false)
   const [preferences, setPreferences] = useState<UserPreferences | null>(null)
   const [privacyConsent, setPrivacyConsent] = useState(false)
@@ -677,9 +682,11 @@ function SystemTab() {
   const [isLoadingWhatsNew, setIsLoadingWhatsNew] = useState(false)
 
   useEffect(() => {
-    invoke<boolean>('get_autostart')
-      .then(setAutostart)
-      .catch(console.error)
+    if (!isMacPlatform) {
+      invoke<boolean>('get_autostart')
+        .then(setAutostart)
+        .catch(console.error)
+    }
 
     invoke<UserPreferences>('get_user_preferences')
       .then(setPreferences)
@@ -706,7 +713,7 @@ function SystemTab() {
         setWhatsNew([])
       })
       .finally(() => setIsLoadingWhatsNew(false))
-  }, [])
+  }, [isMacPlatform])
 
   const toggleAutostart = async () => {
     try {
@@ -812,29 +819,31 @@ function SystemTab() {
         }
       />
 
-      <SettingRow
-        icon={
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-        }
-        label={t('autostart.label')}
-        action={
-          <button
-            onClick={toggleAutostart}
-            className={`relative w-10 h-5 rounded-full transition-colors ${
-              autostart ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'
-            }`}
-          >
-            <div
-              className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                autostart ? 'translate-x-5' : 'translate-x-0.5'
+      {!isMacPlatform ? (
+        <SettingRow
+          icon={
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          }
+          label={t('autostart.label')}
+          action={
+            <button
+              onClick={toggleAutostart}
+              className={`relative w-10 h-5 rounded-full transition-colors ${
+                autostart ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'
               }`}
-            />
-          </button>
-        }
-      />
+            >
+              <div
+                className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                  autostart ? 'translate-x-5' : 'translate-x-0.5'
+                }`}
+              />
+            </button>
+          }
+        />
+      ) : null}
 
       <SettingRow
         icon={

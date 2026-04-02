@@ -37,15 +37,25 @@ function normalizeTask(task: BackendTask): Task {
   }
 }
 
+function normalizeTasksResponse<T extends { tasks?: BackendTask[] }>(response: T): T {
+  if (!Array.isArray(response.tasks)) return response
+  return {
+    ...response,
+    tasks: response.tasks.map(normalizeTask),
+  } as T
+}
+
 export const taskApi = {
-  getTasks: (workspaceId: number) =>
-    apiClient.getCached<TasksResponse>(
+  getTasks: async (workspaceId: number) =>
+    normalizeTasksResponse(
+      await apiClient.getCached<TasksResponse>(
       `tasks:${workspaceId}:default`,
       `/api/tasks?workspace_id=${workspaceId}`,
       { cacheMs: 8_000, dedupe: true, retries: 1 },
+      )
     ),
 
-  getTasksPaginated: (params: TaskListParams) => {
+  getTasksPaginated: async (params: TaskListParams) => {
     const query = new URLSearchParams()
     query.set('workspace_id', String(params.workspace_id))
     if (params.page) query.set('page', String(params.page))
@@ -54,10 +64,12 @@ export const taskApi = {
     if (params.sort_order) query.set('sort_order', params.sort_order)
     if (params.status) query.set('status', params.status)
     if (params.search) query.set('search', params.search)
-    return apiClient.getCached<PaginatedTasksResponse>(
+    return normalizeTasksResponse(
+      await apiClient.getCached<PaginatedTasksResponse>(
       `tasks:${params.workspace_id}:${query.toString()}`,
       `/api/tasks?${query.toString()}`,
       { cacheMs: 8_000, dedupe: true, retries: 1 },
+      )
     )
   },
 

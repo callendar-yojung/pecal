@@ -92,6 +92,7 @@ export function MemoView() {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const skipAutosaveRef = useRef(false)
   const loadedSnapshotRef = useRef<{ memoId: number; title: string; contentJson: string } | null>(null)
+  const lastHydratedMemoIdRef = useRef<number | null>(null)
 
   const selectedWorkspace = useMemo(
     () => workspaces.find((workspace) => workspace.workspace_id === selectedWorkspaceId) ?? null,
@@ -194,7 +195,11 @@ export function MemoView() {
   )
 
   useEffect(() => {
-    if (!activeMemo) return
+    if (!activeMemo) {
+      lastHydratedMemoIdRef.current = null
+      return
+    }
+    if (lastHydratedMemoIdRef.current === activeMemo.memo_id) return
     skipAutosaveRef.current = true
     const loadedTitle = activeMemo.title || t('memo.untitled')
     const loadedContent = parseMemoContent(activeMemo.content_json)
@@ -205,6 +210,7 @@ export function MemoView() {
       title: loadedTitle.trim() || t('memo.untitled'),
       contentJson: stringifyMemoContent(loadedContent),
     }
+    lastHydratedMemoIdRef.current = activeMemo.memo_id
   }, [activeMemo, t])
 
   const persistActiveMemo = useCallback(async () => {
@@ -280,16 +286,45 @@ export function MemoView() {
   const createMemo = async () => {
     if (!ownerType || !ownerId) return
     try {
+      const untitled = t('memo.untitled')
       const created = await apiClient.post<{ success: boolean; memo_id: number }>('/api/memos', {
         owner_type: ownerType,
         owner_id: ownerId,
-        title: t('memo.untitled'),
+        title: untitled,
         content: EMPTY_RICH_CONTENT,
       })
-      await fetchMemos()
-      if (created.memo_id) {
-        setActiveMemoId(created.memo_id)
+
+      if (!created.memo_id) {
+        await fetchMemos()
+        return
       }
+
+      const now = new Date().toISOString()
+      const contentJson = stringifyMemoContent(EMPTY_RICH_CONTENT)
+      const optimisticMemo: ServerMemoItem = {
+        memo_id: created.memo_id,
+        owner_type: ownerType,
+        owner_id: ownerId,
+        member_id: 0,
+        title: untitled,
+        content_json: contentJson,
+        is_favorite: 0,
+        created_at: now,
+        updated_at: now,
+      }
+
+      skipAutosaveRef.current = true
+      setMemos((prev) => [optimisticMemo, ...prev.filter((memo) => memo.memo_id !== created.memo_id)])
+      setActiveMemoId(created.memo_id)
+      setMemoTitle(untitled)
+      setMemoContent(EMPTY_RICH_CONTENT)
+      loadedSnapshotRef.current = {
+        memoId: created.memo_id,
+        title: untitled,
+        contentJson,
+      }
+      lastHydratedMemoIdRef.current = created.memo_id
+      void fetchMemos()
     } catch (err) {
       console.error('Failed to create memo:', err)
       setError(t('common.error'))
@@ -424,6 +459,7 @@ export function MemoView() {
               onChange={(content) => setMemoContent(content)}
               contentKey={activeMemo.memo_id}
               showToolbar={true}
+              autoFocus={true}
             />
           </div>
         ) : (

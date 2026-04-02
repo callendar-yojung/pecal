@@ -14,6 +14,7 @@ import { useTaskColorPresets } from '../../hooks'
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
+const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'] as const
 const pad = (n: number) => String(n).padStart(2, '0')
 const parseDateInput = (value: string) => {
   const [year, month, day] = value.split('-').map(Number)
@@ -48,10 +49,14 @@ export function TaskEditView() {
   const [startMinute, setStartMinute] = useState(0)
   const [endHour, setEndHour] = useState(10)
   const [endMinute, setEndMinute] = useState(0)
+  const [scheduleMode, setScheduleMode] = useState<'single' | 'recurring'>('single')
   const [status, setStatus] = useState<TaskStatus>('todo')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [color, setColor] = useState('#3b82f6')
   const [reminderMinutes, setReminderMinutes] = useState<number | null>(10)
+  const [recurrenceStartDate, setRecurrenceStartDate] = useState('')
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState('')
+  const [recurrenceWeekdays, setRecurrenceWeekdays] = useState<number[]>([])
   const [tags, setTags] = useState<Tag[]>([])
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
 
@@ -84,6 +89,10 @@ export function TaskEditView() {
           ? editTask.reminder_minutes
           : null
       )
+      setScheduleMode(editTask.recurrence ? 'recurring' : 'single')
+      setRecurrenceStartDate(editTask.recurrence?.start_date ?? format(start, 'yyyy-MM-dd'))
+      setRecurrenceEndDate(editTask.recurrence?.end_date ?? format(end, 'yyyy-MM-dd'))
+      setRecurrenceWeekdays(editTask.recurrence?.weekdays ?? [start.getDay()])
       setSelectedTagIds(editTask.tag_ids || [])
     }
   }, [editTask])
@@ -104,6 +113,7 @@ export function TaskEditView() {
   const ownerType = currentMode === 'TEAM' ? 'team' : 'personal'
   const ownerId = currentMode === 'TEAM' ? selectedTeamId : user?.memberId
   const { colorOptions, saveCustomColor } = useTaskColorPresets(user?.memberId)
+  const isRecurring = scheduleMode === 'recurring'
 
   useEffect(() => {
     const loadTags = async () => {
@@ -166,6 +176,16 @@ export function TaskEditView() {
       alert(t('event.invalidTimeRange'))
       return
     }
+    if (isRecurring) {
+      if (!recurrenceStartDate || !recurrenceEndDate || recurrenceWeekdays.length === 0) {
+        alert('반복 일정의 기간과 요일을 선택해 주세요.')
+        return
+      }
+      if (recurrenceStartDate > recurrenceEndDate) {
+        alert('반복 종료일은 시작일보다 빠를 수 없습니다.')
+        return
+      }
+    }
     setIsSubmitting(true)
     try {
       const backendStatusMap = {
@@ -174,15 +194,30 @@ export function TaskEditView() {
         done: 'DONE',
       } as const
       const serializedContent = serializeRichContent(contentDoc)
+      const recurringStart = isRecurring ? parseDateInput(recurrenceStartDate) : startDate
+      const startDatetimeForPayload = buildDatetime(recurringStart, startHour, startMinute)
+      const endDatetimeForPayload = buildDatetime(recurringStart, endHour, endMinute)
+      if (endDatetimeForPayload.getTime() <= startDatetimeForPayload.getTime()) {
+        alert(t('event.invalidTimeRange'))
+        return
+      }
       const updateData = {
         task_id: editTask.id,
         title: title.trim(),
         content: serializedContent || undefined,
-        start_time: toMysqlDatetime(startDatetime),
-        end_time: toMysqlDatetime(endDatetime),
+        start_time: toMysqlDatetime(startDatetimeForPayload),
+        end_time: toMysqlDatetime(endDatetimeForPayload),
         color,
         reminder_minutes: reminderMinutes,
         tag_ids: selectedTagIds,
+        recurrence: isRecurring
+          ? {
+              enabled: true,
+              start_date: recurrenceStartDate,
+              end_date: recurrenceEndDate,
+              weekdays: recurrenceWeekdays,
+            }
+          : null,
         status: backendStatusMap[status],
       }
       await taskApi.updateTask(updateData)
@@ -192,9 +227,16 @@ export function TaskEditView() {
         content: serializedContent || undefined,
         color,
         reminder_minutes: reminderMinutes,
+        recurrence: isRecurring
+          ? {
+              start_date: recurrenceStartDate,
+              end_date: recurrenceEndDate,
+              weekdays: recurrenceWeekdays,
+            }
+          : null,
         tag_ids: selectedTagIds,
-        start_time: startDatetime.toISOString(),
-        end_time: endDatetime.toISOString(),
+        start_time: startDatetimeForPayload.toISOString(),
+        end_time: endDatetimeForPayload.toISOString(),
         status,
         updated_at: new Date().toISOString(),
       }
@@ -236,25 +278,66 @@ ${err?.message || String(err)}`)
               required
               autoFocus
             />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex flex-col gap-1.5 text-sm">
-                <span className="text-gray-700 dark:text-gray-300">시작일</span>
-                <input
-                  type="date"
-                  value={format(startDate, 'yyyy-MM-dd')}
-                  onChange={(e) => setStartDate(parseDateInput(e.target.value))}
-                  className={timeSelectClass}
-                />
-              </label>
-              <label className="flex flex-col gap-1.5 text-sm">
-                <span className="text-gray-700 dark:text-gray-300">종료일</span>
-                <input
-                  type="date"
-                  value={format(endDate, 'yyyy-MM-dd')}
-                  onChange={(e) => setEndDate(parseDateInput(e.target.value))}
-                  className={timeSelectClass}
-                />
-              </label>
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-900/40 p-3 space-y-2">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">등록 유형 선택</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">일반 일정 또는 반복 일정으로 편집합니다.</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setScheduleMode('single')}
+                  className={`rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+                    scheduleMode === 'single'
+                      ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200'
+                      : 'border-gray-300 bg-white text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300'
+                  }`}
+                >
+                  일반 일정
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScheduleMode('recurring')
+                    if (!recurrenceWeekdays.length) setRecurrenceWeekdays([startDate.getDay()])
+                  }}
+                  className={`rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+                    scheduleMode === 'recurring'
+                      ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200'
+                      : 'border-gray-300 bg-white text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300'
+                  }`}
+                >
+                  반복 일정
+                </button>
+              </div>
+            </div>
+            {scheduleMode !== 'recurring' ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="flex flex-col gap-1.5 text-sm">
+                  <span className="text-gray-700 dark:text-gray-300">시작일</span>
+                  <input
+                    type="date"
+                    value={format(startDate, 'yyyy-MM-dd')}
+                    onChange={(e) => setStartDate(parseDateInput(e.target.value))}
+                    className={timeSelectClass}
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5 text-sm">
+                  <span className="text-gray-700 dark:text-gray-300">종료일</span>
+                  <input
+                    type="date"
+                    value={format(endDate, 'yyyy-MM-dd')}
+                    onChange={(e) => setEndDate(parseDateInput(e.target.value))}
+                    className={timeSelectClass}
+                  />
+                </label>
+              </div>
+            ) : null}
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {scheduleMode === 'recurring' ? '반복 시작 시간' : '시작 시간'}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {scheduleMode === 'recurring' ? '반복 일정 시작 시각' : '일정 시작 날짜와 시각'}
+              </p>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <select value={startHour} onChange={(e) => setStartHour(Number(e.target.value))} className={timeSelectClass}>
@@ -274,12 +357,6 @@ ${err?.message || String(err)}`)
               </select>
             </div>
             <div className="flex items-center gap-3">
-              <input
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                className="h-8 w-10 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 p-0.5 cursor-pointer"
-              />
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as TaskStatus)}
@@ -304,6 +381,66 @@ ${err?.message || String(err)}`)
                 <option value="1440">1일 전</option>
               </select>
             </div>
+            {scheduleMode === 'recurring' ? (
+              <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-900/40 p-3 space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">반복 일정</label>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  기간과 요일을 선택하면 해당 기간 동안 반복됩니다.
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <label className="flex flex-col gap-1 text-xs">
+                    <span className="text-gray-600 dark:text-gray-400">반복 시작일</span>
+                    <input
+                      type="date"
+                      value={recurrenceStartDate}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setRecurrenceStartDate(value)
+                        if (recurrenceEndDate && value > recurrenceEndDate) {
+                          setRecurrenceEndDate(value)
+                        }
+                      }}
+                      className={timeSelectClass}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs">
+                    <span className="text-gray-600 dark:text-gray-400">반복 종료일</span>
+                    <input
+                      type="date"
+                      value={recurrenceEndDate}
+                      min={recurrenceStartDate || undefined}
+                      onChange={(e) => setRecurrenceEndDate(e.target.value)}
+                      className={timeSelectClass}
+                    />
+                  </label>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {WEEKDAY_LABELS.map((label, dayIndex) => {
+                    const selected = recurrenceWeekdays.includes(dayIndex)
+                    return (
+                      <button
+                        key={`${label}-${dayIndex}`}
+                        type="button"
+                        onClick={() =>
+                          setRecurrenceWeekdays((prev) =>
+                            prev.includes(dayIndex)
+                              ? prev.filter((day) => day !== dayIndex)
+                              : [...prev, dayIndex].sort((a, b) => a - b)
+                          )
+                        }
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
+                          selected
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : null}
             <TaskColorPresetPicker
               color={color}
               colorOptions={colorOptions}

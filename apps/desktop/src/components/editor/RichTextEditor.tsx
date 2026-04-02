@@ -88,6 +88,7 @@ export interface RichTextEditorProps {
   contentKey?: string | number
   readOnly?: boolean
   showToolbar?: boolean
+  autoFocus?: boolean
 }
 
 const defaultContent = { type: 'doc', content: [{ type: 'paragraph' }] } as Record<string, unknown>
@@ -98,6 +99,7 @@ export default function RichTextEditor({
   contentKey,
   readOnly = false,
   showToolbar = true,
+  autoFocus = false,
 }: RichTextEditorProps) {
   const openExternalLink = async (href: string) => {
     if (isTauriApp()) {
@@ -141,7 +143,7 @@ export default function RichTextEditor({
     editorProps: {
       attributes: {
         class:
-          'min-h-[300px] w-full bg-transparent px-4 py-3 text-gray-900 dark:text-gray-100 focus:outline-none',
+          'min-h-[300px] w-full cursor-text bg-transparent px-4 py-3 text-gray-900 caret-blue-600 dark:text-gray-100 dark:caret-blue-400 focus:outline-none',
       },
       handleClick: (_view, _pos, event) => {
         const target = event.target as HTMLElement | null
@@ -181,6 +183,11 @@ export default function RichTextEditor({
     if (!editor || !initialContent) return
     editor.commands.setContent(initialContent, false)
   }, [editor, contentKey])
+
+  useEffect(() => {
+    if (!editor || readOnly || !autoFocus) return
+    editor.commands.focus('end')
+  }, [editor, contentKey, readOnly, autoFocus])
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">

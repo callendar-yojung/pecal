@@ -8,7 +8,23 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows
+            arch: x64
+            artifact_name: windows-build
+          - os: macos-13
+            platform: macos
+            arch: x64
+            artifact_name: macos-intel-build
+          - os: macos-14
+            platform: macos
+            arch: arm64
+            artifact_name: macos-apple-silicon-build
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout repo
@@ -36,7 +52,36 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Import Apple Developer certificate (macOS)
+        if: matrix.platform == 'macos'
+        shell: bash
+        run: |
+          set -euo pipefail
+          CERT_PATH="$RUNNER_TEMP/developer-id-application.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+
+          echo "${{ secrets.APPLE_DEVELOPER_ID_P12_BASE64 }}" | base64 --decode > "$CERT_PATH"
+
+          security create-keychain -p "${{ secrets.APPLE_KEYCHAIN_PASSWORD }}" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "${{ secrets.APPLE_KEYCHAIN_PASSWORD }}" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" \
+            -k "$KEYCHAIN_PATH" \
+            -P "${{ secrets.APPLE_DEVELOPER_ID_P12_PASSWORD }}" \
+            -T /usr/bin/codesign \
+            -T /usr/bin/security \
+            -T /usr/bin/productbuild
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s \
+            -k "${{ secrets.APPLE_KEYCHAIN_PASSWORD }}" \
+            "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+          security default-keychain -d user -s "$KEYCHAIN_PATH"
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
       - name: Setup Azure Signing
+        if: matrix.platform == 'windows'
         shell: pwsh
         working-directory: apps/desktop
         run: |
@@ -87,6 +132,7 @@ jobs:
           Select-String -Path src-tauri/tauri.conf.json -Pattern '"version"' | Select-Object -First 1
 
       - name: Enforce offline installer mode (Store compliance)
+        if: matrix.platform == 'windows'
         shell: pwsh
         working-directory: apps/desktop
         run: |
@@ -103,6 +149,7 @@ jobs:
           Write-Host "webviewInstallMode is '$mode' (offline-compliant)"
 
       - name: Verify signing files
+        if: matrix.platform == 'windows'
         shell: pwsh
         working-directory: apps/desktop
         run: |
@@ -123,8 +170,22 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE_IDENTITY: ${{ secrets.APPLE_DEVELOPER_ID_IDENTITY }}
+
+      - name: Sign + notarize + staple DMG (macOS)
+        if: matrix.platform == 'macos'
+        shell: bash
+        working-directory: apps/desktop
+        env:
+          APPLE_CERTIFICATE_IDENTITY: ${{ secrets.APPLE_DEVELOPER_ID_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_NOTARY_PROFILE: tauri-notary
+        run: bash ./scripts/macos-sign-notarize.sh
 
       - name: Sign MSI artifact
+        if: matrix.platform == 'windows'
         shell: pwsh
         working-directory: apps/desktop
         run: |
@@ -170,23 +231,40 @@ jobs:
             Write-Host "No bundle directory found"
           }
 
-          $msiArtifact = Get-ChildItem -Path $bundleDir -Recurse -Filter *.msi -File | Select-Object -First 1
-          $nsisArtifact = Get-ChildItem -Path $bundleDir -Recurse -Filter *.exe -File | Select-Object -First 1
-          $artifact = if ($msiArtifact) { $msiArtifact } else { $nsisArtifact }
-          $msiSigFile = Get-ChildItem -Path $bundleDir -Recurse -Filter *.msi.sig -File | Select-Object -First 1
-          $exeSigFile = Get-ChildItem -Path $bundleDir -Recurse -Filter *.exe.sig -File | Select-Object -First 1
-          $sigFile = if ($msiSigFile) { $msiSigFile } else { $exeSigFile }
+          $platform = "${{ matrix.platform }}"
+          $arch = "${{ matrix.arch }}"
+
+          if ($platform -eq "windows") {
+            $msiArtifact = Get-ChildItem -Path $bundleDir -Recurse -Filter *.msi -File | Select-Object -First 1
+            $nsisArtifact = Get-ChildItem -Path $bundleDir -Recurse -Filter *.exe -File | Select-Object -First 1
+            $artifact = if ($msiArtifact) { $msiArtifact } else { $nsisArtifact }
+          } else {
+            $dmgArtifact = Get-ChildItem -Path $bundleDir -Recurse -Filter *.dmg -File | Select-Object -First 1
+            $updaterArtifact = Get-ChildItem -Path $bundleDir -Recurse -Filter *.app.tar.gz -File | Select-Object -First 1
+            $artifact = if ($dmgArtifact) { $dmgArtifact } else { $updaterArtifact }
+          }
 
           Write-Host "=== Found artifact: $($artifact.FullName) ==="
-          Write-Host "=== Found signature: $($sigFile.FullName) ==="
 
           if (-not $artifact) {
-            Write-Error "No MSI artifact found."
+            Write-Error "No installer artifact found."
             exit 1
           }
 
+          $candidateSigPath = "$($artifact.FullName).sig"
+          if (Test-Path $candidateSigPath) {
+            $sigFile = Get-Item $candidateSigPath
+          } else {
+            $sigFile = Get-ChildItem -Path $bundleDir -Recurse -Filter *.sig -File | Select-Object -First 1
+          }
+          if ($sigFile) {
+            Write-Host "=== Found signature: $($sigFile.FullName) ==="
+          } else {
+            Write-Host "=== No signature file found for this artifact ==="
+          }
+
           $artifactExt = $artifact.Extension
-          $artifactName = "Pecal-Desktop-v${{ steps.version.outputs.VERSION }}-windows$artifactExt"
+          $artifactName = "Pecal-Desktop-v${{ steps.version.outputs.VERSION }}-$platform-$arch$artifactExt"
           $artifactPath = Join-Path $env:GITHUB_WORKSPACE $artifactName
           Copy-Item $artifact.FullName $artifactPath -Force
 
@@ -220,7 +298,7 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ steps.version.outputs.VERSION }}"
-          $platform = "windows"
+          $platform = "${{ matrix.platform }}-${{ matrix.arch }}"
           $artifactName = "${{ steps.artifacts.outputs.ARTIFACT_NAME }}"
           $artifactPath = "${{ steps.artifacts.outputs.ARTIFACT_PATH }}"
 
@@ -242,7 +320,7 @@ jobs:
         run: |
           $payload = @{
             version = "${{ steps.version.outputs.VERSION }}"
-            platform = "windows"
+            platform = "${{ matrix.platform }}-${{ matrix.arch }}"
             fileName = "${{ steps.artifacts.outputs.ARTIFACT_NAME }}"
             downloadUrl = "${{ steps.s3_upload.outputs.S3_URL }}"
             fileSize = [int64]"${{ steps.artifacts.outputs.FILE_SIZE }}"
@@ -264,7 +342,7 @@ jobs:
       - name: Upload artifact for release
         uses: actions/upload-artifact@v4
         with:
-          name: windows-build
+          name: ${{ matrix.artifact_name }}
           path: |
             ${{ steps.artifacts.outputs.ARTIFACT_PATH }}
             ${{ steps.artifacts.outputs.SIG_PATH }}

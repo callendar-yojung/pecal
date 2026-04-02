@@ -79,6 +79,16 @@ export function TaskColorPresetPicker({
         <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50/70 p-3 dark:border-gray-700 dark:bg-gray-800/40">
           <p className="text-xs text-gray-500 dark:text-gray-400">{t('event.customColorHelper')}</p>
           <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={color}
+              onChange={(e) => {
+                onColorChange(e.target.value)
+                setCustomColorInput(e.target.value.toUpperCase())
+              }}
+              className="h-8 w-10 shrink-0 rounded border border-gray-300 bg-white p-0.5 dark:border-gray-600 dark:bg-gray-900"
+              title={t('event.color')}
+            />
             <div
               className="h-6 w-6 shrink-0 rounded-full border border-gray-300 dark:border-gray-600"
               style={{ backgroundColor: customColorInput || color }}
@@ -105,7 +115,9 @@ export function TaskColorPresetPicker({
           {customColorError ? (
             <p className="text-xs text-red-500 dark:text-red-400">{customColorError}</p>
           ) : (
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{customColorInput || color}</p>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+              {(customColorInput || color).toUpperCase()} · rgb(120,34,255) / #7A22FF
+            </p>
           )}
         </div>
       ) : null}

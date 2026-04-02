@@ -109,6 +109,11 @@ export interface Task {
   color?: string
   reminder_minutes?: number | null
   rrule?: string | null
+  recurrence?: {
+    start_date: string
+    end_date: string
+    weekdays: number[]
+  } | null
   tag_ids?: number[]
   status?: TaskStatus
   created_at: string
@@ -128,6 +133,12 @@ export interface CreateTaskPayload {
   file_ids?: number[]
   reminder_minutes?: number | null
   rrule?: string | null
+  recurrence?: {
+    enabled?: boolean
+    start_date?: string
+    end_date?: string
+    weekdays?: number[]
+  } | null
   status?: TaskStatus | BackendTaskStatus
   workspace_id: number
 }
@@ -141,6 +152,12 @@ export interface UpdateTaskPayload {
   color?: string
   reminder_minutes?: number | null
   rrule?: string | null
+  recurrence?: {
+    enabled?: boolean
+    start_date?: string
+    end_date?: string
+    weekdays?: number[]
+  } | null
   tag_ids?: number[]
   status?: TaskStatus | BackendTaskStatus
 }

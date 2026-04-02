@@ -2,10 +2,19 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useWorkspaceStore, useViewStore } from '../../stores'
 import { taskApi } from '../../api'
-import type { Task } from '../../types'
+import type { BackendTaskStatus, Task } from '../../types'
 import { getErrorMessage } from '../../utils/error'
+import { emitTaskStatusChanged, onTaskStatusChanged } from '../../lib/taskStatusSync'
+import { dedupeTasksById } from '../../utils/taskRecurrence'
 
 const PAGE_SIZE = 15
+
+function normalizeStatus(status?: string): Task['status'] {
+  const value = String(status ?? '').toLowerCase()
+  if (value === 'done') return 'done'
+  if (value === 'in_progress') return 'in_progress'
+  return 'todo'
+}
 
 const STATUS_STYLES: Record<string, { dot: string; badge: string; label: string }> = {
   todo: {
@@ -41,7 +50,14 @@ export function TaskListView() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('DESC')
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
+  const [pendingTaskIds, setPendingTaskIds] = useState<Set<number>>(new Set())
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const applyTaskStatusLocally = useCallback((taskId: number, nextStatus: Task['status']) => {
+    setTasks((prev) =>
+      prev.map((task) => (task.id === taskId ? { ...task, status: nextStatus } : task))
+    )
+  }, [])
 
   const fetchTasks = useCallback(async () => {
     if (!selectedWorkspaceId) {
@@ -63,7 +79,7 @@ export function TaskListView() {
         sort_order: sortOrder,
         search: search || undefined,
       })
-      setTasks(res.tasks || [])
+      setTasks(dedupeTasksById(res.tasks || []))
       setTotal(res.total || 0)
       setTotalPages(res.totalPages || 1)
     } catch (err) {
@@ -92,6 +108,59 @@ export function TaskListView() {
       setSearch(value)
     }, 400)
   }
+
+  const handleToggleDone = useCallback(
+    async (task: Task) => {
+      if (pendingTaskIds.has(task.id)) return
+      const prevStatus = normalizeStatus(task.status)
+      const nextStatus = (prevStatus === 'done' ? 'todo' : 'done') as Task['status']
+      const nextBackendStatus: BackendTaskStatus = nextStatus === 'done' ? 'DONE' : 'TODO'
+
+      applyTaskStatusLocally(task.id, nextStatus)
+      emitTaskStatusChanged({
+        taskId: task.id,
+        prevStatus,
+        nextStatus,
+        source: 'task-list',
+      })
+
+      setPendingTaskIds((prev) => {
+        const next = new Set(prev)
+        next.add(task.id)
+        return next
+      })
+      try {
+        await taskApi.updateTask({
+          task_id: task.id,
+          status: nextBackendStatus,
+        })
+      } catch (err) {
+        console.error('Failed to toggle task status from list:', err)
+        applyTaskStatusLocally(task.id, prevStatus)
+        emitTaskStatusChanged({
+          taskId: task.id,
+          prevStatus: nextStatus,
+          nextStatus: prevStatus,
+          source: 'task-list',
+        })
+      } finally {
+        setPendingTaskIds((prev) => {
+          const next = new Set(prev)
+          next.delete(task.id)
+          return next
+        })
+      }
+    },
+    [applyTaskStatusLocally, pendingTaskIds]
+  )
+
+  useEffect(() => {
+    const off = onTaskStatusChanged(({ taskId, nextStatus, source }) => {
+      if (source === 'task-list') return
+      applyTaskStatusLocally(taskId, nextStatus)
+    })
+    return off
+  }, [applyTaskStatusLocally])
 
   if (!selectedWorkspaceId) {
     return (
@@ -196,7 +265,7 @@ export function TaskListView() {
             </thead>
             <tbody>
               {tasks.map((task) => {
-                const statusKey = (task.status || 'todo').toLowerCase()
+                const statusKey = normalizeStatus(task.status)
                 const style = STATUS_STYLES[statusKey] || STATUS_STYLES.todo
                 return (
                   <tr
@@ -206,7 +275,24 @@ export function TaskListView() {
                   >
                     <td className="py-2.5 px-3">
                       <div className="flex items-center gap-2.5">
-                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${style.dot}`} />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            void handleToggleDone(task)
+                          }}
+                          disabled={pendingTaskIds.has(task.id)}
+                          className={`h-5 w-5 shrink-0 rounded border transition-colors ${
+                            normalizeStatus(task.status) === 'done'
+                              ? 'border-emerald-500 bg-emerald-500'
+                              : 'border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800'
+                          } ${pendingTaskIds.has(task.id) ? 'opacity-60 cursor-not-allowed' : 'hover:border-emerald-400'}`}
+                          aria-label={normalizeStatus(task.status) === 'done' ? t('status.done') : t('status.todo')}
+                        >
+                          {normalizeStatus(task.status) === 'done' ? (
+                            <span className="block text-center text-[11px] leading-4 text-white">✓</span>
+                          ) : null}
+                        </button>
                         <span className="text-sm text-gray-800 dark:text-gray-200 truncate">
                           {task.title}
                         </span>

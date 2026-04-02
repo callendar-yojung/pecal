@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { invoke } from '@tauri-apps/api/core'
 import { addDays, format, startOfWeek } from 'date-fns'
 import { CalendarHeader } from './CalendarHeader'
 import { CalendarGrid } from './CalendarGrid'
@@ -8,7 +7,6 @@ import { TaskDrawer } from './TaskDrawer'
 import { CalendarTableView } from './CalendarTableView'
 import { useWorkspaceStore, useCalendarStore, useViewStore } from '../../stores'
 import { calendarApi, taskApi } from '../../api'
-import { isTauriApp } from '../../utils/tauri'
 import { parseApiDateTime } from '../../utils/datetime'
 import { getErrorMessage } from '../../utils/error'
 import type { Task } from '../../types'
@@ -154,11 +152,12 @@ export function Calendar() {
         const month = selectedDate.getMonth() + 1
         const res = await calendarApi.getMonthlyTasks(selectedWorkspaceId, year, month)
 
-        const byId = new Map<number, Task>()
+        const byOccurrence = new Map<string, Task>()
         for (const row of res.tasksByDate ?? []) {
           for (const item of row.tasks ?? []) {
-            if (byId.has(item.id)) continue
-            byId.set(item.id, {
+            const occurrenceKey = `${item.id}::${item.start_time}::${item.end_time || item.start_time}`
+            if (byOccurrence.has(occurrenceKey)) continue
+            byOccurrence.set(occurrenceKey, {
               id: item.id,
               title: item.title,
               start_time: item.start_time,
@@ -177,28 +176,11 @@ export function Calendar() {
             })
           }
         }
-        const allTasks = Array.from(byId.values()).sort(
+        const allTasks = Array.from(byOccurrence.values()).sort(
           (a, b) => parseApiDateTime(a.start_time).getTime() - parseApiDateTime(b.start_time).getTime(),
         )
 
         setEvents(allTasks)
-
-        if (isTauriApp()) {
-          if (allTasks.length === 0) {
-            await invoke('clear_workspace_task_alarms', { workspaceId: selectedWorkspaceId })
-          } else {
-            await invoke('sync_task_alarms', {
-              alarms: allTasks.map((task) => ({
-                task_id: task.id,
-                workspace_id: task.workspace_id,
-                title: task.title,
-                start_at_unix: Math.floor(parseApiDateTime(task.start_time).getTime() / 1000),
-                reminder_minutes_before: Math.max(0, Number(task.reminder_minutes ?? 10)),
-                is_enabled: task.status !== 'done',
-              })),
-            })
-          }
-        }
       } catch (err) {
         const message = getErrorMessage(err, t('common.error'))
         console.error('Calendar fetch failed:', message)

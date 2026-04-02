@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { listen } from '@tauri-apps/api/event'
-import { ask } from '@tauri-apps/plugin-dialog'
-import { invoke } from '@tauri-apps/api/core'
 import { Sidebar } from './components/sidebar'
 import { Calendar } from './components/calendar'
 import { TaskListView, FileListView, MemoView, TaskCreateView, TeamManageView, TaskExportView, OverviewView, TaskDetailView, TaskEditView } from './components/views'
@@ -17,25 +14,8 @@ import {
 import { LoginPage } from './components/auth'
 import { useWorkspaces } from './hooks'
 import { useThemeStore, useAuthStore, useViewStore } from './stores'
-import { authApi } from './api'
-import { isTauriApp } from './utils/tauri'
+import { authApi, notificationsApi } from './api'
 import { openExternal } from './lib/openExternal'
-
-interface AlarmTriggeredPayload {
-  alarm_id: string
-  task_id: number
-  workspace_id: number
-  title: string
-  message: string
-  scheduled_start_at_unix: number
-}
-
-interface UserPreferences {
-  theme: string
-  language: string
-  timezone: string
-  notifications_enabled: boolean
-}
 
 interface AccountWithConsent {
   privacy_consent?: boolean
@@ -73,61 +53,64 @@ function AppContent() {
   useWorkspaces()
 
   useEffect(() => {
-    if (!isTauriApp()) return
+    let cancelled = false
+    let timer: number | null = null
+    const seenNotificationIds = new Set<number>()
 
-    let unlisten: (() => void) | undefined
-
-    const setup = async () => {
-      try {
-        const preferences = await invoke<UserPreferences>('get_user_preferences')
-        await invoke('set_alarm_notifications_enabled', {
-          enabled: preferences.notifications_enabled,
-        })
-      } catch (error) {
-        console.error('Failed to sync alarm notification preference:', error)
+    const showSystemNotification = (title: string, body: string) => {
+      if (typeof Notification === 'undefined') return
+      if (Notification.permission === 'granted') {
+        new Notification(title, { body })
+        return
       }
-
-      try {
-        unlisten = await listen<AlarmTriggeredPayload>('alarm://trigger', async (event) => {
-          const payload = event.payload
-
-          if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-            new Notification(payload.title, { body: payload.message })
-          } else if (
-            typeof Notification !== 'undefined' &&
-            Notification.permission !== 'denied'
-          ) {
-            Notification.requestPermission().then((permission) => {
-              if (permission === 'granted') {
-                new Notification(payload.title, { body: payload.message })
-              }
-            })
-          }
-
-          const snooze = await ask(
-            `${payload.message}\n\n${t('alarm.snoozePrompt')}`,
-            {
-              title: t('alarm.title'),
-              okLabel: t('alarm.snooze5m'),
-              cancelLabel: t('alarm.dismiss'),
-            }
-          )
-
-          if (snooze) {
-            await invoke('snooze_alarm', { alarm_id: payload.alarm_id, minutes: 5 })
-          } else {
-            await invoke('dismiss_alarm', { alarm_id: payload.alarm_id })
+      if (Notification.permission !== 'denied') {
+        void Notification.requestPermission().then((permission) => {
+          if (permission === 'granted') {
+            new Notification(title, { body })
           }
         })
-      } catch (error) {
-        console.error('Failed to register alarm listener:', error)
       }
     }
 
-    setup()
+    const syncReminderNotifications = async (initial = false) => {
+      try {
+        const response = await notificationsApi.getNotifications(30)
+        const items = Array.isArray(response.notifications)
+          ? response.notifications
+          : []
+        const reminderItems = items.filter((item) => item.type === 'TASK_REMINDER')
+        if (initial) {
+          reminderItems.forEach((item) => {
+            seenNotificationIds.add(item.notification_id)
+          })
+          return
+        }
+        reminderItems
+          .slice()
+          .reverse()
+          .forEach((item) => {
+            if (seenNotificationIds.has(item.notification_id)) return
+            seenNotificationIds.add(item.notification_id)
+            if (item.is_read === 1) return
+            showSystemNotification(item.title || t('alarm.title'), item.message || '')
+          })
+      } catch (error) {
+        console.error('Failed to sync task reminder notifications:', error)
+      }
+    }
+
+    void syncReminderNotifications(true).then(() => {
+      if (cancelled) return
+      timer = window.setInterval(() => {
+        void syncReminderNotifications(false)
+      }, 15000)
+    })
 
     return () => {
-      if (unlisten) unlisten()
+      cancelled = true
+      if (timer) {
+        window.clearInterval(timer)
+      }
     }
   }, [t])
 

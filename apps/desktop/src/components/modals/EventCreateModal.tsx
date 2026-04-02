@@ -52,7 +52,7 @@ export function EventCreateModal() {
   const [status, setStatus] = useState<TaskStatus>('todo')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [color, setColor] = useState('#3b82f6')
-  const [reminderMinutes, setReminderMinutes] = useState<number | null>(10)
+  const [reminderMinutes, setReminderMinutes] = useState<number | null>(null)
   const [tags, setTags] = useState<Tag[]>([])
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
   const [isTagsLoading, setIsTagsLoading] = useState(false)
@@ -336,15 +336,6 @@ export function EventCreateModal() {
 
               {/* 색상 + 상태 한 줄 */}
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('event.color')}</label>
-                  <input
-                    type="color"
-                    value={color}
-                    onChange={(e) => setColor(e.target.value)}
-                    className="h-8 w-10 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 p-0.5 cursor-pointer"
-                  />
-                </div>
                 <div className="flex items-center gap-2 flex-1">
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('event.status')}</label>
                   <select
