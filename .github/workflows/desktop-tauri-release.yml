@@ -248,7 +248,9 @@ jobs:
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
           APPLE_NOTARY_PROFILE: tauri-notary
           POLL_INTERVAL_SEC: 20
-          TIMEOUT_SEC: 1800
+          TIMEOUT_SEC: 3600
+          NOTARY_RETRY_MAX: 5
+          NOTARY_RETRY_DELAY_SEC: 15
         run: bash ./scripts/macos-sign-notarize.sh
 
       - name: Sign MSI artifact

@@ -12,8 +12,55 @@ APPLE_ID="${APPLE_ID:-}"
 APPLE_TEAM_ID="${APPLE_TEAM_ID:-}"
 APPLE_APP_PASSWORD="${APPLE_APP_PASSWORD:-}"
 POLL_INTERVAL_SEC="${POLL_INTERVAL_SEC:-20}"
-TIMEOUT_SEC="${TIMEOUT_SEC:-1800}"
+TIMEOUT_SEC="${TIMEOUT_SEC:-3600}"
+NOTARY_RETRY_MAX="${NOTARY_RETRY_MAX:-5}"
+NOTARY_RETRY_DELAY_SEC="${NOTARY_RETRY_DELAY_SEC:-15}"
 RUNNER_TMP="${RUNNER_TEMP:-/tmp}"
+
+is_transient_notary_error() {
+  local error_text="$1"
+  [[ "$error_text" == *"Code=-1009"* ]] ||
+    [[ "$error_text" == *"The Internet connection appears to be offline."* ]] ||
+    [[ "$error_text" == *"timed out"* ]] ||
+    [[ "$error_text" == *"network connection was lost"* ]] ||
+    [[ "$error_text" == *"Connection reset by peer"* ]] ||
+    [[ "$error_text" == *"HTTPError(statusCode: nil"* ]]
+}
+
+run_notarytool_with_retries() {
+  local description="$1"
+  shift
+
+  local attempt=1
+  local output=""
+  local exit_code=0
+  while (( attempt <= NOTARY_RETRY_MAX )); do
+    set +e
+    output="$("$@" 2>&1)"
+    exit_code=$?
+    set -e
+
+    if (( exit_code == 0 )); then
+      printf '%s' "$output"
+      return 0
+    fi
+
+    if is_transient_notary_error "$output"; then
+      echo "$description transient network error (attempt ${attempt}/${NOTARY_RETRY_MAX}). Retrying in ${NOTARY_RETRY_DELAY_SEC}s..." >&2
+      echo "$output" >&2
+      sleep "$NOTARY_RETRY_DELAY_SEC"
+      attempt=$((attempt + 1))
+      continue
+    fi
+
+    echo "$output" >&2
+    return "$exit_code"
+  done
+
+  echo "$description failed after ${NOTARY_RETRY_MAX} retries due to transient network errors." >&2
+  echo "$output" >&2
+  return 1
+}
 
 if [[ -z "$DMG_PATH" ]]; then
   DMG_PATH="$(find "$BUNDLE_DIR" -type f -name "*.dmg" | head -n 1 || true)"
@@ -72,7 +119,9 @@ echo "Submitting DMG to notarization"
 NOTARY_DMG="$RUNNER_TMP/notary-target.dmg"
 cp -f "$DMG_PATH" "$NOTARY_DMG"
 
-SUBMIT_JSON="$(xcrun notarytool submit "$NOTARY_DMG" --keychain-profile "$APPLE_NOTARY_PROFILE" --output-format json)"
+SUBMIT_JSON="$(run_notarytool_with_retries \
+  "notary submit" \
+  xcrun notarytool submit "$NOTARY_DMG" --keychain-profile "$APPLE_NOTARY_PROFILE" --output-format json)"
 SUBMISSION_ID="$(echo "$SUBMIT_JSON" | jq -r '.id // empty')"
 if [[ -z "$SUBMISSION_ID" ]]; then
   echo "Could not parse notary submission id."
@@ -84,7 +133,12 @@ echo "Submission ID: $SUBMISSION_ID"
 START_TS="$(date +%s)"
 
 while true; do
-  INFO_JSON="$(xcrun notarytool info "$SUBMISSION_ID" --keychain-profile "$APPLE_NOTARY_PROFILE" --output-format json)"
+  INFO_JSON="$(run_notarytool_with_retries \
+    "notary info" \
+    xcrun notarytool info "$SUBMISSION_ID" --keychain-profile "$APPLE_NOTARY_PROFILE" --output-format json)" || {
+    echo "Notary status check failed with non-transient error."
+    exit 1
+  }
   STATUS="$(echo "$INFO_JSON" | jq -r '.status // "Unknown"')"
   echo "Current status: $STATUS"
 
@@ -94,7 +148,9 @@ while true; do
       ;;
     Invalid|Rejected)
       echo "Notarization failed with status: $STATUS"
-      xcrun notarytool log "$SUBMISSION_ID" --keychain-profile "$APPLE_NOTARY_PROFILE" --output-format json || true
+      run_notarytool_with_retries \
+        "notary log" \
+        xcrun notarytool log "$SUBMISSION_ID" --keychain-profile "$APPLE_NOTARY_PROFILE" --output-format json || true
       exit 1
       ;;
     "In Progress"|Submitted)
@@ -108,7 +164,9 @@ while true; do
   ELAPSED=$((NOW_TS - START_TS))
   if (( ELAPSED > TIMEOUT_SEC )); then
     echo "Notarization timeout after ${TIMEOUT_SEC}s"
-    xcrun notarytool log "$SUBMISSION_ID" --keychain-profile "$APPLE_NOTARY_PROFILE" --output-format json || true
+    run_notarytool_with_retries \
+      "notary log" \
+      xcrun notarytool log "$SUBMISSION_ID" --keychain-profile "$APPLE_NOTARY_PROFILE" --output-format json || true
     exit 1
   fi
 

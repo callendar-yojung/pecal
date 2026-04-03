@@ -1,7 +1,7 @@
 import AdminLayoutWrapper from "@/components/admin/AdminLayoutWrapper";
-import "../globals.css";
+import "../../globals.css";
 
-export default function AdminRootLayout({
+export default function AdminProtectedLayout({
   children,
 }: {
   children: React.ReactNode;

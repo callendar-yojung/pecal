@@ -59,17 +59,13 @@ const MENU_ITEMS: Array<{
 export default function AdminLayoutWrapper({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname() ?? "";
-  const isLoginPage = pathname === "/admin/login" || pathname.startsWith("/admin/login/");
   const [admin, setAdmin] = useState<Admin | null>(null);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [health, setHealth] = useState<{ overallStatus: "ok" | "warn" | "error"; checkedAt: string | null; items: HealthItem[] } | null>(null);
 
   const fetchAdmin = useCallback(async () => {
-    if (isLoginPage) {
-      setLoading(false);
-      return;
-    }
+    setLoading(true);
 
     try {
       const response = await fetch("/api/admin/me");
@@ -88,7 +84,7 @@ export default function AdminLayoutWrapper({ children }: { children: React.React
     } finally {
       setLoading(false);
     }
-  }, [isLoginPage, pathname, router]);
+  }, [pathname, router]);
 
   useEffect(() => {
     fetchAdmin();
@@ -99,7 +95,6 @@ export default function AdminLayoutWrapper({ children }: { children: React.React
   }, [pathname]);
 
   useEffect(() => {
-    if (isLoginPage) return;
     if (!admin) return;
     const fetchHealth = async () => {
       try {
@@ -112,7 +107,7 @@ export default function AdminLayoutWrapper({ children }: { children: React.React
       }
     };
     fetchHealth();
-  }, [admin, isLoginPage, pathname]);
+  }, [admin, pathname]);
 
   const handleLogout = async () => {
     try {
@@ -129,21 +124,18 @@ export default function AdminLayoutWrapper({ children }: { children: React.React
   );
 
   useEffect(() => {
-    if (isLoginPage) return;
     if (!admin) return;
     const allowedPaths = new Set(menuItems.map((item) => item.path));
     if (pathname.startsWith("/admin") && pathname !== "/admin/security" && pathname !== "/admin/login") {
-      const isAllowed = Array.from(allowedPaths).some((path) => pathname === path || pathname.startsWith(`${path}/`));
+      const isAllowed = Array.from(allowedPaths).some(
+        (path) => pathname === path || pathname.startsWith(`${path}/`),
+      );
       if (!isAllowed) {
         const fallback = menuItems[0]?.path ?? "/admin/security";
         router.replace(fallback);
       }
     }
-  }, [admin, isLoginPage, menuItems, pathname, router]);
-
-  if (isLoginPage) {
-    return <>{children}</>;
-  }
+  }, [admin, menuItems, pathname, router]);
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><div className="text-muted-foreground">로딩 중...</div></div>;
@@ -169,7 +161,9 @@ export default function AdminLayoutWrapper({ children }: { children: React.React
 
         <nav className="flex-1 space-y-1 overflow-y-auto p-4">
           {menuItems.map((item) => {
-            const isActive = pathname === item.path || pathname.startsWith(`${item.path}/`);
+            const isActive =
+              pathname === item.path ||
+              pathname.startsWith(`${item.path}/`);
             const Icon = item.icon;
             return (
               <button key={item.path} type="button" onClick={() => { setMenuOpen(false); router.push(item.path); }} className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors ${isActive ? "bg-blue-50 font-medium text-blue-600 dark:bg-blue-900/20 dark:text-blue-400" : "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"}`}>
