@@ -127,6 +127,7 @@ jobs:
 
           echo "Resolved APPLE_CERTIFICATE_IDENTITY: $RESOLVED_IDENTITY"
           echo "APPLE_CERTIFICATE_IDENTITY=$RESOLVED_IDENTITY" >> "$GITHUB_ENV"
+          echo "APPLE_KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
 
       - name: Setup Azure Signing
         if: matrix.platform == 'windows'
@@ -246,11 +247,14 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
+          APPLE_KEYCHAIN_PATH: ${{ env.APPLE_KEYCHAIN_PATH }}
           APPLE_NOTARY_PROFILE: tauri-notary
           POLL_INTERVAL_SEC: 20
           TIMEOUT_SEC: 3600
           NOTARY_RETRY_MAX: 5
           NOTARY_RETRY_DELAY_SEC: 15
+          NOTARY_SUBMISSION_MAX_ATTEMPTS: 2
         run: bash ./scripts/macos-sign-notarize.sh
 
       - name: Sign MSI artifact

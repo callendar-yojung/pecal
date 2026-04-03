@@ -11,10 +11,13 @@ APPLE_NOTARY_PROFILE="${APPLE_NOTARY_PROFILE:-tauri-notary}"
 APPLE_ID="${APPLE_ID:-}"
 APPLE_TEAM_ID="${APPLE_TEAM_ID:-}"
 APPLE_APP_PASSWORD="${APPLE_APP_PASSWORD:-}"
+APPLE_KEYCHAIN_PATH="${APPLE_KEYCHAIN_PATH:-}"
+APPLE_KEYCHAIN_PASSWORD="${APPLE_KEYCHAIN_PASSWORD:-}"
 POLL_INTERVAL_SEC="${POLL_INTERVAL_SEC:-20}"
 TIMEOUT_SEC="${TIMEOUT_SEC:-3600}"
 NOTARY_RETRY_MAX="${NOTARY_RETRY_MAX:-5}"
 NOTARY_RETRY_DELAY_SEC="${NOTARY_RETRY_DELAY_SEC:-15}"
+NOTARY_SUBMISSION_MAX_ATTEMPTS="${NOTARY_SUBMISSION_MAX_ATTEMPTS:-2}"
 RUNNER_TMP="${RUNNER_TEMP:-/tmp}"
 
 is_transient_notary_error() {
@@ -25,6 +28,28 @@ is_transient_notary_error() {
     [[ "$error_text" == *"network connection was lost"* ]] ||
     [[ "$error_text" == *"Connection reset by peer"* ]] ||
     [[ "$error_text" == *"HTTPError(statusCode: nil"* ]]
+}
+
+is_keychain_locked_error() {
+  local error_text="$1"
+  [[ "$error_text" == *"keychainLocked("* ]] ||
+    [[ "$error_text" == *"keychain is locked"* ]]
+}
+
+unlock_notary_keychain() {
+  if [[ -z "$APPLE_KEYCHAIN_PASSWORD" ]]; then
+    return 0
+  fi
+
+  local target_keychain="$APPLE_KEYCHAIN_PATH"
+  if [[ -z "$target_keychain" ]]; then
+    target_keychain="$(security default-keychain -d user 2>/dev/null | tr -d '"' || true)"
+  fi
+
+  if [[ -n "$target_keychain" ]]; then
+    security unlock-keychain -p "$APPLE_KEYCHAIN_PASSWORD" "$target_keychain" || true
+  fi
+  security unlock-keychain -p "$APPLE_KEYCHAIN_PASSWORD" login.keychain-db || true
 }
 
 run_notarytool_with_retries() {
@@ -48,6 +73,14 @@ run_notarytool_with_retries() {
     if is_transient_notary_error "$output"; then
       echo "$description transient network error (attempt ${attempt}/${NOTARY_RETRY_MAX}). Retrying in ${NOTARY_RETRY_DELAY_SEC}s..." >&2
       echo "$output" >&2
+      sleep "$NOTARY_RETRY_DELAY_SEC"
+      attempt=$((attempt + 1))
+      continue
+    fi
+
+    if is_keychain_locked_error "$output"; then
+      echo "$description keychain appears locked (attempt ${attempt}/${NOTARY_RETRY_MAX}). Unlocking keychain and retrying..." >&2
+      unlock_notary_keychain
       sleep "$NOTARY_RETRY_DELAY_SEC"
       attempt=$((attempt + 1))
       continue
@@ -107,6 +140,8 @@ echo "Codesigning .dmg with identity: $APPLE_CERTIFICATE_IDENTITY"
 codesign --force --sign "$APPLE_CERTIFICATE_IDENTITY" --timestamp "$DMG_PATH"
 codesign --verify --verbose=4 "$DMG_PATH"
 
+unlock_notary_keychain
+
 if [[ -n "$APPLE_ID" && -n "$APPLE_TEAM_ID" && -n "$APPLE_APP_PASSWORD" ]]; then
   echo "Storing notarytool profile: $APPLE_NOTARY_PROFILE"
   xcrun notarytool store-credentials "$APPLE_NOTARY_PROFILE" \
@@ -119,65 +154,89 @@ echo "Submitting DMG to notarization"
 NOTARY_DMG="$RUNNER_TMP/notary-target.dmg"
 cp -f "$DMG_PATH" "$NOTARY_DMG"
 
-SUBMIT_JSON="$(run_notarytool_with_retries \
-  "notary submit" \
-  xcrun notarytool submit "$NOTARY_DMG" --keychain-profile "$APPLE_NOTARY_PROFILE" --output-format json)"
-SUBMISSION_ID="$(echo "$SUBMIT_JSON" | jq -r '.id // empty')"
-if [[ -z "$SUBMISSION_ID" ]]; then
-  echo "Could not parse notary submission id."
-  echo "$SUBMIT_JSON"
-  exit 1
-fi
+NOTARIZATION_ACCEPTED=0
+LAST_SUBMISSION_ID=""
 
-echo "Submission ID: $SUBMISSION_ID"
-START_TS="$(date +%s)"
-
-while true; do
-  INFO_JSON="$(run_notarytool_with_retries \
-    "notary info" \
-    xcrun notarytool info "$SUBMISSION_ID" --keychain-profile "$APPLE_NOTARY_PROFILE" --output-format json)" || {
-    echo "Notary status check failed with non-transient error."
-    exit 1
-  }
-  STATUS="$(echo "$INFO_JSON" | jq -r '.status // "Unknown"')"
-  echo "Current status: $STATUS"
-
-  case "$STATUS" in
-    Accepted)
-      break
-      ;;
-    Invalid|Rejected)
-      echo "Notarization failed with status: $STATUS"
-      run_notarytool_with_retries \
-        "notary log" \
-        xcrun notarytool log "$SUBMISSION_ID" --keychain-profile "$APPLE_NOTARY_PROFILE" --output-format json || true
-      exit 1
-      ;;
-    "In Progress"|Submitted)
-      ;;
-    *)
-      echo "Unexpected notarization status: $STATUS"
-      ;;
-  esac
-
-  NOW_TS="$(date +%s)"
-  ELAPSED=$((NOW_TS - START_TS))
-  if (( ELAPSED > TIMEOUT_SEC )); then
-    echo "Notarization timeout after ${TIMEOUT_SEC}s (submission: $SUBMISSION_ID)"
-    echo "Attempting to fetch notary log for diagnostics..."
-    LOG_OUTPUT="$(run_notarytool_with_retries \
-      "notary log" \
-      xcrun notarytool log "$SUBMISSION_ID" --keychain-profile "$APPLE_NOTARY_PROFILE" --output-format json || true)"
-    if [[ -n "$LOG_OUTPUT" ]]; then
-      echo "$LOG_OUTPUT"
-    else
-      echo "Notary log is not available yet. Keep submission id and check later: $SUBMISSION_ID"
-    fi
+for ((submit_attempt = 1; submit_attempt <= NOTARY_SUBMISSION_MAX_ATTEMPTS; submit_attempt++)); do
+  echo "Submitting DMG to notarization (attempt ${submit_attempt}/${NOTARY_SUBMISSION_MAX_ATTEMPTS})"
+  SUBMIT_JSON="$(run_notarytool_with_retries \
+    "notary submit" \
+    xcrun notarytool submit "$NOTARY_DMG" --keychain-profile "$APPLE_NOTARY_PROFILE" --output-format json)"
+  SUBMISSION_ID="$(echo "$SUBMIT_JSON" | jq -r '.id // empty')"
+  if [[ -z "$SUBMISSION_ID" ]]; then
+    echo "Could not parse notary submission id."
+    echo "$SUBMIT_JSON"
     exit 1
   fi
 
-  sleep "$POLL_INTERVAL_SEC"
+  LAST_SUBMISSION_ID="$SUBMISSION_ID"
+  echo "Submission ID: $SUBMISSION_ID"
+  START_TS="$(date +%s)"
+
+  while true; do
+    INFO_JSON="$(run_notarytool_with_retries \
+      "notary info" \
+      xcrun notarytool info "$SUBMISSION_ID" --keychain-profile "$APPLE_NOTARY_PROFILE" --output-format json)" || {
+      echo "Notary status check failed with non-transient error."
+      exit 1
+    }
+    STATUS="$(echo "$INFO_JSON" | jq -r '.status // "Unknown"')"
+    echo "Current status: $STATUS"
+
+    case "$STATUS" in
+      Accepted)
+        NOTARIZATION_ACCEPTED=1
+        break
+        ;;
+      Invalid|Rejected)
+        echo "Notarization failed with status: $STATUS"
+        run_notarytool_with_retries \
+          "notary log" \
+          xcrun notarytool log "$SUBMISSION_ID" --keychain-profile "$APPLE_NOTARY_PROFILE" --output-format json || true
+        exit 1
+        ;;
+      "In Progress"|Submitted)
+        ;;
+      *)
+        echo "Unexpected notarization status: $STATUS"
+        ;;
+    esac
+
+    NOW_TS="$(date +%s)"
+    ELAPSED=$((NOW_TS - START_TS))
+    if (( ELAPSED > TIMEOUT_SEC )); then
+      echo "Notarization timeout after ${TIMEOUT_SEC}s (submission: $SUBMISSION_ID)"
+      echo "Attempting to fetch notary log for diagnostics..."
+      LOG_OUTPUT="$(run_notarytool_with_retries \
+        "notary log" \
+        xcrun notarytool log "$SUBMISSION_ID" --keychain-profile "$APPLE_NOTARY_PROFILE" --output-format json || true)"
+      if [[ -n "$LOG_OUTPUT" ]]; then
+        echo "$LOG_OUTPUT"
+      else
+        echo "Notary log is not available yet. Keep submission id and check later: $SUBMISSION_ID"
+      fi
+
+      if (( submit_attempt < NOTARY_SUBMISSION_MAX_ATTEMPTS )); then
+        echo "Retrying notarization with a new submission..."
+        break
+      fi
+
+      echo "Notarization did not complete after ${NOTARY_SUBMISSION_MAX_ATTEMPTS} submission attempts."
+      exit 1
+    fi
+
+    sleep "$POLL_INTERVAL_SEC"
+  done
+
+  if (( NOTARIZATION_ACCEPTED == 1 )); then
+    break
+  fi
 done
+
+if (( NOTARIZATION_ACCEPTED != 1 )); then
+  echo "Notarization did not reach Accepted. Last submission: $LAST_SUBMISSION_ID"
+  exit 1
+fi
 
 echo "Stapling DMG"
 xcrun stapler staple "$DMG_PATH"
