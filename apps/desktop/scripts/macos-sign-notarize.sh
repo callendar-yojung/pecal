@@ -163,10 +163,16 @@ while true; do
   NOW_TS="$(date +%s)"
   ELAPSED=$((NOW_TS - START_TS))
   if (( ELAPSED > TIMEOUT_SEC )); then
-    echo "Notarization timeout after ${TIMEOUT_SEC}s"
-    run_notarytool_with_retries \
+    echo "Notarization timeout after ${TIMEOUT_SEC}s (submission: $SUBMISSION_ID)"
+    echo "Attempting to fetch notary log for diagnostics..."
+    LOG_OUTPUT="$(run_notarytool_with_retries \
       "notary log" \
-      xcrun notarytool log "$SUBMISSION_ID" --keychain-profile "$APPLE_NOTARY_PROFILE" --output-format json || true
+      xcrun notarytool log "$SUBMISSION_ID" --keychain-profile "$APPLE_NOTARY_PROFILE" --output-format json || true)"
+    if [[ -n "$LOG_OUTPUT" ]]; then
+      echo "$LOG_OUTPUT"
+    else
+      echo "Notary log is not available yet. Keep submission id and check later: $SUBMISSION_ID"
+    fi
     exit 1
   fi
 
