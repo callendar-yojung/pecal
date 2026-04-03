@@ -140,6 +140,24 @@ jobs:
           echo "${{ secrets.HOME_SERVER_PRIVATE_KEY }}" > ~/.ssh/home_server.pem
           chmod 600 ~/.ssh/home_server.pem
 
+      - name: Stop running web process before replacing bundle
+        run: |
+          ssh -i ~/.ssh/home_server.pem -o StrictHostKeyChecking=no "${SSH_USER}@${SERVER_HOST}" "DEPLOY_PATH='${DEPLOY_PATH}' bash -s" << 'EOF'
+            set -euo pipefail
+            APP_DIR="${DEPLOY_PATH:-/home/tlswlfk/apps/api}"
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+
+            if command -v pm2 >/dev/null 2>&1; then
+              if pm2 describe pecal-web >/dev/null 2>&1; then
+                pm2 delete pecal-web || true
+              fi
+            else
+              pkill -f "$APP_DIR/server.js" || true
+              pkill -f "$APP_DIR/apps/web/server.js" || true
+            fi
+          EOF
+
       - name: Bootstrap remote server (empty Ubuntu supported)
         run: |
           ssh -i ~/.ssh/home_server.pem -o StrictHostKeyChecking=no "${SSH_USER}@${SERVER_HOST}" "DEPLOY_PATH='${DEPLOY_PATH}' bash -s" << 'EOF'

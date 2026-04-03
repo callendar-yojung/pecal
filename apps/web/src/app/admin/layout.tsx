@@ -5,5 +5,9 @@ export default function AdminRootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return (
+    <html lang="ko" suppressHydrationWarning>
+      <body>{children}</body>
+    </html>
+  );
 }
