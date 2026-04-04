@@ -402,8 +402,7 @@ export function useDashboardData(session: AuthSession | null) {
         if (memoFavoriteOnly && memo.is_favorite !== 1 && !memo.is_pinned) return false;
         if (memoFolderFilter !== 'all' && memo.folder !== memoFolderFilter) return false;
         if (!normalizedSearch) return true;
-        const haystack = `${memo.title} ${memo.content_json ?? ''} ${(memo.tags ?? []).join(' ')}`.toLowerCase();
-        return haystack.includes(normalizedSearch);
+        return memo.title.toLowerCase().includes(normalizedSearch);
       })
       .sort((a, b) => {
         if (memoSort === 'favorite') {

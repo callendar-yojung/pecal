@@ -67,7 +67,7 @@ export function TaskDetailWebView({
   onAttachmentsLoadingChange,
 }: Props) {
   const router = useRouter();
-  const { resolvedMode, colors } = useThemeMode();
+  const { appearance, colors } = useThemeMode();
   const { locale } = useI18n();
   const isKo = locale === 'ko';
   const [attachments, setAttachments] = useState<TaskAttachmentItem[]>([]);
@@ -76,11 +76,11 @@ export function TaskDetailWebView({
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
   const s = createStyles(colors);
 
-  const borderColor = resolvedMode === 'black' ? '#2D3443' : '#D9E0EF';
-  const cardColor = resolvedMode === 'black' ? '#141923' : '#FFFFFF';
-  const softColor = resolvedMode === 'black' ? '#A3AEC2' : '#667085';
-  const textColor = resolvedMode === 'black' ? '#F3F6FF' : '#111827';
-  const contentColor = resolvedMode === 'black' ? '#D0D7E7' : '#334155';
+  const borderColor = appearance === 'dark' ? '#2D3443' : '#D9E0EF';
+  const cardColor = appearance === 'dark' ? '#141923' : '#FFFFFF';
+  const softColor = appearance === 'dark' ? '#A3AEC2' : '#667085';
+  const textColor = appearance === 'dark' ? '#F3F6FF' : '#111827';
+  const contentColor = appearance === 'dark' ? '#D0D7E7' : '#334155';
 
   const selectedTags = useMemo(() => {
     if (Array.isArray(task.tags) && task.tags.length > 0) {
@@ -258,7 +258,7 @@ export function TaskDetailWebView({
                   borderColor,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: resolvedMode === 'black' ? '#1B2231' : '#F3F6FF',
+                  backgroundColor: appearance === 'dark' ? '#1B2231' : '#F3F6FF',
                 }}
               >
                 <Ionicons name="list-outline" size={18} color={textColor} />
@@ -312,7 +312,7 @@ export function TaskDetailWebView({
               borderRadius: 999,
               paddingHorizontal: 10,
               paddingVertical: 6,
-              backgroundColor: resolvedMode === 'black' ? '#202637' : '#EEF2FF',
+              backgroundColor: appearance === 'dark' ? '#202637' : '#EEF2FF',
             }}
           >
             <Text style={{ color: softColor, fontSize: 12, fontWeight: '700' }}>
@@ -392,7 +392,7 @@ export function TaskDetailWebView({
                       borderWidth: 1,
                       borderColor,
                       borderRadius: 12,
-                      backgroundColor: resolvedMode === 'black' ? '#1A2230' : '#F8FAFF',
+                      backgroundColor: appearance === 'dark' ? '#1A2230' : '#F8FAFF',
                       overflow: 'hidden',
                     }}
                   >
@@ -432,7 +432,7 @@ export function TaskDetailWebView({
                   paddingVertical: 11,
                   borderWidth: 1,
                   borderColor: '#FCA5A5',
-                  backgroundColor: resolvedMode === 'black' ? '#351414' : '#FFF1F1',
+                  backgroundColor: appearance === 'dark' ? '#351414' : '#FFF1F1',
                 }}
               >
                 <Text style={{ color: '#DC2626', fontWeight: '800', fontSize: 13 }}>

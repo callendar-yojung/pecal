@@ -13,13 +13,20 @@ export default function SettingsPlanPage() {
   const s = createStyles(colors);
   const isKo = locale === 'ko';
   const returnTo = typeof params.from === 'string' && params.from ? params.from : '/(tabs)/overview';
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    router.replace(returnTo as never);
+  };
 
   return (
     <ScrollView style={s.content} contentContainerStyle={s.contentContainer}>
       <View style={s.section}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 2 }}>
           <Pressable
-            onPress={() => router.replace(returnTo as never)}
+            onPress={handleBack}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4, paddingRight: 6 }}
           >
             <Ionicons name="chevron-back" size={20} color={colors.primary} />
@@ -45,7 +52,7 @@ export default function SettingsPlanPage() {
               : 'Plan and billing features are currently unavailable in the mobile app.'}
           </Text>
           <Pressable
-            onPress={() => router.replace(returnTo as never)}
+            onPress={handleBack}
             style={[s.primaryButtonHalf, { width: '100%' }]}
           >
             <Text style={s.primaryButtonText}>{isKo ? '설정으로 돌아가기' : 'Back to Settings'}</Text>

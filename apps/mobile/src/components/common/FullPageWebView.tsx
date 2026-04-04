@@ -15,12 +15,12 @@ type Props = {
 
 export function FullPageWebView({ path, query, onMessage, onNavigationStateChange }: Props) {
   const { locale } = useI18n();
-  const { colors, resolvedMode } = useThemeMode();
+  const { appearance, colors } = useThemeMode();
   const s = createStyles(colors);
   const [error, setError] = useState<string | null>(null);
   const [webLoading, setWebLoading] = useState(true);
   const hasFinishedInitialLoadRef = useRef(false);
-  const webTheme = resolvedMode === 'black' ? 'dark' : 'light';
+  const webTheme = appearance === 'dark' ? 'dark' : 'light';
 
   const uri = useMemo(() => {
     const normalizedBase = getApiBaseUrl().replace(/\/+$/, '');
@@ -99,7 +99,7 @@ export function FullPageWebView({ path, query, onMessage, onNavigationStateChang
           style={{
             position: 'absolute',
             inset: 0,
-            backgroundColor: resolvedMode === 'black' ? '#07090E' : '#F2F4FB',
+            backgroundColor: appearance === 'dark' ? '#07090E' : '#F2F4FB',
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 10,

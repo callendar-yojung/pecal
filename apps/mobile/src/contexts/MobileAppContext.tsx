@@ -17,7 +17,7 @@ const MobileAppContext = createContext<MobileAppContextValue | null>(null);
 export function MobileAppProvider({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   const data = useDashboardData(auth.session);
-  const { resolvedMode } = useThemeMode();
+  const { appearance, resolvedMode } = useThemeMode();
   const pushRegisteredMemberRef = useRef<number | null>(null);
   const widgetFailureKeyRef = useRef<string | null>(null);
 
@@ -110,7 +110,7 @@ export function MobileAppProvider({ children }: { children: React.ReactNode }) {
         accessToken: session.accessToken,
         refreshToken: session.refreshToken,
         memberId: session.memberId,
-        themeMode: resolvedMode,
+        themeMode: appearance,
         maxItems,
         workspaces: allWorkspaces.map((workspace) => ({
           workspaceId: workspace.workspace_id,
@@ -153,7 +153,7 @@ export function MobileAppProvider({ children }: { children: React.ReactNode }) {
         console.warn("[mobile] widget sync failure log failed:", error);
       }
     })();
-  }, [auth.session, data.selectedWorkspace, data.tasks, data.workspaces, data.teamWorkspaces, data.dashboardLoading, resolvedMode]);
+  }, [auth.session, data.selectedWorkspace, data.tasks, data.workspaces, data.teamWorkspaces, data.dashboardLoading, appearance, resolvedMode]);
 
   const value = useMemo<MobileAppContextValue>(() => ({ auth, data }), [auth, data]);
 

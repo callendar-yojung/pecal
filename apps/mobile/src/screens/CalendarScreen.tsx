@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Modal, PanResponder, Pressable, RefreshControl, ScrollView, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, Easing, Modal, PanResponder, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 import { getKoreanSpecialDaysForDateKey } from '@repo/utils';
 import type { TagItem, TaskItem } from '../lib/types';
 import { getTaskAccentColor, getTaskStatusColor } from '../lib/task-colors';
@@ -83,10 +84,20 @@ export function CalendarScreen({
   refreshing = false,
   onRefresh,
 }: Props) {
-  const { colors } = useThemeMode();
+  const { colors, appearance } = useThemeMode();
   const { t, locale } = useI18n();
   const { width: screenWidth } = useWindowDimensions();
   const s = createStyles(colors);
+  const isDark = appearance === 'dark';
+  const ui = {
+    surface: colors.card,
+    surfaceSoft: colors.cardSoft,
+    border: colors.border,
+    text: colors.text,
+    subText: colors.textMuted,
+    primary: colors.primary,
+    shadowOpacity: isDark ? 0.18 : 0.03,
+  };
   const WEEKDAYS = locale === 'ko' ? ['일', '월', '화', '수', '목', '금', '토'] : ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   const MONTHS = locale === 'ko'
     ? ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
@@ -101,7 +112,7 @@ export function CalendarScreen({
   const weekSlideX = useRef(new Animated.Value(0)).current;
   const multiBarHeight = 16;
   const cellPaddingTop = 6;
-  const dayBadgeHeight = 28;
+  const dayBadgeHeight = 44;
   const specialDayLineHeight = locale === 'ko' ? 10 : 0;
   const dayHeaderHeight = dayBadgeHeight + specialDayLineHeight;
   // 일반일정 시작 위치(다일정이 없을 때도 적용)
@@ -528,6 +539,38 @@ export function CalendarScreen({
   ];
   const [viewModeMenuOpen, setViewModeMenuOpen] = useState(false);
   const currentViewModeLabel = viewModeOptions.find((option) => option.key === viewMode)?.label ?? '월';
+  const renderMiniTaskCard = (task: TaskItem, key: string) => (
+    <Pressable
+      key={key}
+      onPress={() => onOpenTask?.(task.id)}
+      style={[
+        styles.miniTaskCard,
+        {
+          borderColor: ui.border,
+          backgroundColor: ui.surface,
+          shadowColor: '#000',
+          shadowOpacity: ui.shadowOpacity,
+        },
+      ]}
+    >
+      <View style={styles.miniTaskTop}>
+        <View
+          style={[
+            styles.miniTaskAccent,
+            { backgroundColor: getTaskAccentColor(task) },
+          ]}
+        />
+        <View style={styles.miniTaskMain}>
+          <Text style={[styles.miniTaskTitle, { color: ui.text }]} numberOfLines={1}>
+            {task.title}
+          </Text>
+          <Text style={[styles.miniTaskTime, { color: ui.subText }]} numberOfLines={1}>
+            {task.start_time.slice(11, 16)} - {task.end_time.slice(11, 16)}
+          </Text>
+        </View>
+      </View>
+    </Pressable>
+  );
   const renderTimetableBoard = () => (
     <View>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
@@ -673,79 +716,76 @@ export function CalendarScreen({
           : undefined
       }
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', zIndex: 20 }}>
+      <View
+        style={[
+          styles.headerShell,
+          {
+            borderColor: ui.border,
+            backgroundColor: ui.surface,
+            shadowColor: '#000',
+            shadowOpacity: ui.shadowOpacity,
+          },
+        ]}
+      >
         <Pressable
           onPress={() => {
             if (refreshing) return;
             onRefresh?.();
           }}
-          style={{
-            width: 40,
-            height: 32,
-            borderRadius: 10,
-            borderWidth: 1,
-            borderColor: colors.border,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: colors.card,
-            opacity: refreshing ? 0.6 : 1,
-          }}
+          style={[
+            styles.headerSquareButton,
+            {
+              borderColor: ui.border,
+              backgroundColor: ui.surface,
+              opacity: refreshing ? 0.6 : 1,
+            },
+          ]}
           disabled={refreshing}
         >
-          <Text style={{ fontSize: 15, fontWeight: '800', color: colors.textMuted }}>↻</Text>
+          <Ionicons name="refresh-outline" size={16} color={ui.subText} />
         </Pressable>
-        <Pressable onPress={() => {
-          onGoToday();
-          setYear(today.getFullYear());
-          setMonth(today.getMonth());
-          setViewModeMenuOpen(false);
-        }}>
-          <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800', letterSpacing: -0.5 }}>{year}년 {MONTHS[month]}</Text>
+        <Pressable
+          onPress={() => {
+            onGoToday();
+            setYear(today.getFullYear());
+            setMonth(today.getMonth());
+            setViewModeMenuOpen(false);
+          }}
+          style={styles.headerTitleWrap}
+        >
+          <Text style={{ color: ui.text, fontSize: 20, fontWeight: '800', letterSpacing: -0.5 }}>{year}년 {MONTHS[month]}</Text>
         </Pressable>
-        <View style={{ width: 76, height: 32, alignItems: 'flex-end' }}>
+        <View style={{ width: 86, height: 44, alignItems: 'flex-end' }}>
           <Pressable
             onPress={() => setViewModeMenuOpen((prev) => !prev)}
-            style={[
-              s.workspacePill,
-              {
-                marginRight: 0,
-                paddingVertical: 7,
-                paddingHorizontal: 12,
-                minWidth: 64,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              },
-            ]}
+            style={[styles.modeChip, { borderColor: ui.border, backgroundColor: ui.surface }]}
           >
             <Text
-              style={s.workspacePillText}
+              style={[styles.modeChipText, { color: ui.text }]}
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.9}
             >
               {currentViewModeLabel}
             </Text>
-            <Text style={[s.workspacePillText, { fontSize: 11, marginLeft: 6 }]}>
-              {viewModeMenuOpen ? '▴' : '▾'}
-            </Text>
+            <Ionicons name={viewModeMenuOpen ? 'chevron-up' : 'chevron-down'} size={14} color={ui.subText} />
           </Pressable>
           {viewModeMenuOpen ? (
             <View
               style={{
                 position: 'absolute',
-                top: 36,
+                top: 48,
                 right: 0,
                 borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: 10,
-                backgroundColor: colors.card,
-                minWidth: 72,
+                borderColor: ui.border,
+                borderRadius: 14,
+                backgroundColor: ui.surface,
+                minWidth: 82,
                 overflow: 'hidden',
                 shadowColor: '#000',
-                shadowOpacity: 0.1,
-                shadowRadius: 8,
-                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: ui.shadowOpacity,
+                shadowRadius: 10,
+                shadowOffset: { width: 0, height: 4 },
                 elevation: 5,
                 zIndex: 30,
               }}
@@ -760,14 +800,16 @@ export function CalendarScreen({
                       setViewModeMenuOpen(false);
                     }}
                     style={{
+                      minHeight: 40,
                       paddingVertical: 8,
-                      paddingHorizontal: 10,
-                      backgroundColor: active ? `${colors.primary}16` : colors.card,
+                      paddingHorizontal: 12,
+                      justifyContent: 'center',
+                      backgroundColor: active ? `${colors.primary}16` : ui.surface,
                     }}
                   >
                     <Text
                       style={{
-                        color: active ? colors.primary : colors.text,
+                        color: active ? ui.primary : ui.text,
                         fontSize: 13,
                         fontWeight: active ? '800' : '700',
                         textAlign: 'center',
@@ -787,9 +829,14 @@ export function CalendarScreen({
           style={{
             borderRadius: 20,
             borderWidth: 1,
-            borderColor: colors.border,
+            borderColor: ui.border,
             overflow: 'hidden',
-            backgroundColor: colors.card,
+            backgroundColor: ui.surface,
+            shadowColor: '#000',
+            shadowOpacity: ui.shadowOpacity,
+            shadowRadius: 10,
+            shadowOffset: { width: 0, height: 4 },
+            elevation: 2,
             transform: [{ translateX: monthSlideX }],
             opacity: monthSlideX.interpolate({
               inputRange: [-280, 0, 280],
@@ -810,8 +857,8 @@ export function CalendarScreen({
               zIndex: 5,
               borderRadius: 12,
               borderWidth: 1,
-              borderColor: colors.primary,
-              backgroundColor: colors.bg,
+              borderColor: ui.primary,
+              backgroundColor: ui.surface,
               paddingHorizontal: 12,
               paddingVertical: 9,
               shadowColor: '#000',
@@ -829,7 +876,15 @@ export function CalendarScreen({
             </Text>
           </Pressable>
         ) : null}
-        <View style={{ flexDirection: 'row', paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            paddingVertical: 10,
+            borderBottomWidth: 0.5,
+            borderBottomColor: colors.border,
+            backgroundColor: colors.cardSoft,
+          }}
+        >
           {WEEKDAYS.map((d, i) => (
             <View key={d} style={{ flex: 1, alignItems: 'center' }}>
               <Text style={{ fontSize: 12, fontWeight: '700', color: i === 0 ? '#EF4444' : i === 6 ? '#5B6CF6' : colors.textMuted }}>{d}</Text>
@@ -854,6 +909,7 @@ export function CalendarScreen({
               <View style={{ flexDirection: 'row' }}>
                 {row.map((cell, colIdx) => {
                   const isToday = cell.dateStr === todayStr;
+                  const isSelected = cell.dateStr === selectedDateKey;
                   const daySchedules = (singleDaySchedulesByDate[cell.dateStr] ?? [])
                     .slice()
                     .sort((a, b) => a.start_time.localeCompare(b.start_time));
@@ -892,18 +948,29 @@ export function CalendarScreen({
                       }}
                       style={({ pressed }) => ({
                         flex: 1,
-                        minHeight: 92,
+                        minHeight: 98,
                         paddingTop: cellPaddingTop,
                         paddingBottom: 6,
-                        paddingHorizontal: 2,
+                        paddingHorizontal: 4,
                         borderRightWidth: colIdx < 6 ? 0.5 : 0,
                         borderRightColor: colors.border,
-                        backgroundColor: pressed ? `${colors.primary}1E` : 'transparent',
+                        backgroundColor: pressed ? `${colors.primary}12` : isSelected ? `${colors.primary}08` : 'transparent',
                       })}
                     >
                       <View style={{ height: dayHeaderHeight, justifyContent: 'flex-start', zIndex: 3 }}>
-                        <View style={{ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: isToday ? colors.primary : 'transparent' }}>
-                          <Text style={{ fontSize: 13, fontWeight: isToday ? '800' : '500', color: isToday ? '#fff' : !cell.isCurrentMonth ? colors.border : isWeekend ? (colIdx === 0 ? '#EF4444' : '#5B6CF6') : colors.text }}>{cell.day}</Text>
+                        <View
+                          style={{
+                            width: 30,
+                            height: 30,
+                            borderRadius: 15,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: isToday ? colors.primary : isSelected ? `${colors.primary}14` : 'transparent',
+                            borderWidth: isSelected && !isToday ? 1 : 0,
+                            borderColor: isSelected && !isToday ? `${colors.primary}30` : 'transparent',
+                          }}
+                        >
+                          <Text style={{ fontSize: 13, fontWeight: isToday || isSelected ? '800' : '500', color: isToday ? '#fff' : !cell.isCurrentMonth ? colors.border : isWeekend ? (colIdx === 0 ? '#EF4444' : '#5B6CF6') : colors.text }}>{cell.day}</Text>
                         </View>
                         {specialDayLabel ? (
                           <Text
@@ -931,9 +998,11 @@ export function CalendarScreen({
                             }}
                             style={{
                               width: '100%',
-                              backgroundColor: `${getTaskAccentColor(task)}44`,
-                              paddingHorizontal: 5,
-                              paddingVertical: 3,
+                              backgroundColor: `${getTaskAccentColor(task)}18`,
+                              borderWidth: 1,
+                              borderColor: `${getTaskAccentColor(task)}22`,
+                              paddingHorizontal: 6,
+                              paddingVertical: 4,
                               borderRadius: 999,
                             }}
                           >
@@ -942,21 +1011,21 @@ export function CalendarScreen({
                             </Text>
                           </Pressable>
                         ))}
-                        {hiddenCount > 0 ? (
-                          <Pressable
-                            onPress={(e) => {
+                          {hiddenCount > 0 ? (
+                            <Pressable
+                              onPress={(e) => {
                               e.stopPropagation();
                               setOpenMoreDateKey(cell.dateStr);
                             }}
-                            style={{ alignSelf: 'flex-start', paddingHorizontal: 2, paddingVertical: 2 }}
-                          >
-                            <Text
-                              numberOfLines={1}
-                              ellipsizeMode="clip"
-                              style={{ fontSize: 9, color: colors.textMuted, fontWeight: '700' }}
+                              style={{ alignSelf: 'flex-start', paddingHorizontal: 2, paddingVertical: 2 }}
                             >
-                              {hiddenLabel}
-                            </Text>
+                              <Text
+                                numberOfLines={1}
+                                ellipsizeMode="clip"
+                                style={{ fontSize: 9, color: colors.primary, fontWeight: '700' }}
+                              >
+                                {hiddenLabel}
+                              </Text>
                           </Pressable>
                         ) : null}
                       </View>
@@ -1019,22 +1088,42 @@ export function CalendarScreen({
           }}
           {...weekSwipeResponder.panHandlers}
         >
-        <View style={[s.panel, { borderRadius: 16, gap: 8 }]}>
+        <View
+          style={[
+            styles.modePanel,
+            {
+              borderColor: ui.border,
+              backgroundColor: ui.surface,
+              shadowColor: '#000',
+              shadowOpacity: ui.shadowOpacity,
+            },
+          ]}
+        >
+          <View style={styles.weekHeaderRow}>
+            <Text style={[styles.modePanelTitle, { color: ui.text }]}>{weekRangeLabel}</Text>
+            <Text style={[styles.modePanelMeta, { color: ui.subText }]}>주간 일정</Text>
+          </View>
           {weekDates.map((date) => {
             const key = `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
             const items = schedulesByDate[key] ?? [];
             return (
-              <View key={key} style={{ gap: 6 }}>
-                <Text style={[s.formTitle, { fontSize: 13 }]}>
+              <View
+                key={key}
+                style={[
+                  styles.dayGroupCard,
+                  {
+                    borderColor: ui.border,
+                    backgroundColor: ui.surface,
+                    shadowColor: '#000',
+                    shadowOpacity: ui.shadowOpacity,
+                  },
+                ]}
+              >
+                <Text style={[styles.dayGroupTitle, { color: ui.text }]}>
                   {date.getMonth() + 1}/{date.getDate()} ({WEEKDAYS[date.getDay()]}) · {items.length}
                 </Text>
-                {items.slice(0, 3).map((task) => (
-                  <Pressable key={task.id} onPress={() => onOpenTask?.(task.id)} style={[s.listRow, { borderLeftWidth: 4, borderLeftColor: getTaskAccentColor(task) }]}>
-                    <Text style={s.itemTitle}>{task.title}</Text>
-                    <Text style={s.itemMeta}>{task.start_time.slice(11, 16)} - {task.end_time.slice(11, 16)}</Text>
-                  </Pressable>
-                ))}
-                {!items.length ? <Text style={s.itemMeta}>일정 없음</Text> : null}
+                {items.slice(0, 3).map((task) => renderMiniTaskCard(task, `week-${key}-${task.id}`))}
+                {!items.length ? <Text style={[styles.emptyInlineText, { color: ui.subText }]}>일정 없음</Text> : null}
               </View>
             );
           })}
@@ -1043,28 +1132,50 @@ export function CalendarScreen({
       ) : null}
 
       {viewMode === 'day' ? (
-        <View style={[s.panel, { borderRadius: 16, gap: 8 }]}>
-          <Text style={[s.formTitle, { fontSize: 14 }]}>
+        <View
+          style={[
+            styles.modePanel,
+            {
+              borderColor: ui.border,
+              backgroundColor: ui.surface,
+              shadowColor: '#000',
+              shadowOpacity: ui.shadowOpacity,
+            },
+          ]}
+        >
+          <Text style={[styles.modePanelTitle, { color: ui.text }]}>
             {selectedDate.getFullYear()}-{pad2(selectedDate.getMonth() + 1)}-{pad2(selectedDate.getDate())}
           </Text>
           {selectedDayTasks.map((task) => (
-            <View key={task.id} style={[s.listRow, { borderLeftWidth: 4, borderLeftColor: getTaskAccentColor(task) }]}>
+            <View
+              key={task.id}
+              style={[
+                styles.modePanel,
+                {
+                  borderColor: ui.border,
+                  backgroundColor: ui.surface,
+                  shadowColor: '#000',
+                  shadowOpacity: ui.shadowOpacity,
+                  padding: 14,
+                },
+              ]}
+            >
               <Pressable onPress={() => onOpenTask?.(task.id)} style={{ gap: 4 }}>
-                <Text style={s.itemTitle}>{task.title}</Text>
-                <Text style={s.itemMeta}>{task.start_time.slice(11, 16)} - {task.end_time.slice(11, 16)}</Text>
+                <Text style={[styles.miniTaskTitle, { color: ui.text }]}>{task.title}</Text>
+                <Text style={[styles.miniTaskTime, { color: ui.subText }]}>{task.start_time.slice(11, 16)} - {task.end_time.slice(11, 16)}</Text>
               </Pressable>
-              <View style={s.row}>
-                <Pressable style={s.workspacePill} onPress={() => onShiftTask?.(task.id, -30)}>
-                  <Text style={s.workspacePillText}>-30m 이동</Text>
+              <View style={styles.actionChipRow}>
+                <Pressable style={[styles.actionChip, { borderColor: ui.border, backgroundColor: ui.surfaceSoft }]} onPress={() => onShiftTask?.(task.id, -30)}>
+                  <Text style={[styles.actionChipText, { color: ui.text }]}>-30m 이동</Text>
                 </Pressable>
-                <Pressable style={s.workspacePill} onPress={() => onShiftTask?.(task.id, 30)}>
-                  <Text style={s.workspacePillText}>+30m 이동</Text>
+                <Pressable style={[styles.actionChip, { borderColor: ui.border, backgroundColor: ui.surfaceSoft }]} onPress={() => onShiftTask?.(task.id, 30)}>
+                  <Text style={[styles.actionChipText, { color: ui.text }]}>+30m 이동</Text>
                 </Pressable>
-                <Pressable style={s.workspacePill} onPress={() => onResizeTask?.(task.id, -30)}>
-                  <Text style={s.workspacePillText}>-30m 축소</Text>
+                <Pressable style={[styles.actionChip, { borderColor: ui.border, backgroundColor: ui.surfaceSoft }]} onPress={() => onResizeTask?.(task.id, -30)}>
+                  <Text style={[styles.actionChipText, { color: ui.text }]}>-30m 축소</Text>
                 </Pressable>
-                <Pressable style={s.workspacePill} onPress={() => onResizeTask?.(task.id, 30)}>
-                  <Text style={s.workspacePillText}>+30m 확장</Text>
+                <Pressable style={[styles.actionChip, { borderColor: ui.border, backgroundColor: ui.surfaceSoft }]} onPress={() => onResizeTask?.(task.id, 30)}>
+                  <Text style={[styles.actionChipText, { color: ui.text }]}>+30m 확장</Text>
                 </Pressable>
               </View>
             </View>
@@ -1085,8 +1196,19 @@ export function CalendarScreen({
           }}
           {...weekSwipeResponder.panHandlers}
         >
-        <View style={[s.panel, { borderRadius: 16, gap: 8, padding: 10 }]}>
-          <Text style={[s.formTitle, { fontSize: 14 }]}>시간표</Text>
+        <View
+          style={[
+            styles.modePanel,
+            {
+              borderColor: ui.border,
+              backgroundColor: ui.surface,
+              shadowColor: '#000',
+              shadowOpacity: ui.shadowOpacity,
+              padding: 10,
+            },
+          ]}
+        >
+          <Text style={[styles.modePanelTitle, { color: ui.text }]}>시간표</Text>
           {renderTimetableBoard()}
         </View>
         </Animated.View>
@@ -1107,9 +1229,9 @@ export function CalendarScreen({
             style={{
               borderTopLeftRadius: 18,
               borderTopRightRadius: 18,
-              backgroundColor: colors.card,
+              backgroundColor: ui.surface,
               borderWidth: 1,
-              borderColor: colors.border,
+              borderColor: ui.border,
               maxHeight: '52%',
               paddingHorizontal: 14,
               paddingTop: 12,
@@ -1132,10 +1254,10 @@ export function CalendarScreen({
                   style={{
                     borderWidth: 1,
                     borderColor: `${getTaskAccentColor(task)}66`,
-                    backgroundColor: `${getTaskAccentColor(task)}30`,
-                    borderRadius: 10,
-                    paddingHorizontal: 10,
-                    paddingVertical: 8,
+                    backgroundColor: ui.surface,
+                    borderRadius: 14,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
                     gap: 3,
                   }}
                 >
@@ -1155,3 +1277,136 @@ export function CalendarScreen({
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  headerShell: {
+    minHeight: 64,
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+    zIndex: 20,
+  },
+  headerSquareButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitleWrap: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  modeChip: {
+    minHeight: 44,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  modeChipText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  modePanel: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    gap: 10,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  weekHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  modePanelTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  modePanelMeta: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  dayGroupTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  dayGroupCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 14,
+    gap: 8,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
+  },
+  miniTaskCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
+  },
+  miniTaskTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  miniTaskAccent: {
+    width: 4,
+    alignSelf: 'stretch',
+    borderRadius: 999,
+  },
+  miniTaskMain: {
+    flex: 1,
+    gap: 4,
+  },
+  miniTaskTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  miniTaskTime: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  emptyInlineText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  actionChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+  },
+  actionChip: {
+    minHeight: 36,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+});

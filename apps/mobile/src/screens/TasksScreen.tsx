@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDateTime } from '../lib/date';
 import type { CategoryItem, TagItem, TaskItem, TaskStatus } from '../lib/types';
@@ -41,14 +41,25 @@ export function TasksScreen({
   tasks,
   categories,
   tags,
-  onOpenCreateTask,
   onOpenTask,
   onChangeTaskStatus,
   onDeleteTasks,
 }: Props) {
-  const { colors } = useThemeMode();
+  const { colors, appearance } = useThemeMode();
   const { t } = useI18n();
   const s = createStyles(colors);
+  const isDark = appearance === 'dark';
+  const ui = {
+    background: colors.bg,
+    surface: colors.card,
+    border: colors.border,
+    text: colors.text,
+    subText: colors.textMuted,
+    primary: colors.primary,
+    success: isDark ? '#4CC38A' : '#56C38A',
+    checkboxBorder: isDark ? '#7A879F' : '#BFC4CE',
+    shadowOpacity: isDark ? 0.18 : 0.03,
+  };
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'TODO' | 'DONE'>('ALL');
   const [tagFilter, setTagFilter] = useState<number | 'ALL'>('ALL');
@@ -207,140 +218,140 @@ export function TasksScreen({
   };
 
   return (
-    <View style={s.section}>
-      <GsxCard className="mb-1">
-        <View style={{ gap: 10 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-            <View style={{ gap: 3 }}>
-              <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: '600' }}>{t('tasksHeaderSub')}</Text>
-              <GsxHeading className="text-3xl">{t('commonTasks')}</GsxHeading>
-            </View>
-            {!selectionMode ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <GsxChip
-                  label={t('commonCreate')}
-                  icon="add-circle-outline"
-                  iconSize={16}
-                  onPress={onOpenCreateTask}
-                />
-                <GsxChip
-                  label="선택"
-                  icon="checkmark-circle-outline"
-                  iconSize={16}
-                  onPress={() => setSelectionMode(true)}
-                />
-              </View>
-            ) : null}
-          </View>
+    <View style={styles.screen}>
+      <View style={styles.sectionHeaderRow}>
+        <Text style={[styles.sectionTitle, { color: ui.text }]}>{t('commonTasks')}</Text>
+        <Text style={[styles.sectionCount, { color: ui.subText }]}>{filteredTasks.length}개</Text>
+      </View>
 
-          {selectionMode ? (
-            <View style={{ gap: 8 }}>
-              <View
-                style={{
-                  alignSelf: 'flex-start',
-                  borderRadius: 999,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  backgroundColor: `${colors.primary}12`,
-                  paddingHorizontal: 10,
-                  paddingVertical: 4,
-                }}
-              >
-                <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '800' }}>
-                  선택됨 {selectedTaskIds.length}개
-                </Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <GsxButton
-                  label="선택해제"
-                  icon="close-circle-outline"
-                  iconSize={16}
-                  onPress={exitSelectionMode}
-                />
-                <GsxButton
-                  label={areAllPagedSelected ? '현재 페이지 해제' : '현재 페이지 모두선택'}
-                  icon={areAllPagedSelected ? 'remove-circle-outline' : 'checkmark-done-circle-outline'}
-                  iconSize={16}
-                  onPress={toggleSelectAllFiltered}
-                />
-                <GsxButton
-                  label={deletingSelected ? '삭제 중...' : `삭제 (${selectedTaskIds.length})`}
-                  variant="danger"
-                  icon="trash-outline"
-                  iconSize={16}
-                  loading={deletingSelected}
-                  disabled={selectedTaskIds.length === 0 || deletingSelected}
-                  onPress={() => void deleteSelectedTasks()}
-                />
-              </View>
-            </View>
-          ) : null}
+      {!selectionMode ? (
+        <View style={styles.topActionsRow}>
+          <Pressable
+            onPress={() => setSelectionMode(true)}
+            style={[styles.chipButton, { borderColor: ui.border, backgroundColor: ui.surface }]}
+          >
+            <Ionicons name="checkmark-circle-outline" size={16} color={ui.subText} />
+            <Text style={[styles.chipButtonText, { color: ui.text }]}>선택</Text>
+          </Pressable>
         </View>
-      </GsxCard>
-
-      <GsxCard className="gap-2">
-        <Text style={s.formTitle}>검색/필터</Text>
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder="일정 검색"
-          style={s.input}
-          placeholderTextColor={colors.textMuted}
-        />
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <View style={{ flex: 1 }}>
-            <GsxChip
-              label={statusFilterOptions.find((item) => item.key === statusFilter)?.label ?? '전체'}
-              onPress={() => setActiveFilterSheet('status')}
-            />
+      ) : (
+        <View style={[styles.selectionCard, { borderColor: ui.border, backgroundColor: ui.surface }]}>
+          <View style={styles.selectionHeaderRow}>
+            <View
+              style={[
+                styles.selectionBadge,
+                { borderColor: ui.border, backgroundColor: `${ui.primary}12` },
+              ]}
+            >
+              <Text style={[styles.selectionBadgeText, { color: ui.primary }]}>선택됨 {selectedTaskIds.length}개</Text>
+            </View>
           </View>
-          <View style={{ flex: 1 }}>
-            <GsxChip
-              label={sortOptions.find((item) => item.key === sortBy)?.label ?? '빠른 일정순'}
-              onPress={() => setActiveFilterSheet('sort')}
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <GsxChip
-              label={tagOptions.find((item) => item.key === tagFilter)?.label ?? '카테고리 전체'}
-              onPress={() => setActiveFilterSheet('tag')}
-            />
+          <View style={styles.selectionActions}>
+            <Pressable
+              onPress={exitSelectionMode}
+              style={[styles.chipButton, { borderColor: ui.border, backgroundColor: ui.surface }]}
+            >
+              <Text style={[styles.chipButtonText, { color: ui.text }]}>선택해제</Text>
+            </Pressable>
+            <Pressable
+              onPress={toggleSelectAllFiltered}
+              style={[styles.chipButtonWide, { borderColor: ui.border, backgroundColor: ui.surface }]}
+            >
+              <Text style={[styles.chipButtonText, { color: ui.text }]}>
+                {areAllPagedSelected ? '현재 페이지 해제' : '현재 페이지 모두선택'}
+              </Text>
+            </Pressable>
+            <Pressable
+              disabled={selectedTaskIds.length === 0 || deletingSelected}
+              onPress={() => void deleteSelectedTasks()}
+              style={[
+                styles.dangerChipButton,
+                {
+                  borderColor: selectedTaskIds.length === 0 || deletingSelected ? '#F5B7B1' : '#FCA5A5',
+                  backgroundColor: selectedTaskIds.length === 0 || deletingSelected ? '#FFF5F5' : '#FFF1F2',
+                  opacity: selectedTaskIds.length === 0 || deletingSelected ? 0.6 : 1,
+                },
+              ]}
+            >
+              <Text style={[styles.chipButtonText, { color: '#EF4444' }]}>
+                {deletingSelected ? '삭제 중...' : `삭제 (${selectedTaskIds.length})`}
+              </Text>
+            </Pressable>
           </View>
         </View>
-      </GsxCard>
+      )}
 
-      <View style={{ gap: 8 }}>
+      <View style={styles.filterRow}>
+        <View style={[styles.searchWrap, { borderColor: ui.border, backgroundColor: ui.surface }]}>
+          <Ionicons name="search-outline" size={18} color={ui.subText} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="일정, 태그 검색"
+            style={[styles.searchInput, { color: ui.text }]}
+            placeholderTextColor={ui.subText}
+          />
+        </View>
+      </View>
+
+      <View style={styles.filterChipRow}>
+        <Pressable
+          onPress={() => setActiveFilterSheet('status')}
+          style={[styles.filterChip, { borderColor: ui.border, backgroundColor: ui.surface }]}
+        >
+          <Text style={[styles.filterChipText, { color: ui.text }]} numberOfLines={1}>
+            {statusFilterOptions.find((item) => item.key === statusFilter)?.label ?? '전체'}
+          </Text>
+          <Ionicons name="chevron-down" size={16} color={ui.subText} />
+        </Pressable>
+        <Pressable
+          onPress={() => setActiveFilterSheet('sort')}
+          style={[styles.filterChip, { borderColor: ui.border, backgroundColor: ui.surface }]}
+        >
+          <Text style={[styles.filterChipText, { color: ui.text }]} numberOfLines={1}>
+            {sortOptions.find((item) => item.key === sortBy)?.label ?? '빠른 일정순'}
+          </Text>
+          <Ionicons name="chevron-down" size={16} color={ui.subText} />
+        </Pressable>
+        <Pressable
+          onPress={() => setActiveFilterSheet('tag')}
+          style={[styles.filterChip, { borderColor: ui.border, backgroundColor: ui.surface }]}
+        >
+          <Text style={[styles.filterChipText, { color: ui.text }]} numberOfLines={1}>
+            {tagOptions.find((item) => item.key === tagFilter)?.label ?? '카테고리 전체'}
+          </Text>
+          <Ionicons name="chevron-down" size={16} color={ui.subText} />
+        </Pressable>
+      </View>
+
+      <View style={styles.listWrap}>
         {pagedTasks.map((task) => {
-          const accentColor = getTaskAccentColor(task);
           const selected = selectedTaskIds.includes(task.id);
           const done = normalizeTaskStatus(task.status) === 'DONE';
+          const accentColor = getTaskAccentColor(task);
           return (
-            <View
+            <Pressable
               key={task.id}
-              style={{
-                position: 'relative',
-                zIndex: 1,
-                borderRadius: 14,
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderLeftWidth: 4,
-                borderLeftColor: accentColor,
-                backgroundColor: selected ? `${colors.primary}14` : colors.card,
-                padding: 12,
-                gap: 6,
+              onPress={() => {
+                if (selectionMode) {
+                  toggleSelectTask(task.id);
+                  return;
+                }
+                onOpenTask?.(task.id);
               }}
+              style={[
+                styles.taskCard,
+                {
+                  borderColor: selected ? `${ui.primary}55` : ui.border,
+                  backgroundColor: selected ? `${ui.primary}10` : ui.surface,
+                  opacity: done ? 0.78 : 1,
+                  shadowColor: '#000',
+                  shadowOpacity: ui.shadowOpacity,
+                },
+              ]}
             >
-              <Pressable
-                onPress={() => {
-                  if (selectionMode) {
-                    toggleSelectTask(task.id);
-                    return;
-                  }
-                  onOpenTask?.(task.id);
-                }}
-                style={{ gap: 6 }}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <View style={styles.taskCardTop}>
+                <View style={styles.taskCardTop}>
                   <Pressable
                     onPress={() => {
                       if (selectionMode) {
@@ -349,99 +360,101 @@ export function TasksScreen({
                       }
                       onChangeTaskStatus?.(task.id, done ? 'TODO' : 'DONE');
                     }}
-                    style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: 12,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderWidth: selectionMode
-                        ? selected ? 0 : 1.5
-                        : done ? 0 : 1.5,
-                      borderColor: selectionMode
-                        ? selected ? colors.primary : colors.border
-                        : done ? '#10B981' : colors.border,
-                      backgroundColor: selectionMode
-                        ? selected ? colors.primary : 'transparent'
-                        : done ? '#10B981' : 'transparent',
-                    }}
+                    style={[
+                      styles.checkbox,
+                      {
+                        borderWidth: selectionMode ? (selected ? 0 : 1.5) : done ? 0 : 1.5,
+                        borderColor: selectionMode ? (selected ? ui.primary : ui.checkboxBorder) : done ? ui.success : ui.checkboxBorder,
+                        backgroundColor: selectionMode ? (selected ? ui.primary : 'transparent') : done ? ui.success : 'transparent',
+                      },
+                    ]}
                   >
                     {(selectionMode && selected) || (!selectionMode && done) ? (
                       <Ionicons name="checkmark" size={15} color="#fff" />
                     ) : null}
                   </Pressable>
-                  <Pressable
-                    onPress={() => {
-                      if (selectionMode) {
-                        toggleSelectTask(task.id);
-                        return;
-                      }
-                      onOpenTask?.(task.id);
-                    }}
-                    style={{ flex: 1, gap: 6 }}
-                  >
+                  <View style={styles.taskMain}>
                     <Text
-                      style={[
-                        s.itemTitle,
-                        {
-                          textDecorationLine: done ? 'line-through' : 'none',
-                          color: done ? colors.textMuted : colors.text,
-                        },
-                      ]}
+                      style={[styles.taskTitle, { color: ui.text, textDecorationLine: done ? 'line-through' : 'none' }]}
                       numberOfLines={1}
                     >
                       {task.title}
                     </Text>
-                    <Text style={s.itemMeta}>{formatDateTime(task.start_time)} - {formatDateTime(task.end_time)}</Text>
-                  </Pressable>
-                  {!selectionMode ? (
-                    <View
-                      style={{
-                        borderRadius: 999,
-                        paddingHorizontal: 9,
-                        paddingVertical: 4,
-                        borderWidth: 1,
-                        borderColor: done ? '#86EFAC' : colors.border,
-                        backgroundColor: done ? '#ECFDF5' : colors.cardSoft,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Text style={{ fontSize: 11, fontWeight: '800', color: done ? '#059669' : colors.textMuted }}>
-                        {done ? '완료' : '완료 전'}
-                      </Text>
-                    </View>
-                  ) : null}
+                    <Text style={[styles.taskTime, { color: ui.subText }]} numberOfLines={1}>
+                      {formatDateTime(task.start_time)} - {formatDateTime(task.end_time)}
+                    </Text>
+                    {!selectionMode ? (
+                      <View style={styles.taskTagRow}>
+                        <View style={styles.taskTagLeft}>
+                          {task.tags?.slice(0, 2).map((tag) => (
+                            <View
+                              key={`${task.id}:${tag.tag_id}`}
+                              style={[
+                                styles.taskTag,
+                                {
+                                  backgroundColor: `${accentColor}${isDark ? '20' : '12'}`,
+                                  borderColor: `${accentColor}${isDark ? '30' : '18'}`,
+                                },
+                              ]}
+                            >
+                              <Text style={[styles.taskTagText, { color: accentColor }]} numberOfLines={1}>
+                                {tag.name}
+                              </Text>
+                            </View>
+                          ))}
+                          {isRecurringTask(task) ? (
+                            <View style={[styles.taskTag, { backgroundColor: colors.cardSoft, borderColor: ui.border }]}>
+                              <Text style={[styles.taskTagText, { color: ui.subText }]} numberOfLines={1}>
+                                반복 일정
+                              </Text>
+                            </View>
+                          ) : null}
+                          {task.tags && task.tags.length > 2 ? (
+                            <Text style={[styles.taskMoreText, { color: ui.primary }]} numberOfLines={1}>
+                              +{task.tags.length - 2} more
+                            </Text>
+                          ) : null}
+                          <View
+                            style={[
+                              styles.statusPill,
+                              {
+                                borderColor: done ? '#86EFAC' : ui.border,
+                                backgroundColor: done ? '#ECFDF5' : colors.cardSoft,
+                              },
+                            ]}
+                          >
+                            <Text style={{ fontSize: 11, fontWeight: '800', color: done ? '#059669' : ui.subText }}>
+                              {done ? '완료' : '완료 전'}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    ) : null}
+                  </View>
                 </View>
-              </Pressable>
-            </View>
+              </View>
+            </Pressable>
           );
         })}
         {!filteredTasks.length ? <Text style={s.emptyText}>{t('tasksEmpty')}</Text> : null}
         {filteredTasks.length > 0 ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+          <View style={styles.paginationRow}>
             <Pressable
               onPress={() => setPage((prev) => Math.max(1, prev - 1))}
               disabled={page <= 1}
-              style={[
-                s.workspacePill,
-                { marginRight: 0, paddingVertical: 7, paddingHorizontal: 12, opacity: page <= 1 ? 0.5 : 1 },
-              ]}
+              style={[styles.pageButton, { borderColor: ui.border, backgroundColor: ui.surface, opacity: page <= 1 ? 0.5 : 1 }]}
             >
-              <Text style={s.workspacePillText}>이전</Text>
+              <Text style={[styles.pageButtonText, { color: ui.text }]}>이전</Text>
             </Pressable>
-            <Text style={s.itemMeta}>
+            <Text style={[styles.pageCount, { color: ui.subText }]}>
               {page} / {totalPages}
             </Text>
             <Pressable
               onPress={() => setPage((prev) => Math.min(totalPages, prev + 1))}
               disabled={page >= totalPages}
-              style={[
-                s.workspacePill,
-                { marginRight: 0, paddingVertical: 7, paddingHorizontal: 12, opacity: page >= totalPages ? 0.5 : 1 },
-              ]}
+              style={[styles.pageButton, { borderColor: ui.border, backgroundColor: ui.surface, opacity: page >= totalPages ? 0.5 : 1 }]}
             >
-              <Text style={s.workspacePillText}>다음</Text>
+              <Text style={[styles.pageButtonText, { color: ui.text }]}>다음</Text>
             </Pressable>
           </View>
         ) : null}
@@ -474,3 +487,226 @@ export function TasksScreen({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: {
+    gap: 12,
+    paddingBottom: 18,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginTop: 8,
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  sectionCount: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  topActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+  },
+  chipButton: {
+    minHeight: 40,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  chipButtonWide: {
+    minHeight: 40,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dangerChipButton: {
+    minHeight: 40,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chipButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  selectionCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    gap: 10,
+  },
+  selectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  selectionBadge: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  selectionBadgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  selectionActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  filterRow: {
+    marginTop: 2,
+  },
+  searchWrap: {
+    minHeight: 48,
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '500',
+    paddingVertical: 0,
+  },
+  filterChipRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  filterChip: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  filterChipText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  listWrap: {
+    gap: 12,
+  },
+  taskCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+    minHeight: 88,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
+  },
+  taskCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  checkbox: {
+    width: 34,
+    height: 34,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  taskMain: {
+    flex: 1,
+    gap: 5,
+  },
+  taskTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+  },
+  taskTime: {
+    fontSize: 14,
+    fontWeight: '500',
+    letterSpacing: -0.1,
+  },
+  taskTagRow: {
+    marginTop: 8,
+  },
+  taskTagLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 4,
+    flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  taskMoreText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  taskTag: {
+    maxWidth: 104,
+    minHeight: 24,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  taskTagText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  statusPill: {
+    flexShrink: 0,
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paginationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  pageButton: {
+    minHeight: 38,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pageButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  pageCount: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+});

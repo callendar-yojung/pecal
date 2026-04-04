@@ -28,12 +28,12 @@ export function MemoEditorForm({
   onDelete,
   onForceOverwrite,
 }: Props) {
-  const { colors, resolvedMode } = useThemeMode();
+  const { appearance, colors } = useThemeMode();
   const s = createStyles(colors);
-  const borderColor = resolvedMode === 'black' ? '#2D3443' : '#D9E0EF';
-  const cardColor = resolvedMode === 'black' ? '#141923' : '#FFFFFF';
-  const softColor = resolvedMode === 'black' ? '#A3AEC2' : '#667085';
-  const titleColor = resolvedMode === 'black' ? '#F3F6FF' : '#111827';
+  const borderColor = appearance === 'dark' ? '#2D3443' : '#D9E0EF';
+  const cardColor = appearance === 'dark' ? '#141923' : '#FFFFFF';
+  const softColor = appearance === 'dark' ? '#A3AEC2' : '#667085';
+  const titleColor = appearance === 'dark' ? '#F3F6FF' : '#111827';
 
   return (
     <View
@@ -72,7 +72,7 @@ export function MemoEditorForm({
                   borderRadius: 10,
                   paddingHorizontal: 10,
                   paddingVertical: 6,
-                  backgroundColor: resolvedMode === 'black' ? '#2A1414' : '#FFF5F5',
+                  backgroundColor: appearance === 'dark' ? '#2A1414' : '#FFF5F5',
                 }}
               >
                 <Text style={{ color: '#EF4444', fontSize: 12, fontWeight: '700' }}>삭제</Text>
@@ -93,7 +93,7 @@ export function MemoEditorForm({
             borderRadius: 12,
             fontSize: 16,
             fontWeight: '700',
-            backgroundColor: resolvedMode === 'black' ? '#0F141D' : '#FFFFFF',
+            backgroundColor: appearance === 'dark' ? '#0F141D' : '#FFFFFF',
           },
         ]}
         placeholderTextColor={colors.textMuted}

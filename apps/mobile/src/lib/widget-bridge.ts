@@ -118,7 +118,7 @@ export async function syncWidgetData(params: {
   accessToken?: string;
   refreshToken?: string;
   memberId?: number;
-  themeMode?: 'light' | 'black';
+  themeMode?: 'light' | 'dark';
   maxItems?: number;
   workspaces?: Array<{
     workspaceId: number;
@@ -132,7 +132,7 @@ export async function syncWidgetData(params: {
   const payload: WidgetPayload = {
     generated_at: new Date().toISOString(),
     nickname: params.nickname,
-    theme: params.themeMode === 'black' ? 'dark' : 'light',
+    theme: params.themeMode === 'dark' ? 'dark' : 'light',
     api_base_url: params.apiBaseUrl,
     access_token: params.accessToken,
     member_id: params.memberId,

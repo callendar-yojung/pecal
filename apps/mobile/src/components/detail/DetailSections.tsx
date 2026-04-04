@@ -26,8 +26,8 @@ export function DetailSection({
   title?: string;
   children: React.ReactNode;
 }) {
-  const { resolvedMode } = useThemeMode();
-  const softColor = resolvedMode === 'black' ? '#A3AEC2' : '#667085';
+  const { appearance } = useThemeMode();
+  const softColor = appearance === 'dark' ? '#A3AEC2' : '#667085';
 
   return (
     <View style={{ gap: 8 }}>
@@ -44,8 +44,8 @@ export function DetailTagSection({
   title?: string;
   tags: DetailTagItem[];
 }) {
-  const { resolvedMode } = useThemeMode();
-  const textColor = resolvedMode === 'black' ? '#F3F6FF' : '#111827';
+  const { appearance } = useThemeMode();
+  const textColor = appearance === 'dark' ? '#F3F6FF' : '#111827';
 
   if (!tags.length) return null;
 
@@ -79,11 +79,11 @@ export function DetailAttachmentSection({
   emptyLabel: string;
   attachments: DetailAttachmentItem[];
 }) {
-  const { resolvedMode } = useThemeMode();
-  const borderColor = resolvedMode === 'black' ? '#2D3443' : '#D9E0EF';
-  const cardColor = resolvedMode === 'black' ? '#1A2130' : '#F8FAFF';
-  const textColor = resolvedMode === 'black' ? '#F3F6FF' : '#111827';
-  const softColor = resolvedMode === 'black' ? '#A3AEC2' : '#667085';
+  const { appearance } = useThemeMode();
+  const borderColor = appearance === 'dark' ? '#2D3443' : '#D9E0EF';
+  const cardColor = appearance === 'dark' ? '#1A2130' : '#F8FAFF';
+  const textColor = appearance === 'dark' ? '#F3F6FF' : '#111827';
+  const softColor = appearance === 'dark' ? '#A3AEC2' : '#667085';
 
   return (
     <DetailSection title={title}>
@@ -114,7 +114,7 @@ export function DetailAttachmentSection({
                       height: 148,
                       borderRadius: 10,
                       marginBottom: 6,
-                      backgroundColor: resolvedMode === 'black' ? '#0F172A' : '#E9EEF8',
+                      backgroundColor: appearance === 'dark' ? '#0F172A' : '#E9EEF8',
                     }}
                   />
                 ) : null}
@@ -133,7 +133,7 @@ export function DetailAttachmentSection({
                       borderRadius: 10,
                       paddingHorizontal: 10,
                       paddingVertical: 7,
-                      backgroundColor: resolvedMode === 'black' ? '#141923' : '#FFFFFF',
+                      backgroundColor: appearance === 'dark' ? '#141923' : '#FFFFFF',
                     }}
                   >
                     <Text style={{ color: textColor, fontSize: 12, fontWeight: '700' }}>열기</Text>
@@ -148,7 +148,7 @@ export function DetailAttachmentSection({
                       borderRadius: 10,
                       paddingHorizontal: 10,
                       paddingVertical: 7,
-                      backgroundColor: resolvedMode === 'black' ? '#141923' : '#FFFFFF',
+                      backgroundColor: appearance === 'dark' ? '#141923' : '#FFFFFF',
                     }}
                   >
                     <Text style={{ color: textColor, fontSize: 12, fontWeight: '700' }}>다운로드</Text>

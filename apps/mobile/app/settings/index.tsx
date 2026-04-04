@@ -86,6 +86,9 @@ export default function SettingsHomePage() {
   const visibleSections = (['account', 'plan', 'preferences'] as const).filter(
     (section) => groupedItems[section].length > 0,
   );
+  const handleBack = () => {
+    router.replace(returnTo as never);
+  };
 
   const sectionTitle = (section: keyof typeof groupedItems) => {
     if (section === 'account') return isKo ? '계정' : 'Account';
@@ -98,7 +101,7 @@ export default function SettingsHomePage() {
       <View style={s.section}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 2 }}>
           <Pressable
-            onPress={() => router.replace(returnTo as never)}
+            onPress={handleBack}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4, paddingRight: 6 }}
           >
             <Ionicons name="chevron-back" size={20} color={colors.primary} />

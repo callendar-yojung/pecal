@@ -132,6 +132,13 @@ export default function SettingsSecurityPage() {
   const s = createStyles(colors);
   const isKo = locale === 'ko';
   const returnTo = typeof params.from === 'string' && params.from ? params.from : '/(tabs)/overview';
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    router.replace(returnTo as never);
+  };
 
   const [sessions, setSessions] = useState<LoginSessionItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -236,7 +243,7 @@ export default function SettingsSecurityPage() {
       <View style={s.section}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 2 }}>
           <Pressable
-            onPress={() => router.replace(returnTo as never)}
+            onPress={handleBack}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4, paddingRight: 6 }}
           >
             <Ionicons name="chevron-back" size={20} color={colors.primary} />

@@ -1,6 +1,7 @@
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMaybeMobileApp } from '../../../src/contexts/MobileAppContext';
 import { useThemeMode } from '../../../src/contexts/ThemeContext';
@@ -124,6 +125,7 @@ export default function TaskCreatePage() {
     );
   }
   const workspace = data.selectedWorkspace;
+  const bottomBarHeight = 96;
 
   const submit = async () => {
     if (saving) return;
@@ -355,132 +357,215 @@ export default function TaskCreatePage() {
   };
 
   return (
-    <ScrollView
-      style={s.content}
-      contentContainerStyle={[s.contentContainer, { paddingTop: Math.max(12, insets.top + 8) }]}
-    >
-      <View style={[s.panel, { borderRadius: 16, gap: 10, marginBottom: 10 }]}>
-        <Text style={s.formTitle}>등록 유형 선택</Text>
-        <Text style={s.itemMeta}>일반 일정 또는 반복 일정을 먼저 선택하세요.</Text>
-        <View style={[s.row, { gap: 8 }]}>
-          <View style={{ flex: 1 }}>
-            <Pressable
-              onPress={() => {
-                setScheduleMode('single');
-                setRecurrenceEnabled(false);
-              }}
-              style={[
-                {
-                  borderWidth: 1,
-                  borderColor: scheduleMode === 'single' ? colors.primary : colors.border,
-                  backgroundColor: scheduleMode === 'single' ? `${colors.primary}14` : colors.card,
-                  borderRadius: 12,
-                  paddingVertical: 10,
-                  alignItems: 'center',
-                },
-              ]
-              }
-            >
-              <Text
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <ScrollView
+        style={s.content}
+        contentContainerStyle={[
+          s.contentContainer,
+          {
+            paddingTop: 8,
+            paddingBottom: bottomBarHeight + insets.bottom + 16,
+          },
+        ]}
+      >
+        <View
+          style={[
+            s.panel,
+            {
+              borderRadius: 16,
+              gap: 12,
+              marginBottom: 10,
+              padding: 16,
+              shadowColor: '#000',
+              shadowOpacity: 0.04,
+              shadowRadius: 8,
+              shadowOffset: { width: 0, height: 2 },
+              elevation: 2,
+            },
+          ]}
+        >
+          <Text style={[s.formTitle, { fontSize: 16, fontWeight: '800' }]}>등록 유형 선택</Text>
+          <Text style={s.itemMeta}>일반 일정 또는 반복 일정을 먼저 선택하세요.</Text>
+          <View style={[s.row, { gap: 8 }]}>
+            <View style={{ flex: 1 }}>
+              <Pressable
+                onPress={() => {
+                  setScheduleMode('single');
+                  setRecurrenceEnabled(false);
+                }}
                 style={[
-                  s.secondaryButtonText,
                   {
-                    color: scheduleMode === 'single' ? colors.primary : colors.textMuted,
-                    fontWeight: '700',
+                    borderWidth: 1,
+                    borderColor: scheduleMode === 'single' ? colors.primary : colors.border,
+                    backgroundColor: scheduleMode === 'single' ? `${colors.primary}14` : colors.card,
+                    borderRadius: 16,
+                    paddingVertical: 12,
+                    alignItems: 'center',
+                    gap: 4,
                   },
-                ]}
+                ]
+                }
               >
-                일반 일정
-              </Text>
-            </Pressable>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Pressable
-              onPress={() => {
-                setScheduleMode('recurring');
-                setRecurrenceEnabled(true);
-                if (!recurrenceWeekdays.length) setRecurrenceWeekdays([new Date(range.start).getDay()]);
-              }}
-              style={[
-                {
-                  borderWidth: 1,
-                  borderColor: scheduleMode === 'recurring' ? colors.primary : colors.border,
-                  backgroundColor: scheduleMode === 'recurring' ? `${colors.primary}14` : colors.card,
-                  borderRadius: 12,
-                  paddingVertical: 10,
-                  alignItems: 'center',
-                },
-              ]
-              }
-            >
-              <Text
+                <Ionicons
+                  name="calendar-outline"
+                  size={18}
+                  color={scheduleMode === 'single' ? colors.primary : colors.textMuted}
+                />
+                <Text
+                  style={[
+                    s.secondaryButtonText,
+                    {
+                      color: scheduleMode === 'single' ? colors.primary : colors.textMuted,
+                      fontWeight: '700',
+                    },
+                  ]}
+                >
+                  일반 일정
+                </Text>
+              </Pressable>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Pressable
+                onPress={() => {
+                  setScheduleMode('recurring');
+                  setRecurrenceEnabled(true);
+                  if (!recurrenceWeekdays.length) setRecurrenceWeekdays([new Date(range.start).getDay()]);
+                }}
                 style={[
-                  s.secondaryButtonText,
                   {
-                    color: scheduleMode === 'recurring' ? colors.primary : colors.textMuted,
-                    fontWeight: '700',
+                    borderWidth: 1,
+                    borderColor: scheduleMode === 'recurring' ? colors.primary : colors.border,
+                    backgroundColor: scheduleMode === 'recurring' ? `${colors.primary}14` : colors.card,
+                    borderRadius: 16,
+                    paddingVertical: 12,
+                    alignItems: 'center',
+                    gap: 4,
                   },
-                ]}
+                ]
+                }
               >
-                반복 일정
-              </Text>
-            </Pressable>
+                <Ionicons
+                  name="repeat"
+                  size={18}
+                  color={scheduleMode === 'recurring' ? colors.primary : colors.textMuted}
+                />
+                <Text
+                  style={[
+                    s.secondaryButtonText,
+                    {
+                      color: scheduleMode === 'recurring' ? colors.primary : colors.textMuted,
+                      fontWeight: '700',
+                    },
+                  ]}
+                >
+                  반복 일정
+                </Text>
+              </Pressable>
+            </View>
           </View>
         </View>
-      </View>
 
-      <TaskEditorForm
-        scheduleMode={scheduleMode}
-        title={title}
-        startTime={range.start}
-        endTime={range.end}
-        status={status}
-        color={color}
-        selectedCategoryId={selectedCategoryId}
-        availableCategories={categories}
-        colorOptions={colorOptions}
-        selectedTagIds={selectedTagIds}
-        availableTags={data.tags}
-        allDay={allDay}
-        reminderMinutes={reminderMinutes}
-        showRecurrenceControls={scheduleMode === 'recurring'}
-        hideRecurrenceToggle={scheduleMode === 'recurring'}
-        recurrenceEnabled={scheduleMode === 'recurring' ? true : recurrenceEnabled}
-        recurrenceStartDate={recurrenceStartDate}
-        recurrenceEndDate={recurrenceEndDate}
-        recurrenceWeekdays={recurrenceWeekdays}
-        rrule=""
-        contentJson={contentJson}
-        saving={saving}
-        creatingTag={creatingTag}
-        submitLabel="일정 만들기"
-        onTitleChange={setTitle}
-        onStartTimeChange={(value) => setRange((prev) => ensureRange(value, prev.end))}
-        onEndTimeChange={(value) => setRange((prev) => ensureRange(prev.start, value))}
-        onStatusChange={setStatus}
-        onColorChange={setColor}
-        onSaveCustomColor={saveCustomColor}
-        onCategoryChange={setSelectedCategoryId}
-        onCreateCategory={createCategory}
-        onUpdateCategory={updateCategory}
-        onDeleteCategory={deleteCategory}
-        onSelectedTagIdsChange={setSelectedTagIds}
-        onCreateTag={createTag}
-        attachments={attachmentItems}
-        uploadingAttachmentIds={uploadingLocalIds}
-        attachmentMode="pending"
-        onPickAttachment={() => void pickNewAttachments()}
-        onRemoveAttachment={removePendingAttachment}
-        onAllDayChange={setAllDay}
-        onReminderMinutesChange={setReminderMinutes}
-        onRecurrenceEnabledChange={setRecurrenceEnabled}
-        onRecurrenceStartDateChange={setRecurrenceStartDate}
-        onRecurrenceEndDateChange={setRecurrenceEndDate}
-        onRecurrenceWeekdaysChange={setRecurrenceWeekdays}
-        onRruleChange={() => undefined}
-        onContentChange={setContentJson}
-        onSubmit={() => void submit()}
-      />
-    </ScrollView>
+        <TaskEditorForm
+          scheduleMode={scheduleMode}
+          title={title}
+          startTime={range.start}
+          endTime={range.end}
+          status={status}
+          color={color}
+          selectedCategoryId={selectedCategoryId}
+          availableCategories={categories}
+          colorOptions={colorOptions}
+          selectedTagIds={selectedTagIds}
+          availableTags={data.tags}
+          allDay={allDay}
+          reminderMinutes={reminderMinutes}
+          showRecurrenceControls={scheduleMode === 'recurring'}
+          hideRecurrenceToggle={scheduleMode === 'recurring'}
+          recurrenceEnabled={scheduleMode === 'recurring' ? true : recurrenceEnabled}
+          recurrenceStartDate={recurrenceStartDate}
+          recurrenceEndDate={recurrenceEndDate}
+          recurrenceWeekdays={recurrenceWeekdays}
+          rrule=""
+          contentJson={contentJson}
+          saving={saving}
+          creatingTag={creatingTag}
+          submitLabel="일정 만들기"
+          hideSubmitButton
+          onTitleChange={setTitle}
+          onStartTimeChange={(value) => setRange((prev) => ensureRange(value, prev.end))}
+          onEndTimeChange={(value) => setRange((prev) => ensureRange(prev.start, value))}
+          onStatusChange={setStatus}
+          onColorChange={setColor}
+          onSaveCustomColor={saveCustomColor}
+          onCategoryChange={setSelectedCategoryId}
+          onCreateCategory={createCategory}
+          onUpdateCategory={updateCategory}
+          onDeleteCategory={deleteCategory}
+          onSelectedTagIdsChange={setSelectedTagIds}
+          onCreateTag={createTag}
+          attachments={attachmentItems}
+          uploadingAttachmentIds={uploadingLocalIds}
+          attachmentMode="pending"
+          onPickAttachment={() => void pickNewAttachments()}
+          onRemoveAttachment={removePendingAttachment}
+          onAllDayChange={setAllDay}
+          onReminderMinutesChange={setReminderMinutes}
+          onRecurrenceEnabledChange={setRecurrenceEnabled}
+          onRecurrenceStartDateChange={setRecurrenceStartDate}
+          onRecurrenceEndDateChange={setRecurrenceEndDate}
+          onRecurrenceWeekdaysChange={setRecurrenceWeekdays}
+          onRruleChange={() => undefined}
+          onContentChange={setContentJson}
+          onSubmit={() => void submit()}
+        />
+      </ScrollView>
+
+      <View
+        pointerEvents="box-none"
+        style={{
+          position: 'absolute',
+          left: 16,
+          right: 16,
+          bottom: Math.max(insets.bottom, 10),
+        }}
+      >
+        <Pressable
+          disabled={saving}
+          onPress={() => void submit()}
+          style={({ pressed }) => [
+            {
+              minHeight: 56,
+              borderRadius: 999,
+              borderWidth: 1,
+              borderColor: colors.primary,
+              backgroundColor: '#FFFFFF',
+              alignItems: 'center',
+              justifyContent: 'center',
+              shadowColor: '#000',
+              shadowOpacity: 0.08,
+              shadowRadius: 10,
+              shadowOffset: { width: 0, height: 4 },
+              elevation: 4,
+              opacity: saving ? 0.65 : pressed ? 0.92 : 1,
+              transform: [{ scale: pressed && !saving ? 0.99 : 1 }],
+            },
+          ]}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Ionicons name="add" size={22} color={colors.primary} />
+            <Text
+              style={{
+                color: colors.primary,
+                fontSize: 20,
+                fontWeight: '800',
+                letterSpacing: -0.4,
+              }}
+            >
+              {saving ? '저장 중...' : '일정 만들기'}
+            </Text>
+          </View>
+        </Pressable>
+      </View>
+    </View>
   );
 }

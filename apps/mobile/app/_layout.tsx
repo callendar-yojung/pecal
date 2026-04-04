@@ -10,12 +10,12 @@ import { MobileAppProvider } from '../src/contexts/MobileAppContext';
 import { useThemeMode } from '../src/contexts/ThemeContext';
 
 function AppChrome() {
-  const { colors, resolvedMode } = useThemeMode();
+  const { colors, appearance } = useThemeMode();
 
   return (
     <>
       <StatusBar
-        style={resolvedMode === 'black' ? 'light' : 'dark'}
+        style={appearance === 'dark' ? 'light' : 'dark'}
         backgroundColor={colors.bg}
         translucent={false}
       />

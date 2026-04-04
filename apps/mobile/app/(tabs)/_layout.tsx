@@ -1,9 +1,10 @@
 import { Redirect, Slot, usePathname, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   ActivityIndicator,
+  Animated,
   Image,
   Modal,
   Pressable,
@@ -26,7 +27,7 @@ import { FullPageWebView } from '../../src/components/common/FullPageWebView';
 
 export default function TabsLayout() {
   const { auth, data } = useMobileApp();
-  const { colors, resolvedMode, toggleMode } = useThemeMode();
+  const { appearance, colors, resolvedMode, toggleMode } = useThemeMode();
   const { t, locale, setLocale } = useI18n();
   const [flushingQueue, setFlushingQueue] = useState(false);
   const { width } = useWindowDimensions();
@@ -56,8 +57,12 @@ export default function TabsLayout() {
   };
 
   const activeNav = navItems.find((item) => isRouteActive(item.route)) ?? navItems[0];
-  const compactTabBottom = 0;
-  const compactTabReservedSpace = 68 + insets.bottom;
+  const [compactTabsCollapsed, setCompactTabsCollapsed] = useState(true);
+  const compactRailWidth = 74;
+  const compactRailHiddenOffset = compactRailWidth + insets.right + 24;
+  const compactRailTranslateX = useRef(
+    new Animated.Value(compactRailHiddenOffset)
+  ).current;
   const [privacyConsentRequired, setPrivacyConsentRequired] = useState(false);
   const [consentApiSupported, setConsentApiSupported] = useState(true);
   const [consentLoading, setConsentLoading] = useState(false);
@@ -271,6 +276,14 @@ export default function TabsLayout() {
       setSelectedWorkspaceKindKey('personal');
     }
   }, [workspaceKindOptions, selectedWorkspaceKindKey]);
+
+  useEffect(() => {
+    Animated.timing(compactRailTranslateX, {
+      toValue: compactTabsCollapsed ? compactRailHiddenOffset : 0,
+      duration: 220,
+      useNativeDriver: true,
+    }).start();
+  }, [compactRailTranslateX, compactRailHiddenOffset, compactTabsCollapsed]);
 
   useEffect(() => {
     if (!workspaceQuickOptions.length) return;
@@ -505,18 +518,23 @@ export default function TabsLayout() {
                   <Pressable
                     onPress={() => openWorkspaceRename(option)}
                     style={{
-                      width: 26,
-                      height: 26,
-                      borderRadius: 8,
+                      width: 32,
+                      height: 32,
+                      borderRadius: 12,
                       borderWidth: 1,
                       borderColor: colors.border,
                       backgroundColor: colors.card,
                       alignItems: 'center',
                       justifyContent: 'center',
+                      shadowColor: '#000',
+                      shadowOpacity: 0.03,
+                      shadowRadius: 6,
+                      shadowOffset: { width: 0, height: 2 },
+                      elevation: 1,
                     }}
                     hitSlop={6}
                   >
-                    <Ionicons name="pencil-outline" size={13} color={colors.textMuted} />
+                    <Ionicons name="pencil-outline" size={14} color={colors.textMuted} />
                   </Pressable>
                 </View>
               </View>
@@ -659,49 +677,141 @@ export default function TabsLayout() {
       {isCompact ? (
         <View style={{ flex: 1 }}>
           {sharedOverlays}
-          <View style={{ flex: 1, minHeight: 0, paddingBottom: compactTabReservedSpace }}>
+          <View style={{ flex: 1, minHeight: 0 }}>
             <Slot />
           </View>
 
-          <View
-            style={[
-              s.bottomTabs,
-              {
-                bottom: compactTabBottom,
-                paddingBottom: Math.max(8, insets.bottom),
-              },
-            ]}
+          {!compactTabsCollapsed ? (
+            <Pressable
+              onPress={() => setCompactTabsCollapsed(true)}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+              }}
+            />
+          ) : null}
+
+          {compactTabsCollapsed ? (
+            <Pressable
+              onPress={() => setCompactTabsCollapsed(false)}
+              style={{
+                position: 'absolute',
+                right: insets.right + 8,
+                top: insets.top + 96,
+                width: 38,
+                height: 38,
+                borderRadius: 11,
+                borderWidth: 1,
+                borderColor: colors.border,
+                backgroundColor: colors.card,
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: '#000',
+                shadowOpacity: 0.08,
+                shadowRadius: 8,
+                shadowOffset: { width: 0, height: 3 },
+                elevation: 3,
+              }}
+              hitSlop={8}
+            >
+              <Ionicons name="chevron-back-outline" size={16} color={colors.textMuted} />
+            </Pressable>
+          ) : null}
+
+          <Animated.View
+            style={{
+              position: 'absolute',
+              right: insets.right + 8,
+              top: 10,
+              bottom: Math.max(10, insets.bottom),
+              width: compactRailWidth,
+              borderRadius: 18,
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: colors.card,
+              paddingVertical: 8,
+              paddingHorizontal: 6,
+              gap: 6,
+              transform: [{ translateX: compactRailTranslateX }],
+            }}
           >
+            <View style={{ gap: 6, paddingTop: 2 }}>
             {navItems.map((item) => {
               const active = isRouteActive(item.route);
               return (
                 <Pressable
                   key={item.key}
                   onPress={() => router.replace(item.route)}
-                  style={[
-                    s.bottomTabButton,
-                    active ? s.bottomTabButtonActive : null,
-                  ]}
+                  style={{
+                    minHeight: 48,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: active ? `${colors.primary}66` : 'transparent',
+                    backgroundColor: active ? `${colors.primary}1A` : 'transparent',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 3,
+                    paddingHorizontal: 2,
+                  }}
                 >
-                  <View style={s.bottomTabIconWrap}>
-                    <Ionicons
-                      name={item.icon}
-                      size={18}
-                      color={active ? colors.text : colors.textMuted}
-                    />
-                  </View>
+                  <Ionicons
+                    name={item.icon}
+                    size={18}
+                    color={active ? colors.primary : colors.textMuted}
+                  />
                   <Text
-                    style={[
-                      s.bottomTabText,
-                      active ? s.bottomTabTextActive : null,
-                    ]}
+                    style={{
+                      color: active ? colors.primary : colors.textMuted,
+                      fontSize: 11,
+                      fontWeight: active ? '800' : '700',
+                    }}
+                    numberOfLines={1}
                   >
                     {item.label}
                   </Text>
-                </Pressable>
+                  </Pressable>
               );
             })}
-          </View>
+            </View>
+          </Animated.View>
+
+          {!compactTabsCollapsed ? (
+            <Animated.View
+              style={{
+                position: 'absolute',
+                right: insets.right + compactRailWidth + 8,
+                top: insets.top + 96,
+                width: 38,
+                height: 38,
+                transform: [{ translateX: compactRailTranslateX }],
+                zIndex: 3,
+              }}
+            >
+              <Pressable
+                onPress={() => setCompactTabsCollapsed(true)}
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  backgroundColor: colors.card,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: '#000',
+                  shadowOpacity: 0.08,
+                  shadowRadius: 8,
+                  shadowOffset: { width: 0, height: 3 },
+                  elevation: 3,
+                }}
+              >
+                <Ionicons name="chevron-forward-outline" size={16} color={colors.textMuted} />
+              </Pressable>
+            </Animated.View>
+          ) : null}
         </View>
       ) : (
         <View style={s.appBody}>
@@ -1166,7 +1276,7 @@ export default function TabsLayout() {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: resolvedMode === 'black' ? 'rgba(7,9,14,0.82)' : 'rgba(242,244,251,0.84)',
+            backgroundColor: appearance === 'dark' ? 'rgba(7,9,14,0.82)' : 'rgba(242,244,251,0.84)',
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 999,

@@ -21,7 +21,7 @@ import type { MainTab } from '../lib/types';
 
 export function MobileApp() {
   const { t, locale, setLocale } = useI18n();
-  const { resolvedMode, colors, toggleMode } = useThemeMode();
+  const { appearance, resolvedMode, colors, toggleMode } = useThemeMode();
   const s = createStyles(colors);
   const auth = useAuth();
   const data = useDashboardData(auth.session);
@@ -280,7 +280,7 @@ export function MobileApp() {
         ))}
       </View>
 
-      <StatusBar style={resolvedMode === 'black' ? 'light' : 'dark'} />
+      <StatusBar style={appearance === 'dark' ? 'light' : 'dark'} />
     </SafeAreaView>
   );
 }
