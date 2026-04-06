@@ -2,11 +2,27 @@
 
 import Image from "next/image";
 import { useTranslations } from "next-intl";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "@/i18n/routing";
 
 type StoreAction = {
   key: "windows" | "appStore" | "playStore";
   href: string | null;
+};
+
+type ReleaseInfo = {
+  version: string;
+  downloadUrl: string;
+  fileName?: string;
+  fileSize?: number;
+};
+
+type ReleasesResponse = {
+  releases?: {
+    macos?: ReleaseInfo;
+    "macos-arm64"?: ReleaseInfo;
+    "macos-x64"?: ReleaseInfo;
+  };
 };
 
 const STORE_ACTIONS: StoreAction[] = [
@@ -54,6 +70,46 @@ function ActionRightHint() {
 
 export default function HomeActions() {
   const t = useTranslations("homeActions");
+  const [macRelease, setMacRelease] = useState<ReleaseInfo | null>(null);
+  const [loadingMacRelease, setLoadingMacRelease] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function fetchMacRelease() {
+      try {
+        const response = await fetch("/api/releases/latest");
+        if (!response.ok) return;
+
+        const data = (await response.json()) as ReleasesResponse;
+        const releases = data.releases ?? {};
+        // Prefer Apple Silicon build first, then generic macOS, then Intel build.
+        const latestMacRelease =
+          releases["macos-arm64"] ?? releases.macos ?? releases["macos-x64"] ?? null;
+
+        if (mounted) {
+          setMacRelease(latestMacRelease);
+        }
+      } catch (error) {
+        console.error("Failed to fetch macOS release:", error);
+      } finally {
+        if (mounted) {
+          setLoadingMacRelease(false);
+        }
+      }
+    }
+
+    void fetchMacRelease();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const macReleaseLabel = useMemo(() => {
+    if (!macRelease?.version) return null;
+    return t("macLatestVersion", { version: macRelease.version });
+  }, [macRelease?.version, t]);
 
   return (
     <section className="px-6 py-16 md:py-24">
@@ -74,6 +130,46 @@ export default function HomeActions() {
             </span>
             <ActionRightHint />
           </Link>
+
+          {loadingMacRelease ? (
+            <button
+              type="button"
+              disabled
+              className="inline-flex h-12 min-h-12 items-center justify-between rounded-xl border border-border bg-muted px-5 text-sm font-semibold text-muted-foreground"
+            >
+              <span className="inline-flex items-center gap-2">
+                <ActionIcon keyName="appStore" />
+                {t("macLatestDownload")}
+              </span>
+              <span>{t("loading")}</span>
+            </button>
+          ) : macRelease?.downloadUrl ? (
+            <a
+              href={macRelease.downloadUrl}
+              download={macRelease.fileName || true}
+              className="inline-flex h-12 min-h-12 items-center justify-between rounded-xl border border-border bg-background px-5 text-sm font-semibold text-foreground transition-colors hover:bg-muted/60"
+            >
+              <span className="inline-flex items-center gap-2">
+                <ActionIcon keyName="appStore" />
+                {t("macLatestDownload")}
+              </span>
+              <span className="text-sm text-muted-foreground">
+                {macReleaseLabel ?? t("download")}
+              </span>
+            </a>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="inline-flex h-12 min-h-12 items-center justify-between rounded-xl border border-border bg-muted px-5 text-sm font-semibold text-muted-foreground"
+            >
+              <span className="inline-flex items-center gap-2">
+                <ActionIcon keyName="appStore" />
+                {t("macLatestDownload")}
+              </span>
+              <span>{t("comingSoon")}</span>
+            </button>
+          )}
 
           {STORE_ACTIONS.map((store) =>
             store.href ? (
