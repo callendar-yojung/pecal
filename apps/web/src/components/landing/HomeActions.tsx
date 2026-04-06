@@ -18,7 +18,9 @@ const STORE_ACTIONS: StoreAction[] = [
   },
   {
     key: "appStore",
-    href: process.env.NEXT_PUBLIC_APP_STORE_URL ?? null,
+    href:
+      process.env.NEXT_PUBLIC_APP_STORE_URL ??
+      "https://apps.apple.com/kr/app/%ED%94%BC%EC%BC%88-%EC%9D%BC%EC%A0%95%EA%B4%80%EB%A6%AC-%EC%BA%98%EB%A6%B0%EB%8D%94%EC%95%B1/id6759646396",
   },
   {
     key: "playStore",
