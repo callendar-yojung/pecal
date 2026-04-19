@@ -5,12 +5,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMobileApp } from '../../src/contexts/MobileAppContext';
 import { useThemeMode } from '../../src/contexts/ThemeContext';
+import { useI18n } from '../../src/contexts/I18nContext';
 import { createStyles } from '../../src/styles/createStyles';
 import { OverviewScreen } from '../../src/screens/OverviewScreen';
 
 export default function OverviewTab() {
   const { auth, data } = useMobileApp();
   const { colors } = useThemeMode();
+  const { t } = useI18n();
   const s = createStyles(colors);
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -43,7 +45,7 @@ export default function OverviewTab() {
       >
         {data.dashboardLoading ? null : null}
         {data.error || auth.error ? <Text style={s.errorText}>{data.error || auth.error}</Text> : null}
-        {!data.selectedWorkspace ? <Text style={s.emptyText}>워크스페이스를 선택하세요.</Text> : null}
+        {!data.selectedWorkspace ? <Text style={s.emptyText}>{t('noWorkspace')}</Text> : null}
         {data.selectedWorkspace ? (
           <OverviewScreen
             tasks={data.tasks}
@@ -63,9 +65,8 @@ export default function OverviewTab() {
           pointerEvents="box-none"
           style={{
             position: 'absolute',
-            left: 16,
             right: 16,
-            bottom: Math.max(insets.bottom, 10),
+            bottom: Math.max(insets.bottom, 4),
           }}
         >
           <Pressable
@@ -75,12 +76,15 @@ export default function OverviewTab() {
             style={({ pressed }) => [
               {
                 minHeight: 56,
+                minWidth: 132,
                 borderRadius: 999,
                 borderWidth: 1,
                 borderColor: colors.primary,
                 backgroundColor: '#FFFFFF',
                 alignItems: 'center',
                 justifyContent: 'center',
+                alignSelf: 'flex-end',
+                paddingHorizontal: 22,
                 shadowColor: '#000',
                 shadowOpacity: 0.08,
                 shadowRadius: 10,
@@ -101,7 +105,7 @@ export default function OverviewTab() {
                   letterSpacing: -0.4,
                 }}
               >
-                생성
+                {t('commonCreate')}
               </Text>
             </View>
           </Pressable>
