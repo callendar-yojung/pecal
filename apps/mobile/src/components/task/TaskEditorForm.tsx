@@ -7,6 +7,7 @@ import { HueSlider, Panel1 } from 'reanimated-color-picker/lib/module/index.js';
 import { TASK_COLOR_OPTIONS } from '../../lib/task-colors';
 import type { CategoryItem, TagItem, TaskAttachmentItem, TaskStatus } from '../../lib/types';
 import { useThemeMode } from '../../contexts/ThemeContext';
+import { useI18n } from '../../contexts/I18nContext';
 import { createStyles } from '../../styles/createStyles';
 import { SharedRichTextEditor } from '../editor/SharedRichTextEditor';
 import { GsxButton, GsxHeading } from '../../ui/gsx';
@@ -132,8 +133,10 @@ export function TaskEditorForm({
     | 'status'
     | 'reminder';
   const { colors, appearance } = useThemeMode();
+  const { locale } = useI18n();
   const s = createStyles(colors);
   const isDark = appearance === 'dark';
+  const isKo = locale === 'ko';
   const [pickerTarget, setPickerTarget] = useState<
     'startDate' | 'startTime' | 'endDate' | 'endTime' | 'repeatStartDate' | 'repeatEndDate' | null
   >(null);
@@ -166,19 +169,19 @@ export function TaskEditorForm({
   });
 
   const statusLabels: Record<TaskStatus, string> = {
-    TODO: '완료 전',
-    IN_PROGRESS: '완료 전',
-    DONE: '완료',
+    TODO: isKo ? '완료 전' : 'Not done',
+    IN_PROGRESS: isKo ? '완료 전' : 'Not done',
+    DONE: isKo ? '완료' : 'Done',
   };
   const normalizedStatus: 'TODO' | 'DONE' = status === 'DONE' ? 'DONE' : 'TODO';
   const reminderOptions = [
-    { key: '', label: '알림 없음' },
-    { key: '0', label: '정시 알림' },
-    { key: '5', label: '5분 전' },
-    { key: '10', label: '10분 전' },
-    { key: '15', label: '15분 전' },
-    { key: '30', label: '30분 전' },
-    { key: '60', label: '1시간 전' },
+    { key: '', label: isKo ? '알림 없음' : 'No reminder' },
+    { key: '0', label: isKo ? '정시 알림' : 'At start time' },
+    { key: '5', label: isKo ? '5분 전' : '5 min before' },
+    { key: '10', label: isKo ? '10분 전' : '10 min before' },
+    { key: '15', label: isKo ? '15분 전' : '15 min before' },
+    { key: '30', label: isKo ? '30분 전' : '30 min before' },
+    { key: '60', label: isKo ? '1시간 전' : '1 hour before' },
   ] as const;
 
   const formatBytes = (bytes?: number) => {
@@ -254,23 +257,25 @@ export function TaskEditorForm({
 
   const helperTextStyle = { color: colors.textMuted, fontSize: 12, fontWeight: '600' as const };
   const errorTextStyle = { color: '#DC2626', fontSize: 12, fontWeight: '700' as const };
-  const titleError = title.trim().length === 0 ? '제목을 입력해주세요.' : null;
-  const weekdayLabels = ['일', '월', '화', '수', '목', '금', '토'] as const;
+  const titleError = title.trim().length === 0 ? (isKo ? '제목을 입력해주세요.' : 'Please enter a title.') : null;
+  const weekdayLabels = isKo
+    ? (['일', '월', '화', '수', '목', '금', '토'] as const)
+    : (['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const);
   const selectedReminderLabel =
-    reminderOptions.find((item) => item.key === reminderMinutes)?.label ?? '알림 없음';
+    reminderOptions.find((item) => item.key === reminderMinutes)?.label ?? (isKo ? '알림 없음' : 'No reminder');
   const recurrenceSummary = useMemo(() => {
-    if (!recurrenceEnabled) return '반복 안 함';
+    if (!recurrenceEnabled) return isKo ? '반복 안 함' : 'No repeat';
     const weekdays =
       recurrenceWeekdays.length > 0
         ? recurrenceWeekdays.map((day) => weekdayLabels[day] ?? '').filter(Boolean).join(', ')
-        : '요일 선택 필요';
-    const endLabel = recurrenceEndDate ? recurrenceEndDate : '종료일 없음';
-    return `매주 ${weekdays} · ${endLabel}`;
-  }, [recurrenceEnabled, recurrenceEndDate, recurrenceWeekdays]);
+        : isKo ? '요일 선택 필요' : 'Select weekdays';
+    const endLabel = recurrenceEndDate ? recurrenceEndDate : isKo ? '종료일 없음' : 'No end date';
+    return isKo ? `매주 ${weekdays} · ${endLabel}` : `Every week ${weekdays} · ${endLabel}`;
+  }, [isKo, recurrenceEnabled, recurrenceEndDate, recurrenceWeekdays, weekdayLabels]);
   const scheduleSummary =
     scheduleMode === 'recurring'
       ? `${startParts.time || '09:00'} - ${endParts.time || '09:30'}`
-      : `${startParts.date || '날짜 선택'} ${startParts.time || '09:00'} - ${endParts.date || '날짜 선택'} ${endParts.time || '09:30'}`;
+      : `${startParts.date || (isKo ? '날짜 선택' : 'Select date')} ${startParts.time || '09:00'} - ${endParts.date || (isKo ? '날짜 선택' : 'Select date')} ${endParts.time || '09:30'}`;
   const sectionCardStyle = {
     borderRadius: 16,
     padding: 18,
@@ -344,7 +349,7 @@ export function TaskEditorForm({
       setNewTagName('');
       setShowNewTagInput(false);
     } catch (error) {
-      setTagError(error instanceof Error ? error.message : '태그를 추가하지 못했습니다.');
+      setTagError(error instanceof Error ? error.message : isKo ? '태그를 추가하지 못했습니다.' : 'Failed to add the tag.');
     }
   };
 
@@ -358,7 +363,7 @@ export function TaskEditorForm({
       setNewCategoryName('');
       setShowNewCategoryInput(false);
     } catch (error) {
-      setCategoryError(error instanceof Error ? error.message : '카테고리를 추가하지 못했습니다.');
+      setCategoryError(error instanceof Error ? error.message : isKo ? '카테고리를 추가하지 못했습니다.' : 'Failed to add the category.');
     } finally {
       setCreatingCategory(false);
     }
@@ -380,7 +385,7 @@ export function TaskEditorForm({
       setEditingCategory(true);
       await onUpdateCategory(categoryId, name, color);
     } catch (error) {
-      setCategoryError(error instanceof Error ? error.message : '카테고리를 수정하지 못했습니다.');
+      setCategoryError(error instanceof Error ? error.message : isKo ? '카테고리를 수정하지 못했습니다.' : 'Failed to update the category.');
     } finally {
       setEditingCategory(false);
     }
@@ -394,7 +399,7 @@ export function TaskEditorForm({
       setDeletingCategory(true);
       await onDeleteCategory(categoryId);
     } catch (error) {
-      setCategoryError(error instanceof Error ? error.message : '카테고리를 삭제하지 못했습니다.');
+      setCategoryError(error instanceof Error ? error.message : isKo ? '카테고리를 삭제하지 못했습니다.' : 'Failed to delete the category.');
     } finally {
       setDeletingCategory(false);
     }
@@ -407,13 +412,17 @@ export function TaskEditorForm({
       setCustomColorError(null);
       const saved = await onSaveCustomColor(customColorInput);
       if (!saved) {
-        setCustomColorError('RGB 또는 HEX 형식으로 입력하세요. 예: rgb(120,34,255), #7A22FF');
+        setCustomColorError(
+          isKo
+            ? 'RGB 또는 HEX 형식으로 입력하세요. 예: rgb(120,34,255), #7A22FF'
+            : 'Use RGB or HEX format. Example: rgb(120,34,255), #7A22FF',
+        );
         return;
       }
       onColorChange(saved);
       setCustomColorInput('');
     } catch (error) {
-      setCustomColorError(error instanceof Error ? error.message : '색상을 저장하지 못했습니다.');
+      setCustomColorError(error instanceof Error ? error.message : isKo ? '색상을 저장하지 못했습니다.' : 'Failed to save the color.');
     } finally {
       setSavingCustomColor(false);
     }
@@ -459,7 +468,7 @@ export function TaskEditorForm({
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
           <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: '700' }}>
-            {isDate ? '날짜' : '시간'}
+            {isDate ? (isKo ? '날짜' : 'Date') : (isKo ? '시간' : 'Time')}
           </Text>
           <Ionicons
             name={isDate ? 'calendar-outline' : 'time-outline'}
@@ -482,7 +491,7 @@ export function TaskEditorForm({
             {params.value || params.placeholder}
           </Text>
           <Text style={{ color: colors.textMuted, fontSize: 10, fontWeight: '600' }}>
-            {isDate ? '날짜 선택' : '시간 선택'}
+            {isDate ? (isKo ? '날짜 선택' : 'Select date') : (isKo ? '시간 선택' : 'Select time')}
           </Text>
         </View>
       </Pressable>
@@ -528,13 +537,17 @@ export function TaskEditorForm({
     <View style={{ gap: 16 }}>
       <View style={sectionCardStyle}>
         <View style={{ gap: 4 }}>
-          <Text style={s.formTitle}>제목</Text>
-          <Text style={s.itemMeta}>저장될 일정의 이름입니다. 가장 먼저 보여야 하는 항목으로 강조했습니다.</Text>
+          <Text style={s.formTitle}>{isKo ? '제목' : 'Title'}</Text>
+          <Text style={s.itemMeta}>
+            {isKo
+              ? '저장될 일정의 이름입니다. 가장 먼저 보여야 하는 항목으로 강조했습니다.'
+              : 'This is the name of the schedule. It is emphasized as the first item users should see.'}
+          </Text>
         </View>
         <TextInput
           value={title}
           onChangeText={onTitleChange}
-          placeholder="예: 디자인 시스템 회의"
+          placeholder={isKo ? '예: 디자인 시스템 회의' : 'e.g. Design system meeting'}
           style={[
             s.input,
             {
@@ -551,15 +564,24 @@ export function TaskEditorForm({
           placeholderTextColor={colors.textMuted}
         />
         <Text style={titleError ? errorTextStyle : helperTextStyle}>
-          {titleError ?? '카드 헤더처럼 제목이 먼저 읽히도록 배치했습니다.'}
+          {titleError ??
+            (isKo
+              ? '카드 헤더처럼 제목이 먼저 읽히도록 배치했습니다.'
+              : 'Placed first so the title reads like a card header.')}
         </Text>
       </View>
 
       <View style={sectionCardStyle}>
         <View style={{ gap: 4 }}>
-          <Text style={s.formTitle}>{scheduleMode === 'recurring' ? '반복 시작 시간' : '시작 시간'}</Text>
+          <Text style={s.formTitle}>
+            {scheduleMode === 'recurring'
+              ? isKo ? '반복 시작 시간' : 'Recurring start time'
+              : isKo ? '시작 시간' : 'Start time'}
+          </Text>
           <Text style={s.itemMeta}>
-            {scheduleMode === 'recurring' ? '반복 일정 시작 시각' : '일정 시작 날짜와 시각'}
+            {scheduleMode === 'recurring'
+              ? isKo ? '반복 일정 시작 시각' : 'Start time for the recurring schedule'
+              : isKo ? '일정 시작 날짜와 시각' : 'Start date and time for the schedule'}
           </Text>
         </View>
         <View style={fieldCardStyle}>
@@ -568,7 +590,7 @@ export function TaskEditorForm({
               ? renderDateTimeField({
                   kind: 'date',
                   value: startParts.date,
-                  placeholder: '날짜 선택',
+                  placeholder: isKo ? '날짜 선택' : 'Select date',
                   onPress: () => setPickerTarget('startDate'),
                 })
               : null}
@@ -581,16 +603,26 @@ export function TaskEditorForm({
           </View>
           <Text style={helperTextStyle}>
             {scheduleMode === 'recurring'
-              ? `${startParts.time || '09:00'}부터 시작`
-              : `${startParts.date || '날짜 선택'} ${startParts.time || '09:00'} 시작`}
+              ? isKo ? `${startParts.time || '09:00'}부터 시작` : `Starts at ${startParts.time || '09:00'}`
+              : isKo
+                ? `${startParts.date || '날짜 선택'} ${startParts.time || '09:00'} 시작`
+                : `${startParts.date || 'Select date'} ${startParts.time || '09:00'} starts`}
           </Text>
         </View>
       </View>
 
       <View style={sectionCardStyle}>
         <View style={{ gap: 4 }}>
-          <Text style={s.formTitle}>{scheduleMode === 'recurring' ? '반복 종료 시간' : '종료 시간'}</Text>
-          <Text style={s.itemMeta}>시작 이후의 종료 시각을 한눈에 스캔할 수 있게 묶었습니다.</Text>
+          <Text style={s.formTitle}>
+            {scheduleMode === 'recurring'
+              ? isKo ? '반복 종료 시간' : 'Recurring end time'
+              : isKo ? '종료 시간' : 'End time'}
+          </Text>
+          <Text style={s.itemMeta}>
+            {isKo
+              ? '시작 이후의 종료 시각을 한눈에 스캔할 수 있게 묶었습니다.'
+              : 'Grouped so users can scan the end time right after the start time.'}
+          </Text>
         </View>
         <View style={fieldCardStyle}>
           <View style={[s.row, { alignItems: 'stretch', gap: 8 }]}>
@@ -598,7 +630,7 @@ export function TaskEditorForm({
               ? renderDateTimeField({
                   kind: 'date',
                   value: endParts.date,
-                  placeholder: '날짜 선택',
+                  placeholder: isKo ? '날짜 선택' : 'Select date',
                   onPress: () => setPickerTarget('endDate'),
                 })
               : null}
@@ -611,16 +643,22 @@ export function TaskEditorForm({
           </View>
           <Text style={helperTextStyle}>
             {scheduleMode === 'recurring'
-              ? `${endParts.time || '09:30'}에 종료`
-              : `${endParts.date || '날짜 선택'} ${endParts.time || '09:30'} 종료`}
+              ? isKo ? `${endParts.time || '09:30'}에 종료` : `Ends at ${endParts.time || '09:30'}`
+              : isKo
+                ? `${endParts.date || '날짜 선택'} ${endParts.time || '09:30'} 종료`
+                : `${endParts.date || 'Select date'} ${endParts.time || '09:30'} ends`}
           </Text>
         </View>
       </View>
 
       <View style={sectionCardStyle}>
         <View style={{ gap: 4 }}>
-          <Text style={s.formTitle}>태스크 컬러</Text>
-          <Text style={s.itemMeta}>개요의 카드 컬러 포인트와 같은 역할로 일정을 구분합니다.</Text>
+          <Text style={s.formTitle}>{isKo ? '태스크 컬러' : 'Task color'}</Text>
+          <Text style={s.itemMeta}>
+            {isKo
+              ? '개요의 카드 컬러 포인트와 같은 역할로 일정을 구분합니다.'
+              : 'Use color the same way overview cards use accent colors to distinguish schedules.'}
+          </Text>
         </View>
         <View style={[s.row, { flexWrap: 'wrap', gap: 10 }]}>
           {(colorOptions && colorOptions.length > 0 ? colorOptions : TASK_COLOR_OPTIONS.map((item) => item.value)).map((item) => {
@@ -652,13 +690,19 @@ export function TaskEditorForm({
               style={[s.secondaryButton, { ...smallActionButtonStyle, alignSelf: 'flex-start' }]}
             >
               <Text style={s.secondaryButtonText}>
-                {showAdvancedColorPicker ? 'RGB/HEX 선택 접기' : 'RGB/HEX 직접 선택'}
+                {showAdvancedColorPicker
+                  ? isKo ? 'RGB/HEX 선택 접기' : 'Hide RGB/HEX picker'
+                  : isKo ? 'RGB/HEX 직접 선택' : 'Choose RGB/HEX directly'}
               </Text>
             </Pressable>
 
             {showAdvancedColorPicker ? (
               <>
-                <Text style={s.itemMeta}>색상표에서 선택 후 저장하면 내 색상으로 계속 사용할 수 있습니다.</Text>
+                <Text style={s.itemMeta}>
+                  {isKo
+                    ? '색상표에서 선택 후 저장하면 내 색상으로 계속 사용할 수 있습니다.'
+                    : 'Save a color picked here to keep using it as your personal preset.'}
+                </Text>
                 <ColorPicker value={customColorInput || color} onChangeJS={handlePickerChange}>
                   <Panel1
                     style={{
@@ -695,7 +739,7 @@ export function TaskEditorForm({
                       setCustomColorInput(value);
                       if (customColorError) setCustomColorError(null);
                     }}
-                    placeholder="rgb(120,34,255) 또는 #7A22FF"
+                    placeholder={isKo ? 'rgb(120,34,255) 또는 #7A22FF' : 'rgb(120,34,255) or #7A22FF'}
                     style={[s.input, { flex: 1, minHeight: 52, borderRadius: 16, paddingHorizontal: 16 }]}
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -705,7 +749,9 @@ export function TaskEditorForm({
                     onPress={() => void saveCustomColor()}
                     style={[s.secondaryButton, smallActionButtonStyle]}
                   >
-                    <Text style={s.secondaryButtonText}>{savingCustomColor ? '저장 중...' : '색상 저장'}</Text>
+                    <Text style={s.secondaryButtonText}>
+                      {savingCustomColor ? (isKo ? '저장 중...' : 'Saving...') : isKo ? '색상 저장' : 'Save color'}
+                    </Text>
                   </Pressable>
                 </View>
                 <Text style={s.itemMeta}>
@@ -719,12 +765,18 @@ export function TaskEditorForm({
       </View>
 
       <View style={sectionCardStyle}>
-        {renderSectionHeader('memo', '메모 / 설명', '긴 설명도 같은 카드 시스템 안에서 안정적으로 작성할 수 있습니다.')}
+        {renderSectionHeader(
+          'memo',
+          isKo ? '메모 / 설명' : 'Memo / description',
+          isKo
+            ? '긴 설명도 같은 카드 시스템 안에서 안정적으로 작성할 수 있습니다.'
+            : 'Long descriptions can also be written comfortably within the same card system.',
+        )}
         {expandedSections.memo ? (
           <SharedRichTextEditor
             valueJson={contentJson}
             valueText=""
-            placeholder="태스크 상세 내용을 입력하세요."
+            placeholder={isKo ? '태스크 상세 내용을 입력하세요.' : 'Enter task details.'}
             minHeight={220}
             implementation="webview"
             onChange={(json) => onContentChange(json)}
@@ -733,7 +785,13 @@ export function TaskEditorForm({
       </View>
 
       <View style={sectionCardStyle}>
-        {renderSectionHeader('category', '카테고리', '개요 화면의 배지처럼 너무 흩어지지 않게 카드 안에서 정리합니다.')}
+        {renderSectionHeader(
+          'category',
+          isKo ? '카테고리' : 'Category',
+          isKo
+            ? '개요 화면의 배지처럼 너무 흩어지지 않게 카드 안에서 정리합니다.'
+            : 'Organized inside the card so it does not feel too scattered like overview badges.',
+        )}
         {expandedSections.category ? (
           <>
             {showNewCategoryInput ? (
@@ -744,13 +802,15 @@ export function TaskEditorForm({
                     setNewCategoryName(value);
                     if (categoryError) setCategoryError(null);
                   }}
-                  placeholder="새 카테고리 이름"
+                  placeholder={isKo ? '새 카테고리 이름' : 'New category name'}
                   style={[s.input, { minHeight: 52, borderRadius: 16, paddingHorizontal: 16 }]}
                   placeholderTextColor={colors.textMuted}
                 />
                 <View style={actionRowStyle}>
                   <Pressable onPress={() => void createCategory()} style={[s.secondaryButton, smallActionButtonStyle]}>
-                    <Text style={s.secondaryButtonText}>{creatingCategory ? '추가 중...' : '저장'}</Text>
+                    <Text style={s.secondaryButtonText}>
+                      {creatingCategory ? (isKo ? '추가 중...' : 'Adding...') : isKo ? '저장' : 'Save'}
+                    </Text>
                   </Pressable>
                   <Pressable
                     onPress={() => {
@@ -760,7 +820,7 @@ export function TaskEditorForm({
                     }}
                     style={[s.secondaryButton, smallActionButtonStyle]}
                   >
-                    <Text style={s.secondaryButtonText}>취소</Text>
+                    <Text style={s.secondaryButtonText}>{isKo ? '취소' : 'Cancel'}</Text>
                   </Pressable>
                 </View>
               </View>
@@ -769,13 +829,13 @@ export function TaskEditorForm({
                 onPress={() => setShowNewCategoryInput(true)}
                 style={[s.secondaryButton, { ...smallActionButtonStyle, alignSelf: 'flex-start' }]}
               >
-                <Text style={s.secondaryButtonText}>카테고리 추가</Text>
+                <Text style={s.secondaryButtonText}>{isKo ? '카테고리 추가' : 'Add category'}</Text>
               </Pressable>
             )}
             {categoryError ? <Text style={errorTextStyle}>{categoryError}</Text> : null}
             <View style={[s.row, { flexWrap: 'wrap', gap: 8 }]}>
               {availableCategories.length === 0 ? (
-                <Text style={s.subtleText}>선택 가능한 카테고리가 없습니다.</Text>
+                <Text style={s.subtleText}>{isKo ? '선택 가능한 카테고리가 없습니다.' : 'No categories available.'}</Text>
               ) : (
                 availableCategories.map((category) => {
                   const active = Number(selectedCategoryId) === Number(category.category_id);
@@ -809,13 +869,15 @@ export function TaskEditorForm({
                       setEditCategoryName(value);
                       if (categoryError) setCategoryError(null);
                     }}
-                    placeholder="카테고리 이름 수정"
+                    placeholder={isKo ? '카테고리 이름 수정' : 'Edit category name'}
                     style={[s.input, { minHeight: 52, borderRadius: 16, paddingHorizontal: 16 }]}
                     placeholderTextColor={colors.textMuted}
                   />
                   <View style={actionRowStyle}>
                     <Pressable onPress={() => void updateCategory()} style={[s.secondaryButton, smallActionButtonStyle]}>
-                      <Text style={s.secondaryButtonText}>{editingCategory ? '수정 중...' : '수정'}</Text>
+                      <Text style={s.secondaryButtonText}>
+                        {editingCategory ? (isKo ? '수정 중...' : 'Updating...') : isKo ? '수정' : 'Update'}
+                      </Text>
                     </Pressable>
                     <Pressable
                       onPress={() => void deleteCategory()}
@@ -829,7 +891,7 @@ export function TaskEditorForm({
                       ]}
                     >
                       <Text style={[s.secondaryButtonText, { color: '#DC2626' }]}>
-                        {deletingCategory ? '삭제 중...' : '삭제'}
+                        {deletingCategory ? (isKo ? '삭제 중...' : 'Deleting...') : isKo ? '삭제' : 'Delete'}
                       </Text>
                     </Pressable>
                   </View>

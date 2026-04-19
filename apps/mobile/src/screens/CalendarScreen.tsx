@@ -533,12 +533,13 @@ export function CalendarScreen({
 
   const allowPullToRefresh = viewMode !== 'month';
   const viewModeOptions = [
-    { key: 'month' as const, label: '월' },
-    { key: 'week' as const, label: '주' },
-    { key: 'timetable' as const, label: '표' },
+    { key: 'month' as const, label: locale === 'ko' ? '월' : 'Month' },
+    { key: 'week' as const, label: locale === 'ko' ? '주' : 'Week' },
+    { key: 'timetable' as const, label: locale === 'ko' ? '표' : 'Table' },
   ];
   const [viewModeMenuOpen, setViewModeMenuOpen] = useState(false);
-  const currentViewModeLabel = viewModeOptions.find((option) => option.key === viewMode)?.label ?? '월';
+  const currentViewModeLabel =
+    viewModeOptions.find((option) => option.key === viewMode)?.label ?? (locale === 'ko' ? '월' : 'Month');
   const renderMiniTaskCard = (task: TaskItem, key: string) => (
     <Pressable
       key={key}
@@ -753,7 +754,9 @@ export function CalendarScreen({
           }}
           style={styles.headerTitleWrap}
         >
-          <Text style={{ color: ui.text, fontSize: 20, fontWeight: '800', letterSpacing: -0.5 }}>{year}년 {MONTHS[month]}</Text>
+          <Text style={{ color: ui.text, fontSize: 20, fontWeight: '800', letterSpacing: -0.5 }}>
+            {locale === 'ko' ? `${year}년 ${MONTHS[month]}` : `${MONTHS[month]} ${year}`}
+          </Text>
         </Pressable>
         <View style={{ width: 86, height: 44, alignItems: 'flex-end' }}>
           <Pressable
@@ -1101,7 +1104,9 @@ export function CalendarScreen({
         >
           <View style={styles.weekHeaderRow}>
             <Text style={[styles.modePanelTitle, { color: ui.text }]}>{weekRangeLabel}</Text>
-            <Text style={[styles.modePanelMeta, { color: ui.subText }]}>주간 일정</Text>
+            <Text style={[styles.modePanelMeta, { color: ui.subText }]}>
+              {locale === 'ko' ? '주간 일정' : 'Weekly schedule'}
+            </Text>
           </View>
           {weekDates.map((date) => {
             const key = `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
@@ -1123,7 +1128,11 @@ export function CalendarScreen({
                   {date.getMonth() + 1}/{date.getDate()} ({WEEKDAYS[date.getDay()]}) · {items.length}
                 </Text>
                 {items.slice(0, 3).map((task) => renderMiniTaskCard(task, `week-${key}-${task.id}`))}
-                {!items.length ? <Text style={[styles.emptyInlineText, { color: ui.subText }]}>일정 없음</Text> : null}
+                {!items.length ? (
+                  <Text style={[styles.emptyInlineText, { color: ui.subText }]}>
+                    {locale === 'ko' ? '일정 없음' : 'No schedule'}
+                  </Text>
+                ) : null}
               </View>
             );
           })}
@@ -1166,21 +1175,33 @@ export function CalendarScreen({
               </Pressable>
               <View style={styles.actionChipRow}>
                 <Pressable style={[styles.actionChip, { borderColor: ui.border, backgroundColor: ui.surfaceSoft }]} onPress={() => onShiftTask?.(task.id, -30)}>
-                  <Text style={[styles.actionChipText, { color: ui.text }]}>-30m 이동</Text>
+                  <Text style={[styles.actionChipText, { color: ui.text }]}>
+                    {locale === 'ko' ? '-30m 이동' : 'Move -30m'}
+                  </Text>
                 </Pressable>
                 <Pressable style={[styles.actionChip, { borderColor: ui.border, backgroundColor: ui.surfaceSoft }]} onPress={() => onShiftTask?.(task.id, 30)}>
-                  <Text style={[styles.actionChipText, { color: ui.text }]}>+30m 이동</Text>
+                  <Text style={[styles.actionChipText, { color: ui.text }]}>
+                    {locale === 'ko' ? '+30m 이동' : 'Move +30m'}
+                  </Text>
                 </Pressable>
                 <Pressable style={[styles.actionChip, { borderColor: ui.border, backgroundColor: ui.surfaceSoft }]} onPress={() => onResizeTask?.(task.id, -30)}>
-                  <Text style={[styles.actionChipText, { color: ui.text }]}>-30m 축소</Text>
+                  <Text style={[styles.actionChipText, { color: ui.text }]}>
+                    {locale === 'ko' ? '-30m 축소' : 'Shrink -30m'}
+                  </Text>
                 </Pressable>
                 <Pressable style={[styles.actionChip, { borderColor: ui.border, backgroundColor: ui.surfaceSoft }]} onPress={() => onResizeTask?.(task.id, 30)}>
-                  <Text style={[styles.actionChipText, { color: ui.text }]}>+30m 확장</Text>
+                  <Text style={[styles.actionChipText, { color: ui.text }]}>
+                    {locale === 'ko' ? '+30m 확장' : 'Expand +30m'}
+                  </Text>
                 </Pressable>
               </View>
             </View>
           ))}
-          {!selectedDayTasks.length ? <Text style={s.emptyText}>선택한 날짜 일정이 없습니다.</Text> : null}
+          {!selectedDayTasks.length ? (
+            <Text style={s.emptyText}>
+              {locale === 'ko' ? '선택한 날짜 일정이 없습니다.' : 'No schedule on the selected date.'}
+            </Text>
+          ) : null}
         </View>
       ) : null}
 
@@ -1208,7 +1229,9 @@ export function CalendarScreen({
             },
           ]}
         >
-          <Text style={[styles.modePanelTitle, { color: ui.text }]}>시간표</Text>
+          <Text style={[styles.modePanelTitle, { color: ui.text }]}>
+            {locale === 'ko' ? '시간표' : 'Timetable'}
+          </Text>
           {renderTimetableBoard()}
         </View>
         </Animated.View>
