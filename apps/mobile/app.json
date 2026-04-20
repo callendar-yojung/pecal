@@ -2,7 +2,7 @@
   "expo": {
     "name": "피켈",
     "slug": "pecal-mobile",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "scheme": "myapp",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
@@ -11,7 +11,7 @@
       "supportsTablet": true,
       "icon": "./assets/last.png",
       "bundleIdentifier": "com.pecal.mobile",
-      "buildNumber": "19",
+      "buildNumber": "20",
       "infoPlist": {
         "NSCameraUsageDescription": "사진을 촬영하여 일정에 첨부하기 위해 사용됩니다.",
         "NSPhotoLibraryUsageDescription": "일정에 사진과 동영상을 첨부하기 위해 사용됩니다.",

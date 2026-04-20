@@ -99,48 +99,7 @@ platform :ios do
     provisioning_profiles = Actions.lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING]
     use_manual_signing = provisioning_profiles && !provisioning_profiles.empty?
 
-    # 태그에서 버전 추출
-    tag_name = ENV["GITHUB_REF_NAME"]
-    if tag_name && tag_name.start_with?("ios-v")
-      begin
-        version_from_tag = tag_name.gsub("ios-v", "")
-        UI.message("Force syncing everything to version #{version_from_tag}...")
-
-        # 1. app.json 수정 (Expo 빌드 페이즈 대응)
-        if File.exist?("app.json")
-          app_json = JSON.parse(File.read("app.json"))
-          app_json["expo"]["version"] = version_from_tag
-          app_json["expo"]["ios"]["buildNumber"] = version_from_tag if app_json["expo"]["ios"]
-          File.write("app.json", JSON.pretty_generate(app_json))
-          UI.success("Updated app.json version to #{version_from_tag}")
-        end
-        
-        # 2. xcodeproj 빌드 설정 수정
-        project_path = "ios/PecalMobile.xcodeproj"
-        if File.exist?(project_path)
-          project = Xcodeproj::Project.open(project_path)
-          project.targets.each do |target|
-            target.build_configurations.each do |config|
-              config.build_settings["MARKETING_VERSION"] = version_from_tag
-              config.build_settings["CURRENT_PROJECT_VERSION"] = version_from_tag
-            end
-          end
-          project.save
-          UI.success("Updated .xcodeproj build settings.")
-        end
-
-        # 3. Info.plist 수정
-        plists = ["ios/PecalMobile/Info.plist", "ios/PecalWidgetExtension/Info.plist"]
-        plists.each do |plist|
-          if File.exist?(plist)
-            set_info_plist_value(path: plist, key: "CFBundleShortVersionString", value: version_from_tag)
-            set_info_plist_value(path: plist, key: "CFBundleVersion", value: version_from_tag)
-          end
-        end
-      rescue => e
-        UI.error("Failed to sync versions: #{e.message}")
-      end
-    end
+    UI.message("Using app version and build number from committed iOS project settings.")
 
     # 모든 타겟의 코드 사이닝 설정을 수동으로 강제 및 프로필 매핑
     update_code_signing_settings(
