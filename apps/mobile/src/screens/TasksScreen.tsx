@@ -328,6 +328,7 @@ export function TasksScreen({
         {pagedTasks.map((task) => {
           const selected = selectedTaskIds.includes(task.id);
           const done = normalizeTaskStatus(task.status) === 'DONE';
+          const recurring = isRecurringTask(task);
           const accentColor = getTaskAccentColor(task);
           return (
             <Pressable
@@ -352,27 +353,37 @@ export function TasksScreen({
             >
               <View style={styles.taskCardTop}>
                 <View style={styles.taskCardTop}>
-                  <Pressable
-                    onPress={() => {
-                      if (selectionMode) {
-                        toggleSelectTask(task.id);
-                        return;
-                      }
-                      onChangeTaskStatus?.(task.id, done ? 'TODO' : 'DONE');
-                    }}
-                    style={[
-                      styles.checkbox,
-                      {
-                        borderWidth: selectionMode ? (selected ? 0 : 1.5) : done ? 0 : 1.5,
-                        borderColor: selectionMode ? (selected ? ui.primary : ui.checkboxBorder) : done ? ui.success : ui.checkboxBorder,
-                        backgroundColor: selectionMode ? (selected ? ui.primary : 'transparent') : done ? ui.success : 'transparent',
-                      },
-                    ]}
-                  >
-                    {(selectionMode && selected) || (!selectionMode && done) ? (
-                      <Ionicons name="checkmark" size={15} color="#fff" />
-                    ) : null}
-                  </Pressable>
+                  {!selectionMode && recurring ? (
+                    <View style={[styles.recurringLeading, { backgroundColor: colors.cardSoft }]}>
+                      <Ionicons
+                        name="repeat-outline"
+                        size={26}
+                        color={isDark ? '#8FA0C7' : '#8EA6C8'}
+                      />
+                    </View>
+                  ) : (
+                    <Pressable
+                      onPress={() => {
+                        if (selectionMode) {
+                          toggleSelectTask(task.id);
+                          return;
+                        }
+                        onChangeTaskStatus?.(task.id, done ? 'TODO' : 'DONE');
+                      }}
+                      style={[
+                        styles.checkbox,
+                        {
+                          borderWidth: selectionMode ? (selected ? 0 : 1.5) : done ? 0 : 1.5,
+                          borderColor: selectionMode ? (selected ? ui.primary : ui.checkboxBorder) : done ? ui.success : ui.checkboxBorder,
+                          backgroundColor: selectionMode ? (selected ? ui.primary : 'transparent') : done ? ui.success : 'transparent',
+                        },
+                      ]}
+                    >
+                      {(selectionMode && selected) || (!selectionMode && done) ? (
+                        <Ionicons name="checkmark" size={15} color="#fff" />
+                      ) : null}
+                    </Pressable>
+                  )}
                   <View style={styles.taskMain}>
                     <Text
                       style={[styles.taskTitle, { color: ui.text, textDecorationLine: done ? 'line-through' : 'none' }]}
@@ -402,7 +413,7 @@ export function TasksScreen({
                               </Text>
                             </View>
                           ))}
-                          {isRecurringTask(task) ? (
+                          {recurring ? (
                             <View style={[styles.taskTag, { backgroundColor: colors.cardSoft, borderColor: ui.border }]}>
                               <Text style={[styles.taskTagText, { color: ui.subText }]} numberOfLines={1}>
                                 반복 일정
@@ -631,6 +642,13 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recurringLeading: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },

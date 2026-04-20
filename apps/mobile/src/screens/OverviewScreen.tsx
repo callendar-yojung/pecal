@@ -265,12 +265,12 @@ export function OverviewScreen({ tasks, onPressTask, onToggleTaskDone }: Props) 
                         </Text>
                       </View>
                     ) : null}
+                    {task.tags && task.tags.length > 2 ? (
+                      <Text style={[styles.taskMore, styles.taskTag, { color: ui.primary, borderColor: ui.chipNeutralBorder, backgroundColor: ui.chipNeutralBg }]} numberOfLines={1}>
+                        +{task.tags.length - 2} more
+                      </Text>
+                    ) : null}
                   </View>
-                  {task.tags && task.tags.length > 2 ? (
-                    <Text style={[styles.taskMore, { color: ui.primary }]} numberOfLines={1}>
-                      +{task.tags.length - 2} more
-                    </Text>
-                  ) : null}
                 </View>
               </Pressable>
             );
@@ -319,11 +319,13 @@ export function OverviewScreen({ tasks, onPressTask, onToggleTaskDone }: Props) 
                       반복 · 매일
                     </Text>
                   </View>
-                </View>
-                <View style={[styles.recurringRightPill, { backgroundColor: ui.chipPrimaryBg }]}>
-                  <Text style={[styles.recurringRightPillText, { color: ui.primary }]} numberOfLines={1}>
-                    {(task.tags?.[0]?.name ?? '업무') + ' ›'}
-                  </Text>
+                  {task.tags?.[0] ? (
+                    <View style={[styles.taskTag, { backgroundColor: ui.chipPrimaryBg, borderColor: ui.chipNeutralBorder }]}>
+                      <Text style={[styles.taskTagText, { color: ui.primary }]} numberOfLines={1}>
+                        {task.tags[0].name}
+                      </Text>
+                    </View>
+                  ) : null}
                 </View>
               </View>
             </Pressable>
@@ -444,12 +446,12 @@ export function OverviewScreen({ tasks, onPressTask, onToggleTaskDone }: Props) 
                       </Text>
                     </View>
                   ))}
+                  {task.tags && task.tags.length > 2 ? (
+                    <Text style={[styles.taskMore, styles.taskTag, { color: ui.primary, borderColor: ui.chipNeutralBorder, backgroundColor: ui.chipNeutralBg }]} numberOfLines={1}>
+                      +{task.tags.length - 2} more
+                    </Text>
+                  ) : null}
                 </View>
-                {task.tags && task.tags.length > 2 ? (
-                  <Text style={[styles.taskMore, { color: ui.primary }]} numberOfLines={1}>
-                    +{task.tags.length - 2} more
-                  </Text>
-                ) : null}
               </View>
             </Pressable>
           )})}
@@ -541,14 +543,13 @@ const styles = StyleSheet.create({
   },
   taskTagRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
+    alignItems: 'flex-start',
     marginTop: 8,
   },
   taskTagLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 6,
     flex: 1,
     minWidth: 0,
@@ -575,9 +576,8 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   taskMore: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '700',
-    flexShrink: 0,
   },
   recurringWrap: {
     gap: 12,
@@ -588,9 +588,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+    gap: 0,
     marginBottom: 0,
     minHeight: 40,
   },
@@ -610,18 +608,6 @@ const styles = StyleSheet.create({
   recurringDate: {
     fontSize: 13,
     fontWeight: '600',
-  },
-  recurringRightPill: {
-    height: 27,
-    borderRadius: 999,
-    backgroundColor: '#EEF3FF',
-    paddingHorizontal: 12,
-    justifyContent: 'center',
-    maxWidth: 116,
-  },
-  recurringRightPillText: {
-    fontSize: 12,
-    fontWeight: '700',
   },
   categorySelector: {
     height: 44,
