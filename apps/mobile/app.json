@@ -4,7 +4,6 @@
     "slug": "pecal-mobile",
     "version": "1.0.5",
     "scheme": "myapp",
-    "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "icon": "./assets/last.png",
     "ios": {

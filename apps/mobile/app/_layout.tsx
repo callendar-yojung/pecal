@@ -10,14 +10,12 @@ import { MobileAppProvider } from '../src/contexts/MobileAppContext';
 import { useThemeMode } from '../src/contexts/ThemeContext';
 
 function AppChrome() {
-  const { colors, appearance } = useThemeMode();
+  const { appearance } = useThemeMode();
 
   return (
     <>
       <StatusBar
         style={appearance === 'dark' ? 'light' : 'dark'}
-        backgroundColor={colors.bg}
-        translucent={false}
       />
       <Slot />
     </>

@@ -29,12 +29,16 @@ export default function TabsLayout() {
   const { t, locale, setLocale } = useI18n();
   const [flushingQueue, setFlushingQueue] = useState(false);
   const { width } = useWindowDimensions();
-  const isCompact = width < 980;
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(width < 980);
+  const isCompact = width < 720;
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(width < 1100);
   const s = createStyles(colors);
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    setSidebarCollapsed(width < 1100);
+  }, [width]);
 
   const navItems: Array<{
     key: 'overview' | 'tasks' | 'calendar' | 'memo' | 'files';
@@ -392,7 +396,7 @@ export default function TabsLayout() {
 
   return (
     <SafeAreaView
-      edges={['top']}
+      edges={['top', 'left', 'right']}
       style={{ flex: 1, backgroundColor: colors.bg }}
     >
       <View style={s.header}>
@@ -718,9 +722,9 @@ export default function TabsLayout() {
 
           <View style={s.sidebarMainContent}>
             <View style={s.mainTopBar}>
-              <View>
+              <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={s.mainTopTitle}>{activeNav.label}</Text>
-                <Text style={s.mainTopSubtitle}>
+                <Text style={s.mainTopSubtitle} numberOfLines={1} ellipsizeMode="tail">
                   {auth.session.nickname} · {data.selectedWorkspace?.name ?? t('noWorkspace')}
                 </Text>
               </View>
