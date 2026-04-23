@@ -237,6 +237,8 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           APPLE_CERTIFICATE_IDENTITY: ${{ env.APPLE_CERTIFICATE_IDENTITY }}
+          VITE_API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          VITE_APP_VERSION: ${{ steps.version.outputs.VERSION }}
 
       - name: Sign + notarize + staple DMG (macOS)
         if: matrix.platform == 'macos'

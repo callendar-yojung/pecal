@@ -8,7 +8,7 @@ import { openExternal } from '../../lib/openExternal'
 import { useAuthStore, useThemeStore } from '../../stores'
 import { resolveApiBaseUrl } from '../../lib/apiBaseUrl'
 
-const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL, 'http://localhost:3000')
+const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL, 'https://pecal.site')
 const DEFAULT_DEEPLINK_SCHEME = import.meta.env.DEV
   ? 'deskcal-dev://auth/callback'
   : 'deskcal://auth/callback'
