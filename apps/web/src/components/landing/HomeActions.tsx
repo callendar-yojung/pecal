@@ -40,7 +40,9 @@ const STORE_ACTIONS: StoreAction[] = [
   },
   {
     key: "playStore",
-    href: process.env.NEXT_PUBLIC_PLAY_STORE_URL ?? null,
+    href:
+      process.env.NEXT_PUBLIC_PLAY_STORE_URL ??
+      "https://play.google.com/store/apps/details?id=com.pecal.mobile",
   },
 ];
 
@@ -85,7 +87,10 @@ export default function HomeActions() {
         const releases = data.releases ?? {};
         // Prefer Apple Silicon build first, then generic macOS, then Intel build.
         const latestMacRelease =
-          releases["macos-arm64"] ?? releases.macos ?? releases["macos-x64"] ?? null;
+          releases["macos-arm64"] ??
+          releases.macos ??
+          releases["macos-x64"] ??
+          null;
 
         if (mounted) {
           setMacRelease(latestMacRelease);
@@ -117,7 +122,9 @@ export default function HomeActions() {
         <h1 className="text-3xl font-bold text-foreground md:text-4xl">
           {t("title")}
         </h1>
-        <p className="mt-3 text-base text-muted-foreground">{t("description")}</p>
+        <p className="mt-3 text-base text-muted-foreground">
+          {t("description")}
+        </p>
 
         <div className="mt-8 flex w-full flex-col gap-3">
           <Link
